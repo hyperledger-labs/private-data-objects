@@ -51,4 +51,3 @@ a "Global Synchronization Log".
 # Sponsor
 
 Dan Middleton (dan.middleton@intel.com)
-
