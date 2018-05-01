@@ -1,0 +1,243 @@
+/* Copyright 2018 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+#include "error.h"
+#include "pdo_error.h"
+#include "types.h"
+
+#include "crypto.h"
+#include "jsonvalue.h"
+#include "parson.h"
+
+#include "contract_request.h"
+#include "contract_response.h"
+#include "contract_secrets.h"
+
+#include "enclave_utils.h"
+
+#include "interpreter/ContractInterpreter.h"
+#include "interpreter/gipsy_scheme/GipsyInterpreter.h"
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Request format for create and send methods
+//
+// {
+//     "Operation" : "<string>",
+//     "ContractID" : "<string>",
+//     "CreatorID" : "<string>",
+//     "EncryptedStateEncryptionKey" : "<base64 encoded encrypted state encryption key>",
+//     "Contract" :
+//     {
+//         "Code" : "<string>",
+//         "Name" : "<string>"
+//         "Nonce" : "<string>"
+//     },
+//     "Message" :
+//     {
+//         "Expression" : "<string>",
+//         "OriginatorPublicKey" : "<serialized verifying key>",
+//         "ChannelPublicKey" : "<serialized verifying key>",
+//         "Signature" : "<base64 encoded signature>"
+//     },
+//     "ContractState" :
+//     {
+//         "EncryptedState" : ""
+//     }
+// }
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractRequest::ContractRequest(
+    const ByteArray& session_key, const ByteArray& session_iv, const ByteArray& encrypted_request)
+{
+    JSON_Object* ovalue = nullptr;
+
+    ByteArray decrypted_request =
+        pdo::crypto::skenc::DecryptMessage(session_key, session_iv, encrypted_request);
+    std::string request = ByteArrayToString(decrypted_request);
+
+    // Parse the contract request
+    JsonValue parsed(json_parse_string(request.c_str()));
+    pdo::error::ThrowIfNull(
+        parsed.value, "failed to parse the contract request, badly formed JSON");
+
+    JSON_Object* request_object = json_value_get_object(parsed);
+    pdo::error::ThrowIfNull(request_object, "Missing JSON object in contract request");
+
+    // operation
+    const char* pvalue = json_object_dotget_string(request_object, "Operation");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve contract operation");
+    std::string svalue(pvalue);
+
+    if (svalue == "initialize")
+        operation_ = op_initialize;
+    else if (svalue == "update")
+        operation_ = op_update;
+    else
+        throw pdo::error::ValueError("unknown operation requested");
+
+    // contract information
+    pvalue = json_object_dotget_string(request_object, "ContractID");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractID");
+    contract_id_.assign(pvalue);
+
+    pvalue = json_object_dotget_string(request_object, "CreatorID");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve CreatorID");
+    creator_id_.assign(pvalue);
+
+    // state encryption key
+    pvalue = json_object_dotget_string(request_object, "EncryptedStateEncryptionKey");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve EncryptedStateEncryptionKey");
+
+    state_encryption_key_ = DecodeAndDecryptStateEncryptionKey(contract_id_, pvalue);
+
+    // contract code
+    ovalue = json_object_dotget_object(request_object, "ContractCode");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractCode");
+    contract_code_.Unpack(ovalue);
+
+    // contract state
+    ovalue = json_object_dotget_object(request_object, "ContractState");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractState");
+
+    ByteArray id_hash = Base64EncodedStringToByteArray(contract_id_);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        id_hash.size() != SHA256_DIGEST_LENGTH,
+        "invalid contract id");
+
+    contract_state_.Unpack(state_encryption_key_, ovalue, id_hash, contract_code_.ComputeHash());
+
+    // contract message
+    ovalue = json_object_dotget_object(request_object, "ContractMessage");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractMessage");
+    contract_message_.Unpack(ovalue);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractResponse ContractRequest::process_initialization_request(void)
+{
+    // the only reason for the try/catch here is to provide some logging for the error
+    try
+    {
+        GipsyInterpreter interpreter;
+
+        // interpreter.create_initial_contract_state(contractid, creatorid, contractcode, message,
+        // state)
+        pdo::contracts::ContractCode code;
+        code.Code = contract_code_.code_;
+        code.Name = contract_code_.name_;
+
+        pdo::contracts::ContractMessage msg;
+        msg.Message = contract_message_.expression_;
+        msg.OriginatorID = contract_message_.originator_verifying_key_;
+
+        pdo::contracts::ContractState new_contract_state;
+        std::map<string, string> dependencies;
+
+        interpreter.create_initial_contract_state(
+            contract_id_, creator_id_, code, msg, new_contract_state);
+
+        ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
+        ContractResponse response(*this, dependencies, new_state, "");
+
+        return response;
+    }
+    catch (pdo::error::Error& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+            "exception occured while processing contract initialization request: %04X -- %s",
+            e.error_code(), e.what());
+        throw;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "unknown error happened while processing contract initialization");
+        throw;
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractResponse ContractRequest::process_update_request(void)
+{
+    // the only reason for the try/catch here is to provide some logging for the error
+    try
+    {
+        GipsyInterpreter interpreter;
+
+        // interpreter.create_initial_contract_state(contractid, creatorid, contractcode, message,
+        // state)
+        pdo::contracts::ContractCode code;
+        code.Code = contract_code_.code_;
+        code.Name = contract_code_.name_;
+
+        pdo::contracts::ContractMessage msg;
+        msg.Message = contract_message_.expression_;
+        msg.OriginatorID = contract_message_.originator_verifying_key_;
+
+        pdo::contracts::ContractState current_contract_state;
+        current_contract_state.StateHash = ByteArrayToBase64EncodedString(contract_state_.state_hash_);
+        current_contract_state.State = ByteArrayToString(contract_state_.decrypted_state_);
+
+        pdo::contracts::ContractState new_contract_state;
+        std::map<string, string> dependencies;
+        std::string result;
+
+        interpreter.send_message_to_contract(contract_id_, creator_id_, code, msg,
+            current_contract_state, new_contract_state, dependencies, result);
+
+        ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
+        ContractResponse response(*this, dependencies, new_state, result);
+        return response;
+    }
+    catch (pdo::error::Error& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+            "exception occured while processing contract update request: %04X -- %s",
+            e.error_code(), e.what());
+        throw;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "unknown error happened while processing contract update");
+        throw;
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractResponse ContractRequest::process_request(void)
+{
+    switch (operation_)
+    {
+        case op_initialize:
+            return process_initialization_request();
+
+        case op_update:
+            return process_update_request();
+
+        default:
+            throw pdo::error::ValueError("unknown operation");
+    }
+}

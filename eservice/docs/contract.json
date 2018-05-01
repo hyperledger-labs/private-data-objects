@@ -1,0 +1,81 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "PDO Contract Request",
+    "id": "http://tradenet.org/pdo/eservice/contract/requests#",
+    "definitions": {
+        "ContractRequest": {
+            "id": "#initRequest",
+            "description": "a request to create a new instance of a contract state associated with the contract identifier",
+            "type": "object",
+            "properties": {
+                "Operation": {
+                    "description": "field describing the type of the request",
+                    "type": "string",
+                    "enum": [
+                        "initialize",
+                        "update"
+                    ],
+                    "required": true
+                },
+                "ContractState": {
+                    "$ref": "#/pdo/basetypes/contract-state",
+                    "required": true
+                },
+                "ContractCode": {
+                    "$ref": "#/pdo/basetypes/contract-code",
+                    "required": true
+                },
+                "ContractMessage": {
+                    "$ref": "#/pdo/basetypes/contract-message",
+                    "required": true
+                }
+            }
+        },
+        "ContractResponse": {
+            "id": "#ContractResponse",
+            "description": "General schema for responses from the contract enclave",
+            "type": "object",
+            "properties": {
+                "Contract-State": {
+                    "description": "state resulting from the evaluation of the method",
+                    "$ref": "#/pdo/basetypes/contract-state",
+                    "required": true
+                },
+                "Dependencies": {
+                    "description": "List of dependent contract commits",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "minItems": 0,
+                        "uniqueItems": true,
+                        "default": [],
+                        "properties": {
+                            "ContractID": {
+                                "$ref": "#/pdo/basetypes/contractid",
+                                "required": true
+                            },
+                            "StateHash": {
+                                "description": "hash of the state that must be committed",
+                                "type": "string",
+                                "format": "base64 urlsafe encoded sha256 hash without padding",
+                                "minLength": 22,
+                                "maxLength": 22,
+                                "required": true
+                            }
+                        }
+                    }
+                },
+                "Result": {
+                    "description": "the value returned from method evaluation",
+                    "$ref": "#/pdo/basetypes/s-expression",
+                    "required": true
+                },
+                "Signature": {
+                    "description": "signature of the request/response",
+                    "$ref": "#/pdo/basetypes/signature",
+                    "required": true
+                }
+            }
+        }
+    }
+}

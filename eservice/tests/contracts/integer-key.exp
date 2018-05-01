@@ -1,0 +1,8 @@
+'(create "a" 0)
+'(inc "a" 1)
+'(inc "a" 5)
+'(dec "a" 2)
+'(get-value "a")
+'(create "b" 5)
+'(escrow "b" "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEz9s2L5K+0ikrWbh0JrzdkYyOPnqZb/Ui\n/3CKAAxrBVeZ/As6fBCiGjOdtq5Nlwk17+rc/EcDWrskGtb7YvzMIw==\n-----END PUBLIC KEY-----")
+'(escrow-attestation "b")

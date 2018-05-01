@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Secret provisioning service",
+    "id": "http://tradenet.org/pasrequests#",
+    "definitions": {
+        "ProvisioningServiceRequest": {
+            "id": "#ProvisioningServiceRequest",
+            "description": "General schema for requests to the secret provisioning service",
+            "type": "object",
+            "properties": {
+                "request": {
+                    "description": "the request to process",
+                    "type": "object",
+                    "required": true,
+                    "oneOf": [
+                        {
+                            "$ref": "#secretRequest"
+                        }
+                    ]
+                }
+            }
+        },
+        "secretRequest": {
+            "id": "#secretRequest",
+            "description": "secret request object",
+            "type": "object",
+            "properties": {
+                "reqType": {
+                    "description": "field describing the type of the request",
+                    "type": "string",
+                    "required": true,
+                    "enum": [
+                        "secretRequest"
+                    ]
+                },
+                "enclave_txn_id": {
+                    "description": "identifier of the transaction containing the enclave registration information",
+                    "type": "identifier",
+                    "required": true
+                },
+                "contract_txn_id": {
+                    "description": "identifier of the transaction containing the contract registration information",
+                    "type": "identifer",
+                    "required": true
+                },
+                "opk": {
+                    "description": "serialized SECP256K1 ECDSA SHA256 key",
+                    "type": "pybitcoin public key base64URL encoding of pk = pybitcointools.privkey_to_pubkey(skb)",
+                    "required": true
+                },
+                "signature": {
+                    "description": "ecdsa signature of the enclave_txn_id and contract_txn_id verified with the opk",
+                    "type": "blah blah",
+                    "required": true
+                }
+            }
+        },
+        "secretResponse": {
+            "id": "#secretResponse",
+            "type": "object",
+            "properties": {
+                "pspk": {
+                    "description": "serialized SECP256K1 ECDSA verifying key",
+                    "type": "PEM formatted signing key",
+                    "required": true
+                },
+                "encrypted_secret": {
+                    "description": "serialized (base64) RSA encrypted secret",
+                    "type": "base64 string",
+                    "required": true
+                }
+            }
+        }
+    }
+}
