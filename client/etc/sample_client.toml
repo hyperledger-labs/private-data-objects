@@ -1,0 +1,94 @@
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# --------------------------------------------------
+# Client -- Contract owner configuration
+# --------------------------------------------------
+[Client]
+Identity = "${identity}"
+
+# --------------------------------------------------
+# Sawtooth -- sawtooth ledger configuration
+# --------------------------------------------------
+[Sawtooth]
+LedgerURL = "http://127.0.0.1:8008"
+
+# --------------------------------------------------
+# Service -- Information about enclave/provisioning services
+# --------------------------------------------------
+[Service]
+
+# PreferredEnclaveService is the enclave service that
+# will be used by default for interactions with the
+# contract
+PreferredEnclaveSerivce = "http://127.0.0.1:7101"
+
+# EnclaveServiceURLs is the default list of enclaves
+# to provision for the contract
+EnclaveServiceURLs = [
+    "http://127.0.0.1:7100",
+#    "http://127.0.0.1:7102",
+#    "http://127.0.0.1:7103",
+#    "http://127.0.0.1:7104",
+#    "http://127.0.0.1:7105"
+]
+
+# ProvisioningServiceURLs is the default list of
+# provisioning services to contact for secrets that
+# contribute to the state encryption key
+ProvisioningServiceURLs = [
+    "http://127.0.0.1:7800",
+#    "http://127.0.0.1:7801",
+#    "http://127.0.0.1:7802"
+]
+
+# --------------------------------------------------
+# Contract -- Contract configuration
+# --------------------------------------------------
+[Contract]
+
+# Name is the name of the contract class in the
+# Gipsy Scheme contract
+Name = "${contract}"
+
+# SourceFile is the name of the Gipsy Scheme
+# source file that defines the contract class
+SourceFile = "${contract}.scm"
+
+# SourceSearchPath is a list of directories to search
+# for the contract source file
+SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
+
+# DataDirectory is the default location for storing
+# the contract information file
+DataDirectory = "${data}"
+
+# SaveFile is the name of the file used to store
+# the contract information
+SaveFile = "${contract}.pdo"
+
+# --------------------------------------------------
+# Logging -- configuration of service logging
+# --------------------------------------------------
+[Logging]
+LogLevel = "INFO"
+LogFile  = "${logs}/${identity}.log"
+
+# --------------------------------------------------
+# Key -- configuration for owner's signing key
+# --------------------------------------------------
+[Key]
+# This key is the contract owner's private elliptic curve PEM key
+SearchPath = [ ".", "./keys", "${keys}" ]
+FileName = "${identity}.pem"

@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Return the number of registered endpoints in the exit status
+"""
+
+import os
+import toml
+import re
+from string import Template
+
+## -----------------------------------------------------------------
+ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHome = os.environ.get("CONTRACTHOME") or os.path.realpath("/opt/pdo")
+ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
+ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
+ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
+ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+HttpsProxy = os.environ.get("https_proxy", "")
+
+config_map = {
+    'data' : ContractData,
+    'etc'  : ContractEtc,
+    'home' : ContractHome,
+    'host' : ContractHost,
+    'keys' : ContractKeys,
+    'logs' : ContractLogs,
+    'proxy' : HttpsProxy
+}
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def parse_configuration_file(filename, variable_map) :
+    """
+    Parse a configuration file expanding variable references
+    using the Python Template library (variables are $var format)
+
+    :param string filename: name of the configuration file
+    :param dict variable_map: dictionary of expansions to use
+    :returns dict: dictionary of configuration information
+    """
+
+    cpattern = re.compile('##.*$')
+
+    with open(filename) as fp :
+        lines = fp.readlines()
+
+    text = ""
+    for line in lines :
+        text += re.sub(cpattern, '', line) + ' '
+
+    if variable_map :
+        text = Template(text).substitute(variable_map)
+
+    return toml.loads(text)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def ConfigNode(options, node, httpport = 0) :
+    node_map = config_map.copy()
+    node_map['identity'] = node
+    node_map['httpport'] = httpport
+
+    filename = os.path.join(options.template_directory, options.template)
+    config = parse_configuration_file(filename, node_map)
+
+    filename = os.path.join(options.output, node + '.toml')
+    with open(filename, 'w') as outfile:
+        toml.dump(config, outfile)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+import argparse
+
+parser = argparse.ArgumentParser(description='Script to generate sawtooth configuration files from a template')
+
+parser.add_argument('--template', help='Name of the base configuration file to use', default='template.js')
+parser.add_argument('--template-directory', help='Directory in which the template configuration will be found', default='etc/templates')
+parser.add_argument('--node-base', help='Base for node names', default='node')
+parser.add_argument('--http-base', help='Base for http ports used for nodes', default=8800, type=int)
+parser.add_argument('--output', help='Name of the directory where generated configuration files are written', default='etc')
+parser.add_argument('--count', help='Number of validators to configure', default=9)
+
+options = parser.parse_args()
+
+# and create all of the other nodes
+for n in range(1, int(options.count)+1) :
+    node = options.node_base + str(n)
+    httpport = options.http_base + n
+    ConfigNode(options, node, httpport = httpport)

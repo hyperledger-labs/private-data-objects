@@ -1,0 +1,15 @@
+*.o
+*.a
+*.ctx
+scheme
+init-package.h
+oops-package.h
+catch-package.h
+*.so
+*.pyc
+_ContractEnclave.cc
+ContractEnclave.py
+keys
+build
+dist
+*.egg-info

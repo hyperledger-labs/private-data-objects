@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+: ${TINY_SCHEME_SRC:=~/dev/packages/tinyscheme-1.41}
+export TINY_SCHEME_SRC
+
+PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
+if [[ $PY3_VERSION -lt 5 ]]; then
+    echo activate python3 first
+    exit
+fi
+
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+
+# --------------- COMMON ---------------
+cd $SRCDIR/common
+
+rm -rf build
+mkdir build
+cd build
+cmake ..
+make
+
+# --------------- PYTHON ---------------
+cd $SRCDIR/python
+make clean
+make build
+make install
+
+# --------------- ESERVICE ---------------
+cd $SRCDIR/eservice
+make clean
+make build_all
+make install
+
+# --------------- PSERVICE ---------------
+cd $SRCDIR/pservice
+make clean
+make build
+make install
+
+# --------------- CLIENT ---------------
+cd $SRCDIR/clean
+make clean
+make all
+make install
