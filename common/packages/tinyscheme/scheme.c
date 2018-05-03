@@ -1677,7 +1677,7 @@ static pointer port_from_string(scheme * sc, char *start,
     return mk_port(sc, pt);
 }
 
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 1024
 
 static port *port_rep_from_scratch(scheme * sc)
 {
@@ -1691,12 +1691,11 @@ static port *port_rep_from_scratch(scheme * sc)
     if (start == 0) {
 	return 0;
     }
-    memset(start, ' ', BLOCK_SIZE - 1);
-    start[BLOCK_SIZE - 1] = '\0';
+    memset(start, 0, BLOCK_SIZE);
     pt->kind = port_string | port_output | port_srfi6;
     pt->rep.string.start = start;
     pt->rep.string.curr = start;
-    pt->rep.string.past_the_end = start + BLOCK_SIZE - 1;
+    pt->rep.string.past_the_end = start + BLOCK_SIZE;
     return pt;
 }
 
@@ -1790,15 +1789,15 @@ static void backchar(scheme * sc, int c)
 static int realloc_port_string(scheme * sc, port * p)
 {
     char *start = p->rep.string.start;
-    size_t new_size = p->rep.string.past_the_end - start + 1 + BLOCK_SIZE;
+    size_t old_size = p->rep.string.past_the_end - start;
+    size_t new_size = old_size * 2;
     char *str = (char *) sc->malloc(new_size);
     if (str) {
-	memset(str, ' ', new_size - 1);
-	str[new_size - 1] = '\0';
-	strncpy(str, start, new_size);
+	memset(str, 0, new_size);
+	strncpy(str, start, old_size);
 	p->rep.string.start = str;
-	p->rep.string.past_the_end = str + new_size - 1;
-	p->rep.string.curr -= start - str;
+	p->rep.string.past_the_end = str + new_size;
+	p->rep.string.curr = str + old_size;
 	sc->free(start);
 	return 1;
     } else {
@@ -5149,7 +5148,10 @@ void scheme_set_output_port_file(scheme * sc, FILE * fout)
 void scheme_set_output_port_string(scheme * sc, char *start,
 				   char *past_the_end)
 {
-    sc->outport = port_from_string(sc, start, past_the_end, port_output);
+    if (start == NULL)
+        sc->outport = port_from_scratch(sc);
+    else
+        sc->outport = port_from_string(sc, start, past_the_end, port_output);
 }
 
 void scheme_set_external_data(scheme * sc, void *p)
