@@ -54,7 +54,7 @@ make build
 make install
 
 # --------------- CLIENT ---------------
-cd $SRCDIR/clean
+cd $SRCDIR/client
 make clean
 make all
 make install

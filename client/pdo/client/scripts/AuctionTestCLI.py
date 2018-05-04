@@ -77,10 +77,14 @@ def SendMessageAsIdentity(config, contract, invoker_keys, message, fmt = 'python
 
         request = contract.create_update_request(invoker_keys, enclave_service, message)
         response = request.evaluate()
-        logger.debug('result: %s, ', response.result)
+        logger.info('result: %s, ', response.result)
     except Exception as e :
         logger.error('method invocation failed for message %s: %s', message, str(e))
         sys.exit(-1)
+
+    if response.status is False :
+        logger.warn('method invocation failed for %s; %s', message, response.result)
+        raise Exception("method invocation failed; {0}".format(response.result))
 
     try :
         if wait :
@@ -165,6 +169,11 @@ def CreateAndRegisterContract(config, contract_info, creator_keys) :
     eservice = random.choice(enclave_services)
     initialize_request = contract.create_initialize_request(creator_keys, eservice)
     initialize_response = initialize_request.evaluate()
+    if initialize_response.status is False :
+        emessage = initialize_response.result
+        logger.warn('initialization for contract %s failed; %s', contract_name, emessage)
+        raise Exception('initialization failed; {}'.format(emessage))
+
     contract.set_state(initialize_response.encrypted_state)
 
     logger.info('initial state created')
@@ -344,7 +353,7 @@ def LocalMain(config) :
         CancelBid(config, auction_contract, asset_contract, user_keys)
 
     # ---------- dump the final state of the contract ----------
-    result = SendMessageAsIdentity(config, asset_contract, asset_keys, "'(get-state)", fmt='python', wait=True)
+    result = SendMessageAsIdentity(config, asset_contract, asset_keys, "'(get-state)", fmt='python')
     pp.pprint(result)
     print("auction contract id = {0}".format(auction_contract.contract_id))
     print("asset contract id = {0}".format(asset_contract.contract_id))

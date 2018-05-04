@@ -45,6 +45,7 @@ ContractResponse::ContractResponse(const ContractRequest& request,
 {
     contract_id_ = request.contract_id_;
     creator_id_ = request.creator_id_;
+    operation_succeeded_ = true;
 
     contract_code_hash_ = request.contract_code_.ComputeHash();
     contract_message_hash_ = request.contract_message_.ComputeHash();
@@ -65,31 +66,41 @@ ByteArray ContractResponse::SerializeForSigning(void) const
     std::copy(channel_verifying_key_.begin(), channel_verifying_key_.end(),
         std::back_inserter(serialized));
 
-    SAFE_LOG(PDO_LOG_INFO, "contract id: %s", contract_id_.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "contract id: %s", contract_id_.c_str());
     std::copy(contract_id_.begin(), contract_id_.end(), std::back_inserter(serialized));
-    SAFE_LOG(PDO_LOG_INFO, "creator id: %s", creator_id_.c_str());
+
+    SAFE_LOG(PDO_LOG_DEBUG, "creator id: %s", creator_id_.c_str());
     std::copy(creator_id_.begin(), creator_id_.end(), std::back_inserter(serialized));
+
+#ifdef ENCLAVE_DEBUG
     std::string contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
-    SAFE_LOG(PDO_LOG_INFO, "contract_code_hash: %s", contract_hash.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", contract_hash.c_str());
+#endif
     std::copy(
-        contract_code_hash_.begin(), contract_code_hash_.end(), std::back_inserter(serialized));
+        contract_code_hash_.begin(),
+        contract_code_hash_.end(),
+        std::back_inserter(serialized));
+
 #ifdef ENCLAVE_DEBUG
     std::string message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
-    SAFE_LOG(PDO_LOG_INFO, "contract_message_hash: %s", message_hash.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", message_hash.c_str());
 #endif
-    std::copy(contract_message_hash_.begin(), contract_message_hash_.end(),
+    std::copy(
+        contract_message_hash_.begin(),
+        contract_message_hash_.end(),
         std::back_inserter(serialized));
+
 #ifdef ENCLAVE_DEBUG
     std::string state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
-    SAFE_LOG(PDO_LOG_INFO, "new state hash: %s", state_hash.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", state_hash.c_str());
 #endif
-    std::copy(output_contract_state_hash_.begin(), output_contract_state_hash_.end(),
+    std::copy(
+        output_contract_state_hash_.begin(),
+        output_contract_state_hash_.end(),
         std::back_inserter(serialized));
 
     if (not contract_initializing_)
     {
-        SAFE_LOG(PDO_LOG_INFO, "compute previous state hash");
-
         std::copy(input_contract_state_hash_.begin(), input_contract_state_hash_.end(),
             std::back_inserter(serialized));
 
@@ -100,6 +111,7 @@ ByteArray ContractResponse::SerializeForSigning(void) const
             std::copy(iter->second.begin(), iter->second.end(), std::back_inserter(serialized));
         }
     }
+
 #ifdef ENCLAVE_DEBUG
     std::string mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
     SAFE_LOG(PDO_LOG_DEBUG, "serialized contract response message has length %d and hash %s",
@@ -132,54 +144,61 @@ ByteArray ContractResponse::SerializeAndEncrypt(const ByteArray& session_key,
     // serialization
     JSON_Status jret;
 
-    // --------------- signature ---------------
-    ByteArray signature = ComputeSignature(enclave_data);
-    Base64EncodedString encoded_signature = base64_encode(signature);
-
-    jret =
-        json_object_dotset_string(contract_response_object, "Signature", encoded_signature.c_str());
+    // --------------- status ---------------
+    jret = json_object_dotset_boolean(contract_response_object, "Status", operation_succeeded_);
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize the signature");
-
-    // --------------- state ---------------
-    Base64EncodedString encoded_state = base64_encode(contract_state_.encrypted_state_);
-    jret = json_object_dotset_string(contract_response_object, "State", encoded_state.c_str());
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize the state");
+        jret != JSONSuccess, "failed to serialize the status");
 
     // --------------- result ---------------
     jret = json_object_dotset_string(contract_response_object, "Result", result_.c_str());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the result");
 
-    // --------------- dependencies ---------------
-    jret = json_object_set_value(contract_response_object, "Dependencies", json_value_init_array());
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize the dependencies");
+    if (operation_succeeded_) {
+        // --------------- signature ---------------
+        ByteArray signature = ComputeSignature(enclave_data);
+        Base64EncodedString encoded_signature = base64_encode(signature);
 
-    JSON_Array* dependency_array = json_object_get_array(contract_response_object, "Dependencies");
-    pdo::error::ThrowIfNull(dependency_array, "failed to serialize the dependency array");
-
-    std::map<std::string, std::string>::const_iterator it;
-    for (it = dependencies_.begin(); it != dependencies_.end(); it++)
-    {
-        JSON_Value* dependency_value = json_value_init_object();
-        pdo::error::ThrowIfNull(dependency_value, "failed to create a dependency array");
-
-        JSON_Object* dependency_object = json_value_get_object(dependency_value);
-        pdo::error::ThrowIfNull(dependency_object, "failed to create a dependency array");
-
-        jret = json_object_dotset_string(dependency_object, "ContractID", it->first.c_str());
+        jret =
+            json_object_dotset_string(contract_response_object, "Signature", encoded_signature.c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            jret != JSONSuccess, "failed to serialize contract id in the dependency list");
+            jret != JSONSuccess, "failed to serialize the signature");
 
-        jret = json_object_dotset_string(dependency_object, "StateHash", it->second.c_str());
+        // --------------- state ---------------
+        Base64EncodedString encoded_state = base64_encode(contract_state_.encrypted_state_);
+        jret = json_object_dotset_string(contract_response_object, "State", encoded_state.c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            jret != JSONSuccess, "failed to serialize contract hash in the dependency list");
+            jret != JSONSuccess, "failed to serialize the state");
 
-        jret = json_array_append_value(dependency_array, dependency_value);
+        // --------------- dependencies ---------------
+        jret = json_object_set_value(contract_response_object, "Dependencies", json_value_init_array());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            jret != JSONSuccess, "failed to add dependency to the serialization array");
+            jret != JSONSuccess, "failed to serialize the dependencies");
+
+        JSON_Array* dependency_array = json_object_get_array(contract_response_object, "Dependencies");
+        pdo::error::ThrowIfNull(dependency_array, "failed to serialize the dependency array");
+
+        std::map<std::string, std::string>::const_iterator it;
+        for (it = dependencies_.begin(); it != dependencies_.end(); it++)
+        {
+            JSON_Value* dependency_value = json_value_init_object();
+            pdo::error::ThrowIfNull(dependency_value, "failed to create a dependency array");
+
+            JSON_Object* dependency_object = json_value_get_object(dependency_value);
+            pdo::error::ThrowIfNull(dependency_object, "failed to create a dependency array");
+
+            jret = json_object_dotset_string(dependency_object, "ContractID", it->first.c_str());
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                jret != JSONSuccess, "failed to serialize contract id in the dependency list");
+
+            jret = json_object_dotset_string(dependency_object, "StateHash", it->second.c_str());
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                jret != JSONSuccess, "failed to serialize contract hash in the dependency list");
+
+            jret = json_array_append_value(dependency_array, dependency_value);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                jret != JSONSuccess, "failed to add dependency to the serialization array");
+        }
     }
 
     // serialize the resulting json
