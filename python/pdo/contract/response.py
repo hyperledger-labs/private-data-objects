@@ -98,35 +98,38 @@ class ContractResponse(object) :
         :param request: the ContractRequest object corresponding to the response
         :param response: diction containing the response from the enclave
         """
-        self.signature = response['Signature']
-        self.encrypted_state = response['State']
+        self.status = response['Status']
         self.result = response['Result']
 
-        # we have another mismatch between the field names in the enclave
-        # and the field names expected in the transaction; this needs to
-        # be fixed at some point
-        self.dependencies = []
-        for dependency in response['Dependencies'] :
-            contract_id = dependency['ContractID']
-            state_hash = dependency['StateHash']
-            self.dependencies.append({'contract_id' : contract_id, 'state_hash' : state_hash})
+        if self.status :
+            self.signature = response['Signature']
+            self.encrypted_state = response['State']
 
-        # save the information we will need for the transaction
-        self.channel_keys = request.channel_keys
-        self.contract_id = request.contract_id
-        self.creator_id = request.creator_id
-        self.code_hash = request.contract_code.compute_hash()
-        self.message_hash = request.message.compute_hash()
-        self.new_state_hash = ContractState.compute_hash(self.encrypted_state)
-        self.originator_keys = request.originator_keys
-        self.enclave_service = request.enclave_service
+            # we have another mismatch between the field names in the enclave
+            # and the field names expected in the transaction; this needs to
+            # be fixed at some point
+            self.dependencies = []
+            for dependency in response['Dependencies'] :
+                contract_id = dependency['ContractID']
+                state_hash = dependency['StateHash']
+                self.dependencies.append({'contract_id' : contract_id, 'state_hash' : state_hash})
 
-        self.old_state_hash = ()
-        if request.operation != 'initialize' :
-            self.old_state_hash = ContractState.compute_hash(request.contract_state.encrypted_state)
+            # save the information we will need for the transaction
+            self.channel_keys = request.channel_keys
+            self.contract_id = request.contract_id
+            self.creator_id = request.creator_id
+            self.code_hash = request.contract_code.compute_hash()
+            self.message_hash = request.message.compute_hash()
+            self.new_state_hash = ContractState.compute_hash(self.encrypted_state)
+            self.originator_keys = request.originator_keys
+            self.enclave_service = request.enclave_service
 
-        if not self.__verify_enclave_signature(request.enclave_keys) :
-            raise Exception('failed to verify enclave signature')
+            self.old_state_hash = ()
+            if request.operation != 'initialize' :
+                self.old_state_hash = ContractState.compute_hash(request.contract_state.encrypted_state)
+
+            if not self.__verify_enclave_signature(request.enclave_keys) :
+                raise Exception('failed to verify enclave signature')
 
     # -------------------------------------------------------
     def __verify_enclave_signature(self, enclave_keys) :
@@ -158,6 +161,9 @@ class ContractResponse(object) :
     def submit_initialize_transaction(self, ledger_config, **extra_params) :
         """submit the initialize transaction to the ledger
         """
+
+        if self.status is False :
+            raise Exception('attempt to submit failed initialization transactions')
 
         global transaction_dependencies
 
@@ -194,6 +200,9 @@ class ContractResponse(object) :
     def submit_update_transaction(self, ledger_config, **extra_params):
         """submit the update transaction to the ledger
         """
+
+        if self.status is False :
+            raise Exception('attempt to submit failed update transaction')
 
         global transaction_dependencies
 

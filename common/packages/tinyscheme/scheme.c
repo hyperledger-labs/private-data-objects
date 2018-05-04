@@ -4095,24 +4095,25 @@ static pointer opexe_4(scheme * sc, enum scheme_opcodes op)
     case OP_ERR0:		/* error */
 	sc->retcode = -1;
 	if (!is_string(car(sc->args))) {
-	    sc->args = cons(sc, mk_string(sc, " -- "), sc->args);
+            sc->args = cons(sc, mk_string(sc, " -- "), sc->args);
 	    setimmutable(car(sc->args));
 	}
-	putstr(sc, "Error: ");
+        if (sc->interactive_repl)
+            putstr(sc, "Error: ");
 	putstr(sc, strvalue(car(sc->args)));
 	sc->args = cdr(sc->args);
 	s_goto(sc, OP_ERR1);
 
     case OP_ERR1:		/* error */
-	putstr(sc, " ");
+        putstr(sc, " ");
 	if (sc->args != sc->NIL) {
 	    s_save(sc, OP_ERR1, cdr(sc->args), sc->NIL);
 	    sc->args = car(sc->args);
 	    sc->print_flag = 1;
 	    s_goto(sc, OP_P0LIST);
 	} else {
-	    putstr(sc, "\n");
 	    if (sc->interactive_repl) {
+                putstr(sc, "\n");
 		s_goto(sc, OP_T0LVL);
 	    } else {
 		return sc->NIL;

@@ -128,7 +128,16 @@ def LocalMain(config, message) :
         try :
             update_request = contract.create_update_request(contract_invoker_keys, enclave_client, msg)
             update_response = update_request.evaluate()
-            print(update_response.result)
+            if update_response.status :
+                print(update_response.result)
+            else :
+                print('ERROR: {}'.format(update_response.result))
+                # continue if this is an interactive session, fail
+                # if we are processing command line messages
+                if message :
+                    sys.exit(-1)
+                else :
+                    continue
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)

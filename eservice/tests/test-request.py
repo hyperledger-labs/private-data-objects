@@ -195,6 +195,10 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     try :
         initialize_request = contract.create_initialize_request(contract_creator_keys, enclave)
         initialize_response = initialize_request.evaluate()
+        if initialize_response.status is False :
+            logger.error('contract initialization failed: %s', initialize_response.result)
+            sys.exit(-1)
+
         contract.set_state(initialize_response.encrypted_state)
 
     except Exception as e :
@@ -238,9 +242,14 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
 
     for x in range(config['iterations']) :
         try :
-            update_request = contract.create_update_request(contract_invoker_keys, enclave, "'(inc-value)")
+            expression = "'(inc-value)"
+            update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
             update_response = update_request.evaluate()
-            logger.info('result of evaluation: %s', update_response.result)
+            if update_response.status is False :
+                logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
+                continue
+
+            logger.info('{0} --> {1}'.format(expression, update_response.result))
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
@@ -294,10 +303,14 @@ def LocalMain(config) :
         if use_ledger :
             logger.info('reload the contract from local file')
             contract = contract_helper.Contract.read_from_file(ledger_config, contract_name, data_dir=data_dir)
-
-        UpdateTheContract(config, enclave, contract, contract_creator_keys)
     except Exception as e :
         logger.error('failed to load the contract from a file; %s', str(e))
+        sys.exit(-1)
+
+    try :
+        UpdateTheContract(config, enclave, contract, contract_creator_keys)
+    except Exception as e :
+        logger.error('contract execution failed; %s', str(e))
         sys.exit(-1)
 
     sys.exit(0)

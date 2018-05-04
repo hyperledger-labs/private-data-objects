@@ -31,6 +31,7 @@ namespace pc = pdo::contracts;
 class GipsyInterpreter : public pc::ContractInterpreter
 {
 private:
+    std::string error_msg_;
     scheme interpreter;
 
     // load functions with throw errors when unsuccessful

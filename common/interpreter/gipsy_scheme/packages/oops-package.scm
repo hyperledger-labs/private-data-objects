@@ -63,11 +63,11 @@
 
    (define (_check-class sym c)
      (if (not (class? c))
-         (error sym "argument is not a class")))
+         (error "argument is not a class")))
 
    (define (_check-instance sym i)
      (if (not (instance? i))
-         (error sym "argument is not an instance")))
+         (error "argument is not an instance")))
 
    ;; Convert a class variable spec into a binding suitable for a `let'.
 
@@ -84,7 +84,7 @@
          (if (not (or (symbol? (car vars))
                       (and (pair? (car vars)) (= (length (car vars)) 2)
                            (symbol? (caar vars)))))
-             (error 'define-class "bad variable spec: " (car vars))
+             (error "bad variable specification:" (car vars))
              (_check-vars (cdr vars)))))
 
    ;; Check whether the class var spec `v' is already a member of
@@ -96,7 +96,7 @@
       ((null? l) #f)
       ((eq? (caar l) (car v))
        (if (not (equal? (cdar l) (cdr v)))
-           (error 'define-class "initializer mismatch: " (car l) " and " v)
+           (error "initializer mismatch:" (car l) " and " v)
            #t))
       (else (_find-matching-var (cdr l) v))))
 
@@ -131,7 +131,7 @@
        (do ((a args (cdr a))) ((null? a))
          (cond
           ((not (pair? (car a)))
-           (error 'define-class "bad argument: " (car a)))
+           (error "bad argument:" (car a)))
           ((eq? (caar a) 'class-vars)
            (oops::_check-vars (cdar a))
            (set! class-vars (cdar a)))
@@ -141,10 +141,10 @@
                                        (map oops::_make-binding (cdar a)))))
           ((eq? (caar a) 'super-class)
            (if (> (length (cdar a)) 1)
-               (error 'define-class "only one super-class allowed"))
+               (error "only one super-class allowed"))
            (set! super (cadar a)))
           (else
-           (error 'define-class "bad keyword: " (caar a)))))
+           (error "bad keyword:" (caar a)))))
        (if (not (null? super))
            (let ((class (eval super)))
              (set! super-class-env (class-env class))
@@ -165,7 +165,7 @@
    ;; -----------------------------------------------------------------
    (define-macro (define-method class lambda-list . body)
      (if (not (pair? lambda-list))
-         (error 'define-method "bad lambda list"))
+         (error "bad lambda list"))
      `(begin
         (oops::_check-class 'define-method ,class)
         (let ((env (oops::class-env ,class))
@@ -267,7 +267,7 @@
      (_check-instance 'send instance)
      (let ((class (eval (class-name instance))))
        (if (not (_method-known? msg class))
-           (error 'send "message not understood: " `(,msg ,@margs))
+           (error "message not understood:" `(,msg ,@margs))
            (let* ((pargs (_process-send-args margs))
                   (args (vector-ref pargs 1))
                   (tags (vector-ref pargs 0))
