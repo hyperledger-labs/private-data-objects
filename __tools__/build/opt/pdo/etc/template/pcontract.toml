@@ -1,0 +1,74 @@
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# --------------------------------------------------
+# Client -- Contract owner configuration
+# --------------------------------------------------
+[Client]
+Identity = "${identity}"
+
+# --------------------------------------------------
+# Sawtooth -- sawtooth ledger configuration
+# --------------------------------------------------
+[Sawtooth]
+LedgerURL = "http://127.0.0.1:8008"
+
+# --------------------------------------------------
+# Service -- Information about enclave/provisioning services
+# --------------------------------------------------
+[Service]
+
+PreferredEnclaveService = "http://127.0.0.1:7101"
+
+EnclaveServiceURLs = [
+    "http://127.0.0.1:7101",
+    "http://127.0.0.1:7102",
+    "http://127.0.0.1:7103"
+]
+
+ProvisioningServiceURLs = [
+    "http://127.0.0.1:7001",
+    "http://127.0.0.1:7002",
+    "http://127.0.0.1:7003"
+]
+
+# --------------------------------------------------
+# Contract -- Contract configuration
+# --------------------------------------------------
+[Contract]
+# Name is the basename of the file where contract
+# information is stored; this may be a full path
+# with or without the pdo extension
+Name = "${contract}"
+DataDirectory = "${data}"
+
+SourceFile = "_${contract}.scm"
+SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
+
+SaveFile = "${contract}.pdo"
+
+# --------------------------------------------------
+# Logging -- configuration of service logging
+# --------------------------------------------------
+[Logging]
+LogLevel = "INFO"
+LogFile  = "__screen__"
+
+# --------------------------------------------------
+# Key -- configuration for owner's signing key
+# --------------------------------------------------
+[Key]
+# This key is the contract owner's private elliptic curve PEM key
+SearchPath = [ ".", "./keys", "${keys}" ]
+FileName = "${identity}_private.pem"
