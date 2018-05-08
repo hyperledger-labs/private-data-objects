@@ -127,9 +127,8 @@ ByteArray ContractResponse::ComputeSignature(const EnclaveData& enclave_data) co
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractResponse::SerializeAndEncrypt(const ByteArray& session_key,
-    const ByteArray& session_iv,
-    const EnclaveData& enclave_data) const
+ByteArray ContractResponse::SerializeAndEncrypt(
+    const ByteArray& session_key, const EnclaveData& enclave_data) const
 {
     // Create the response structure
     JsonValue contract_response_value(json_value_init_object());
@@ -212,7 +211,7 @@ ByteArray ContractResponse::SerializeAndEncrypt(const ByteArray& session_key,
         jret != JSONSuccess, "contract response serialization failed");
 
     ByteArray encrypted_response =
-        pdo::crypto::skenc::EncryptMessage(session_key, session_iv, serialized_response);
+        pdo::crypto::skenc::EncryptMessage(session_key, serialized_response);
 
     return encrypted_response;
 }

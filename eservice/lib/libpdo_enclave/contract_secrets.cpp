@@ -168,10 +168,9 @@ ByteArray EncryptStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inContractStateEncryptionKey)
 {
     ByteArray key_encryption_key = CreateKeyEncryptionKey(inContractId);
-    ByteArray key_encryption_iv = pdo::crypto::skenc::GenerateIV(inContractId);
 
-    ByteArray encrypted_state_encryption_key = pdo::crypto::skenc::EncryptMessage(
-        key_encryption_key, key_encryption_iv, inContractStateEncryptionKey);
+    ByteArray encrypted_state_encryption_key =
+        pdo::crypto::skenc::EncryptMessage(key_encryption_key, inContractStateEncryptionKey);
 
     return encrypted_state_encryption_key;
 }
@@ -190,10 +189,9 @@ ByteArray DecryptStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inEncryptedStateEncryptionKey)
 {
     ByteArray key_encryption_key = CreateKeyEncryptionKey(inContractId);
-    ByteArray key_encryption_iv = pdo::crypto::skenc::GenerateIV(inContractId);
 
-    ByteArray decrypted_state_encryption_key = pdo::crypto::skenc::DecryptMessage(
-        key_encryption_key, key_encryption_iv, inEncryptedStateEncryptionKey);
+    ByteArray decrypted_state_encryption_key =
+        pdo::crypto::skenc::DecryptMessage(key_encryption_key, inEncryptedStateEncryptionKey);
 
     return decrypted_state_encryption_key;
 }

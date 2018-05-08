@@ -51,9 +51,7 @@ public:
     ContractCode contract_code_; /*  */
     ContractMessage contract_message_;
 
-    ContractRequest(const ByteArray& session_key,
-        const ByteArray& session_iv,
-        const ByteArray& encrypted_request);
+    ContractRequest(const ByteArray& session_key, const ByteArray& encrypted_request);
 
     bool is_initialize(void) const { return operation_ == op_initialize; };
     bool is_update(void) const { return operation_ == op_update; };

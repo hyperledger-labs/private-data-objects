@@ -149,14 +149,13 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
         ByteArray encrypted_key(
             inEncryptedSessionKey, inEncryptedSessionKey + inEncryptedSessionKeySize);
         ByteArray session_key = enclaveData.decrypt_message(encrypted_key);
-        ByteArray session_iv = pdo::crypto::skenc::GenerateIV(enclaveData.get_enclave_id());
 
         ByteArray encrypted_request(
             inSerializedRequest, inSerializedRequest + inSerializedRequestSize);
-        ContractRequest request(session_key, session_iv, encrypted_request);
+        ContractRequest request(session_key, encrypted_request);
 
         ContractResponse response(request.process_request());
-        last_result = response.SerializeAndEncrypt(session_key, session_iv, enclaveData);
+        last_result = response.SerializeAndEncrypt(session_key, enclaveData);
 
         // save the response and return the size of the buffer required for it
         (*outSerializedResponseSize) = last_result.size();

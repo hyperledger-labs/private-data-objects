@@ -51,10 +51,6 @@ class ContractRequest(object) :
     def enclave_keys(self) :
         return self.enclave_service.enclave_keys
 
-    @property
-    def session_iv(self) :
-        return crypto.SKENC_GenerateIV(self.enclave_keys.identity)
-
     def __serialize_for_encryption(self) :
         result = dict()
         result['Operation'] = self.operation
@@ -74,13 +70,13 @@ class ContractRequest(object) :
 
     def __encrypt_request(self) :
         serialized_byte_array = crypto.string_to_byte_array(self.__serialize_for_encryption())
-        encrypted_request = crypto.SKENC_EncryptMessage(self.session_key, self.session_iv, serialized_byte_array)
+        encrypted_request = crypto.SKENC_EncryptMessage(self.session_key, serialized_byte_array)
         return crypto.byte_array_to_base64(encrypted_request)
 
     # response -- base64 encode, response encrypted with session key
     def __decrypt_response(self, response) :
         decoded_response = crypto.base64_to_byte_array(response)
-        return crypto.SKENC_DecryptMessage(self.session_key, self.session_iv, decoded_response)
+        return crypto.SKENC_DecryptMessage(self.session_key, decoded_response)
 
     # enclave_service -- enclave service wrapper object
     def evaluate(self) :
