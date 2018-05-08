@@ -185,7 +185,7 @@ ByteArray ContractResponse::SerializeAndEncrypt(const ByteArray& session_key,
             pdo::error::ThrowIfNull(dependency_value, "failed to create a dependency array");
 
             JSON_Object* dependency_object = json_value_get_object(dependency_value);
-            pdo::error::ThrowIfNull(dependency_object, "failed to create a dependency array");
+            pdo::error::ThrowIfNull(dependency_object, "failed to create a dependency value");
 
             jret = json_object_dotset_string(dependency_object, "ContractID", it->first.c_str());
             pdo::error::ThrowIf<pdo::error::RuntimeError>(

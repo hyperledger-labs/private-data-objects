@@ -68,6 +68,7 @@ conf :
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template pservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template \
 		--node-base pservice --http-base 7000 --output $(DSTDIR)/opt/pdo/etc --count 5
+	cp $(SRCDIR)/opt/pdo/etc/template/pcontract.toml $(DSTDIR)/opt/pdo/etc
 
 template :
 	mkdir -p $(DSTDIR)/opt/pdo/data

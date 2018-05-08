@@ -119,12 +119,12 @@ yell ---------- start pdo-create and pdo-update tests ----------
 ## -----------------------------------------------------------------
 
 # make sure we have the necessary files in place
-CONFIG_FILE=${VIRTUAL_ENV}/opt/pdo/etc/pcontract.toml
+CONFIG_FILE=${CONTRACTHOME}/etc/pcontract.toml
 if [ ! -f ${CONFIG_FILE} ]; then
     die missing client configuration file, ${CONFIG_FILE}
 fi
 
-CONTRACT_FILE=${VIRTUAL_ENV}/opt/pdo/contracts/_mock-contract.scm
+CONTRACT_FILE=${CONTRACTHOME}/contracts/_mock-contract.scm
 if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi

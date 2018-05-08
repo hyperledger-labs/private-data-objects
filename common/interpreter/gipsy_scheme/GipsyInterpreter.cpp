@@ -105,7 +105,7 @@ static void copy_output_buffer(
     size_t s = pt->rep.string.curr - pt->rep.string.start;
 
     output.resize(pt->rep.string.curr - pt->rep.string.start + 1, 0);
-    memcpy(output.data(), pt->rep.string.start, s);
+    memcpy_s(output.data(), output.size(), pt->rep.string.start, s);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
