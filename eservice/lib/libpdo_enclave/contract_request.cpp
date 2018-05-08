@@ -64,12 +64,12 @@
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractRequest::ContractRequest(
-    const ByteArray& session_key, const ByteArray& session_iv, const ByteArray& encrypted_request)
+    const ByteArray& session_key, const ByteArray& encrypted_request)
 {
     JSON_Object* ovalue = nullptr;
 
     ByteArray decrypted_request =
-        pdo::crypto::skenc::DecryptMessage(session_key, session_iv, encrypted_request);
+        pdo::crypto::skenc::DecryptMessage(session_key, encrypted_request);
     std::string request = ByteArrayToString(decrypted_request);
 
     // Parse the contract request

@@ -51,7 +51,6 @@ public:
         const ByteArray& state,
         const std::string& result);
 
-    ByteArray SerializeAndEncrypt(const ByteArray& session_key,
-        const ByteArray& session_iv,
-        const EnclaveData& enclave_data) const;
+    ByteArray SerializeAndEncrypt(
+        const ByteArray& session_key, const EnclaveData& enclave_data) const;
 };

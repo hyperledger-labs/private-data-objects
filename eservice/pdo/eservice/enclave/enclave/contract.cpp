@@ -31,7 +31,7 @@ size_t pdo::enclave_api::contract::ContractKeySize(void)
 {
     // this is somewhat lucky because we currently fit precisely
     // in the AES block; will need to pad if
-    return pdo::crypto::constants::SYM_KEY_LEN + pdo::crypto::constants::TAG_LEN;
+    return pdo::crypto::constants::IV_LEN + pdo::crypto::constants::SYM_KEY_LEN + pdo::crypto::constants::TAG_LEN;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
