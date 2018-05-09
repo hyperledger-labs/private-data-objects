@@ -28,3 +28,11 @@ cd $top_dir/python/sawtooth/pdo_protos/protobufs
 mkdir -p python
 
 protoc --python_out=../ *.proto
+
+if [[ $? -eq 0 ]]; then
+	echo -e "\033[0;32m--- Successfully compiled protobufs! ---\033[0m"
+	exit 0
+fi
+
+echo -e "\033[0;31m--- Failed to compile protobufs ---\033[0m"
+exit 1
