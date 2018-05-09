@@ -31,7 +31,7 @@ Summary of all environment variables required to build Hyperledger Private Data
 Objects. Follow the instructions in the remainder of this document to install
 and configure these components.
 
-- `SGX_SDX` and `LD_LIBRARY_PATH` including SGX libraries
+- `SGX_SDK` and `LD_LIBRARY_PATH` including SGX libraries
 These are used to find the Intel&reg; Software Guard Extensions (SGX) Software
 Development Kit (SDK). They are normally set by sourcing the SGX SDK activation
 script (e.g. `source /opt/intel/sgxsdk/environment`)
@@ -51,17 +51,47 @@ openssl genrsa -3 -out private_rsa_key.pem 3072
 export PDO_ENCLAVE_PEM=`pwd`/private_rsa_key.pem
 ```
 
+# <a name="packages"></a>Required Packages
+On a minimal Ubuntu system, the following packages are required. Other
+distributions will require similar packages.
+```
+sudo apt-get update
+sudo apt-get install -y cmake swig pkg-config python3-dev python3-venv software-properties-common python3-dev virtualenv curl tinyscheme git unzip
+```
+
+# <a name="protobuf"></a>Protobuf Compiler
+Many components of the project use Google's Protocol Buffers (including SGX),
+so installing support for them early is recommended. Protobuf v3 or later
+support is required - check your package manager first to see what is
+available. If a package is not available, follow these steps to compile and
+install protobuf tools manually:
+
+```
+wget https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-python-3.5.1.tar.gz
+tar xzf protobuf-python-3.5.1.tar.gz
+cd protobuf-3.5.1
+./configure
+make -j16
+make check -j16
+sudo make install
+export LD_LIBRARY_PATH=/usr/local/lib
+```
+
 # <a name="sgx"></a>Software Guard Extensions (SGX)
 Hyperledger Private Data Objects is intended to be run on SGX-enabled
 Intel&reg; platforms. However, it can also be run in "simulator mode" on
 platforms that do not have hardware support for SGX.
 
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
-PSW, and SDK. If running only in simulator mode (insecure!), you only need the
-SGX SDK.
+PSW, and SDK. If running only in simulator mode (no hardware support), you only
+need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
+doumentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
+visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
 
 You can find the Linux installation instructions for SGX at the
-[main SGX Github page.](https://github.com/intel/linux-sgx)
+[main SGX Github page](https://github.com/intel/linux-sgx). It is recommended
+to install Intel SGX SDK in /opt/intel/sgxsdk because the SGX OpenSSL library
+expects the Intel SGX SDK in this location by default.
 
 Make sure you have the `SGX_SDK` and `LD_LIBRARY_PATH` environment variables
 active for your current shell session before continuing. They are normally set
@@ -76,14 +106,22 @@ If your version of OpenSSL is too old, follow these steps to compile a newer
 version from source. If you already have a newer version than 1.1.0h, you can
 skip this.
 
-If using a Debian-based Linux distribution (Ubuntu, Mint, etc.) you may be able
-to simply download and install newer packages:
- - OpenSSL v1.1.0h (compiled .deb package): `wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-2_amd64.deb'`
- - OpenSSL v1.1.0h (compiled .deb developer package): `wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-2_amd64.deb'`
+If using a Debian-based Linux distribution (Ubuntu, Mint, etc.) the recommended
+path is to download and install pre-build OpenSSL packages for your system. For
+example, to install OpenSSL v1.1.0h on an Ubuntu system:
+```
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-2_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-2_amd64.deb'
+sudo dpkg -i libssl1.1_1.1.0h-2_amd64.deb
+sudo dpkg -i libssl-dev_1.1.0h-2_amd64.deb
+sudo apt-get install -f
+```
 
-Otherwise to build from source, run the following commands. These steps detail
-installing OpenSSL to the `install` directory under your current directory
-location.
+If you are unable to locate a suitable precompiled package for your system you
+can build OpenSSL from source using the following commands. If you installed
+the package directly as described above you do *not* need to do this. These
+steps detail installing OpenSSL to the `install` directory under your current
+directory location.
 ```
 wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz
 tar -zxvf openssl-1.1.0h.tar.gz
@@ -99,7 +137,8 @@ make install -j$THREADS
 cd ..
 ```
 
-If the above succeeds, define/extend the `PKG_CONFIG_PATH` environment variable accordingly, e.g.,
+If the above succeeds, define/extend the `PKG_CONFIG_PATH` environment variable
+accordingly, e.g.,
 ```
 export PKG_CONFIG_PATH="$(pwd)/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 ```
@@ -142,7 +181,7 @@ cd intel-sgx-ssl/Linux
 ```
 sudo mkdir -p /opt/intel/sgxssl
 cd /opt/intel/sgxssl
-sudo tar xzf ~/sgxssl/intel-sgx-ssl/Linux/sgxssl.2.0.100.99999.tar.gz
+sudo tar xzf ~/sgxssl/intel-sgx-ssl/Linux/sgxssl.2.1.100.99999.tar.gz
 ```
 
 - Export the `SGX_SSL` environment variable to enable the build utilities to find and link this library.
