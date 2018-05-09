@@ -72,5 +72,10 @@ class GenericServiceClient(object) :
             logger.info('server responds with message %s of type %s', content, encoding)
             return None
 
+        # Attempt to decode the content if it is not already a string
+        try:
+            content = content.decode('utf-8')
+        except AttributeError:
+            pass
         value = json.loads(content)
         return value

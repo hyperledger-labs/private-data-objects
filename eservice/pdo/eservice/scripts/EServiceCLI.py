@@ -101,6 +101,11 @@ class ContractEnclaveServer(resource.Resource):
             data = request.content.getvalue()
 
             if encoding == 'application/json' :
+                # Attempt to decode the data if it is not already a string
+                try:
+                    data = data.decode('utf-8')
+                except AttributeError:
+                    pass
                 minfo = json.loads(data)
             # elif encoding == 'application/cbor' :
             #     minfo = cbor.loads(data)
