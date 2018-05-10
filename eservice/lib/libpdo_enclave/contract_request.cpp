@@ -165,17 +165,43 @@ ContractResponse ContractRequest::process_initialization_request(void)
 
         return response;
     }
+    catch (pdo::error::ValueError& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "failed initialization for contract %s: %s",
+                 contract_code_.name_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, e.what());
+        response.operation_succeeded_ = false;
+        return response;
+    }
     catch (pdo::error::Error& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "exception occured while processing contract initialization request: %04X -- %s",
-            e.error_code(), e.what());
-        throw;
+                 "exception while processing update for contract %s with message %s: %s",
+                 contract_code_.name_.c_str(),
+                 contract_message_.expression_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, "internal error");
+        response.operation_succeeded_ = false;
+        return response;
     }
     catch (...)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "unknown error happened while processing contract initialization");
-        throw;
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "unknown exception while processing initialization request");
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, "unknown internal error");
+        response.operation_succeeded_ = false;
+        return response;
     }
 }
 
@@ -212,17 +238,44 @@ ContractResponse ContractRequest::process_update_request(void)
         ContractResponse response(*this, dependencies, new_state, result);
         return response;
     }
+    catch (pdo::error::ValueError& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "failed update for contract %s with message %s: %s",
+                 contract_code_.name_.c_str(),
+                 contract_message_.expression_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, e.what());
+        response.operation_succeeded_ = false;
+        return response;
+    }
     catch (pdo::error::Error& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "exception occured while processing contract update request: %04X -- %s",
-            e.error_code(), e.what());
-        throw;
+                 "exception while processing update for contract %s with message %s: %s",
+                 contract_code_.name_.c_str(),
+                 contract_message_.expression_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, "internal error");
+        response.operation_succeeded_ = false;
+        return response;
     }
     catch (...)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "unknown error happened while processing contract update");
-        throw;
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "unknown exception while processing update request");
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, "unknown internal error");
+        response.operation_succeeded_ = false;
+        return response;
     }
 }
 

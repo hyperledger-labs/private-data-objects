@@ -45,6 +45,7 @@ public:
     std::map<std::string, std::string> dependencies_;
     ContractState contract_state_;
     std::string result_;
+    bool operation_succeeded_;
 
     ContractResponse(const ContractRequest& request,
         const std::map<std::string, std::string>& dependencies,

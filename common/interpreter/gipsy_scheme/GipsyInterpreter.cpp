@@ -63,7 +63,6 @@ extern void Log(
 
 std::map<uint64_t, size_t> safe_malloc_map;
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void *safe_malloc_for_scheme(size_t request)
 {
@@ -88,6 +87,44 @@ void safe_free_for_scheme(void* ptr)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static void clear_output_buffer(scheme *sc)
+{
+    port *pt = sc->outport->_object._port;
+    Zero(pt->rep.string.start, pt->rep.string.past_the_end - pt->rep.string.start);
+
+    pt->rep.string.curr = pt->rep.string.start;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static void copy_output_buffer(
+    scheme *sc,
+    StringArray& output
+    )
+{
+    port *pt = sc->outport->_object._port;
+    size_t s = pt->rep.string.curr - pt->rep.string.start;
+
+    output.resize(pt->rep.string.curr - pt->rep.string.start + 1, 0);
+    memcpy_s(output.data(), output.size(), pt->rep.string.start, s);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static std::string report_interpreter_error(
+    scheme *sc,
+    const char* message,
+    std::string error_msg
+    )
+{
+    port *pt = sc->outport->_object._port;
+
+    error_msg = message;
+    error_msg.append("; ");
+    error_msg.append(pt->rep.string.start);
+
+    return error_msg;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static void gipsy_put_property_p(
     scheme *sc,
     const char* symbol,
@@ -99,10 +136,10 @@ static void gipsy_put_property_p(
 
     // add the creator property to the :contract symbol
     psymbol = mk_symbol(sc, symbol);
-    pe::ThrowIfNull(psymbol, "Unable to find/create symbol");
+    pe::ThrowIfNull(psymbol, "unable to find/create symbol");
 
     pproperty = mk_symbol(sc, property);
-    pe::ThrowIfNull(pproperty, "Unable to find/create property");
+    pe::ThrowIfNull(pproperty, "unable to find/create property");
 
     // find the symbol and update it
     for (x = symprop(psymbol); x != sc->NIL; x = cdr(x))
@@ -133,7 +170,7 @@ static void gipsy_put_property(
     )
 {
     pointer pvalue = mk_string(sc, value);
-    pe::ThrowIfNull(pvalue, "Unable to create string for property");
+    pe::ThrowIfNull(pvalue, "unable to create string for property");
 
     gipsy_put_property_p(sc, symbol, property, pvalue);
 }
@@ -171,12 +208,10 @@ static pointer gipsy_get_property(
 static void gipsy_write_to_buffer(
     scheme *sc,
     pointer value,
-    char *buffer,
-    size_t bufsize
+    StringArray& output
     )
 {
-    Zero(buffer, bufsize);
-    scheme_set_output_port_string(sc, buffer, buffer + bufsize);
+    clear_output_buffer(sc);
 
     pointer writesym = scheme_find_symbol(sc, "write");
     pe::ThrowIf<pe::RuntimeError>(writesym == sc->NIL, "unable to find write function symbol");
@@ -188,6 +223,8 @@ static void gipsy_write_to_buffer(
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
         "failed to write expression to buffer");
+
+    copy_output_buffer(sc, output);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -205,8 +242,6 @@ GipsyInterpreter::~GipsyInterpreter(void)
         total += it->second;
         it++;
     }
-
-    // Log(PDO_LOG_INFO, "tinyscheme leaked %d", total);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -219,36 +254,35 @@ GipsyInterpreter::GipsyInterpreter(void)
 
     //int status = scheme_init(sc);
     int status = scheme_init_custom_alloc(sc, safe_malloc_for_scheme, safe_free_for_scheme);
-    // Log(PDO_LOG_INFO, "scheme interpreter initialized with status %d, %d", status, sc->no_memory);
-
     pe::ThrowIf<pe::RuntimeError>(
         status == 0,
-        "Failed to create the gipsy scheme interpreter");
+        "failed to create the gipsy scheme interpreter");
+
+    /* ---------- Force all output to a string ---------- */
+    // it would be nice to be able to prep the size of the
+    // string for the state; we could set it to the size of
+    // the incoming state plus some to avoid copies when the
+    // size grows
+    scheme_set_output_port_string(sc, NULL, NULL);
 
     /* ---------- Load extensions ---------- */
     scheme_load_extensions(sc);
 
     /* ---------- Load the base environment ---------- */
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
-    // TODO: pull the scheme error from the result buffer
-
     scheme_load_string(sc, (const char *)packages_init_package_scm, packages_init_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
-        "Failed to load the gipsy initialization package");
+        "failed to load the gipsy initialization package");
 
     scheme_load_string(sc, (const char *)packages_catch_package_scm, packages_catch_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
-        "Failed to load the gipsy error handling package");
+        "failed to load the gipsy error handling package");
 
     scheme_load_string(sc, (const char *)packages_oops_package_scm, packages_oops_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
-        "Failed to load the gipsy object package");
+        "failed to load the gipsy object package");
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -284,16 +318,11 @@ void GipsyInterpreter::load_contract_code(
 {
     scheme* sc = &this->interpreter;
 
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
     /* ---------- Load contract code ---------- */
-
     scheme_load_string(sc, inContractCode.Code.c_str(), inContractCode.Code.size());
-    pe::ThrowIf<pe::RuntimeError>(
+    pe::ThrowIf<pe::ValueError>(
         sc->retcode != 0,
-        "Failed to load the contract code");
+        report_interpreter_error(sc, "failed to load the contract code", error_msg_).c_str());
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -305,44 +334,34 @@ void GipsyInterpreter::load_message(
 
     if (! inMessage.Message.empty())
     {
-        char result[MAX_RESULT_SIZE];
-        Zero(result, MAX_RESULT_SIZE);
-        scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
         /* --------------- Load the message --------------- */
 
         // load string evals the string in a safe environment,
         // any definitions made or modified are thrown away
         scheme_safe_load_string(sc, inMessage.Message.c_str(), inMessage.Message.size());
-        pe::ThrowIf<pe::RuntimeError>(
+        pe::ThrowIf<pe::ValueError>(
             sc->retcode != 0,
-            "Failed to load the message");
+            report_interpreter_error(sc, "failed to load the message", error_msg_).c_str());
 
         /* message must be a list with at least the method as a parameter */
         pointer mptr = sc->value;
         pe::ThrowIf<pe::ValueError>(
             mptr == sc->EOF_OBJ,
-            "Incomplete message");
+            "incomplete message");
 
         pe::ThrowIf<pe::ValueError>(
             list_length(sc, mptr) < 1,
-            "Badly formed message, must be a list");
+            "badly formed message, must be a list");
 
         pe::ThrowIf<pe::ValueError>(
             is_symbol(car(mptr)) == 0,
-            "Badly formed message, first element must be a method");
+            "badly formed message, first element must be a method");
 
         pointer sptr = mk_symbol(sc, "_message");
         pe::ThrowIfNull(sptr, "unable to create the _message symbol");
 
         scheme_define(sc, sc->global_env, sptr, mptr);
     }
-
-
-
-    /* --------------- Assign the symbol values --------------- */
-    gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
-    gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
 }
 
 
@@ -353,17 +372,13 @@ void GipsyInterpreter::load_contract_state(
 {
     scheme* sc = &this->interpreter;
 
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
     if (not inContractState.State.empty())
     {
         /* ---------- Load contract state ---------- */
         scheme_load_string(sc, inContractState.State.c_str(), inContractState.State.size());
         pe::ThrowIf<pe::RuntimeError>(
             sc->retcode != 0,
-            "Failed to load the contract state");
+            "failed to load the contract state");
 
         pointer sptr = mk_symbol(sc, "_instance");
         pe::ThrowIfNull(sptr, "unable to create the _instance symbol");
@@ -381,10 +396,6 @@ void GipsyInterpreter::save_contract_state(
     )
 {
     scheme* sc = &this->interpreter;
-
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
 
     pointer instance = scheme_find_symbol(sc, "_instance");
     pe::ThrowIf<pe::RuntimeError>(instance == sc->NIL, "unable to find contract instance");
@@ -404,10 +415,10 @@ void GipsyInterpreter::save_contract_state(
         sc->retcode != 0,
         "state serialization failed");
 
-    char rawstate[MAX_STATE_SIZE];
-    gipsy_write_to_buffer(sc, rexpr, rawstate, MAX_STATE_SIZE);
+    StringArray rawstate(0);
+    gipsy_write_to_buffer(sc, rexpr, rawstate);
 
-    outContractState.State = rawstate;
+    outContractState.State = rawstate.str();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -421,17 +432,14 @@ void GipsyInterpreter::create_initial_contract_state(
 {
     scheme* sc = &this->interpreter;
 
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
     // the message is not currently used though we should consider
     // how it can be implemented, throug the create-object-instance fn
     // this->load_message(inMessage);
-
-    this->load_message(inMessage);
     this->load_contract_code(inContractCode);
 
+    /* --------------- Assign the symbol values --------------- */
+    gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
+    gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
     gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
 
@@ -447,15 +455,14 @@ void GipsyInterpreter::create_initial_contract_state(
 
     pointer _function = scheme_find_symbol_value(sc, sc->envir, _funcsym);
     pointer rexpr = scheme_call(sc, cdr(_function), cons(sc, _class, sc->NIL));
-    pe::ThrowIf<pe::RuntimeError>(
+    pe::ThrowIf<pe::ValueError>(
         sc->retcode != 0,
-        "failed to create contract instance");
+        report_interpreter_error(sc, "failed to create contract instance", error_msg_).c_str());
 
     scheme_define(sc, sc->global_env, mk_symbol(sc, "_instance"), rexpr);
 
     this->save_contract_state(outContractState);
 }
-
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::send_message_to_contract(
@@ -471,14 +478,13 @@ void GipsyInterpreter::send_message_to_contract(
 {
     scheme* sc = &this->interpreter;
 
-    char result[MAX_RESULT_SIZE];
-    Zero(result, MAX_RESULT_SIZE);
-    scheme_set_output_port_string(sc, result, result + MAX_RESULT_SIZE);
-
     this->load_message(inMessage);
     this->load_contract_code(inContractCode);
     this->load_contract_state(inContractState);
 
+    /* --------------- Assign the symbol values --------------- */
+    gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
+    gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
     gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
 
@@ -490,15 +496,17 @@ void GipsyInterpreter::send_message_to_contract(
     pointer sendfn = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "send"));
 
     pointer rexpr = scheme_call(sc, cdr(sendfn), cons(sc, cdr(_instance), cdr(_message)));
-    pe::ThrowIf<pe::RuntimeError>(
+    pe::ThrowIf<pe::ValueError>(
         sc->retcode < 0,
-        "method evaluation failed");
+        report_interpreter_error(sc, "method evaluation failed", error_msg_).c_str());
 
     this->save_dependencies(outDependencies);
 
     /* write the result into the result buffer */
-    gipsy_write_to_buffer(sc, rexpr, result, MAX_RESULT_SIZE);
-    outMessageResult = result;
+    StringArray output(0);
+    gipsy_write_to_buffer(sc, rexpr, output);
+    outMessageResult = output.str();
 
+    // save the state
     this->save_contract_state(outContractState);
 }
