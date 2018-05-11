@@ -21,10 +21,22 @@ components.
 
 # Recommended host system
 
-Ubuntu 16.04 is recommended for both Sawtooth and PDO. Sawtooth and PDO may run
-on other Linux distributions, but the installation process is likely to be more
-complicated, and the use of other distribuitons is not supported by their
-respctive communities at this time.
+The recommended host-system configuration for Private Data Objects is to
+separate the Private Data Objects components from the Sawtooth components. This
+means (at least) two different physical systems if using SGX-enabled hardware.
+If running in SGX simulation mode, this could be two virtual machines or
+containers.
+
+Sawtooth (and the PDO transaction processors for Sawtooth) should be run on
+Ubuntu 16.04.
+
+Private Data Objects services (specifically the enclave service, provisioning
+service, and the client) should be run on Ubuntu 18.04. PDO has been tested on
+Ubuntu 16.04, 17.10, and 18.04.
+
+Sawtooth and PDO may run on other Linux distributions, but the installation
+process is likely to be more complicated, and the use of other distributions is
+not supported by their respective communities at this time.
 
 # <a name="environment"></a>Environment Variables
 Summary of all environment variables required to build Hyperledger Private Data
@@ -45,7 +57,7 @@ Used to locate an SGX-compatible version of OpenSSL
 
 - `PDO_ENCLAVE_PEM`
 This needs to be set to a valid enclave signing key. You can generate one
-yourself using openssl, then export the path to it:
+yourself using OpenSSL, then export the path to it:
 ```
 openssl genrsa -3 -out private_rsa_key.pem 3072
 export PDO_ENCLAVE_PEM=`pwd`/private_rsa_key.pem
@@ -56,7 +68,9 @@ On a minimal Ubuntu system, the following packages are required. Other
 distributions will require similar packages.
 ```
 sudo apt-get update
-sudo apt-get install -y cmake swig pkg-config python3-dev python3-venv software-properties-common python3-dev virtualenv curl tinyscheme git unzip
+sudo apt-get install -y cmake swig pkg-config python3-dev python3-venv python
+sudo apt-get install -y software-properties-common virtualenv curl tinyscheme
+sudo apt-get install -y git unzip dh-autoreconf ocaml ocamlbuild libsecp256k1-dev
 ```
 
 # <a name="protobuf"></a>Protobuf Compiler
@@ -85,11 +99,11 @@ platforms that do not have hardware support for SGX.
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
 PSW, and SDK. If running only in simulator mode (no hardware support), you only
 need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
-doumentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
+documentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
 visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
 
 You can find the Linux installation instructions for SGX at the
-[main SGX Github page](https://github.com/intel/linux-sgx). It is recommended
+[main SGX GitHub page](https://github.com/intel/linux-sgx). It is recommended
 to install Intel SGX SDK in /opt/intel/sgxsdk because the SGX OpenSSL library
 expects the Intel SGX SDK in this location by default.
 
@@ -206,7 +220,7 @@ sudo ln -s libprotobuf.so.10 libprotobuf.so.9
 ```
 - If you get the error:
 `./test_app/TestApp: symbol lookup error: /usr/lib/libsgx_uae_service.so: undefined symbol: _ZN6google8protobuf2io16CodedInputStream20ReadVarint32FallbackEPj`
-you are probably not running on SGX enabled hardware. The sgx-ssl test
+you are probably not running on SGX enabled hardware. The sgxssl test
 application only works with "real" SGX, not the simulator. So just remove the
 lines from the build script that reference the test\_app
 ```diff

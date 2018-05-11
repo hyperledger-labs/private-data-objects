@@ -71,9 +71,9 @@ Change to the quickstart build directory:
 cd __tools__/build
 ```
 
-Edit `opt/pdo/etc/template/eservice.toml` and
-`opt/pdo/etc/template/pservice.toml` to have the correct ledger URL for your
-sawtooth installation.
+Edit `opt/pdo/etc/template/eservice.toml`,
+`opt/pdo/etc/template/pservice.toml`, and `opt/pdo/etc/template/pcontract.toml`
+to have the correct ledger URL for your sawtooth installation.
 
 Build the virtual environment and install PDO components into it:
 ```
@@ -88,7 +88,7 @@ source _dev/bin/activate
 ```
 
 Run the test suite to check that the installation is working correctly. Replace
-the URL with the URL for the rest-api of your Sawtooth installation.
+the URL with the URL for the REST API of your Sawtooth installation.
 ```
 cd ..
 LEDGER_URL=http://127.0.0.1:8008 ./run-tests.sh
