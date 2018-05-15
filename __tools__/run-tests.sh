@@ -166,7 +166,7 @@ yell invalid method, this should fail
 pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user1 --save-file ${SAVE_FILE} \
-           "'(no-such-method)" > /dev/null
+           "'(no-such-method)"
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
