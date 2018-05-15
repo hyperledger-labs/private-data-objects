@@ -40,11 +40,11 @@ function becho () {
 }
 
 function yell() {
-    becho "$0: $*" >&2
+    becho "$(basename $0): $*" >&2
 }
 
 function die() {
-    recho "$0: $*" >&2
+    recho "$(basename $0): $*" >&2
     exit 111
 }
 
@@ -70,7 +70,7 @@ yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 try command -v python
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
-    die activate python3 first
+    die must use python3, activate virtualenv first
 fi
 
 try command -v openssl
@@ -90,6 +90,10 @@ try command -v swig
 try command -v make
 try command -v g++
 try command -v tinyscheme
+
+if [ ! -d "${CONTRACTHOME}" ]; then
+    die CONTRACTHOME directory does not exist
+fi
 
 # -----------------------------------------------------------------
 # BUILD
