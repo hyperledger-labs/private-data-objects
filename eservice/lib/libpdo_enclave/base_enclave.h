@@ -28,5 +28,3 @@ extern pdo_err_t ecall_Initialize(sgx_ra_context_t* p_context);
 extern pdo_err_t ecall_CreateErsatzEnclaveReport(
     sgx_target_info_t* targetInfo, sgx_report_t* outReport);
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern pdo_err_t ecall_GetPseManifestHash(sgx_sha256_hash_t* outPseManifestHash);

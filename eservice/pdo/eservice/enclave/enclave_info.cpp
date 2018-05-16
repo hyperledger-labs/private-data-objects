@@ -50,17 +50,14 @@ pdo_enclave_info::pdo_enclave_info(
 
     HexEncodedString mrEnclaveBuffer;
     HexEncodedString basenameBuffer;
-    HexEncodedString pseManifestHashBuffer;
 
     ThrowPDOError(
         pdo::enclave_api::base::GetEnclaveCharacteristics(
             mrEnclaveBuffer,
-            basenameBuffer,
-            pseManifestHashBuffer));
+            basenameBuffer));
 
     this->mr_enclave = mrEnclaveBuffer;
     this->basename = basenameBuffer;
-    this->pse_manifest_hash = pseManifestHashBuffer;
 
 } // pdo_enclave_info::pdo_enclave_info
 

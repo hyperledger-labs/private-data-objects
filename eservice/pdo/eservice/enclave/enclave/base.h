@@ -96,16 +96,10 @@ namespace pdo
               inEnclaveBasenameLength - The size of the buffer pointed to by
               outEnclaveBasename.  The value to provide for this parameter may
               be obtained by calling GetEnclaveBasenameSize().
-              outEnclavePseManifestHash - A pointer to a buffer that upon return will
-              contain the hex encoded PSE manifest hash.
-              inEnclavePseManifestHashSize - The size of the buffer pointed to by
-              outEnclavePseManifest.  The value to provide for this parameter
-              may be obtained by calling GetEnclavePseManifestHashSize().
             */
             pdo_err_t GetEnclaveCharacteristics(
                 HexEncodedString& outMrEnclave,
-                HexEncodedString& outEnclaveBasename,
-                HexEncodedString& outEnclavePseManifestHash
+                HexEncodedString& outEnclaveBasename
                 );
 
             /*

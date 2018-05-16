@@ -164,8 +164,7 @@ pdo_err_t pdo::enclave_api::base::GetEpidGroup(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::base::GetEnclaveCharacteristics(
     HexEncodedString& outMrEnclave,
-    HexEncodedString& outEnclaveBasename,
-    HexEncodedString& outEnclavePseManifestHash
+    HexEncodedString& outEnclaveBasename
     )
 {
     pdo_err_t ret = PDO_SUCCESS;
@@ -175,12 +174,10 @@ pdo_err_t pdo::enclave_api::base::GetEnclaveCharacteristics(
         // hex strings and copy them to the caller's buffers.
         sgx_measurement_t enclaveMeasurement;
         sgx_basename_t enclaveBasename;
-        sgx_sha256_hash_t enclavePseManifestHash;
 
         g_Enclave.GetEnclaveCharacteristics(
             &enclaveMeasurement,
-            &enclaveBasename,
-            &enclavePseManifestHash);
+            &enclaveBasename);
 
         outMrEnclave = pdo::BinaryToHexString(
             enclaveMeasurement.m,
@@ -189,10 +186,6 @@ pdo_err_t pdo::enclave_api::base::GetEnclaveCharacteristics(
         outEnclaveBasename = pdo::BinaryToHexString(
             enclaveBasename.name,
             sizeof(enclaveBasename.name));
-
-        outEnclavePseManifestHash = pdo::BinaryToHexString(
-            enclavePseManifestHash,
-            sizeof(enclavePseManifestHash));
 
     } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());

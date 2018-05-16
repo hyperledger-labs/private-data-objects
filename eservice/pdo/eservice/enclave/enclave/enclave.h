@@ -64,8 +64,7 @@ namespace pdo {
 
             void GetEnclaveCharacteristics(
                 sgx_measurement_t* outEnclaveMeasurement,
-                sgx_basename_t* outEnclaveBasename,
-                sgx_sha256_hash_t* outEnclavePseManifestHash
+                sgx_basename_t* outEnclaveBasename
                 );
 
             void SetSpid(
