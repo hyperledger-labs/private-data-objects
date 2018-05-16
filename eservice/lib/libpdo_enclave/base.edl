@@ -28,9 +28,6 @@ enclave {
             [in, out] sgx_target_info_t* targetInfo,
             [out] sgx_report_t* outReport
             );
-        public pdo_err_t ecall_GetPseManifestHash(
-            [out] sgx_sha256_hash_t* outPseManifestHash
-            );
     };
 
     untrusted {

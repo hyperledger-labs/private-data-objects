@@ -150,8 +150,7 @@ namespace pdo {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEnclaveCharacteristics(
             sgx_measurement_t* outEnclaveMeasurement,
-            sgx_basename_t* outEnclaveBasename,
-            sgx_sha256_hash_t* outEnclavePseManifestHash
+            sgx_basename_t* outEnclaveBasename
             )
         {
             pdo::error::ThrowIfNull(
@@ -160,13 +159,9 @@ namespace pdo {
             pdo::error::ThrowIfNull(
                 outEnclaveBasename,
                 "Enclave basename pointer is NULL");
-            pdo::error::ThrowIfNull(
-                outEnclavePseManifestHash,
-                "Enclave PSE manifest hash pointer is NULL");
 
             Zero(outEnclaveMeasurement, sizeof(*outEnclaveMeasurement));
             Zero(outEnclaveBasename, sizeof(*outEnclaveBasename));
-            Zero(outEnclavePseManifestHash, sizeof(*outEnclavePseManifestHash));
 
             // We can get the enclave's measurement (i.e., mr_enclave) and
             // basename only by getting a quote.  To do that, we need to first
@@ -241,25 +236,6 @@ namespace pdo {
             pdo::error::ThrowSgxError(
                 ret,
                 "Failed to create linkable quote for enclave report");
-
-            // Now get the PSE manifest hash and let the function copy it
-            // directly into the caller's buffer
-            ret =
-                this->CallSgx(
-                    [this,
-                     &pdoRet,
-                     outEnclavePseManifestHash] () {
-                        sgx_status_t ret =
-                        ecall_GetPseManifestHash(
-                            this->enclaveId,
-                            &pdoRet,
-                            outEnclavePseManifestHash);
-                        return error::ConvertErrorStatus(ret, pdoRet);
-                    });
-            pdo::error::ThrowSgxError(
-                ret,
-                "Failed to retrieve PSE manifest hash for enclave");
-            this->ThrowPDOError(pdoRet);
 
             // Copy the mr_enclave and basenaeme to the caller's buffers
             memcpy_s(

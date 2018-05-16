@@ -40,14 +40,3 @@ extern void printf(const char* fmt, ...);
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern void Log(int level, const char* fmt, ...);
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class PseSession
-{
-public:
-    PseSession()
-    {
-        pdo::error::ThrowSgxError(sgx_create_pse_session(), "Failed to create PSE session.");
-    }  // PseSession
-
-    virtual ~PseSession() { sgx_close_pse_session(); }  // ~PseSession
-};                                                      // class PseSession

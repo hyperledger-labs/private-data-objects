@@ -78,8 +78,6 @@ class IasClient(object):
 
         url = urljoin(self._ias_url, path)
         json = {"isvEnclaveQuote": quote}
-        if manifest is not None:
-            json['pseManifest'] = manifest
         if nonce is not None:
             json['nonce'] = nonce
 

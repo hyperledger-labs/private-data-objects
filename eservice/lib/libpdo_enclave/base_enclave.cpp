@@ -67,31 +67,6 @@ pdo_err_t ecall_Initialize(sgx_ra_context_t* p_context)
 {
     pdo_err_t result = PDO_SUCCESS;
 
-    try
-    {
-        // Test that we can access platform services
-        PseSession session;
-
-        /* sgx initialization function where the ECDSA generated
-        public key is passed as one of the parameters
-        returns the context to the application
-        */
-        sgx_status_t ret = sgx_ra_init(&g_sp_pub_key, true, p_context);
-        pdo::error::ThrowSgxError(ret, "Failed to initialize Remote Attestation.");
-    }
-    catch (pdo::error::Error& e)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Error in pdo enclave(ecall_Initialize): %04X -- %s",
-            e.error_code(), e.what());
-        ocall_SetErrorMessage(e.what());
-        result = e.error_code();
-    }
-    catch (...)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Unknown error in pdo enclave(ecall_Initialize)");
-        result = PDO_ERR_UNKNOWN;
-    }
-
     return result;
 }  // ecall_Initialize
 
@@ -132,38 +107,3 @@ pdo_err_t ecall_CreateErsatzEnclaveReport(sgx_target_info_t* targetInfo, sgx_rep
     return result;
 }  // ecall_CreateErsatzEnclaveReport
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t ecall_GetPseManifestHash(sgx_sha256_hash_t* outPseManifestHash)
-{
-    pdo_err_t result = PDO_SUCCESS;
-
-    try
-    {
-        pdo::error::ThrowIfNull(outPseManifestHash, "PSE manifest hash pointer is NULL");
-
-        // Grab the PSE manifest and the compute the SHA256 hash of it.
-        // We need a PSE session first.  The session will automatically clean
-        // up after itself.
-        PseSession session;
-        sgx_ps_sec_prop_desc_t pseManifest;
-        pdo::error::ThrowSgxError(
-            sgx_get_ps_sec_prop(&pseManifest), "Failed to create PSE manifest");
-        pdo::error::ThrowSgxError(sgx_sha256_msg(reinterpret_cast<const uint8_t*>(&pseManifest),
-                                      sizeof(pseManifest), outPseManifestHash),
-            "Failed to hash PSE manifest");
-    }
-    catch (pdo::error::Error& e)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Error in pdo enclave(ecall_GetPseManifest): %04X -- %s",
-            e.error_code(), e.what());
-        ocall_SetErrorMessage(e.what());
-        result = e.error_code();
-    }
-    catch (...)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Unknown error in pdo enclave(ecall_GetPseManifest)");
-        result = PDO_ERR_UNKNOWN;
-    }
-
-    return result;
-}  // ecall_GetPseManifestHash

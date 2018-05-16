@@ -35,5 +35,4 @@ public:
 
     std::string mr_enclave;         // hex encoding of the enclave measurement
     std::string basename;           // hex encoding of the basename
-    std::string pse_manifest_hash;  // hex encoding of the PSE manifest hash
 }; // class pdo_enclave_info
