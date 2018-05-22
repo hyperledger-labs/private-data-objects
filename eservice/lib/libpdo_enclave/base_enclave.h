@@ -22,7 +22,7 @@
 #include "pdo_error.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern pdo_err_t ecall_Initialize(sgx_ra_context_t* p_context);
+extern pdo_err_t ecall_Initialize();
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_CreateErsatzEnclaveReport(

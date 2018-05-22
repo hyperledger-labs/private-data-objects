@@ -71,6 +71,12 @@ namespace pdo {
             sgx_status_t ret = sgx_calc_quote_size(nullptr, 0, &size);
             pdo::error::ThrowSgxError(ret, "Failed to get SGX quote size.");
             this->quoteSize = size;
+            
+            //initialize the targetinfo and epid variables
+            ret = g_Enclave.CallSgx([this] () {
+                    return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
+                });
+            pdo::error::ThrowSgxError(ret, "Failed to initialized quote in enclave constructore"); 
         } // Enclave::Enclave
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -119,31 +125,21 @@ namespace pdo {
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEpidGroup(
-            sgx_epid_group_id_t outEpidGroup
+            sgx_epid_group_id_t* outEpidGroup
             )
         {
-            sgx_ra_msg1_t remoteAttestationMessage1;
-
-            sgx_status_t ret =
-                this->CallSgx(
-                    [this,
-                     &remoteAttestationMessage1] () {
-                        return
-                        sgx_ra_get_msg1(
-                            this->raContext,
-                            this->enclaveId,
-                            sgx_ra_get_ga,
-                            &remoteAttestationMessage1);
-                    });
-            pdo::error::ThrowSgxError(
-                ret,
-                "Failed to retrieve remote attestation message (EPID group "
-                "ID)");
-
+            sgx_status_t ret;
+            //retrieve epid by calling init quote
+            ret = g_Enclave.CallSgx([this] () {
+                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
+                    }); 
+            pdo::error::ThrowSgxError(ret, "Failed to get epid group id from init_quote"); 
+            
+            //copy epid group into output parameter
             memcpy_s(
                 outEpidGroup,
                 sizeof(sgx_epid_group_id_t),
-                remoteAttestationMessage1.gid,
+                &this->epidGroupId,
                 sizeof(sgx_epid_group_id_t));
         } // Enclave::GetEpidGroup
 
@@ -380,8 +376,7 @@ namespace pdo {
                         sgx_status_t ret =
                         ecall_Initialize(
                             this->enclaveId,
-                            &pdoError,
-                            &this->raContext);
+                            &pdoError);
                         return error::ConvertErrorStatus(ret, pdoError);
                     });
                 pdo::error::ThrowSgxError(
