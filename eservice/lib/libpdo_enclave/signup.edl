@@ -14,7 +14,6 @@
  */
 
 enclave {
-    include "sgx_key_exchange.h"
     include "sgx_trts.h"
     include "sgx_tseal.h"
     include "pdo_error.h"

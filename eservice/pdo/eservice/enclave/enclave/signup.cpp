@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <sgx_uae_service.h>
-#include <sgx_ukey_exchange.h> /*To call untrusted key exchange library i.e., sgx_ra_get_msg1() and sgx_ra_proc_msg2() */
 
 #include "error.h"
 #include "log.h"

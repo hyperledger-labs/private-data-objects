@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <sgx_key_exchange.h>
 #include <sgx_report.h>
 #include <sgx_tcrypto.h>
 

@@ -23,7 +23,6 @@
 #include <unistd.h>
 
 #include <sgx_uae_service.h>
-#include <sgx_ukey_exchange.h>
 #include "sgx_support.h"
 
 #include "error.h"

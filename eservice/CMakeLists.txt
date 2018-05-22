@@ -44,8 +44,8 @@ SET(SGX_ENCLAVE_INCLUDE "$ENV{SGX_SDK}/include"
                         "$ENV{SGX_SDK}/include/tlibc"
                         "$ENV{SGX_SDK}/include/libcxx")
 
-SET(SGX_LIBS_TRUSTED_NAMES sgx_tstdc sgx_tstdcxx sgx_tkey_exchange sgx_tcrypto)
-SET(SGX_LIBS_UNTRUSTED_NAMES sgx_ukey_exchange)
+SET(SGX_LIBS_TRUSTED_NAMES sgx_tstdc sgx_tstdcxx sgx_tcrypto)
+SET(SGX_LIBS_UNTRUSTED_NAMES )
 
 SET(SGX_LIBS_UNTRUSTED_NAMES ${SGX_LIBS_UNTRUSTED_NAMES} pthread )
 

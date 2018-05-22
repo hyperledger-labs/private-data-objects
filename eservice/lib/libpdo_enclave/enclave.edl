@@ -14,7 +14,7 @@
  */
 
 enclave {
-    from "sgx_tkey_exchange.edl" import *;
+    from "sgx_tstdc.edl" import *;
     from "base.edl" import *;
     from "signup.edl" import *;
     from "contract.edl" import *;
