@@ -24,9 +24,7 @@
 #include <iterator>
 
 #include <sgx_key.h>
-#include <sgx_tae_service.h>  //sgx_time_t, sgx_time_source_nonce_t, sgx_get_trusted_time
 #include <sgx_tcrypto.h>
-#include <sgx_tkey_exchange.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>  // sgx_get_key, sgx_create_report
 

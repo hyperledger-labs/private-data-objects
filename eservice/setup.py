@@ -80,7 +80,6 @@ library_dirs = [
 
 libraries = [
     'updo-common',
-    'sgx_ukey_exchange',
     'sgx_urts_sim',
     'sgx_uae_service_sim'
 ]

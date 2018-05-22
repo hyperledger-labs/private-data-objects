@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <sgx_tae_service.h>
 #include <string.h>
 
 #include "error.h"
