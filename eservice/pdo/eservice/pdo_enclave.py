@@ -93,13 +93,15 @@ def update_sig_rl():
     global _sig_rl_update_time
     global _sig_rl_update_period
 
+    if _epid_group is None:
+        _epid_group = _pdo.get_epid_group()
+    logger.info("EPID: " + _epid_group)
+
     if not _sig_rl_update_time \
         or (time.time() - _sig_rl_update_time) > _sig_rl_update_period:
 
         sig_rl = ""
         if (not enclave.is_sgx_simulator()):
-            if _epid_group is None:
-                _epid_group = _pdo.get_epid_group()
             sig_rl = _ias.get_signature_revocation_lists(_epid_group)
             logger.debug("Received SigRl of {} bytes ".format(len(sig_rl)))
 

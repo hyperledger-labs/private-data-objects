@@ -63,10 +63,9 @@ copy them into EPC memory.
     context is to be copied.
 @return Any error returned during the initialization process.
 */
-pdo_err_t ecall_Initialize(sgx_ra_context_t* p_context)
+pdo_err_t ecall_Initialize()
 {
     pdo_err_t result = PDO_SUCCESS;
-
     return result;
 }  // ecall_Initialize
 
