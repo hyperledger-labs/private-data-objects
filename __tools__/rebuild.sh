@@ -52,9 +52,6 @@ function try() {
     "$@" || die "test failed: $*"
 }
 
-#: ${TINY_SCHEME_SRC:=~/dev/packages/tinyscheme-1.41}
-#export TINY_SCHEME_SRC
-
 # -----------------------------------------------------------------
 # CHECK ENVIRONMENT
 # -----------------------------------------------------------------
