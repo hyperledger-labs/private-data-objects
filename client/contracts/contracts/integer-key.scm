@@ -173,7 +173,7 @@
       (assert (send agent-keys 'verify-expression expression signature) "signature mismatch" signature)
 
       ;; this update cannot be committed unless the dependencies are committed
-      (put ':ledger 'dependencies dependencies)
+      (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
       (send counter 'activate)
 
       #t)))
