@@ -15,17 +15,29 @@
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
-EGG_FILE= dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
+EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
+PROTOBUF_DPATH = sawtooth/pdo_protos/
+PROTOBUF_SPATH = sawtooth/pdo_protos/protobufs/
+PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo_contract_registry.proto
+PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
+PYTHON_SOURCE = $(shell cat MANIFEST)
 
-build: $(EGG_FILE)
+SWIG_FILES = pdo/common/crypto.i
+SWIG_TARGET = pdo/common/crypto.py
+COMMON_LIB = ../common/build/libupdo-common.a
 
-$(EGG_FILE) : pdo/common/crypto.i
-	python setup.py build_ext
+all: $(EGG_FILE)
+
+$(PROTOBUF_DPATH)%_pb2.py : $(PROTOBUF_SPATH)%.proto
+	protoc --python_out=$(PROTOBUF_DPATH) --proto_path=$(PROTOBUF_SPATH) $<
+
+$(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH),$(PROTOBUF_SOURCE))
+
+$(EGG_FILE) : $(SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
 	python setup.py bdist_egg
 
-rebuild:
-	python setup.py build_ext
-	python setup.py bdist_egg
+$(SWIG_TARGET) : $(SWIG_FILES) $(COMMON_LIB)
+	python setup.py build_ext --force
 
 install: $(EGG_FILE)
 	easy_install $<
@@ -33,6 +45,11 @@ install: $(EGG_FILE)
 test: install
 	(cd ../common/tests; python test_cryptoWrapper.py)
 
-
 clean:
+	rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
 	python setup.py clean --all
+
+.phony : all
+.phony : clean
+.phone : install
+.phony : test
