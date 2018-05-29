@@ -28,7 +28,7 @@
 #
 # Run:
 #   $ cd PrivateDataObjects
-#   $ docker run -v $(pwd):/project/pdo/src pdo-dev -it /bin/bash
+#   $ docker run -v $(pwd):/project/pdo/src -it pdo-dev /bin/bash
 #   (to run with SGX HW, add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
 #   then you can build system as "usual" (e.g., make -C /project/pdo/src/__tools__/build/ DSTDIR=/project/pdo/build )
 #   etc etc
@@ -102,15 +102,13 @@ RUN wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz \
 
 
 # ("trusted") SGX OpenSSL
-# TODO: Investigate passing host's SGX-enabled hardware (if present) into docker
-# container, and change this build to use SGX_MODE SIM or HW appropriately
-# depending on host's capabilities
+# Note: This will compile in HW or SIM mode depending on the availability of
+# /dev/isgx and /var/run/aesmd/aesm.socket
 WORKDIR /tmp
 RUN git clone https://github.com/intel/intel-sgx-ssl.git  \
  && . /opt/intel/sgxsdk/environment \
- && (cd intel-sgx-ssl; git checkout 8e25d4f) \
  && (cd intel-sgx-ssl/openssl_source; mv /tmp/openssl-1.1.0h.tar.gz . ) \
- && (cd intel-sgx-ssl/Linux; make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test ) \
+ && (cd intel-sgx-ssl/Linux; if [[ -c /dev/isgx && -S /var/run/aesmd/aesm.socket ]]; then SGX_MODE=HW; else SGX_MODE=SIM; fi; make SGX_MODE=${SGX_MODE} DESTDIR=/opt/intel/sgxssl all test ) \
  && (cd intel-sgx-ssl/Linux; make install ) \
  && rm -rf /tmp/intel-sgx-ssl \
  && echo "SGX_SSL=/opt/intel/sgxssl" >> /etc/environment
