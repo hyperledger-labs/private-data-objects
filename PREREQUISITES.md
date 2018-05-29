@@ -178,24 +178,24 @@ SGX OpenSSL with fixes for commonly encountered problems.
 mkdir ~/sgxssl
 cd ~/sgxssl
 ```
-- Download the necessary components (you may need a newer version if your base system uses newer than 1.1.0h)
- - OpenSSL v1.1.0h: `wget 'https://www.openssl.org/source/openssl-1.1.0h.tar.gz'`
- - SGX SSL (latest version): `git clone 'https://github.com/intel/intel-sgx-ssl.git'`
 
-- Move the OpenSSL source into the correct folder
+- Download the latest SGX SSL git repository:
 ```
-mv openssl-1.1.0h.tar.gz intel-sgx-ssl/openssl_source
+git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
-- Compile the sgxssl project
+
+- Download the OpenSSL source package that will form the base of this SGX SSL install:
 ```
-cd intel-sgx-ssl/Linux
-./build_sgxssl.sh
+cd intel-sgx-ssl/openssl_source
+wget 'https://www.openssl.org/source/openssl-1.1.0h.tar.gz'
+cd ..
 ```
-- Install the sgxssl folder somewhere on your file system (example here installs for all users using sudo)
+
+- Compile and install the sgxssl project. If your system does not have SGX support, use `SGX_MODE=SIM` instead.
 ```
-sudo mkdir -p /opt/intel/sgxssl
-cd /opt/intel/sgxssl
-sudo tar xzf ~/sgxssl/intel-sgx-ssl/Linux/sgxssl.2.1.100.99999.tar.gz
+cd Linux
+make SGX_MODE=HW DESTDIR=/opt/intel/sgxssl all test
+sudo make install
 ```
 
 - Export the `SGX_SSL` environment variable to enable the build utilities to find and link this library.
@@ -217,41 +217,6 @@ creating a symbolic link to the current version like:
 ```
 cd /usr/lib/x86_64-linux-gnu/
 sudo ln -s libprotobuf.so.10 libprotobuf.so.9
-```
-- If you get the error:
-`./test_app/TestApp: symbol lookup error: /usr/lib/libsgx_uae_service.so: undefined symbol: _ZN6google8protobuf2io16CodedInputStream20ReadVarint32FallbackEPj`
-you are probably not running on SGX enabled hardware. The sgxssl test
-application only works with "real" SGX, not the simulator. So just remove the
-lines from the build script that reference the test\_app
-```diff
-diff --git a/Linux/build_sgxssl.sh b/Linux/build_sgxssl.sh
-index 9ff2799..02469f8 100755
---- a/Linux/build_sgxssl.sh
-+++ b/Linux/build_sgxssl.sh
-@@ -164,9 +164,6 @@ rm -rf $OPENSSL_VERSION || clean_and_ret 1
- cd $SGXSSL_ROOT/sgx || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
-
-
-@@ -196,15 +193,9 @@ rm -rf $OPENSSL_VERSION || clean_and_ret 1
- cd $SGXSSL_ROOT/sgx || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION SGX_MODE=SIM DEBUG=1 $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION DEBUG=1 $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
 ```
 
 # <a name="tinyscheme"></a>Tinyscheme
