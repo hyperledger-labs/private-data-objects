@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
-from controller.commands.SendMessage import send_to_contract
+from pdo.client.controller.commands.send import send_to_contract
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
