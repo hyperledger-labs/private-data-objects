@@ -18,7 +18,7 @@
 #
 #  Configuration (build) paramaters
 #  - proxy configuration: https_proxy http_proxy ftp_proxy
-#  - sgx mode: 
+#  - sgx mode:
 #
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
@@ -31,7 +31,7 @@
 #   $ docker run -v $(pwd):/project/pdo/src pdo-dev -it /bin/bash
 #   (to run with SGX HW, add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
 #   then you can build system as "usual" (e.g., make -C /project/pdo/src/__tools__/build/ DSTDIR=/project/pdo/build )
-#   etc etc 
+#   etc etc
 
 ARG UBUNTU_VERSION=xenial
 # 16.04 -> xenial, 17.10 -> artful, 18.04 -> bionic
@@ -102,19 +102,17 @@ RUN wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz \
 
 
 # ("trusted") SGX OpenSSL
-# Note: Ideally we would below patch only on non-SGX machines so the sgxssl tests 
-# would work with real hw. Alas, it doesn't seem possible to pass devices to 
-# docker build, not docker run, so can't do some conditionals ..
+# TODO: Investigate passing host's SGX-enabled hardware (if present) into docker
+# container, and change this build to use SGX_MODE SIM or HW appropriately
+# depending on host's capabilities
 WORKDIR /tmp
-COPY sgxssl.patch .
 RUN git clone https://github.com/intel/intel-sgx-ssl.git  \
  && . /opt/intel/sgxsdk/environment \
+ && (cd intel-sgx-ssl; git checkout 8e25d4f) \
  && (cd intel-sgx-ssl/openssl_source; mv /tmp/openssl-1.1.0h.tar.gz . ) \
- && (cd intel-sgx-ssl; git apply --ignore-whitespace ../sgxssl.patch) \
- && (cd intel-sgx-ssl/Linux; ./build_sgxssl.sh ) \
- && mkdir -p /opt/intel/sgxssl \
- && (cd /opt/intel/sgxssl; tar xzf /tmp/intel-sgx-ssl/Linux/sgxssl.*.99999.tar.gz ) \
- && rm -rf /tmp/intel-sgx-ssl /tmp/sgxssl.patch \
+ && (cd intel-sgx-ssl/Linux; make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test ) \
+ && (cd intel-sgx-ssl/Linux; make install ) \
+ && rm -rf /tmp/intel-sgx-ssl \
  && echo "SGX_SSL=/opt/intel/sgxssl" >> /etc/environment
 
 # environment setup
@@ -142,7 +140,7 @@ RUN \
         echo "https_proxy=$https_proxy" >> /etc/environment; \
         echo "HTTPS_PROXY=$(echo $https_proxy | sed 's,[a-zA-Z]*://,,')" >> /etc/environment; \
     fi \
- && sed -i '1s;^;source /etc/environment\nexport $(grep -v "^. " /etc/environment| cut -d= -f1)\n;' /root/.bashrc 
+ && sed -i '1s;^;source /etc/environment\nexport $(grep -v "^. " /etc/environment| cut -d= -f1)\n;' /root/.bashrc
 
 WORKDIR /project/pdo/
 
