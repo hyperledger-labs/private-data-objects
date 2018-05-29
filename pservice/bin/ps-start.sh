@@ -57,7 +57,7 @@ fi
 
 for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
-    echo start enclave service $IDENTITY
+    echo start provisioning service $IDENTITY
 
     rm -f $F_LOGDIR/$IDENTITY.log
 
