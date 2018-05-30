@@ -14,12 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(load "util-packages/contract-builder.scm")
+(load "../packages/contract-builder.scm")
 
 (define package-directories
-  '("." "contracts" "packages" "util-packages" "../../common/interpreter/gipsy_scheme/packages"))
+  '("." "../integer-key" "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
-(define contract-input "integer-key.scm")
+(define contract-input "mock-contract.scm")
 (define contract-output (string-append "_" contract-input))
 
 (if (member "debug" *args*)

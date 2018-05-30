@@ -35,12 +35,8 @@ dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
 log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
-contract_dir = os.path.join(install_root_dir, "contracts")
-
-contract_src = [ '_auction.scm' , '_integer-key.scm', '_mock-contract.scm' ]
 
 data_files = [
-    (contract_dir, list(map(lambda f : os.path.join('contracts',f), contract_src))),
     (etc_dir, [ 'etc/auction-test.toml', 'etc/sample_client.toml' ])
 ]
 

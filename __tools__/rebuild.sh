@@ -127,3 +127,9 @@ cd $SRCDIR/client
 make clean
 try make
 try make install
+
+yell --------------- CONTRACTS ---------------
+cd $SRCDIR/contracts
+make clean
+try make all
+try make install

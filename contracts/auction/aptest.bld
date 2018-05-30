@@ -14,10 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(load "util-packages/contract-builder.scm")
+(load "../packages/contract-builder.scm")
 
 (define package-directories
-  '("." "contracts" "packages" "util-packages" "../../common/interpreter/gipsy_scheme/packages"))
+  '("." "../integer-key" "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
 (define contract-input "auction-protocol-test.scm")
 (define contract-output "_aptest.scm")
