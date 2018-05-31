@@ -138,8 +138,8 @@ If using a Debian-based Linux distribution (Ubuntu, Mint, etc.) the recommended
 path is to download and install pre-build OpenSSL packages for your system. For
 example, to install OpenSSL v1.1.0h on an Ubuntu system:
 ```
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-2_amd64.deb'
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-2_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-4_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-4_amd64.deb'
 sudo dpkg -i libssl1.1_1.1.0h-2_amd64.deb
 sudo dpkg -i libssl-dev_1.1.0h-2_amd64.deb
 sudo apt-get install -f
