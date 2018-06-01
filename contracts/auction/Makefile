@@ -21,6 +21,7 @@ INSTALLDIR = $(CONTRACTHOME)/contracts
 
 CONTRACTS := _auction.scm
 DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS)) _aptest.scm
+PLUGINS := auction.py
 
 all: $(CONTRACTS)
 
@@ -39,6 +40,7 @@ install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
 	@mkdir -p $(INSTALLDIR)
 	@cp $(CONTRACTS) $(INSTALLDIR)
+	@cp $(PLUGINS) $(INSTALLDIR)
 
 clean :
 	rm -f $(CONTRACTS) $(DEBUGCONTRACTS)
