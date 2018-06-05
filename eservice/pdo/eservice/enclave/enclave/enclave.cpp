@@ -350,6 +350,8 @@ namespace pdo {
 
                 sgx_launch_token_t token = { 0 };
                 int flags = SGX_DEBUG_FLAG;
+                pdo::error::ThrowSgxError((SGX_DEBUG_FLAG==0 ? SGX_ERROR_UNEXPECTED:SGX_SUCCESS),
+                    "SGX DEBUG flag is 0 (possible cause: wrong compile flags)");
 
                 // First attempt to load the enclave executable
                 sgx_status_t ret = SGX_SUCCESS;
