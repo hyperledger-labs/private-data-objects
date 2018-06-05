@@ -116,6 +116,7 @@ class Enclave(object) :
 
         nonce = '{0:016X}'.format(random.getrandbits(64))
         hashed_identity = txn_keys.hashed_identity
+        logger.debug("tx hashed identity: %s", hashed_identity)
         try :
             enclave_data = pdo_enclave.create_signup_info(hashed_identity, nonce)
         except :

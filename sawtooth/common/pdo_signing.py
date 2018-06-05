@@ -510,12 +510,11 @@ def verify_enclave_registration_info(connect,
     else:
         pse_manifest_hash = ""
 
-    # Verify that the proof data contains evidence payload
-    evidence_payload = proof_data_dict.get('evidence_payload')
-    if evidence_payload is None:
-        raise ValueError('Evidence payload is missing from proof data')
-
     if verify_pse_manifest:
+        # Verify that the proof data contains evidence payload
+        evidence_payload = proof_data_dict.get('evidence_payload')
+        if evidence_payload is None:
+            raise ValueError('Evidence payload is missing from proof data')
         # Verify that the evidence payload contains a PSE manifest and then
         # use it to make sure that the PSE manifest hash is what we expect
         pse_manifest = evidence_payload.get('pse_manifest')
@@ -574,6 +573,7 @@ def verify_enclave_registration_info(connect,
             payload.verifying_key,
             details.encryption_key,
             originator_public_key_hash).encode()
+    LOGGER.debug("quote hash input: %s", hash_input)
 
     hash_value = hashlib.sha256(hash_input).digest()
     expected_report_data = \
