@@ -154,6 +154,8 @@ def initialize_with_configuration(config) :
         signed_enclave = __find_enclave_library(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
         _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'])
+        logger.info("Basename: %s", get_enclave_basename())
+        logger.info("MRENCLAVE: %s", get_enclave_measurement())
 
     sig_rl_updated = False
     while not sig_rl_updated:
@@ -217,33 +219,31 @@ def create_signup_info(originator_public_key_hash, nonce):
     # If we are not running in the simulator, we are going to go and get
     # an attestation verification report for our signup data.
     if not enclave.is_sgx_simulator():
-        response = \
-            _ias.post_verify_attestation(
-                quote=signup_data['enclave_quote'],
-                nonce=nonce)
+        logger.debug("posting verification to IAS")
+        response = _ias.post_verify_attestation(quote=signup_data['enclave_quote'], nonce=nonce)
+        logger.debug("posted verification to IAS")
 
-        verification_report = response.get('verification_report')
-        if verification_report is None:
-            logger.warning('IAS response did not contain an AVR')
-            logger.warning('isvEnclaveQuoteStatus: %s', response.get('isvEnclaveQuoteStatus'))
-            return None
-
-        signature = response.get('signature')
-        if signature is None:
-            logger.warning('IAS response did not contain an AVR signature')
-            logger.warning('isvEnclaveQuoteStatus: %s', response.get('isvEnclaveQuoteStatus'))
-            return None
+        #check verification report
+        if not _ias.verify_report_fields(signup_data['enclave_quote'], response['verification_report']):
+            logger.debug("last error: " + _ias.last_verification_error())
+            if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
+                logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
+            else:
+                logger.error("invalid report fields")
+                return None
+        #ALL checks have passed
+        logger.info("report fields verified")
 
         # Now put the proof data into the dictionary
         signup_info['proof_data'] = \
             json.dumps({
-                'verification_report': verification_report,
-                'signature': signature
+                'verification_report': response['verification_report'],
+                'signature': response['ias_signature']
             })
 
         # Grab the EPID psuedonym and put it in the enclave-persistent ID for the
         # signup info
-        verification_report_dict = json.loads(verification_report)
+        verification_report_dict = json.loads(response['verification_report'])
         signup_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
 
     # Now we can finally serialize the signup info and create a corresponding
