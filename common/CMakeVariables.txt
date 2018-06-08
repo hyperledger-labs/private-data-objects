@@ -1,0 +1,112 @@
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+################################################################################
+# Configure Environment
+################################################################################
+
+SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
+
+if("$ENV{DEBUG} " STREQUAL " ")
+    SET(DEBUG_FLAGS "-O2")
+    message(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
+else()
+    SET(DEBUG_FLAGS "-O0" "-g")
+    message(STATUS "Compiling in debug mode without optimizations (-O0 -g)")
+endif()
+
+SET(PDO_ENCLAVE_PEM "$ENV{PDO_ENCLAVE_PEM}")
+if("${PDO_ENCLAVE_PEM} " STREQUAL " ")
+    message(FATAL_ERROR "PDO_ENCLAVE_PEM environment variable not defined!")
+endif()
+
+SET(SGX_MODE "$ENV{SGX_MODE}")
+if("${SGX_MODE} " STREQUAL " ")
+    message(FATAL_ERROR "SGX_MODE environment variable not defined!")
+endif()
+IF("${SGX_MODE}" STREQUAL "SIM")
+    SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
+    SET(URTS_LIBRARY_NAME "sgx_urts_sim")
+    SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
+ELSE()
+    SET(TRTS_LIBRARY_NAME "sgx_trts")
+    SET(URTS_LIBRARY_NAME "sgx_urts")
+    SET(SERVICE_LIBRARY_NAME "sgx_tservice")
+ENDIF()
+
+SET(SGX_SDK "$ENV{SGX_SDK}")
+if("${SGX_SDK} " STREQUAL " ")
+    message(FATAL_ERROR "SGX_SDK environment variable not defined!")
+endif()
+SET(SGX_SSL "$ENV{SGX_SSL}")
+if("${SGX_SSL} " STREQUAL " ")
+    message(FATAL_ERROR "SGX_SSL environment variable not defined!")
+endif()
+
+SET(SGX_EDGER "${SGX_SDK}/bin/x64/sgx_edger8r")
+SET(SGX_SIGN "${SGX_SDK}/bin/x64/sgx_sign")
+
+SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include")
+SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
+                        "${SGX_SDK}/include/tlibc"
+                        "${SGX_SDK}/include/libcxx")
+
+SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../packages/base64")
+SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
+
+enable_testing()
+
+################################################################################
+# Functions
+################################################################################
+
+FUNCTION(SGX_EDGE_TRUSTED EDL EDGE_FILES)
+    GET_FILENAME_COMPONENT(EDL_BASE_NAME ${EDL} NAME_WE)
+    GET_FILENAME_COMPONENT(EDL_DIR_NAME ${EDL} DIRECTORY)
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+
+    SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.c")
+    SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
+    ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
+        COMMAND "${SGX_EDGER}" --trusted ${EDL} --search-path ${SGX_SEARCH_PATH} --search-path ${EDL_DIR_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS ${EDL}
+    )
+ENDFUNCTION()
+
+FUNCTION(SGX_EDGE_UNTRUSTED EDL EDGE_FILES)
+    GET_FILENAME_COMPONENT(EDL_BASE_NAME ${EDL} NAME_WE)
+    GET_FILENAME_COMPONENT(EDL_DIR_NAME ${EDL} DIRECTORY)
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+
+    SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.c")
+    SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
+    ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
+        COMMAND "${SGX_EDGER}" --untrusted ${EDL} --search-path ${SGX_SEARCH_PATH} --search-path ${EDL_DIR_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS ${EDL}
+    )
+ENDFUNCTION()
+
+FUNCTION(SGX_SIGN_ENCLAVE TARGET KEY_FILE CONFIG)
+    SET (ENCLAVE $<TARGET_FILE:${TARGET}>)
+
+    SET (SIGNED_ENCLAVE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${TARGET}.signed${CMAKE_SHARED_LIBRARY_SUFFIX})
+    SET (SIGNED_ENCLAVE ${SIGNED_ENCLAVE} PARENT_SCOPE)
+    ADD_CUSTOM_COMMAND( TARGET ${TARGET}
+        POST_BUILD
+        COMMAND "${SGX_SIGN}" sign -key "${KEY_FILE}" -enclave "${ENCLAVE}" -out "${SIGNED_ENCLAVE}" -config "${CONFIG}" > /dev/null
+    )
+ENDFUNCTION()

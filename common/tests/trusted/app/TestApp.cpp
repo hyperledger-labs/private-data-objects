@@ -24,6 +24,8 @@
 #include "TestApp.h"
 #include "TestEnclave_u.h"
 #include "sgx_urts.h"
+#include "c11_support.h"
+
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
 
@@ -97,14 +99,16 @@ int initialize_enclave(void)
     /* try to get the token saved in $HOME */
     const char* home_dir = getpwuid(getuid())->pw_dir;
 
-	/* 1st 1 is length("/"), 2nd 1 is null terminator */
+    /* 1st 1 is length("/"), 2nd 1 is null terminator */
     if (home_dir != NULL &&
         (strnlen(home_dir, MAX_PATH) + 1 + sizeof(TOKEN_FILENAME) + 1) <= MAX_PATH)
     {
         /* compose the token path */
         strncpy_s(token_path, MAX_PATH, home_dir, strnlen(home_dir, MAX_PATH));
-        strncat_s(token_path, MAX_PATH, "/", 1); /* 1 is length("/") */
-        strncat_s(token_path, MAX_PATH, TOKEN_FILENAME, sizeof(TOKEN_FILENAME) + 1);
+        strncpy_s(&token_path[strnlen_s(token_path, MAX_PATH-1)], MAX_PATH-1,
+                  "/\0", 2); //Includes copying null
+        strncpy_s(&token_path[strnlen_s(token_path, MAX_PATH-1)], MAX_PATH-1,
+                  TOKEN_FILENAME, sizeof(TOKEN_FILENAME) + 1); // Includes copying null
     }
     else
     {
@@ -182,8 +186,7 @@ int SGX_CDECL main(int argc, char* argv[])
     /* Initialize the enclave */
     if (initialize_enclave() < 0)
     {
-        printf("Error: could not initialize SGX Enclave\nEnter a character before exit ...\n");
-        getchar();
+        printf("Error: could not initialize SGX Enclave\n");
         return -1;
     }
 
