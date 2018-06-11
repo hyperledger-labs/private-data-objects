@@ -40,6 +40,10 @@ message PdoContractEnclaveInfo {
     // This is "register" transaction signature hash. It can be used
     // to get all registration transaction details from the ledger.
     string registration_transaction_id = 5;
+
+    // Information that can be used internally to verify the validity of
+    // the registration information stored as an opaque buffer.
+    string proof_data = 6;
 }
 
 
