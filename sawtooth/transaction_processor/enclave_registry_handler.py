@@ -191,6 +191,7 @@ class ContractEnclaveRegistryTransactionHandler(TransactionHandler):
                 details.registration_block_context
             info.owner_id = txn_signer_public_key
             info.registration_transaction_id = transaction.signature
+            info.proof_data = details.proof_data
 
             self.dbg_dump.dump_contract_enclave_state(info, "Setting new PdoContractEnclaveInfo")
             self._set_enclave_state(context,

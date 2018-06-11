@@ -209,6 +209,7 @@ class PdoDbgDump:
         self._dump_str("owner_id: {}".format(state.owner_id))
         self._dump_str("last_registration_block_context: {}".format(state.last_registration_block_context))
         self._dump_str("registration_transaction_id: {}".format(state.registration_transaction_id))
+        self._dump_str("proof_data: {}".format(state.proof_data))
 
     def dump_contract_enclave_transaction(self, payload):
         self._dump_str("")
