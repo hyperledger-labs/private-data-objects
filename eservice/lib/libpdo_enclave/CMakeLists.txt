@@ -19,10 +19,9 @@ PROJECT(libpdo-enclave C CXX)
 # Source Code
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 FILE(GLOB PROJECT_HEADERS *.h ${PDO_TOP_DIR}/common/*.h)
-FILE(GLOB PROJECT_SOURCES *.cpp *.c ../libpoet_shared/*.cpp ../libpoet_shared/*.c)
+FILE(GLOB PROJECT_SOURCES *.cpp *.c)
 ##FILE(GLOB PROJECT_EDL *.edl)
 FILE(GLOB PROJECT_EDL enclave.edl)
-FILE(GLOB PROJECT_KEY $ENV{PDO_ENCLAVE_PEM})
 FILE(GLOB PROJECT_CONFIG *.xml)
 SOURCE_GROUP("Source" FILES ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDL})
 
@@ -30,7 +29,7 @@ SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include ${PDO_TOP_DIR}/common ${PDO_TOP_DIR}/common/crypto ${PDO_TOP_DIR}/common/packages/parson)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter ../libpoet_shared)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter)
 
 # If are compiling for Linux, then we have special linking for the trusted
 # runtime service
@@ -105,7 +104,7 @@ SET(CMAKE_CXX_STANDARD_LIBRARIES "")
 SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
-SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PROJECT_KEY} ${PROJECT_CONFIG})
+SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_PEM} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lgipsy -lpdo_contracts -ltinyscheme -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
