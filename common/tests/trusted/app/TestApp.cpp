@@ -69,13 +69,13 @@ void print_error_message(sgx_status_t ret)
         {
             if (NULL != sgx_errlist[idx].sug)
                 printf("Info: %s\n", sgx_errlist[idx].sug);
-            printf("Error: %s\n", sgx_errlist[idx].msg);
+            fprintf(stderr, "Error: %s\n", sgx_errlist[idx].msg);
             break;
         }
     }
 
     if (idx == ttl)
-        printf(
+        fprintf(stderr,
             "Error code is 0x%X. Please refer to the \"Intel SGX SDK Developer Reference\" for "
             "more details.\n",
             ret);
@@ -119,7 +119,7 @@ int initialize_enclave(void)
     FILE* fp = fopen(token_path, "rb");
     if (fp == NULL && (fp = fopen(token_path, "wb")) == NULL)
     {
-        printf("Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
+        fprintf(stderr, "Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
     }
 
     if (fp != NULL)
@@ -130,7 +130,7 @@ int initialize_enclave(void)
         {
             /* if token is invalid, clear the buffer */
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
-            printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
+            fprintf(stderr, "Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
     }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
@@ -159,7 +159,7 @@ int initialize_enclave(void)
         return 0;
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
     if (write_num != sizeof(sgx_launch_token_t))
-        printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
+        fprintf(stderr, "Warning: Failed to save launch token to \"%s\".\n", token_path);
     fclose(fp);
     return 0;
 }
@@ -186,7 +186,7 @@ int SGX_CDECL main(int argc, char* argv[])
     /* Initialize the enclave */
     if (initialize_enclave() < 0)
     {
-        printf("Error: could not initialize SGX Enclave\n");
+        fprintf(stderr, "Error: could not initialize SGX Enclave\n");
         return -1;
     }
 
@@ -196,7 +196,7 @@ int SGX_CDECL main(int argc, char* argv[])
 
     if (result != 0)
     {
-        printf("ERROR: TRUSTED Common API test FAILED.\n");
+        fprintf(stderr, "ERROR: TRUSTED Common API test FAILED.\n");
         return -1;
     }
 
