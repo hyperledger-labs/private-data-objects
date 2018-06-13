@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
-MOD_VERSION=${shell ../bin/get_version}
-EGG_FILE=dist/pdo_client-${MOD_VERSION}-py${PY_VERSION}.egg
+SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+ROOTDIR := $(abspath $(SRCDIR)/../..)
+EXTENSIONPATH := $(ROOTDIR)/common/build
 
-PYTHON_SOURCE = $(shell cat MANIFEST)
+BASEPACKAGES := alist.scm comlist.scm hash.scm hashtab.scm
+CONTRACTPACKAGES := contract-base.scm counter.scm escrow-counter.scm key-store.scm
+PACKAGES := $(BASEPACKAGES) $(CONTRACTPACKAGES)
+PACKAGES := $(addprefix packages/, $(PACKAGES))
 
-all : $(EGG_FILE)
+TARGETS := all clean debug install
+CONTRACTS := auction integer-key mock-contract
 
-install: $(EGG_FILE)
-	easy_install $<
+$(TARGETS): $(CONTRACTS)
 
- $(EGG_FILE) : $(PYTHON_SOURCE)
-	@echo Build Distribution
-	python setup.py bdist_egg
+$(CONTRACTS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-clean :
-	rm -rf build dist *.egg-info
-
-.phony : all
-.phony : clean
-.phony : build_contracts
-.phony : install
+.PHONY: $(TARGETS) $(CONTRACTS)

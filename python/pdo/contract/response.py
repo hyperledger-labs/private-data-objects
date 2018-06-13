@@ -236,6 +236,8 @@ class ContractResponse(object) :
             txnid = transaction_dependencies.FindDependency(ledger_config, contract_id, state_hash)
             if txnid :
                 txn_dependencies.add(txnid)
+            else :
+                raise Exception('failed to find dependency; {0}:{1}'.format(contract_id, state_hash))
 
         if txn_dependencies :
             extra_params['transaction_dependency_list'] = list(txn_dependencies)

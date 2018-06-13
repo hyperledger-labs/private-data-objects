@@ -35,47 +35,52 @@ def __command_integer_key__(state, bindings, pargs) :
 
     subparsers = parser.add_subparsers(dest='command')
 
-    create_parser = subparsers.add_parser('create')
-    create_parser.add_argument('-k', '--key', help='key to create', type=str, required=True)
-    create_parser.add_argument('-v', '--value', help='initial value to give to the key', type=int, default=0)
+    subparser = subparsers.add_parser('get_signing_key')
+    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
-    inc_parser = subparsers.add_parser('inc')
-    inc_parser.add_argument('-k', '--key', help='key to increment', type=str, required=True)
-    inc_parser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
+    subparser = subparsers.add_parser('create')
+    subparser.add_argument('-k', '--key', help='key to create', type=str, required=True)
+    subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, default=0)
 
-    dec_parser = subparsers.add_parser('dec')
-    dec_parser.add_argument('-k', '--key', help='key to decrement', type=str, required=True)
-    dec_parser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
+    subparser = subparsers.add_parser('inc')
+    subparser.add_argument('-k', '--key', help='key to increment', type=str, required=True)
+    subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
 
-    get_parser = subparsers.add_parser('get')
-    get_parser.add_argument('-k', '--key', help='key to retrieve', type=str, required=True)
+    subparser = subparsers.add_parser('dec')
+    subparser.add_argument('-k', '--key', help='key to decrement', type=str, required=True)
+    subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
 
-    transfer_parser = subparsers.add_parser('transfer')
-    transfer_parser.add_argument('-k', '--key', help='key to transfer', type=str, required=True)
-    transfer_parser.add_argument('-o', '--owner', help='identity to transfer ownership', type=str, required=True)
+    subparser = subparsers.add_parser('get')
+    subparser.add_argument('-k', '--key', help='key to retrieve', type=str, required=True)
 
-    escrow_parser = subparsers.add_parser('escrow')
-    escrow_parser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
-    escrow_parser.add_argument('-a', '--agent', help='identity of the escrow agent', type=str, required=True)
+    subparser = subparsers.add_parser('transfer')
+    subparser.add_argument('-k', '--key', help='key to transfer', type=str, required=True)
+    subparser.add_argument('-o', '--owner', help='identity to transfer ownership', type=str, required=True)
 
-    attestation_parser = subparsers.add_parser('attestation')
-    attestation_parser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
-    attestation_parser.add_argument('-s', '--symbol', help='binding symbol for result', type=str, nargs=3)
+    subparser = subparsers.add_parser('escrow')
+    subparser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
+    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=str, required=True)
 
-    disburse_parser = subparsers.add_parser('disburse')
-    disburse_parser.add_argument('-d', '--dependencies', help='list of dependencies', type=str, nargs='*', default=[])
-    disburse_parser.add_argument('-k', '--key', help='key to disburse', type=str, required=True)
-    disburse_parser.add_argument('-s', '--signature', help='signature from the escrow agent', type=str, required=True)
+    subparser = subparsers.add_parser('attestation')
+    subparser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
+    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
-    exchange_parser = subparsers.add_parser('exchange')
-    exchange_parser.add_argument('-d', '--dependencies', help='list of dependencies', type=str, nargs='*', default=[])
-    exchange_parser.add_argument('--key1', help='source key', type=str, required=True)
-    exchange_parser.add_argument('--key2', help='destination key', type=str, required=True)
-    exchange_parser.add_argument('-s', '--signature', help='signature from the escrow agent', type=str, required=True)
+    subparser = subparsers.add_parser('disburse')
+    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=str, required=True)
+
+    subparser = subparsers.add_parser('exchange')
+    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=str, required=True)
 
     options = parser.parse_args(pargs)
 
     extraparams={'quiet' : options.quiet, 'wait' : options.wait}
+
+    if options.command == 'get_signing_key' :
+        message = "'(get-public-signing-key)"
+        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        if result and options.symbol :
+            bindings.bind(options.symbol, result)
+        return
 
     if options.command == 'create' :
         message = "'(create \"{0}\" {1})".format(options.key, options.value)
@@ -112,22 +117,25 @@ def __command_integer_key__(state, bindings, pargs) :
         message = "'(escrow-attestation \"{0}\")".format(options.key)
         result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
         if result and options.symbol :
-            expression = SchemeExpression.ParseExpression(result)
-            bindings.bind(options.symbol[0], str(expression.nth(0)))
-            bindings.bind(options.symbol[1], str(expression.nth(1)))
-            bindings.bind(options.symbol[2], str(expression.nth(2)))
+            bindings.bind(options.symbol, result)
         return
 
     if options.command == 'disburse' :
-        dependencies = " ".join(options.dependencies)
-        message = "'(disburse \"{0}\" ({1}) \"{2}\")".format(options.key, dependencies, options.signature)
+        attestation = SchemeExpression.ParseExpression(options.attestation)
+        assetkey = dict(attestation.nth(0).value)['key']
+        dependencies = str(attestation.nth(1))
+        signature = str(attestation.nth(2))
+        message = "'(disburse \"{0}\" {1} {2})".format(assetkey, dependencies, signature)
         send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
         return
 
     if options.command == 'exchange' :
-        dependencies = " ".join(options.dependencies)
-        message = "'(disburse \"{0}\" \"{1}\" ({2}) \"{3}\")".format(
-            options.key1, options.key2, dependencies, options.signature)
+        attestation = SchemeExpression.ParseExpression(options.attestation)
+        offered = dict(attestation.nth(0).value)['key']
+        maxbid = dict(attestation.nth(1).value)['key']
+        dependencies = str(attestation.nth(2))
+        signature = str(attestation.nth(3))
+        message = "'(exchange-ownership \"{0}\" \"{1}\" {2} {3})".format(offered, maxbid, dependencies, signature)
         send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
         return
 
