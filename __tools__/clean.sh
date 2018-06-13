@@ -38,3 +38,11 @@ make clean
 # --------------- PSERVICE ---------------
 cd $SRCDIR/pservice
 make clean
+
+# --------------- CLIENT ---------------
+cd $SRCDIR/client
+make clean
+
+# --------------- CONTRACTS ---------------
+cd $SRCDIR/contracts
+make clean

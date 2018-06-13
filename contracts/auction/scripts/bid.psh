@@ -1,0 +1,45 @@
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## This is a pdo-shell script adds a key to an asset ledger contract
+## and uses it to submit a bid to an auction. Run the script as:
+##
+## $ pdo-shell -s bid.psh -m bidkey <key> -m bidval <value> -i <identity>
+##
+## The maps for "bidkey" and "bidval" must be specified to run this
+## script.
+
+load_plugin -c integer-key
+load_plugin -c auction
+
+echo =================================================================
+echo get contract keys
+echo =================================================================
+integer_key -q -w -f ./ikey.pdo get_signing_key -s ikkey
+auction -q -w -f ./auction.pdo get_signing_key -s auckey
+
+echo =================================================================
+echo create the bid asset <${bidkey}> with value <${bidval}> and submit it
+echo =================================================================
+integer_key -q -w -f ./ikey.pdo create -k ${bidkey} -v ${bidval}
+
+## escrow requires two commands at this point, one to change
+## the state of the asset and one to get the attestation with
+## its depedencies. the '-s attest' saves the attestation in the
+## bindings map so we can use it later
+integer_key -q -w -f ./ikey.pdo escrow -k ${bidkey} -a ${auckey}
+integer_key -q -w -f ./ikey.pdo attestation -k ${bidkey} -s attest
+
+auction -q -w -f ./auction.pdo submit_bid -a '${attest}'
+exit

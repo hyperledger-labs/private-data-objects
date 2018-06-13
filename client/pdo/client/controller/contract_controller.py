@@ -302,7 +302,7 @@ class ContractController(cmd.Cmd) :
         pargs = shlex.split(self.bindings.expand(args))
 
         try :
-            parser = argparse.ArgumentParser(prog='bindings')
+            parser = argparse.ArgumentParser(prog='script')
             parser.add_argument('-f', '--file', help='file from which to read commands', required=True)
             parser.add_argument('-e', '--echo', help='turn on command echoing', action='store_true')
             options = parser.parse_args(pargs)
