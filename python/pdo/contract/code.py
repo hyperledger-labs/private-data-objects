@@ -36,7 +36,13 @@ class ContractCode(object) :
         """
         if source_name is None :
             source_name = name
-        basename = putils.build_file_name(source_name, extension='.scm')
+        gipsy_enabled = os.environ.get('GIPSY_ENABLED')
+       
+        if gipsy_enabled == 'false' :
+            basename =  putils.build_file_name(source_name, extension='.txt')
+        else :
+            basename = putils.build_file_name(source_name, extension='.scm')
+
         filename = putils.find_file_in_path(basename, search_path)
         with open(filename, "r") as cfile :
             code = cfile.read()
