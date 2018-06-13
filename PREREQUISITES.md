@@ -48,6 +48,14 @@ These are used to find the Intel&reg; Software Guard Extensions (SGX) Software
 Development Kit (SDK). They are normally set by sourcing the SGX SDK activation
 script (e.g. `source /opt/intel/sgxsdk/environment`)
 
+-`SGX_MODE` and `SGX_DEBUG`
+These variables are used to switch between SGX simulator and hardware mode, and
+to run the enclave in debug or non-debug mode. `SGX_MODE` is expected to be set
+to either `HW` or `SIM` (note: when compiling in hardware mode, make sure that
+the `SGX_USE_SIMULATOR` option is set to `FALSE` in `eservice/CMakeLists.txt`.
+`SGX_DEBUG` is expected to assume values `0` or `1`, though only `1` is
+currently supported.
+
 - `TINY_SCHEME_SRC`
 Used to locate a compatible source distribution of Tinyscheme, which is used to
 run contracts.
@@ -97,7 +105,13 @@ Intel&reg; platforms. However, it can also be run in "simulator mode" on
 platforms that do not have hardware support for SGX.
 
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
-PSW, and SDK. If running only in simulator mode (no hardware support), you only
+PSW, and SDK. Also, if using PDO jointly with Sawtooth, you will need to set
+up the ledger with the appropriate parameters
+([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
+for the validation of attestation verifications from the Intel Attestation Service (IAS). 
+Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
+For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
+If running only in simulator mode (no hardware support), you only
 need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
 documentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
 visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
@@ -124,8 +138,8 @@ If using a Debian-based Linux distribution (Ubuntu, Mint, etc.) the recommended
 path is to download and install pre-build OpenSSL packages for your system. For
 example, to install OpenSSL v1.1.0h on an Ubuntu system:
 ```
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-2_amd64.deb'
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-2_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-4_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-4_amd64.deb'
 sudo dpkg -i libssl1.1_1.1.0h-2_amd64.deb
 sudo dpkg -i libssl-dev_1.1.0h-2_amd64.deb
 sudo apt-get install -f

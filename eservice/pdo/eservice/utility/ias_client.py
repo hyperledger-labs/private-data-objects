@@ -17,12 +17,13 @@ Provide rest api helper functions for communicating with IAS.
 """
 
 from urllib.parse import urljoin
-
 import requests
-
 import sys
-def printf(format, *args):
-    sys.stdout.write(format % args)
+import urllib
+import json
+
+import logging
+logger = logging.getLogger(__name__)
 
 class IasClient(object):
     """
@@ -30,19 +31,24 @@ class IasClient(object):
     """
 
     def __init__(self, **kwargs):
+        logger.info("IAS settings:")
         self._proxies = {}
         if "HttpsProxy" in kwargs:
             self._proxies["https"] = kwargs["HttpsProxy"]
+            logger.info("Proxy: " + self._proxies["https"])
         if "Spid" in kwargs:
             self._spid = kwargs["Spid"]
+            logger.info("SPID: " + self._spid)
         else:
             raise KeyError('Missing Spid setting')
         if "IasServer" in kwargs:
             self._ias_url = kwargs["IasServer"]
+            logger.info("URL: " + self._ias_url)
         else:
             raise KeyError('Missing IasServer setting')
         if "SpidCert" in kwargs:
             self._cert = kwargs["SpidCert"]
+            logger.info("SpidCert: " + self._cert)
         else:
             raise KeyError('Missing SpidCert setting')
         self._timeout=300
@@ -58,11 +64,11 @@ class IasClient(object):
         """
 
         url = self._ias_url+path+gid[0:8]
-        printf("Fetching SigRL from: %s", url)
+        logger.debug("Fetching SigRL from: %s", url)
         result = requests.get(url, proxies= self._proxies,
                               cert=self._cert, verify=False)
         if result.status_code != requests.codes.ok:
-            printf("get_signature_revocation_lists HTTP Error code : %d",
+            logger.debug("get_signature_revocation_lists HTTP Error code : %d",
                          result.status_code)
             result.raise_for_status()
 
@@ -81,17 +87,73 @@ class IasClient(object):
         if nonce is not None:
             json['nonce'] = nonce
 
-        printf("Posting attestation verification request to: %s\n",url)
+        logger.debug("Posting attestation verification request to: %s\n",url)
         result = requests.post(url,
                                json=json,
                                proxies=self._proxies,
                                cert=self._cert,
                                timeout=self._timeout)
-        printf("received attestation result code: %d\n",
-                     result.status_code)
+        logger.debug("result headers: %s\n", result.headers)
+        logger.info("received attestation result code: %d\n", result.status_code)
         if result.status_code != requests.codes.ok:
-            printf("post_verify_attestation HTTP Error code : %d",
-                         result.status_code)
+            logger.debug("post_verify_attestation HTTP Error code : %d", result.status_code)
             result.raise_for_status()
 
-        return result.json()
+        returnblob = {
+            'verification_report': result.text,
+            'ias_signature': result.headers.get('x-iasreport-signature'),
+            'ias_certificate': urllib.parse.unquote(result.headers.get('x-iasreport-signing-certificate'))
+        }
+        logger.debug("received ias certificate: %s\n", returnblob['ias_certificate'])
+        return returnblob
+
+    def verify_report_fields(self, original_quote, received_report):
+        logger.debug("checking report fields from " + self._ias_url)
+        self._spurious = self._ias_url
+        verification_report_dict = json.loads(received_report)
+
+        if not 'id' in verification_report_dict:
+            logger.error('AVR does not contain id field')
+            return False
+
+        if 'revocationReason' in verification_report_dict:
+            logger.error('AVR indicates the EPID group has been revoked')
+            return False
+
+        isv_enclave_quote_status = verification_report_dict.get('isvEnclaveQuoteStatus')
+        if isv_enclave_quote_status is None:
+            logger.error('AVR does not include an enclave quote status')
+            return False
+
+        if not 'isvEnclaveQuoteBody' in verification_report_dict:
+            logger.error('AVR does not contain quote body')
+            return False
+
+        if not verification_report_dict['isvEnclaveQuoteBody'] in original_quote:
+            logger.error('isvEnclaveQuoteBody field not in original quote')
+            return False
+
+        if not 'epidPseudonym' in verification_report_dict:
+            logger.error('AVR does not contain an EPID psuedonym')
+            return False
+
+        if not 'nonce' in verification_report_dict:
+            logger.error('AVR does not contain a nonce')
+            return False
+
+        #leave the status check for last
+        if isv_enclave_quote_status.upper() != 'OK':
+            self._last_verification_error = isv_enclave_quote_status.upper()
+            logger.debug("enclave quote status error: " + self._last_verification_error)
+            return False
+
+        #all checks passed
+        return True
+
+    def last_verification_error(self):
+        """
+        Errno-like procedure to provide details about where the verification failed.
+        Mostly used for GROUP_OUT_OF_DATE verification report failure
+        """
+        return self._last_verification_error
+

@@ -54,7 +54,8 @@ class TransactionKeys(object) :
     def hashed_identity(self) :
         key_byte_array = crypto.string_to_byte_array(self.txn_public)
         hashed_txn_key = crypto.compute_message_hash(key_byte_array)
-        encoded_hashed_key = crypto.byte_array_to_base64(hashed_txn_key)
+        encoded_hashed_key = crypto.byte_array_to_hex(hashed_txn_key)
+        encoded_hashed_key = encoded_hashed_key.lower()
         return encoded_hashed_key
 
     @property

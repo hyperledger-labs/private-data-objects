@@ -38,8 +38,12 @@ static std::string g_LastError;
 int pdo::enclave_api::base::IsSgxSimulator()
 {
 #if defined(SGX_SIMULATOR)
+#if SGX_SIMULATOR == 1
     return 1;
-#else // defined(SGX_SIMULATOR)
+#else // SGX_SIMULATOR not 1
+    return 0;
+#endif //  #if SGX_SIMULATOR == 1
+#else // SGX_SIMULATOR not defined
     return 0;
 #endif // defined(SGX_SIMULATOR)
 } // pdo::enclave_api::base::IsSgxSimulator

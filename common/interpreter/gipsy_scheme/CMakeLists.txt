@@ -23,7 +23,7 @@ SET(TINY_SCHEME_SRC "$ENV{TINY_SCHEME_SRC}")
 
 # Error checking on environment variables
 if("${TINY_SCHEME_SRC} " STREQUAL " ")
-    message(FATAL_ERROR "TINY_SCHEME_SRC evironment variable not defined!")
+    message(WARNING "TINY_SCHEME_SRC environment variable not defined! Optional gipsy pcontract.so utility for building contracts will not be compiled.")
 endif()
 
 ################################################################################
@@ -92,28 +92,24 @@ TARGET_COMPILE_DEFINITIONS(${GIPSY_STATIC_NAME} PRIVATE "-DUSE_DL=1")
 #       in this project!
 ################################################################################
 
-SET(CMAKE_SHARED_LIBRARY_PREFIX "")
+if(NOT "${TINY_SCHEME_SRC} " STREQUAL " ")
+    SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 
-SET(PCONTRACT_NAME pcontract)
-PROJECT(${PCONTRACT_NAME} CXX)
+    SET(PCONTRACT_NAME pcontract)
+    PROJECT(${PCONTRACT_NAME} CXX)
 
-# Only SchemeExtensions in the shared library
-ADD_LIBRARY(${PCONTRACT_NAME} SHARED ${PROJECT_HEADERS} SchemeExtensions.cpp)
+    # Only SchemeExtensions in the shared library
+    ADD_LIBRARY(${PCONTRACT_NAME} SHARED ${PROJECT_HEADERS} SchemeExtensions.cpp)
 
-TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${GENERIC_PRIVATE_INCLUDE_DIRS})
-TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${GENERIC_PUBLIC_INCLUDE_DIRS})
-TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${TINY_SCHEME_SRC})
+    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${GENERIC_PRIVATE_INCLUDE_DIRS})
+    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${GENERIC_PUBLIC_INCLUDE_DIRS})
+    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${TINY_SCHEME_SRC})
 
-TARGET_COMPILE_OPTIONS(${PCONTRACT_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
+    TARGET_COMPILE_OPTIONS(${PCONTRACT_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
 
-TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-DUSE_DL=1")
+    TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-DUSE_DL=1")
 
-# Link the untrusted common library
-TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} "-lcrypto" "-lssl")
+    # Link the untrusted common library
+    TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} "-lcrypto" "-lssl")
+endif()
 
-################################################################################
-# Test Application
-################################################################################
-
-## Run the utest application after it has been compiled
-#ADD_CUSTOM_COMMAND(TARGET ${UNTRUSTED_TEST_NAME} POST_BUILD COMMAND "./utest")

@@ -18,13 +18,14 @@ and a certificate.
 
 ### Certificate ###
 This is a PEM file which
-* the user generates;
+* the user generates ([here](https://software.intel.com/en-us/articles/certificate-requirements-for-intel-attestation-services));
 * includes the BEGIN/END CERTIFICATE and BEGIN/END PRIVATE KEY fields;
 * has the certificate part registered with the Intel Attestation Service.
 
 ### Configuration file ###
 This file include 4 string fields:
-* spid - the service provider ID obtained from Intel after registering the certificate above;
+* spid - the service provider ID obtained from Intel after registering the certificate above
+ ([here](https://software.intel.com/en-us/form/sgx-onboarding));
 * spid_cert_file - the PEM file of the certificate above
 * ias_url - the url of the Intel Attestation Service
 * http_proxy - a parameter to specify a proxy (if any) or '' otherwise

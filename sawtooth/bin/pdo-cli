@@ -24,10 +24,11 @@ build_str = "lib.{}-{}.{}".format(
 
 pdo_sawtooth_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 pdo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
 sys.path.insert(0, os.path.join(pdo_path, 'python'))
 sys.path.insert(0, os.path.join(pdo_sawtooth_path))
+sys.path.insert(0, os.path.join(pdo_sawtooth_path, 'common'))
+sys.path.insert(0, os.path.join(pdo_sawtooth_path, 'common', 'sgx'))
 
 from pdo_cli.pdo_cli_main import main_wrapper
 
