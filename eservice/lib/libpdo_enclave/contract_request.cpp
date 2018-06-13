@@ -32,7 +32,11 @@
 #include "enclave_utils.h"
 
 #include "interpreter/ContractInterpreter.h"
+#ifdef INTKEY_CPP_CONTRACT_TEST
+#include "interpreter/intkey_cpp_contract_test/IntKeyCppContractWrapper.h"
+#else
 #include "interpreter/gipsy_scheme/GipsyInterpreter.h"
+#endif
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Request format for create and send methods
@@ -142,10 +146,11 @@ ContractResponse ContractRequest::process_initialization_request(void)
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
+        #ifdef INTKEY_CPP_CONTRACT_TEST
+        IntKeyCppContractWrapper interpreter;
+        #else
         GipsyInterpreter interpreter;
-
-        // interpreter.create_initial_contract_state(contractid, creatorid, contractcode, message,
-        // state)
+        #endif
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
@@ -192,6 +197,22 @@ ContractResponse ContractRequest::process_initialization_request(void)
         response.operation_succeeded_ = false;
         return response;
     }
+     #ifdef INTKEY_CPP_CONTRACT_TEST
+    catch (IntKeyCppContractWrapperException& e)
+	{
+		SAFE_LOG(PDO_LOG_ERROR,
+                 "failed inside IntkeyContractWrapper %s: %s",
+                 contract_code_.name_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, e.what());
+        response.operation_succeeded_ = false;
+        return response;
+
+	}
+     #endif
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR,
@@ -211,10 +232,12 @@ ContractResponse ContractRequest::process_update_request(void)
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
+        #ifdef INTKEY_CPP_CONTRACT_TEST
+        IntKeyCppContractWrapper interpreter;
+        #else
         GipsyInterpreter interpreter;
+        #endif
 
-        // interpreter.create_initial_contract_state(contractid, creatorid, contractcode, message,
-        // state)
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
@@ -266,6 +289,22 @@ ContractResponse ContractRequest::process_update_request(void)
         response.operation_succeeded_ = false;
         return response;
     }
+     #ifdef INTKEY_CPP_CONTRACT_TEST
+    catch (IntKeyCppContractWrapperException& e)
+        {
+                SAFE_LOG(PDO_LOG_ERROR,
+                 "failed inside IntkeyContractWrapper %s: %s",
+                 contract_code_.name_.c_str(),
+                 e.what());
+
+        ByteArray error_state(0);
+        std::map<string, string> dependencies;
+        ContractResponse response(*this, dependencies, error_state, e.what());
+        response.operation_succeeded_ = false;
+        return response;
+
+        }
+     #endif
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR,

@@ -30,7 +30,11 @@ SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include ${PDO_TOP_DIR}/common ${PDO_TOP_DIR}/common/crypto ${PDO_TOP_DIR}/common/packages/parson)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter ../libpoet_shared)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter ../libpoet_shared)
+
+IF($ENV{GIPSY_ENABLED})
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme )
+ENDIF()
 
 # If are compiling for Linux, then we have special linking for the trusted
 # runtime service
@@ -72,6 +76,10 @@ IF($ENV{DEBUG})
  ADD_DEFINITIONS(-D ENCLAVE_DEBUG)
 ENDIF()
 
+IF(NOT $ENV{GIPSY_ENABLED})
+ ADD_DEFINITIONS(-DINTKEY_CPP_CONTRACT_TEST )
+ENDIF()
+
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m64")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -O2")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
@@ -88,7 +96,7 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SDK}/lib64")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64/release")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,${PDO_TOP_DIR}/common/build")
-
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64")
 # Remove all the default windows libraries (kernel32, etc)
 SET(CMAKE_C_STANDARD_LIBRARIES_INIT "")
 SET(CMAKE_C_STANDARD_LIBRARIES "")
@@ -106,7 +114,14 @@ SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
 SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PROJECT_KEY} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lgipsy -lpdo_contracts -ltinyscheme -lsgx_tsgxssl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -lsgx_tkey_exchange -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lpdo_contracts -lsgx_tsgxssl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -lsgx_tkey_exchange -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter)
+IF($ENV{GIPSY_ENABLED})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltinyscheme -lgipsy -Wl,--end-group)
+ELSE()
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group  -lintkey  -Wl,--end-group)
+ENDIF()
+
 TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
 
 ADD_CUSTOM_COMMAND(
