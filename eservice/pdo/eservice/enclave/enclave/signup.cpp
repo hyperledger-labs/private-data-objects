@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <sgx_uae_service.h>
-#include <sgx_ukey_exchange.h> /*To call untrusted key exchange library i.e., sgx_ra_get_msg1() and sgx_ra_proc_msg2() */
 
 #include "error.h"
 #include "log.h"
@@ -118,13 +117,13 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
 
         // We need target info in order to create signup data report
         sgx_target_info_t target_info = { 0 };
-        sgx_epid_group_id_t gid = { 0 };
+        sgx_epid_group_id_t epidGroupId = { 0 };
 
         sresult =
             g_Enclave.CallSgx(
                 [&target_info,
-                 &gid] () {
-                    return sgx_init_quote(&target_info, &gid);
+                 &epidGroupId] () {
+                    return sgx_init_quote(&target_info, &epidGroupId);
                 });
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (sgx_init_quote), failed to initialize the quote");
 

@@ -14,6 +14,7 @@
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
+
 EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 
 ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
@@ -34,28 +35,26 @@ SWIG_FILES = $(addprefix pdo/eservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 
 PYTHON_FILES = \
-	pdo/eservice/enclave/pdo_enclave_internal.py \
 	pdo/eservice/enclave/__init__.py \
+	pdo/eservice/pdo_helper.py \
 	pdo/eservice/scripts/EServiceCLI.py \
 	pdo/eservice/scripts/__init__.py \
 	pdo/eservice/pdo_enclave.py \
 	pdo/eservice/__init__.py \
 	pdo/eservice/utility/ias_client.py \
 	pdo/eservice/utility/__init__.py \
-	pdo/__init__.py \
+	pdo/__init__.py
 
-all : $(EGG_FILE)
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
 
-build_all : $(EGG_FILE)
+all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
 	@echo Build Distribution
 	python setup.py bdist_egg
 
-enclave :
-	$(MAKE) -C build
-
-$(ENCLAVE_LIB) : build
+$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+	@echo Build Enclave
 	$(MAKE) -C build
 
 $(SWIG_TARGET) : $(SWIG_FILES)
@@ -79,6 +78,7 @@ clean:
 	find . -iname '__pycache__' -delete
 
 .phony : all
-.phony : build_all
 .phony : clean
 .phony : enclave
+.phone : install
+.phony : test

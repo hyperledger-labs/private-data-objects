@@ -23,7 +23,6 @@
 #include <unistd.h>
 
 #include <sgx_uae_service.h>
-#include <sgx_ukey_exchange.h>
 #include "sgx_support.h"
 
 #include "error.h"
@@ -71,6 +70,12 @@ namespace pdo {
             sgx_status_t ret = sgx_calc_quote_size(nullptr, 0, &size);
             pdo::error::ThrowSgxError(ret, "Failed to get SGX quote size.");
             this->quoteSize = size;
+            
+            //initialize the targetinfo and epid variables
+            ret = g_Enclave.CallSgx([this] () {
+                    return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
+                });
+            pdo::error::ThrowSgxError(ret, "Failed to initialized quote in enclave constructore"); 
         } // Enclave::Enclave
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -119,31 +124,21 @@ namespace pdo {
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEpidGroup(
-            sgx_epid_group_id_t outEpidGroup
+            sgx_epid_group_id_t* outEpidGroup
             )
         {
-            sgx_ra_msg1_t remoteAttestationMessage1;
-
-            sgx_status_t ret =
-                this->CallSgx(
-                    [this,
-                     &remoteAttestationMessage1] () {
-                        return
-                        sgx_ra_get_msg1(
-                            this->raContext,
-                            this->enclaveId,
-                            sgx_ra_get_ga,
-                            &remoteAttestationMessage1);
-                    });
-            pdo::error::ThrowSgxError(
-                ret,
-                "Failed to retrieve remote attestation message (EPID group "
-                "ID)");
-
+            sgx_status_t ret;
+            //retrieve epid by calling init quote
+            ret = g_Enclave.CallSgx([this] () {
+                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
+                    }); 
+            pdo::error::ThrowSgxError(ret, "Failed to get epid group id from init_quote"); 
+            
+            //copy epid group into output parameter
             memcpy_s(
                 outEpidGroup,
                 sizeof(sgx_epid_group_id_t),
-                remoteAttestationMessage1.gid,
+                &this->epidGroupId,
                 sizeof(sgx_epid_group_id_t));
         } // Enclave::GetEpidGroup
 
@@ -355,6 +350,8 @@ namespace pdo {
 
                 sgx_launch_token_t token = { 0 };
                 int flags = SGX_DEBUG_FLAG;
+                pdo::error::ThrowSgxError((SGX_DEBUG_FLAG==0 ? SGX_ERROR_UNEXPECTED:SGX_SUCCESS),
+                    "SGX DEBUG flag is 0 (possible cause: wrong compile flags)");
 
                 // First attempt to load the enclave executable
                 sgx_status_t ret = SGX_SUCCESS;
@@ -380,8 +377,7 @@ namespace pdo {
                         sgx_status_t ret =
                         ecall_Initialize(
                             this->enclaveId,
-                            &pdoError,
-                            &this->raContext);
+                            &pdoError);
                         return error::ConvertErrorStatus(ret, pdoError);
                     });
                 pdo::error::ThrowSgxError(

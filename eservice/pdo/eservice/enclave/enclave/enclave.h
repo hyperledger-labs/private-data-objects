@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "sgx_urts.h"
-#include "sgx_key_exchange.h"
+#include "sgx_uae_service.h"
 
 #include "error.h"
 #include "pdo_error.h"
@@ -59,7 +59,7 @@ namespace pdo {
             } // GetSealedSignupDataSize
 
             void GetEpidGroup(
-                sgx_epid_group_id_t outEpidGroup
+                sgx_epid_group_id_t* outEpidGroup
                 );
 
             void GetEnclaveCharacteristics(
@@ -101,13 +101,15 @@ namespace pdo {
 
             std::string enclaveFilePath;
             sgx_enclave_id_t enclaveId;
-            sgx_ra_context_t raContext;
 
             size_t quoteSize;
             size_t sealedSignupDataSize;
 
             std::string signatureRevocationList;
             sgx_spid_t spid;
+            
+            sgx_target_info_t reportTargetInfo;
+            sgx_epid_group_id_t epidGroupId;
         }; // class Enclave
 
     }                          /* namespace enclave_api */

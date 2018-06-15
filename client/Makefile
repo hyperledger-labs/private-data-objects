@@ -16,29 +16,19 @@ PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 EGG_FILE=dist/pdo_client-${MOD_VERSION}-py${PY_VERSION}.egg
 
-PYTHON_FILES = \
-	./pdo/client/SchemeExpression.py \
-	./pdo/client/scripts/AuctionTestCLI.py \
-	./pdo/client/scripts/UpdateCLI.py \
-	./pdo/client/scripts/CreateCLI.py \
-	./pdo/client/scripts/__init__.py \
-	./pdo/client/__init__.py
+PYTHON_SOURCE = $(shell cat MANIFEST)
 
-all : build_contracts $(EGG_FILE)
-
-build_contracts :
-	make -C contracts contracts
+all : $(EGG_FILE)
 
 install: $(EGG_FILE)
 	easy_install $<
 
- $(EGG_FILE) : $(PYTHON_FILES)
+ $(EGG_FILE) : $(PYTHON_SOURCE)
 	@echo Build Distribution
 	python setup.py bdist_egg
 
 clean :
 	rm -rf build dist *.egg-info
-	make -C contracts clean
 
 .phony : all
 .phony : clean

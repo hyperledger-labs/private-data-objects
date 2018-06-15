@@ -14,13 +14,12 @@
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
+
 EGG_FILE=dist/pdo_pservice-${MOD_VERSION}-py${PY_VERSION}.egg
 
 PYTHON_FILES = pdo/pservice/scripts/PServiceCLI.py
 
 all : $(EGG_FILE)
-
-build : $(EGG_FILE)
 
 $(EGG_FILE) : $(PYTHON_FILES)
 	@echo Build Distribution
@@ -33,6 +32,5 @@ clean:
 	rm -rf build dist *.egg-info
 
 .PHONY: all
-.PHONY: build
-.PHONY: install
 .PHONY: clean
+.PHONY: install

@@ -36,6 +36,18 @@ etc_dir = os.path.join(install_root_dir, "etc")
 log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
+sgx_mode_env = os.environ.get('SGX_MODE', None)
+sgx_debug_env = os.environ.get('SGX_DEBUG', None)
+if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
+    print("error: SGX_MODE value must be HW or SIM, current value is: ", sgx_mode_env)
+    sys.exit(2)
+if not sgx_debug_env or (sgx_debug_env != "0" and sgx_debug_env != "1"):
+    print("error: SGX_DEBUG value must be 0 or 1, current value is: ", sgx_debug_env)
+    sys.exit(3)
+if sgx_debug_env == "0":
+    print("error: SGX_DEBUG value 0 not supported")
+    sys.exit(4)
+
 data_files = [
     (bin_dir, ['bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh']),
     (dat_dir, []),
@@ -58,7 +70,6 @@ module_src_path = os.path.join(script_dir, module_path)
 compile_args = [
     '-std=c++11',
     '-g',
-    '-DSGX_SIMULATOR=1',
     '-Wno-switch',
     '-Wno-unused-function',
     '-Wno-unused-variable',
@@ -79,11 +90,17 @@ library_dirs = [
 ]
 
 libraries = [
-    'updo-common',
-    'sgx_ukey_exchange',
-    'sgx_urts_sim',
-    'sgx_uae_service_sim'
+    'updo-common'
 ]
+
+if sgx_mode_env == "HW":
+    libraries.append('sgx_urts')
+    libraries.append('sgx_uae_service')
+    SGX_SIMULATOR_value = '0'
+if sgx_mode_env == "SIM":
+    libraries.append('sgx_urts_sim')
+    libraries.append('sgx_uae_service_sim')
+    SGX_SIMULATOR_value = '1'
 
 module_files = [
     os.path.join(module_src_path, 'pdo_enclave_internal.i'),
@@ -107,7 +124,13 @@ enclave_module = Extension(
     extra_compile_args = compile_args,
     libraries = libraries,
     include_dirs = include_dirs,
-    library_dirs = library_dirs)
+    library_dirs = library_dirs,
+    define_macros = [
+                        ('DEBUG', None),
+                        ('SGX_SIMULATOR', SGX_SIMULATOR_value)
+                    ],
+    undef_macros = ['NDEBUG', 'EDEBUG']
+    )
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

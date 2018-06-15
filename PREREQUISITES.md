@@ -48,6 +48,14 @@ These are used to find the Intel&reg; Software Guard Extensions (SGX) Software
 Development Kit (SDK). They are normally set by sourcing the SGX SDK activation
 script (e.g. `source /opt/intel/sgxsdk/environment`)
 
+-`SGX_MODE` and `SGX_DEBUG`
+These variables are used to switch between SGX simulator and hardware mode, and
+to run the enclave in debug or non-debug mode. `SGX_MODE` is expected to be set
+to either `HW` or `SIM` (note: when compiling in hardware mode, make sure that
+the `SGX_USE_SIMULATOR` option is set to `FALSE` in `eservice/CMakeLists.txt`.
+`SGX_DEBUG` is expected to assume values `0` or `1`, though only `1` is
+currently supported.
+
 - `TINY_SCHEME_SRC`
 Used to locate a compatible source distribution of Tinyscheme, which is used to
 run contracts.
@@ -97,7 +105,13 @@ Intel&reg; platforms. However, it can also be run in "simulator mode" on
 platforms that do not have hardware support for SGX.
 
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
-PSW, and SDK. If running only in simulator mode (no hardware support), you only
+PSW, and SDK. Also, if using PDO jointly with Sawtooth, you will need to set
+up the ledger with the appropriate parameters
+([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
+for the validation of attestation verifications from the Intel Attestation Service (IAS). 
+Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
+For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
+If running only in simulator mode (no hardware support), you only
 need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
 documentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
 visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
@@ -124,8 +138,8 @@ If using a Debian-based Linux distribution (Ubuntu, Mint, etc.) the recommended
 path is to download and install pre-build OpenSSL packages for your system. For
 example, to install OpenSSL v1.1.0h on an Ubuntu system:
 ```
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-2_amd64.deb'
-wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-2_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-4_amd64.deb'
+wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-4_amd64.deb'
 sudo dpkg -i libssl1.1_1.1.0h-2_amd64.deb
 sudo dpkg -i libssl-dev_1.1.0h-2_amd64.deb
 sudo apt-get install -f
@@ -156,7 +170,7 @@ accordingly, e.g.,
 ```
 export PKG_CONFIG_PATH="$(pwd)/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 ```
-You might also want to extend `LD_LIBRARY_PATH`, e.g., as
+If you installed in a standard location (e.g., default /usr/local/lib) you might have to call 'ldconfig'; if in a non-standard location you might have to extend LD_LIBRARY_PATH, e.g., as
 ```
 export LD_LIBRARY_PATH="$(pwd)/install/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 ```
@@ -178,24 +192,24 @@ SGX OpenSSL with fixes for commonly encountered problems.
 mkdir ~/sgxssl
 cd ~/sgxssl
 ```
-- Download the necessary components (you may need a newer version if your base system uses newer than 1.1.0h)
- - OpenSSL v1.1.0h: `wget 'https://www.openssl.org/source/openssl-1.1.0h.tar.gz'`
- - SGX SSL (latest version): `git clone 'https://github.com/intel/intel-sgx-ssl.git'`
 
-- Move the OpenSSL source into the correct folder
+- Download the latest SGX SSL git repository:
 ```
-mv openssl-1.1.0h.tar.gz intel-sgx-ssl/openssl_source
+git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
-- Compile the sgxssl project
+
+- Download the OpenSSL source package that will form the base of this SGX SSL install:
 ```
-cd intel-sgx-ssl/Linux
-./build_sgxssl.sh
+cd intel-sgx-ssl/openssl_source
+wget 'https://www.openssl.org/source/openssl-1.1.0h.tar.gz'
+cd ..
 ```
-- Install the sgxssl folder somewhere on your file system (example here installs for all users using sudo)
+
+- Compile and install the sgxssl project. If your system does not have SGX support, use `SGX_MODE=SIM` instead.
 ```
-sudo mkdir -p /opt/intel/sgxssl
-cd /opt/intel/sgxssl
-sudo tar xzf ~/sgxssl/intel-sgx-ssl/Linux/sgxssl.2.1.100.99999.tar.gz
+cd Linux
+make SGX_MODE=HW DESTDIR=/opt/intel/sgxssl all test
+sudo make install
 ```
 
 - Export the `SGX_SSL` environment variable to enable the build utilities to find and link this library.
@@ -217,41 +231,6 @@ creating a symbolic link to the current version like:
 ```
 cd /usr/lib/x86_64-linux-gnu/
 sudo ln -s libprotobuf.so.10 libprotobuf.so.9
-```
-- If you get the error:
-`./test_app/TestApp: symbol lookup error: /usr/lib/libsgx_uae_service.so: undefined symbol: _ZN6google8protobuf2io16CodedInputStream20ReadVarint32FallbackEPj`
-you are probably not running on SGX enabled hardware. The sgxssl test
-application only works with "real" SGX, not the simulator. So just remove the
-lines from the build script that reference the test\_app
-```diff
-diff --git a/Linux/build_sgxssl.sh b/Linux/build_sgxssl.sh
-index 9ff2799..02469f8 100755
---- a/Linux/build_sgxssl.sh
-+++ b/Linux/build_sgxssl.sh
-@@ -164,9 +164,6 @@ rm -rf $OPENSSL_VERSION || clean_and_ret 1
- cd $SGXSSL_ROOT/sgx || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
-
-
-@@ -196,15 +193,9 @@ rm -rf $OPENSSL_VERSION || clean_and_ret 1
- cd $SGXSSL_ROOT/sgx || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION SGX_MODE=SIM DEBUG=1 $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
-
- make OS_ID=$OS_ID SGXSDK_INT_VERSION=$SGXSDK_INT_VERSION DEBUG=1 $LINUX_BUILD_FLAG || clean_and_ret 1 # will also copy the resulting files to package
--if [[ $1 != "linux-sgx" && $2 != "linux-sgx" ]] ; then
--   ./test_app/TestApp || clean_and_ret 1 # verify everything is working ok
--fi
- make clean || clean_and_ret 1
 ```
 
 # <a name="tinyscheme"></a>Tinyscheme

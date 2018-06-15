@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include <sgx_report.h>
-#include <sgx_tae_service.h>
 #include <sgx_tcrypto.h>
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

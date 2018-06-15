@@ -24,6 +24,8 @@
 #include "TestApp.h"
 #include "TestEnclave_u.h"
 #include "sgx_urts.h"
+#include "c11_support.h"
+
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
 
@@ -67,13 +69,13 @@ void print_error_message(sgx_status_t ret)
         {
             if (NULL != sgx_errlist[idx].sug)
                 printf("Info: %s\n", sgx_errlist[idx].sug);
-            printf("Error: %s\n", sgx_errlist[idx].msg);
+            fprintf(stderr, "Error: %s\n", sgx_errlist[idx].msg);
             break;
         }
     }
 
     if (idx == ttl)
-        printf(
+        fprintf(stderr,
             "Error code is 0x%X. Please refer to the \"Intel SGX SDK Developer Reference\" for "
             "more details.\n",
             ret);
@@ -97,14 +99,16 @@ int initialize_enclave(void)
     /* try to get the token saved in $HOME */
     const char* home_dir = getpwuid(getuid())->pw_dir;
 
-	/* 1st 1 is length("/"), 2nd 1 is null terminator */
+    /* 1st 1 is length("/"), 2nd 1 is null terminator */
     if (home_dir != NULL &&
         (strnlen(home_dir, MAX_PATH) + 1 + sizeof(TOKEN_FILENAME) + 1) <= MAX_PATH)
     {
         /* compose the token path */
         strncpy_s(token_path, MAX_PATH, home_dir, strnlen(home_dir, MAX_PATH));
-        strncat_s(token_path, MAX_PATH, "/", 1); /* 1 is length("/") */
-        strncat_s(token_path, MAX_PATH, TOKEN_FILENAME, sizeof(TOKEN_FILENAME) + 1);
+        strncpy_s(&token_path[strnlen_s(token_path, MAX_PATH-1)], MAX_PATH-1,
+                  "/\0", 2); //Includes copying null
+        strncpy_s(&token_path[strnlen_s(token_path, MAX_PATH-1)], MAX_PATH-1,
+                  TOKEN_FILENAME, sizeof(TOKEN_FILENAME) + 1); // Includes copying null
     }
     else
     {
@@ -115,7 +119,7 @@ int initialize_enclave(void)
     FILE* fp = fopen(token_path, "rb");
     if (fp == NULL && (fp = fopen(token_path, "wb")) == NULL)
     {
-        printf("Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
+        fprintf(stderr, "Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
     }
 
     if (fp != NULL)
@@ -126,7 +130,7 @@ int initialize_enclave(void)
         {
             /* if token is invalid, clear the buffer */
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
-            printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
+            fprintf(stderr, "Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
     }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
@@ -155,7 +159,7 @@ int initialize_enclave(void)
         return 0;
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
     if (write_num != sizeof(sgx_launch_token_t))
-        printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
+        fprintf(stderr, "Warning: Failed to save launch token to \"%s\".\n", token_path);
     fclose(fp);
     return 0;
 }
@@ -182,8 +186,7 @@ int SGX_CDECL main(int argc, char* argv[])
     /* Initialize the enclave */
     if (initialize_enclave() < 0)
     {
-        printf("Error: could not initialize SGX Enclave\nEnter a character before exit ...\n");
-        getchar();
+        fprintf(stderr, "Error: could not initialize SGX Enclave\n");
         return -1;
     }
 
@@ -193,7 +196,7 @@ int SGX_CDECL main(int argc, char* argv[])
 
     if (result != 0)
     {
-        printf("ERROR: TRUSTED Common API test FAILED.\n");
+        fprintf(stderr, "ERROR: TRUSTED Common API test FAILED.\n");
         return -1;
     }
 

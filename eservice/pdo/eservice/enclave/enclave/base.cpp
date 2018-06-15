@@ -17,8 +17,6 @@
 #include <string>
 #include <vector>
 
-#include <sgx_ukey_exchange.h> /*To call untrusted key exchange library i.e., sgx_ra_get_msg1() and sgx_ra_proc_msg2() */
-
 #include "crypto.h"
 #include "error.h"
 #include "hex_string.h"
@@ -40,8 +38,12 @@ static std::string g_LastError;
 int pdo::enclave_api::base::IsSgxSimulator()
 {
 #if defined(SGX_SIMULATOR)
+#if SGX_SIMULATOR == 1
     return 1;
-#else // defined(SGX_SIMULATOR)
+#else // SGX_SIMULATOR not 1
+    return 0;
+#endif //  #if SGX_SIMULATOR == 1
+#else // SGX_SIMULATOR not defined
     return 0;
 #endif // defined(SGX_SIMULATOR)
 } // pdo::enclave_api::base::IsSgxSimulator
@@ -140,13 +142,13 @@ pdo_err_t pdo::enclave_api::base::GetEpidGroup(
 
      try {
         // Get the EPID group from the enclave and convert it to big endian
-        sgx_epid_group_id_t epidGroup;
-        g_Enclave.GetEpidGroup(epidGroup);
+        sgx_epid_group_id_t epidGroup = { 0 };
+        g_Enclave.GetEpidGroup(&epidGroup);
 
-        std::reverse(epidGroup, epidGroup + sizeof(epidGroup));
+        std::reverse((uint8_t*)&epidGroup, (uint8_t*)&epidGroup + sizeof(epidGroup));
 
         // Convert the binary data to a hex string
-        outEpidGroup = pdo::BinaryToHexString(epidGroup, sizeof(epidGroup));
+        outEpidGroup = pdo::BinaryToHexString((const uint8_t*)&epidGroup, sizeof(epidGroup));
     } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());
         ret = e.error_code();
