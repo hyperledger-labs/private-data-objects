@@ -26,6 +26,7 @@ import logging
 import argparse
 import json
 import errno
+import hashlib
 
 from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
 from sawtooth.helpers.pdo_connect import PdoRegistryHelper
@@ -35,6 +36,9 @@ import pdo.common.crypto as pcrypto
 import pdo.common.config as pconfig
 import pdo.common.logger as plogger
 import pdo.common.utility as putils
+
+import pdo.pservice.pdo_helper as pdo_enclave_helper
+import pdo.pservice.pdo_enclave as pdo_enclave
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,8 @@ from twisted.web import server, resource, http
 from twisted.internet import reactor
 from twisted.web.error import Error
 
+import base64
+
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -53,13 +59,18 @@ class ProvisioningServer(resource.Resource):
     isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, config) :
+    def __init__(self, config, enclave) :
+
+        self.Enclave = enclave
+        self.SealedData = enclave.sealed_data
+        self.PSPK = enclave.verifying_key # Enclave public signing key
+        self.EncryptionKey = enclave.encryption_key # Enclave public encryption key
+        self.EnclaveID = enclave.enclave_id
+
         self.__registry_helper = PdoRegistryHelper(config['Sawtooth']['LedgerURL'])
 
-        self.SigningKey = pcrypto.SIG_PrivateKey(config['SigningKeyPrivate'])
-        self.PSPK = pcrypto.SIG_PublicKey(config['SigningKeyPublic'])
-
         self.secrets_file_path = config['SecretsFilePath']
+        self.secret_length = 16
 
         self.RequestMap = {
             'secretRequest' : self._secretreq,
@@ -80,19 +91,21 @@ class ProvisioningServer(resource.Resource):
                 key, val = line.partition(":")[::2]
                 file_secrets[key.strip()] = val.strip()
 
+        contracttxnid = hashlib.sha256(contracttxnid.encode()).hexdigest()
+
         # If secret already exists, return it, otherwise create, store, and return a new secret
         if contracttxnid in file_secrets:
-            secret = file_secrets[contracttxnid]
+            sealed_secret = file_secrets[contracttxnid]
             logger.debug('Secret for contract %s found', contracttxnid)
         else:
-            secret = pcrypto.byte_array_to_hex(pcrypto.SKENC_GenerateKey())
-            file_secrets[contracttxnid] = secret
+            sealed_secret = self.Enclave.create_secret(self.secret_length)["sealed_secret"]
+            file_secrets[contracttxnid] = sealed_secret
             logger.debug('Creating new Secret for contract %s', contracttxnid)
             with open(self.secrets_file_path, "w") as f:
                 for key in file_secrets:
                     f.write(key + ' : ' + file_secrets[key] + "\n")
-
-        return secret
+        
+        return sealed_secret
 
     ## -----------------------------------------------------------------
     def ErrorResponse(self, request, response, *msgargs) :
@@ -115,7 +128,7 @@ class ProvisioningServer(resource.Resource):
 
         # create the response
         response = dict()
-        response['pspk'] = self.PSPK.Serialize()
+        response['pspk'] = self.PSPK
 
         return response
 
@@ -179,32 +192,23 @@ class ProvisioningServer(resource.Resource):
         # make sure the provisioning service is allowed to access contract by the checking the list of allowed provisioning services
         try :
             logger.debug("Contract allowed service ids: %s", contract_info['provisioning_service_ids'])
-            logger.debug("Expected provisioning service id: %s", self.PSPK.Serialize())
-            assert self.PSPK.Serialize() in contract_info['provisioning_service_ids']
+            logger.debug("Expected provisioning service id: %s", self.PSPK)
+            assert self.PSPK in contract_info['provisioning_service_ids']
         except :
-            logger.error('This Pservice is not the list of allowed provisioning services, PSerivce ID: %s', self.PSPK.Serialize())
-            raise Error(http.NOT_ALLOWED, 'operation not allowed for {0}'.format(self.PSPK.Serialize()))
+            logger.error('This Pservice is not the list of allowed provisioning services, PSerivce ID: %s', self.PSPK)
+            raise Error(http.NOT_ALLOWED, 'operation not allowed for {0}'.format(self.PSPK))
 
         # retrieve the secret
-        secret = self._GetContractSecret(contract_id)
+        sealed_secret = self._GetContractSecret(contract_id)
 
-        # create the signature
-        message = secret + enclave_id + contract_id + opk
-        secretsig = pcrypto.byte_array_to_hex(self.SigningKey.SignMessage(pcrypto.string_to_byte_array(message)))
-
-        # pad secret to required max size
-        # TODO: Eventually this requirement needs to be fixed in the crypto library itself
-        required_padding = 2 * pcrypto.MAX_SIG_SIZE - len(secretsig)
-        secretsig = secretsig + ('0' * required_padding)
-
-        enclavekey = pcrypto.PKENC_PublicKey(enclave_info['encryption_key'])
-        esecret = pcrypto.byte_array_to_base64(enclavekey.EncryptMessage(pcrypto.string_to_byte_array(secret + secretsig)))
+        # Generate Secret for Contract Enclave, signs unsealed secret with contract encalve rsa encryptiong key
+        esecret = self.Enclave.generate_enclave_secret(self.SealedData, sealed_secret, enclave_id, contract_id, opk, enclave_info['encryption_key'])["enclave_secret"]
 
         logger.debug("Encrypted secret for contract %s: %s", contract_id, esecret)
 
         # create the response
         response = dict()
-        response['pspk'] = self.PSPK.Serialize()
+        response['pspk'] = self.PSPK
         response['encrypted_secret'] = esecret
 
         logger.info('created secret for contract %s and enclave %s', contract_id, enclave_id)
@@ -267,11 +271,11 @@ class ProvisioningServer(resource.Resource):
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def RunProvisioningService(config) :
+def RunProvisioningService(config, enclave) :
     httpport = config['ProvisioningService']['HttpPort']
     logger.info('Provisioning Service started on port %s', httpport)
 
-    root = ProvisioningServer(config)
+    root = ProvisioningServer(config, enclave)
     site = server.Site(root)
     reactor.listenTCP(httpport, site)
 
@@ -295,14 +299,14 @@ def GetSecretsFilePath(data_config) :
         data_file_path = putils.find_file_in_path(data_config['FileName'], data_config['SearchPath'])
         return data_file_path
     except FileNotFoundError as e :
-        logger.warning('Unable to locate provisioning secrets data file')
+        logger.warn('provisioning secrets data file missing')
 
     default_file_path = os.path.realpath(os.path.join(data_config['DefaultPath'], data_config['FileName']))
 
     try:
         os.makedirs(os.path.dirname(default_file_path), exist_ok=True)
         open(default_file_path, "w").close()
-        logger.debug('Secrets data file created at %s', default_file_path)
+        logger.debug('save secrets data file to %s', default_file_path)
         return default_file_path
     except Exception as e:
         logger.warning('Error creating new secrets data file; %s', str(e))
@@ -311,30 +315,77 @@ def GetSecretsFilePath(data_config) :
     return None
 
 # -----------------------------------------------------------------
+# sealed_data is base64 encoded string
+# -----------------------------------------------------------------
+def LoadEnclaveData(enclave_config) :
+    data_dir = enclave_config['DataPath']
+    basename = enclave_config['BaseName']
+
+    try :
+        enclave = pdo_enclave_helper.Enclave.read_from_file(basename, data_dir = data_dir)
+    except FileNotFoundError as fe :
+        logger.warn("enclave information file missing; {0}".format(fe.filename))
+        return None
+    except Exception as e :
+        logger.error("problem loading enclave information; %s", str(e))
+        raise e
+
+    return enclave
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def CreateEnclaveData(enclave_config) :
+    logger.warn('unable to locate the enclave data; creating new data')
+
+    # create the enclave class
+    try :
+        enclave = pdo_enclave_helper.Enclave.create_new_enclave()
+    except Exception as e :
+        logger.error("unable to create a new enclave; %s", str(e))
+        raise e
+
+    # save the data to a file
+    data_dir = enclave_config['DataPath']
+    basename = enclave_config['BaseName']
+    try :
+        enclave.save_to_file(basename, data_dir = data_dir)
+    except Exception as e :
+        logger.error("unable to save new enclave; %s", str(e))
+        raise e
+
+    return enclave
+
+# -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def LocalMain(config) :
-    try :
-        key_config = config.get('Key', {})
-        keyfile = putils.find_file_in_path(key_config['FileName'], key_config['SearchPath'])
-        logger.debug('read key from %s', keyfile)
-        with open(keyfile, "r") as f :
-            config['SigningKeyPrivate'] = f.read()
-    except FileNotFoundError as e :
-        logger.warning('Unable to locate signing key file')
+
+    try:
+        # enclave configuration is in the 'EnclaveConfig' table
+        try :
+            logger.debug('initialize the enclave')
+            pdo_enclave.initialize_with_configuration(config.get('EnclaveModule'))
+        except Error as e :
+            logger.exception('failed to initialize enclave; %s', e)
+            sys.exit(-1)
+
+        try :
+            data_config = config.get('ProvisioningData', {})
+            config["SecretsFilePath"] = GetSecretsFilePath(data_config)
+        except Exception as e :
+            logger.warning('Unable to locate or create provisioning secrets data file')
+            sys.exit(-1)
+
+        enclave_config = config.get('EnclaveData', {})
+        enclave = LoadEnclaveData(enclave_config)
+        if enclave is None :
+            enclave = CreateEnclaveData(enclave_config)
+        enclave = CreateEnclaveData(enclave_config)
+        assert enclave
+    except Error as e:
+        logger.exception('failed to initialize enclave; %s', e)
         sys.exit(-1)
 
-    try :
-        data_config = config.get('ProvisioningData', {})
-        config["SecretsFilePath"] = GetSecretsFilePath(data_config)
-    except Exception as e :
-        logger.warning('Unable to locate or create provisioning secrets data file')
-        sys.exit(-1)
-
-    signing_key = pcrypto.SIG_PrivateKey()
-    signing_key.Deserialize(config['SigningKeyPrivate'])
-    config['SigningKeyPublic'] = signing_key.GetPublicKey().Serialize()
-
-    RunProvisioningService(config)
+    RunProvisioningService(config, enclave)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

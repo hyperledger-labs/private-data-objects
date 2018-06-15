@@ -27,7 +27,7 @@ if sys.version_info[0] < 3:
 from setuptools import setup, find_packages, Extension
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-pdo_root_dir = os.path.abspath(os.path.join(script_dir, '..'))
+pdo_root_dir = os.path.realpath(os.path.join(script_dir, '..'))
 
 install_root_dir = os.environ.get('CONTRACTHOME', '/opt/pdo')
 bin_dir = os.path.join(install_root_dir, "bin")
@@ -36,10 +36,99 @@ etc_dir = os.path.join(install_root_dir, "etc")
 log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
+sgx_mode_env = os.environ.get('SGX_MODE', None)
+sgx_debug_env = os.environ.get('SGX_DEBUG', None)
+if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
+    print("error: SGX_MODE value must be HW or SIM, current value is: ", sgx_mode_env)
+    sys.exit(2)
+if not sgx_debug_env or (sgx_debug_env != "0" and sgx_debug_env != "1"):
+    print("error: SGX_DEBUG value must be 0 or 1, current value is: ", sgx_debug_env)
+    sys.exit(3)
+if sgx_debug_env == "0":
+    print("error: SGX_DEBUG value 0 not supported")
+    sys.exit(4)
+
 data_files = [
     (bin_dir, ['bin/ps-start.sh', 'bin/ps-stop.sh', 'bin/ps-status.sh']),
-    (etc_dir, [ 'etc/sample_pservice.toml' ])
+    (dat_dir, []),
+    (etc_dir, [ 'etc/sample_pservice.toml' ]),
+    (log_dir, []),
+    (key_dir, []),
+    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')])
 ]
+
+ext_deps = [
+    'deps/bin/libpdo-enclave.signed.so'
+]
+
+## -----------------------------------------------------------------
+## set up the PService enclave
+## -----------------------------------------------------------------
+module_path = 'pdo/pservice/enclave'
+module_src_path = os.path.join(script_dir, module_path)
+
+compile_args = [
+    '-std=c++11',
+    '-g',
+    '-Wno-switch',
+    '-Wno-unused-function',
+    '-Wno-unused-variable',
+    '-Wno-strict-prototypes',
+]
+
+include_dirs = [
+    module_src_path,
+    os.path.join(script_dir, 'build', module_path),
+    os.path.join(pdo_root_dir, 'common'),
+    os.path.join(pdo_root_dir, 'common', 'crypto'),
+    os.path.join(os.environ['SGX_SDK'],"include")
+]
+
+library_dirs = [
+    os.path.join(pdo_root_dir, "common", "build"),
+    os.path.join(os.environ['SGX_SDK'], 'lib64')
+]
+
+libraries = [
+    'updo-common'
+]
+
+if sgx_mode_env == "HW":
+    libraries.append('sgx_urts')
+    libraries.append('sgx_uae_service')
+    SGX_SIMULATOR_value = '0'
+if sgx_mode_env == "SIM":
+    libraries.append('sgx_urts_sim')
+    libraries.append('sgx_uae_service_sim')
+    SGX_SIMULATOR_value = '1'
+
+module_files = [
+    os.path.join(module_src_path, 'pdo_enclave_internal.i'),
+    os.path.join(module_src_path, 'log.cpp'),
+    os.path.join(module_src_path, 'swig_utils.cpp'),
+    os.path.join(script_dir, 'build', module_path, 'enclave_u.c'),
+    os.path.join(module_src_path, 'enclave/ocall.cpp'),
+    os.path.join(module_src_path, 'enclave/base.cpp'),
+    os.path.join(module_src_path, 'enclave/enclave.cpp'),
+    os.path.join(module_src_path, 'enclave/secret.cpp'),
+    os.path.join(module_src_path, 'enclave_info.cpp'),
+    os.path.join(module_src_path, 'secret_info.cpp')
+]
+
+enclave_module = Extension(
+    'pdo.pservice.enclave._pdo_enclave_internal',
+    module_files,
+    swig_opts = ['-c++'],
+    extra_compile_args = compile_args,
+    libraries = libraries,
+    include_dirs = include_dirs,
+    library_dirs = library_dirs,
+    define_macros = [
+                        ('DEBUG', None),
+                        ('SGX_SIMULATOR', SGX_SIMULATOR_value)
+                    ],
+    undef_macros = ['NDEBUG', 'EDEBUG']
+    )
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -47,16 +136,20 @@ version = subprocess.check_output(
     os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
 
 setup(name='pdo_pservice',
-      version=version,
-      description='Provisiong service for Sawtooth private contracts',
-      author='Mic Bowman, Intel Labs',
-      author_email='mic.bowman@intel.com',
-      url='http://www.intel.com',
-      packages = find_packages(),
+      version = version,
+      description = 'Private Data Objects SGX Provisioning Service Enclave',
+      author = 'Hyperledger',
+      url = 'http://www.intel.com',
+      packages = find_packages(exclude='./pservice'),
       namespace_packages=['pdo'],
       install_requires = [
+          'colorlog',
+          'requests',
           'toml',
           'twisted'
+          ],
+      ext_modules = [
+          enclave_module
       ],
       data_files = data_files,
       entry_points = {

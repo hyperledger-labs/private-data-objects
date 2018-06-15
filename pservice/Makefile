@@ -15,22 +15,68 @@
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
-EGG_FILE=dist/pdo_pservice-${MOD_VERSION}-py${PY_VERSION}.egg
+EGG_FILE=dist/pdo_pservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 
-PYTHON_FILES = pdo/pservice/scripts/PServiceCLI.py
+ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
 
-all : $(EGG_FILE)
+SWIG_SOURCES = \
+	pdo_enclave_internal.i\
+	log.cpp \
+	swig_utils.cpp \
+	enclave/ocall.cpp \
+	enclave/base.cpp \
+	enclave/enclave.cpp \
+	enclave/secret.cpp \
+	enclave_info.cpp \
+	secret_info.cpp 
+SWIG_FILES = $(addprefix pdo/pservice/enclave/,$(SWIG_SOURCES))
+SWIG_TARGET = pdo/pservice/enclave/pdo_enclave_internal.py
 
-$(EGG_FILE) : $(PYTHON_FILES)
+PYTHON_FILES = \
+	pdo/pservice/enclave/__init__.py \
+	pdo/pservice/pdo_helper.py \
+	pdo/pservice/scripts/PServiceCLI.py \
+	pdo/pservice/scripts/__init__.py \
+	pdo/pservice/pdo_enclave.py \
+	pdo/pservice/__init__.py \
+	pdo/pservice/utility/ias_client.py \
+	pdo/pservice/utility/__init__.py \
+	pdo/__init__.py
+
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
+
+all : $(ENCLAVE_LIB) $(EGG_FILE)
+
+$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
 	@echo Build Distribution
 	python setup.py bdist_egg
+
+$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+	@echo Build Enclave
+	$(MAKE) -C build
+
+$(SWIG_TARGET) : $(SWIG_FILES)
+	python setup.py build_ext
+
+build :
+	mkdir $@
+	cd $@ ; cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
 	easy_install $<
 
-clean:
-	rm -rf build dist *.egg-info
+test: install
+	(cd tests; python test-secrets.py)
+	(cd tests; python test-request.py)
 
-.PHONY: all
-.PHONY: clean
-.PHONY: install
+clean:
+	rm -f $(addprefix pdo/pservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
+	rm -rf build deps dist *.egg-info
+	find . -iname '*.pyc' -delete
+	find . -iname '__pycache__' -delete
+
+.phony : all
+.phony : clean
+.phony : enclave
+.phone : install
+.phony : test
