@@ -129,7 +129,7 @@ void EnclaveData::SerializePrivateData(void)
     // Create serialized wait certificate
     JsonValue dataValue(json_value_init_object());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        !dataValue.value, "Failed to create enlcave data serialization object");
+        !dataValue.value, "Failed to create enclave data serialization object");
 
     JSON_Object* dataObject = json_value_get_object(dataValue);
     pdo::error::ThrowIfNull(dataObject, "Failed to retrieve serialization object");
@@ -195,7 +195,7 @@ void EnclaveData::SerializePublicData(void)
     // Create serialized wait certificate
     JsonValue dataValue(json_value_init_object());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        !dataValue.value, "Failed to create enlcave data serialization object");
+        !dataValue.value, "Failed to create enclave data serialization object");
 
     JSON_Object* dataObject = json_value_get_object(dataValue);
     pdo::error::ThrowIfNull(dataObject, "Failed to retrieve serialization object");

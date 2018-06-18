@@ -30,8 +30,8 @@
 #include "secret_info.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t SignupInfo::DeserializeSignupInfo(
-    const std::string& serialized_signup_info
+pdo_err_t EnclaveInfo::DeserializeEnclaveInfo(
+    const std::string& serialized_enclave_info
     )
 {
     pdo_err_t presult = PDO_SUCCESS;
@@ -41,33 +41,33 @@ pdo_err_t SignupInfo::DeserializeSignupInfo(
         const char* pvalue = nullptr;
 
         // Parse the incoming wait certificate
-        JsonValue parsed(json_parse_string(serialized_signup_info.c_str()));
-        pdo::error::ThrowIfNull(parsed.value, "failed to parse serialized signup info; badly formed JSON");
+        JsonValue parsed(json_parse_string(serialized_enclave_info.c_str()));
+        pdo::error::ThrowIfNull(parsed.value, "failed to parse serialized enclave info; badly formed JSON");
 
         JSON_Object* data_object = json_value_get_object(parsed);
-        pdo::error::ThrowIfNull(data_object, "invalid serialized signup info; missing root object");
+        pdo::error::ThrowIfNull(data_object, "invalid serialized enclave info; missing root object");
 
         // --------------- verifying key ---------------
         pvalue = json_object_dotget_string(data_object, "verifying_key");
-        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing verifying_key");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized enclave info; missing verifying_key");
 
         verifying_key.assign(pvalue);
 
         // --------------- encryption key ---------------
         pvalue = json_object_dotget_string(data_object, "encryption_key");
-        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing encryption_key");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized enclave info; missing encryption_key");
 
         encryption_key.assign(pvalue);
 
         // --------------- proof data ---------------
         pvalue = json_object_dotget_string(data_object, "proof_data");
-        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing proof_data");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized enclave info; missing proof_data");
 
         proof_data.assign(pvalue);
 
         // --------------- enclave id ---------------
         pvalue = json_object_dotget_string(data_object, "enclave_persistent_id");
-        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing enclave_persistent_id");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized enclave info; missing enclave_persistent_id");
 
         enclave_persistent_id.assign(pvalue);
     }
@@ -91,22 +91,22 @@ pdo_err_t SignupInfo::DeserializeSignupInfo(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-SignupInfo::SignupInfo(
-    const std::string& serialized_signup_info
+EnclaveInfo::EnclaveInfo(
+    const std::string& serialized_enclave_info
     ) :
-    serialized_(serialized_signup_info)
+    serialized_(serialized_enclave_info)
 {
-    pdo_err_t result = DeserializeSignupInfo(serialized_signup_info);
+    pdo_err_t result = DeserializeEnclaveInfo(serialized_enclave_info);
     ThrowPDOError(result);
-} // SignupInfo::SignupInfo
+} // EnclaveInfo::EnclaveInfo
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-SignupInfo* deserialize_signup_info(
-    const std::string&  serialized_signup_info
+EnclaveInfo* deserialize_enclave_info(
+    const std::string&  serialized_enclave_info
     )
 {
-    return new SignupInfo(serialized_signup_info);
-} // deserialize_signup_info
+    return new EnclaveInfo(serialized_enclave_info);
+} // deserialize_enclave_info
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // the parallel serialization is in enclave_data.cpp
@@ -161,7 +161,7 @@ static pdo_err_t DeserializePublicEnclaveData(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-std::map<std::string, std::string> create_enclave_data( )
+std::map<std::string, std::string> create_enclave_data()
 {
     pdo_err_t presult;
 
@@ -170,7 +170,7 @@ std::map<std::string, std::string> create_enclave_data( )
     Base64EncodedString sealed_enclave_data;
     Base64EncodedString enclave_quote;
 
-    // Create the signup data
+    // Create the enclave data
     presult = pdo::enclave_api::enclave_data::CreateEnclaveData(
         public_enclave_data,
         sealed_enclave_data,
@@ -227,19 +227,17 @@ std::map<std::string, std::string> unseal_enclave_data(
     result["encryption_key"] = encryption_key;
 
     return result;
-} // _unseal_signup_data
+} // _unseal_enclave_data
 
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-std::map<std::string, std::string> create_sealed_secret( 
+std::map<std::string, std::string> create_sealed_secret(
     const int key_len
     )
 {
     pdo_err_t presult;
 
-    // Create some buffers for receiving the output parameters
-    // StringArray public_enclave_data(0); // CreateEnclaveData will resize appropriately
- 
+
     Base64EncodedString sealed_secret;
 
     presult = pdo::enclave_api::enclave_data::CreateSealedSecret(
@@ -272,8 +270,8 @@ std::map<std::string, std::string> unseal_secret(
         plain_secret);
     ThrowPDOError(presult);
 
-    // PyLog(PDO_LOG_DEBUG, ("Sealed Secret: " + sealed_secret + "\nPlain Secret: " + plain_secret).c_str());
-    
+    PyLog(PDO_LOG_DEBUG, ("Sealed Secret: " + sealed_secret + "\nPlain Secret: " + plain_secret).c_str());
+
     std::map<std::string, std::string> result;
     result["plain_secret"] = plain_secret;
 
@@ -294,7 +292,6 @@ std::map<std::string, std::string> generate_enclave_secret(
     pdo_err_t presult;
 
     Base64EncodedString enclave_secret;
-    // HexEncodedString enclave_secret;
 
     presult = pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
         sealed_enclave_data,
@@ -306,8 +303,8 @@ std::map<std::string, std::string> generate_enclave_secret(
         enclave_secret);
     ThrowPDOError(presult);
 
-    // PyLog(PDO_LOG_DEBUG, ("Sealed Secret: " + sealed_secret + "\nPlain Secret: " + plain_secret).c_str());
-    
+    PyLog(PDO_LOG_DEBUG, ("Enclave Encrypted Secret: " + enclave_secret).c_str());
+
     std::map<std::string, std::string> result;
     result["enclave_secret"] = enclave_secret;
 

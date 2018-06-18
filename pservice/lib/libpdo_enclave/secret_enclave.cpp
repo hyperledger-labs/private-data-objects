@@ -33,8 +33,6 @@
 #include "pdo_error.h"
 #include "zero.h"
 
-#include "auto_handle_sgx.h"
-
 #include "base_enclave.h"
 #include "enclave_data.h"
 #include "enclave_utils.h"
@@ -55,7 +53,7 @@ pdo_err_t ecall_CalculateSealedEnclaveDataSize(size_t* pSealedEnclaveDataSize)
 
     try
     {
-        pdo::error::ThrowIfNull(pSealedEnclaveDataSize, "Sealed signup data size pointer is NULL");
+        pdo::error::ThrowIfNull(pSealedEnclaveDataSize, "Sealed enclave data size pointer is NULL");
 
         *pSealedEnclaveDataSize = EnclaveData::cMaxSealedDataSize;
     }
@@ -84,7 +82,7 @@ pdo_err_t ecall_CalculatePublicEnclaveDataSize(size_t* pPublicEnclaveDataSize)
 
     try
     {
-        pdo::error::ThrowIfNull(pPublicEnclaveDataSize, "Publicp signup data size pointer is NULL");
+        pdo::error::ThrowIfNull(pPublicEnclaveDataSize, "Publicp enclave data size pointer is NULL");
 
         *pPublicEnclaveDataSize = EnclaveData::cMaxPublicDataSize;
     }
@@ -186,8 +184,6 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
     try
     {
         pdo::error::ThrowIfNull(inTargetInfo, "Target info pointer is NULL");
-        // pdo::error::ThrowIfNull(
-        //     inOriginatorPublicKeyHash, "Originator public key hash pointer is NULL");
 
         pdo::error::ThrowIfNull(outPublicEnclaveData, "Public enclave data pointer is NULL");
         pdo::error::ThrowIfNull(outPublicEnclaveDataSize, "Public data size pointer is NULL");
@@ -216,16 +212,9 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
 
         // pass back the actual size of the enclave data
         (*outPublicEnclaveDataSize) = enclaveData.get_public_data_size();
-        (*outSealedEnclaveDataSize) = enclaveData.get_sealed_data_size();
+        (*outSealedEnclaveDataSize) = enclaveData.get_sealed_data_size();;
 
-        // // Create the report data we want embedded in the enclave report.
-        // sgx_report_data_t reportData = {0};
-        // CreateSignupReportData(inOriginatorPublicKeyHash, enclaveData, &reportData);
-
-        // sgx_status_t ret = sgx_create_report(inTargetInfo, &reportData, outEnclaveReport);
-        // pdo::error::ThrowSgxError(ret, "Failed to create enclave report");
-
-        // Seal up the signup data into the caller's buffer.
+        // Seal up the enclave data into the caller's buffer.
         // NOTE - the attributes mask 0xfffffffffffffff3 seems rather
         // arbitrary, but according to SGX SDK documentation, this is
         // what sgx_seal_data uses, so it is good enough for us.
@@ -238,7 +227,7 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
             reinterpret_cast<const uint8_t*>(enclaveData.get_private_data().c_str()),
             static_cast<uint32_t>(*outSealedEnclaveDataSize),
             reinterpret_cast<sgx_sealed_data_t*>(outSealedEnclaveData));
-        pdo::error::ThrowSgxError(ret, "Failed to seal signup data");
+        pdo::error::ThrowSgxError(ret, "Failed to seal enclave data");
 
         // Give the caller a copy of the signing and encryption keys
         strncpy_s(outPublicEnclaveData, inAllocatedPublicEnclaveDataSize,
@@ -376,9 +365,7 @@ pdo_err_t ecall_CreateSealedSecret(size_t secret_len,
         sgx_status_t status = sgx_read_rand(tmp, secret_len);
         pdo::error::ThrowSgxError(status, "Failed to generate random key");
 
-        // if (status != SGX_SUCCESS) return status;
-
-        // Seal up the signup data into the caller's buffer.
+        // Seal up the enclave data into the caller's buffer.
         // NOTE - the attributes mask 0xfffffffffffffff3 seems rather
         // arbitrary, but according to SGX SDK documentation, this is
         // what sgx_seal_data uses, so it is good enough for us.
@@ -472,7 +459,7 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
 
 
     try {
-        pdo::error::ThrowIfNull(inSealedEnclaveData, "Sealed signup data pointer is NULL");
+        pdo::error::ThrowIfNull(inSealedEnclaveData, "Sealed enclave data pointer is NULL");
         pdo::error::ThrowIfNull(inSealedSecret, "Sealed Secret pointer is NULL");
         pdo::error::ThrowIfNull(inEServiceEnclaveId, "EService Enclave Id pointer is NULL");
         pdo::error::ThrowIfNull(inContractId, "Contract Id pointer is NULL");
@@ -522,7 +509,6 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
 
         int required_padding = 2 * SECRET_SIGNATURE_SIZE - secretsig.length();
         secretsig.append(required_padding,'0');
-        // secretsig = secretsig + ('0' * required_padding);
 
         pdo::error::ThrowIf<pdo::error::ValueError>(
             secretsig.length() < ENCODED_SECRET_SIGNATURE_SIZE,
@@ -531,7 +517,6 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
         pdo::error::ThrowIf<pdo::error::ValueError>(
             secretsig.length() > ENCODED_SECRET_SIGNATURE_SIZE,
             "secretsig is too long");
-
 
         ByteArray enclaveMessage;
         std::copy(secret.begin(), secret.end(), std::back_inserter(enclaveMessage));
@@ -549,8 +534,7 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
         const ByteArray esecret = enclaveKey.EncryptMessage(enclaveMessage);
 
         Zero(outSignedSecret, inAllocatedSignedSecretSize);
-        memcpy_s(outSignedSecret, inAllocatedSignedSecretSize,
-            esecret.data(), esecret.size());
+        memcpy_s(outSignedSecret, inAllocatedSignedSecretSize, esecret.data(), esecret.size());
 
     }catch (pdo::error::Error& e) {
         Log(

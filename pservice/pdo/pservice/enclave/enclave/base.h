@@ -88,9 +88,6 @@ namespace pdo
 
               outMrEnclave - A pointer to a buffer that upon return will contain the
               hex encoded enclave hash (aka, mr_enclave).
-              inMrEnclaveLength - The size of the buffer pointed to by outMrEnclave.
-              The value to provide for this parameter may be obtained by calling
-              GetEnclaveMeasurementSize().
               outEnclaveBasename - A pointer to a buffer that upon return will contain
               the hex encoded enclave basename.
               inEnclaveBasenameLength - The size of the buffer pointed to by

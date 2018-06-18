@@ -67,11 +67,7 @@ class Enclave(object) :
 
         :param file_name:  string, name of the file
         :param search_path: list of strings, directories to search for the data file
-        :param txn_keys: object of type TransactionKeys
         """
-
-        # if txn_keys is None :
-        #     txn_keys = keys.TransactionKeys()
 
         filename = os.path.realpath(os.path.join(data_dir, basename + ".enc"))
         logger.debug('load enclave information from %s', filename)
@@ -107,25 +103,18 @@ class Enclave(object) :
     @classmethod
     def create_new_enclave(cls) :
         """create_new_enclave -- create a new enclave
-
-        :param txn_keys: object of type TransactionKeys
         """
 
-        # if txn_keys is None :
-        #     txn_keys = keys.TransactionKeys()
-
         nonce = '{0:016X}'.format(random.getrandbits(64))
-        # hashed_identity = txn_keys.hashed_identity
-        # logger.debug("tx hashed identity: %s", hashed_identity)
+
         try :
-            # enclave_data = pdo_enclave.create_signup_info(hashed_identity, nonce)
-            enclave_data = pdo_enclave.create_signup_info(nonce)
+            enclave_data = pdo_enclave.create_enclave_info(nonce)
         except :
-            raise Exception('failed to create enclave signup data')
+            raise Exception('failed to create enclave data')
 
         enclave_info = dict()
         enclave_info['nonce'] = nonce
-        enclave_info['sealed_data'] = enclave_data.sealed_signup_data
+        enclave_info['sealed_data'] = enclave_data.sealed_enclave_data
         enclave_info['verifying_key'] = enclave_data.verifying_key
         enclave_info['encryption_key'] = enclave_data.encryption_key
         enclave_info['enclave_id'] = enclave_data.verifying_key
@@ -139,8 +128,6 @@ class Enclave(object) :
     def __init__(self, enclave_info) :
 
         # initialize the keys that can be used later to
-        # register the enclave with the ledger
-        # self.txn_keys = txn_keys
 
         try :
             self.nonce = enclave_info['nonce']
@@ -162,7 +149,7 @@ class Enclave(object) :
     def unseal_secret(self, secret) : return pdo_enclave.unseal_secret(secret)
 
     # -------------------------------------------------------
-    def generate_enclave_secret(self, enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key): 
+    def generate_enclave_secret(self, enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key):
         return pdo_enclave.generate_enclave_secret(enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key)
 
 

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     'initialize',
     'initialize_with_configuration',
-    'create_signup_info',
+    'create_enclave_info',
     'get_enclave_public_info',
     'get_enclave_measurement',
     'get_enclave_basename',
@@ -107,6 +107,7 @@ def update_sig_rl():
 
         _pdo.set_signature_revocation_list(sig_rl)
         _sig_rl_update_time = time.time()
+
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -209,38 +210,37 @@ def generate_enclave_secret(enclave_sealed_data, sealed_secret, enclave_id, cont
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def create_signup_info(nonce):
-    # Part of what is returned with the signup data is an enclave quote, we
+def create_enclave_info(nonce):
+    # Part of what is returned with the enclave data is an enclave quote, we
     # want to update the revocation list first.
     update_sig_rl()
 
-    # Now, let the enclave create the signup data
-    # signup_data = enclave.create_enclave_data(originator_public_key_hash)
-    signup_data = enclave.create_enclave_data()
-    if signup_data is None:
+    # Now, let the enclave create the enclave data
+    enclave_data = enclave.create_enclave_data()
+    if enclave_data is None:
         return None
 
     # We don't really have any reason to call back down into the enclave
     # as we have everything we now need.  For other objects such as wait
     # timer and certificate they are serialized into JSON down in C++ code.
     #
-    # Start building up the signup info dictionary we will serialize
-    signup_info = {
-        'verifying_key': signup_data['verifying_key'],
-        'encryption_key': signup_data['encryption_key'],
+    # Start building up the enclave info dictionary we will serialize
+    enclave_info = {
+        'verifying_key': enclave_data['verifying_key'],
+        'encryption_key': enclave_data['encryption_key'],
         'proof_data': 'Not present',
         'enclave_persistent_id': 'Not present'
     }
 
     # If we are not running in the simulator, we are going to go and get
-    # an attestation verification report for our signup data.
+    # an attestation verification report for our enclave data.
     if not enclave.is_sgx_simulator():
         logger.debug("posting verification to IAS")
-        response = _ias.post_verify_attestation(quote=signup_data['enclave_quote'], nonce=nonce)
+        response = _ias.post_verify_attestation(quote=enclave_data['enclave_quote'], nonce=nonce)
         logger.debug("posted verification to IAS")
 
         #check verification report
-        if not _ias.verify_report_fields(signup_data['enclave_quote'], response['verification_report']):
+        if not _ias.verify_report_fields(enclave_data['enclave_quote'], response['verification_report']):
             logger.debug("last error: " + _ias.last_verification_error())
             if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
                 logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
@@ -251,23 +251,23 @@ def create_signup_info(nonce):
         logger.info("report fields verified")
 
         # Now put the proof data into the dictionary
-        signup_info['proof_data'] = \
+        enclave_info['proof_data'] = \
             json.dumps({
                 'verification_report': response['verification_report'],
                 'signature': response['ias_signature']
             })
 
         # Grab the EPID psuedonym and put it in the enclave-persistent ID for the
-        # signup info
+        # enclave info
         verification_report_dict = json.loads(response['verification_report'])
-        signup_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
+        enclave_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
 
-    # Now we can finally serialize the signup info and create a corresponding
-    # signup info object.  Because we don't want the sealed signup data in the
+    # Now we can finally serialize the enclave info and create a corresponding
+    # enclave info object.  Because we don't want the sealed enclave data in the
     # serialized version, we set it separately.
 
-    signup_info_obj = enclave.deserialize_signup_info(json.dumps(signup_info))
-    signup_info_obj.sealed_signup_data = signup_data['sealed_enclave_data']
+    enclave_info_obj = enclave.deserialize_enclave_info(json.dumps(enclave_info))
+    enclave_info_obj.sealed_enclave_data = enclave_data['sealed_enclave_data']
 
     # Now we can return the real object
-    return signup_info_obj
+    return enclave_info_obj

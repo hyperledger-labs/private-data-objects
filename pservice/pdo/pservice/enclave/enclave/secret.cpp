@@ -173,7 +173,6 @@ static uint32_t CalculatePlainSecretSize(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
-    // const std::string& inOriginatorPublicKeyHash,
     StringArray& outPublicEnclaveData,
     Base64EncodedString& outSealedEnclaveData,
     Base64EncodedString& outEnclaveQuote
@@ -215,7 +214,6 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
             [enclaveid,
              &presult,
              target_info,
-             // inOriginatorPublicKeyHash,
              &outPublicEnclaveData,
              &computed_public_enclave_data_size,
              &sealed_enclave_data_buffer,
@@ -226,7 +224,6 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
                     enclaveid,
                     &presult,
                     &target_info,
-                    // inOriginatorPublicKeyHash.c_str(),
                     outPublicEnclaveData.data(),
                     outPublicEnclaveData.size(),
                     &computed_public_enclave_data_size,
@@ -249,8 +246,6 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
         // take the report generated and create a quote for it, encode it
         size_t quote_size = pdo::enclave_api::base::GetEnclaveQuoteSize();
         ByteArray enclave_quote_buffer(quote_size);
-        // g_Enclave.CreateQuoteFromReport(&enclave_report, enclave_quote_buffer);
-        // outEnclaveQuote = ByteArrayToBase64EncodedString(enclave_quote_buffer);
 
     } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());
@@ -382,7 +377,6 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateSealedSecret(
 pdo_err_t pdo::enclave_api::enclave_data::UnsealSecret(
     const Base64EncodedString& inSealedSecret,
     HexEncodedString& outPlainSecret
-    // std::string& outPlainSecret
     )
 {
     pdo_err_t result = PDO_SUCCESS;
@@ -417,9 +411,7 @@ pdo_err_t pdo::enclave_api::enclave_data::UnsealSecret(
         g_Enclave.ThrowPDOError(presult);
 
         outPlainSecret = ByteArrayToHexEncodedString(plain_secret_buffer);
-        // outPlainSecret = ByteArrayToString(plain_secret_buffer);
-
-    } catch (pdo::error::Error& e) {
+            } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());
         result = e.error_code();
     } catch (std::exception& e) {
@@ -443,7 +435,6 @@ pdo_err_t pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
         const std::string& inOpk,
         const std::string& inEnclaveEncryptKey,
         Base64EncodedString& ouSignedSecret
-        // HexEncodedString& ouSignedSecret
     )
 {
     pdo_err_t result = PDO_SUCCESS;
@@ -489,7 +480,6 @@ pdo_err_t pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (ecall_GenerateEnclaveSecret)");
         g_Enclave.ThrowPDOError(presult);
 
-        // ouSignedSecret = ByteArrayToHexEncodedString(signature_buffer);
         ouSignedSecret = ByteArrayToBase64EncodedString(signature_buffer);
 
     } catch (pdo::error::Error& e) {

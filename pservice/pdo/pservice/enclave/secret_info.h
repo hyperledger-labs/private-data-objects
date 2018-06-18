@@ -24,42 +24,42 @@
 #include "error.h"
 #include "pdo_error.h"
 
-class SignupInfo
+class EnclaveInfo
 {
 public:
-    friend SignupInfo* deserialize_signup_info(const std::string& s);
+    friend EnclaveInfo* deserialize_enclave_info(const std::string& s);
 
     std::string serialize() const
     {
         return serialized_;
     }
 
-    // Signup info properties
+    // Enclave info properties
     std::string verifying_key;
     std::string encryption_key;
-    std::string sealed_signup_data;
+    std::string sealed_enclave_data;
     std::string proof_data;
     std::string enclave_persistent_id;
 
 protected:
-    pdo_err_t DeserializeSignupInfo(
-        const std::string& serialized_signup_info
+    pdo_err_t DeserializeEnclaveInfo(
+        const std::string& serialized_enclave_info
         );
 
-    SignupInfo(
-        const std::string& serializedSignupInfo
+    EnclaveInfo(
+        const std::string& serializedEnclaveInfo
         );
 
 private:
     /*
-    Json serialization of the signup info Parameters, this serves as the
-    canonical representation of the signup info.
+    Json serialization of the enclave info Parameters, this serves as the
+    canonical representation of the enclave info.
     */
     std::string serialized_;
-}; // class SignupInfo
+}; // class EnclaveInfo
 
-SignupInfo* deserialize_signup_info(
-    const std::string& serialized_signup_info
+EnclaveInfo* deserialize_enclave_info(
+    const std::string& serialized_enclave_info
     );
 
 std::map<std::string, std::string> create_enclave_data();

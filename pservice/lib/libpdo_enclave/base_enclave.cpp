@@ -25,8 +25,6 @@
 #include <sgx_trts.h>
 #include <sgx_utils.h>  // sgx_get_key, sgx_create_report
 
-#include "auto_handle_sgx.h"
-
 #include "error.h"
 #include "pdo_error.h"
 #include "zero.h"

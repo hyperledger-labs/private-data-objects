@@ -28,7 +28,7 @@ SWIG_SOURCES = \
 	enclave/enclave.cpp \
 	enclave/secret.cpp \
 	enclave_info.cpp \
-	secret_info.cpp 
+	secret_info.cpp
 SWIG_FILES = $(addprefix pdo/pservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/pservice/enclave/pdo_enclave_internal.py
 
@@ -65,10 +65,6 @@ build :
 install: $(EGG_FILE)
 	easy_install $<
 
-test: install
-	(cd tests; python test-secrets.py)
-	(cd tests; python test-request.py)
-
 clean:
 	rm -f $(addprefix pdo/pservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
 	rm -rf build deps dist *.egg-info
@@ -79,4 +75,3 @@ clean:
 .phony : clean
 .phony : enclave
 .phone : install
-.phony : test
