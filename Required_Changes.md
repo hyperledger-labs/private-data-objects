@@ -3,7 +3,8 @@
 PDO code : https://github.com/karthikamurthy/private-data-objects.git , Branch : Addition_Cpp.<br />
 This Pull Request contains the following changes:<br />
 Added a generic C++ contract interpreter. <br />
->	Implement the generic interpreter and integrate it in the PDO enclave lib <br /> >>>	1. Added 4 files IntKeyContractExecuter.h IntKeyContractExcuter.cpp IntKeyContractWrapper.h IntKeyContractWrapper.cpp<br />
+>	Implement the generic interpreter and integrate it in the PDO enclave lib <br /> 
+>>>	1. Added 4 files IntKeyContractExecuter.h IntKeyContractExcuter.cpp IntKeyContractWrapper.h IntKeyContractWrapper.cpp<br />
 >>>	2. Added CmakeList file to include it to the common library.<br />
 >>>	3. The new interpretter folder was placed parallel to gipsy foler i.e PDO_DIR/common/interpretter/intKeyFolder<br />
 	
@@ -13,7 +14,7 @@ Added a generic C++ contract interpreter. <br />
 >	Integrate interpreter into PDO in simulated SGX mode: <br />
 >>	1. Changed python/pdo/contracts/code.py, python/pdo/contract/contract.py<br />
 
-	Updated PDO build process to allow conditional compilation of the specified interpreter  <br />
+>	Updated PDO build process to allow conditional compilation of the specified interpreter  <br />
 
 >>	1. Used a Environmental variable GIPSY_ENABLED for conditional compilation.<br />
 >>	2. Changes 4 Files : common/CMakeLists.txt, common/interpreter/CMakeLists.txt,eservice/lib/libpdo_enclave/CMakeLists.txt,
