@@ -108,7 +108,7 @@ If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
 PSW, and SDK. Also, if using PDO jointly with Sawtooth, you will need to set
 up the ledger with the appropriate parameters
 ([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
-for the validation of attestation verifications from the Intel Attestation Service (IAS). 
+for the validation of attestation verifications from the Intel Attestation Service (IAS).
 Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
 For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
 If running only in simulator mode (no hardware support), you only
@@ -140,8 +140,8 @@ example, to install OpenSSL v1.1.0h on an Ubuntu system:
 ```
 wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.0h-4_amd64.deb'
 wget 'http://http.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.0h-4_amd64.deb'
-sudo dpkg -i libssl1.1_1.1.0h-2_amd64.deb
-sudo dpkg -i libssl-dev_1.1.0h-2_amd64.deb
+sudo dpkg -i libssl1.1_1.1.0h-4_amd64.deb
+sudo dpkg -i libssl-dev_1.1.0h-4_amd64.deb
 sudo apt-get install -f
 ```
 
