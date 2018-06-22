@@ -68,20 +68,21 @@ yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 
 try command -v python
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    die must use python3, activate virtualenv first
+if [[ "$PY3_VERSION" -lt 5 ]]; then
+    die "must use python3, activate virtualenv first"
 fi
 
 try command -v openssl
-OPENSSL_VERSION=$(openssl version -v | sed 's/.*Library: OpenSSL \([^ ]*\) .*/\1/')
-if [ $OPENSSL_VERSION != '1.1.0h' ]; then
-   die incorrect version of openssl $(OPENSSL_VERSION) expecting 1.1.0.h
+OPENSSL_VERSION=$(openssl version -v | sed 's/.*OpenSSL \([^ ]*\) .*/\1/')
+if [ "$OPENSSL_VERSION " != '1.1.0h ' ]; then
+   echo 'WARNING: Openssl version is $OPENSSL_VERSION expecting 1.1.0h' >&2
+   echo 'Note: openssl can be a different version as long as libssl and libssl-dev are 1.1.0h' >&2
 fi
 
 try command -v protoc
 PROTOC_VERSION=$(protoc --version | sed 's/libprotoc \([0-9]\).*/\1/')
-if [[ $PROTOC_VERSION -lt 3 ]]; then
-    echo protoc must be version3 or higher
+if [[ "$PROTOC_VERSION" -lt 3 ]]; then
+    echo "protoc must be version3 or higher" >&2
 fi
 
 try command -v cmake
