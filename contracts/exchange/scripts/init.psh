@@ -1,0 +1,4 @@
+load_plugin -c asset_type
+load_plugin -c vetting
+load_plugin -c issuer
+load_plugin -c exchange

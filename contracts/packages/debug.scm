@@ -20,3 +20,31 @@
 (require "init-package.scm")
 (require "catch-package.scm")
 (require "oops-package.scm")
+
+;; -----------------------------------------------------------------
+;; NAME: catch-success
+;;
+;; DESCRIPTION: macro used for writing tests that are supposed to
+;; fail, converts success into an error
+;;
+;; PARAMETERS:
+;;   expr -- expression to evaluate (should throw an error)
+;;   message -- message to generate if the expression succeeds
+;; -----------------------------------------------------------------
+(define-macro (catch-success expr . message)
+  `(if (catch (lambda (x) #f) (begin ,expr)) (throw ,@message)))
+
+;; -----------------------------------------------------------------
+;; NAME: result-print
+;;
+;; DESCRIPTION: simple function to print a list of arguments
+;; with an informational message
+;;
+;; PARAMETERS:
+;;   msg -- string
+;;   args -- list of things to print to the screen
+;; -----------------------------------------------------------------
+(define (result-print msg . args)
+  (display msg)
+  (for-each (lambda (a) (begin (write a) (display " "))) args)
+  (newline))

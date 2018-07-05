@@ -1,0 +1,85 @@
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## This is a pdo-shell script the demonstrates the flow of a fair exchange
+## of assets between two parties where the only mediator is the contract
+## object.
+##
+## The following shell variables are assumed:
+##    path -- the path where the contract objects are stored (default = '.')
+##    offer_user -- the identity of the user initiating the exchange (default = user1)
+##    offer_color -- the color to use for the offered marbles (default = 'green')
+##    exchange_user -- the identity of the user responding to the exchange (default = user6)
+##    exchange_color -- the color to use for the requested marbles (default = 'red')
+##    request_count -- the number of marbles requested for the offered marbles (default = 60)
+
+## $ pdo-shell -s exchange.psh
+
+load_plugin -c asset_type
+load_plugin -c vetting
+load_plugin -c issuer
+load_plugin -c exchange
+
+set -q --conditional -s path -v .
+set -q --conditional -s offer_user -v user1
+set -q --conditional -s offer_color -v green
+set -q --conditional -s exchange_user -v user6
+set -q --conditional -s exchange_color -v red
+set -q --conditional -s request_count -v 60
+
+## =================================================================
+echo ${offer_user} creates exchange to trade ${offer_color} marbles for ${request_count} ${exchange_color} marbles
+## =================================================================
+identity -n ${offer_user}
+create -c exchange-contract -s _exchange -f ${path}/exch.pdo
+
+## Get some information that will be used later
+## exchange_vk -- exchange contract verifying key/identity
+## request_vk -- vetting organization identity for requested asset
+## request_type_id -- type identifier for the requested marble type
+exchange -q -f ${path}/exch.pdo get_verifying_key -s exchange_vk
+vetting -q -f ${path}/${exchange_color}_vetting.pdo get_verifying_key -s request_vk
+asset_type -q -f ${path}/${exchange_color}_type.pdo get_identifier -s request_type_id
+
+## Initialize the exchange with the request parameters
+exchange -q -w -f ${path}/exch.pdo initialize -r ${request_vk} -t ${request_type_id} -c ${request_count}
+
+## =================================================================
+echo escrow ${offer_color} marbles for ${offer_user} and add to the exchange
+## =================================================================
+identity -n ${offer_user}
+issuer -f ${path}/${offer_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${offer_color}_issuer.pdo escrow -a ${exchange_vk} -s escrow
+exchange -q -w -f ${path}/exch.pdo offer -a '${escrow}'
+
+## =================================================================
+echo escrow ${exchange_color} marbles for ${exchange_user} and add to the exchange
+## =================================================================
+identity -n ${exchange_user}
+issuer -f ${path}/${exchange_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${exchange_color}_issuer.pdo escrow -a ${exchange_vk} -s escrow
+exchange -q -w -f ${path}/exch.pdo exchange -a '${escrow}'
+
+## =================================================================
+echo exchange should be closed, claim ownership of the assets
+## =================================================================
+identity -n ${offer_user}
+exchange -q -w -f ${path}/exch.pdo claim_exchange -s asset
+issuer -q -w -f ${path}/${exchange_color}_issuer.pdo claim -a '${asset}'
+
+identity -n ${exchange_user}
+exchange -q -w -f ${path}/exch.pdo claim_offer -s asset
+issuer -q -w -f ${path}/${offer_color}_issuer.pdo claim -a '${asset}'
+
+exit

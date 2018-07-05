@@ -81,6 +81,10 @@ class Bindings(object) :
         self.__bindings__[variable] = value
 
     # --------------------------------------------------
+    def isbound(self, variable) :
+        return variable in self.__bindings__
+
+    # --------------------------------------------------
     def expand(self, argstring) :
         try :
             template = Template(argstring)
@@ -196,21 +200,35 @@ class ContractController(cmd.Cmd) :
 
         try :
             parser = argparse.ArgumentParser(prog='set')
+            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
             parser.add_argument('-s', '--symbol', help='symbol in which to store the identifier', required=True)
+            parser.add_argument('-c', '--conditional', help='set the value only if it is undefined', action='store_true')
 
             eparser = parser.add_mutually_exclusive_group(required=True)
-            eparser.add_argument('-v', '--value', help='identifier')
+            eparser.add_argument('-i', '--identity', help='identity to use for retrieving public keys')
             eparser.add_argument('-f', '--file', help='name of the file to read for the value')
+            eparser.add_argument('-v', '--value', help='string value to associate with the symbol')
 
             options = parser.parse_args(pargs)
 
+            if options.conditional and self.bindings.isbound(options.symbol) :
+                return
+
             value = options.value
+
+            if options.identity :
+                keypath = self.state.get(['Key', 'SearchPath'])
+                keyfile = find_file_in_path("{0}_public.pem".format(options.identity), keypath)
+                with open (keyfile, "r") as myfile:
+                    value = myfile.read()
+
             if options.file :
                 with open (options.file, "r") as myfile:
                     value = myfile.read()
 
             self.bindings.bind(options.symbol,value)
-            print("${} = {}".format(options.symbol, value))
+            if not options.quiet :
+                print("${} = {}".format(options.symbol, value))
             return
         except SystemExit as se :
             if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))

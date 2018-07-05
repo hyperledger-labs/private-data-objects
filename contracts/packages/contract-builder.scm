@@ -45,9 +45,12 @@
             ((eqv? (car expr) 'require-when)
              (if (eval (cadr expr))
                  (map (lambda (ifile) (builder:process-file oport ifile search-path)) (cddr expr))))
+            ((eqv? (car expr) 'include-when)
+             (if (eval (cadr expr))
+                 (begin (write (caddr expr) oport) (newline oport))))
             (else
-             (write expr oport)))
-      (write expr oport)))
+             (begin (write expr oport) (newline oport))))
+      (begin (write expr oport) (newline oport))))
 
 (define builder:process-file
   (let ((processed-files '()))
