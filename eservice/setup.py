@@ -37,16 +37,9 @@ log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
 sgx_mode_env = os.environ.get('SGX_MODE', None)
-sgx_debug_env = os.environ.get('SGX_DEBUG', None)
 if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
     print("error: SGX_MODE value must be HW or SIM, current value is: ", sgx_mode_env)
     sys.exit(2)
-if not sgx_debug_env or (sgx_debug_env != "0" and sgx_debug_env != "1"):
-    print("error: SGX_DEBUG value must be 0 or 1, current value is: ", sgx_debug_env)
-    sys.exit(3)
-if sgx_debug_env == "0":
-    print("error: SGX_DEBUG value 0 not supported")
-    sys.exit(4)
 
 data_files = [
     (bin_dir, ['bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh']),
