@@ -29,3 +29,15 @@ This file include 4 string fields:
 * spid_cert_file - the PEM file of the certificate above
 * ias_url - the url of the Intel Attestation Service
 * http_proxy - a parameter to specify a proxy (if any) or '' otherwise
+
+### (optional) BIOS update ###
+If the TCB of the platform performing the attestation is outdated, the
+Intel Attestation Service can successfully verify an attestation though answering
+with a `GROUP_OUT_OF_DATE` quote status. It is up to the verifier to decide whether to
+trust an attestation from a platform whose TCB has been identified as outdated
+(but not compromised).
+The TCB can be updated through a BIOS update. For example, if you are running PDOs on
+Intel NUCs, you can visit the [Intel Download Center](https://downloadcenter.intel.com/)
+(and select `Mini PCs`) to find the latest BIOS release.
+As long as the latest version is being used, the IAS will answer (to correct attestations)
+with an `OK` quote status.
