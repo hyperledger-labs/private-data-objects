@@ -63,7 +63,6 @@ yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 : "${SGX_SSL?Missing environment variable SGX_SSL}"
 : "${SGX_SDK?Missing environment variable SGXSDKInstallPath}"
 : "${SGX_MODE:?Missing environment variable SGX_MODE, set it to HW or SIM}"
-: "${SGX_DEBUG:?Missing environment variable SGX_DEBUG, set it to 1}"
 : "${PKG_CONFIG_PATH?Missing environment variable PKG_CONFIG_PATH}"
 
 try command -v python
