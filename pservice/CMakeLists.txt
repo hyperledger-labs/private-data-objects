@@ -32,9 +32,15 @@ SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 # ADDITIONAL LIBRARIES
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-# SGX -- should move to findsgx
-##OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" FALSE)
-OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" TRUE)
+SET(SGX_MODE "$ENV{SGX_MODE}")
+if("${SGX_MODE} " STREQUAL " ")
+    message(FATAL_ERROR "SGX_MODE environment variable not defined!")
+endif()
+IF("${SGX_MODE}" STREQUAL "SIM")
+    OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" TRUE)
+ELSE()
+    OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" FALSE)
+ENDIF()
 
 SET(SGX_EDGER "$ENV{SGX_SDK}/bin/x64/sgx_edger8r")
 SET(SGX_SIGN "$ENV{SGX_SDK}/bin/x64/sgx_sign")
