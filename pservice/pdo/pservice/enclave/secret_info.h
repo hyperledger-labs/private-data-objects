@@ -79,8 +79,7 @@ std::map<std::string, std::string> unseal_secret(
 std::map<std::string, std::string> generate_enclave_secret(
     const std::string& sealed_enclave_data,
     const std::string& sealed_secret,
-    const std::string& inEServiceEnclaveId,
-    const std::string& inContractId,
-    const std::string& inOpk,
-    const std::string& inEnclaveEncryptKey
+    const std::string& contract_id,
+    const std::string& opk,
+    const std::string& enclave_info
     );

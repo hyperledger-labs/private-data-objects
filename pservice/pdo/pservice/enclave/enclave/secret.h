@@ -50,19 +50,16 @@ namespace pdo
             pdo_err_t UnsealSecret(
                 const Base64EncodedString& inSealedSecret,
                 HexEncodedString& outPlainSecret
-                // std::string& outPlainSecret
                 );
 
             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             pdo_err_t GenerateEnclaveSecret(
                 const Base64EncodedString& inSealedEnclaveData,
                 const Base64EncodedString& inSealedSecret,
-                const std::string& inEServiceEnclaveId,
                 const std::string& inContractId,
                 const std::string& inOpk,
-                const std::string& inEnclaveEncryptKey,
+                const std::string& inEnclaveInfo,
                 Base64EncodedString& ouSignedSecret
-                // HexEncodedString& ouSignedSecret
                 );
 
 
