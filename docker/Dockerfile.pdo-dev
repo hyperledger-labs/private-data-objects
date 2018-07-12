@@ -132,7 +132,6 @@ RUN \
     mkdir -p /project/pdo \
  && echo "CONTRACTHOME=/project/pdo/build/opt/pdo" >> /etc/environment \
  && (if ([ -c /dev/isgx ] && [ -S /var/run/aesmd/aesm.socket ]); then SGX_MODE=HW; else SGX_MODE=SIM; fi; echo "SGX_MODE=${SGX_MODE}" >> /etc/environment ) \
- && echo "SGX_DEBUG=1" >> /etc/environment \
  && echo "PDO_ENCLAVE_PEM=/project/pdo/enclave.pem" >> /etc/environment \
  && openssl genrsa -3 3072 > /project/pdo/enclave.pem \
  && if [ ! -z "$http_proxy"  ]; then \
