@@ -36,7 +36,7 @@ extern pdo_err_t ecall_CalculatePublicEnclaveDataSize(size_t* pPublicEnclaveData
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_CalculateSealedSecretSize(
-    const size_t plain_len, 
+    const size_t plain_len,
     size_t* pSealedSecretSize);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -73,16 +73,14 @@ extern pdo_err_t ecall_UnsealSecret(const uint8_t* inSealedSecret,
     uint8_t* outPlainSecret,
     uint32_t inAllocatedPlainSecretSize);
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_GenerateEnclaveSecret(
     const uint8_t* inSealedEnclaveData,
     size_t inSealedEnclaveDataSize,
     const uint8_t* inSealedSecret,
     size_t inSealedSecretSize,
-    const char* inEServiceEnclaveId,
     const char* inContractId,
     const char* inOpk,
-    const char* inEnclaveEncryptKey,
+    const char* inEnclaveInfo,
     uint8_t* outSignedSecret,
     size_t inAllocatedSignedSecretSize);

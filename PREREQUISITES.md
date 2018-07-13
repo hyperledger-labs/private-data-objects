@@ -48,13 +48,9 @@ These are used to find the Intel&reg; Software Guard Extensions (SGX) Software
 Development Kit (SDK). They are normally set by sourcing the SGX SDK activation
 script (e.g. `source /opt/intel/sgxsdk/environment`)
 
--`SGX_MODE` and `SGX_DEBUG`
-These variables are used to switch between SGX simulator and hardware mode, and
-to run the enclave in debug or non-debug mode. `SGX_MODE` is expected to be set
-to either `HW` or `SIM` (note: when compiling in hardware mode, make sure that
-the `SGX_USE_SIMULATOR` option is set to `FALSE` in `eservice/CMakeLists.txt`.
-`SGX_DEBUG` is expected to assume values `0` or `1`, though only `1` is
-currently supported.
+-`SGX_MODE`
+This variable is used to switch between SGX simulator and hardware mode.
+`SGX_MODE` is expected to be set to either `HW` or `SIM`.
 
 - `TINY_SCHEME_SRC`
 Used to locate a compatible source distribution of Tinyscheme, which is used to

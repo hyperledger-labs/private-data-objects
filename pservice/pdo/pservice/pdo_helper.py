@@ -148,10 +148,10 @@ class Enclave(object) :
     # -------------------------------------------------------
     def unseal_secret(self, secret) : return pdo_enclave.unseal_secret(secret)
 
-    # -------------------------------------------------------
-    def generate_enclave_secret(self, enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key):
-        return pdo_enclave.generate_enclave_secret(enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key)
 
+    # -------------------------------------------------------
+    def generate_enclave_secret(self, enclave_sealed_data, sealed_secret, contract_id, opk, enclave_info):
+        return pdo_enclave.generate_enclave_secret(enclave_sealed_data, sealed_secret, contract_id, opk, enclave_info)
 
     # -------------------------------------------------------
     def get_enclave_public_info(self) :
@@ -176,50 +176,3 @@ class Enclave(object) :
         with open(filename, "w") as file :
             json.dump(enclave_info, file)
 
-    # -------------------------------------------------------
-    def register_enclave(self, ledger_config) :
-        """
-        register the enclave with the sawtooth ledger
-
-        :param ledger_config: dictionary of configuration information that must include LedgerURL
-        """
-        try :
-            logger.debug('submit enclave registration to %s', ledger_config['LedgerURL'])
-
-            submitter = Submitter(
-                ledger_config['LedgerURL'],
-                key_str = self.txn_keys.txn_private)
-
-            txnsignature = submitter.submit_enclave_registration_from_data(
-                self.verifying_key,
-                self.encryption_key,
-                self.proof_data,
-                self.nonce,
-                ledger_config.get('Organization', "EMPTY"),
-                wait=30.0)
-        except TimeoutError as err :
-            raise Exception('time out waiting for ledger commit')
-        except Exception as e :
-            logger.error('failed to register enclave; %s', str(e))
-            raise
-        return txnsignature
-
-    # -------------------------------------------------------
-    def verify_registration(self, ledger_config) :
-        """
-        verify that the enclave is registered with the ledger
-
-        :param ledger_config: dictionary of configuration information that must include LedgerURL
-        """
-        try:
-            client = sawtooth.helpers.pdo_connect.PdoClientConnectHelper(
-                ledger_config['LedgerURL'],
-                key_str = self.txn_keys.txn_private)
-            enclave_state = client.get_enclave_dict(self.enclave_id)
-        except sawtooth.helpers.pdo_connect.ClientConnectException as ce :
-            raise Exception('failed to verify enclave registration; %s', str(ce))
-        except:
-            raise Exception('unknown error occurred while verifying enclave registration')
-
-        logger.info('enclave registration verified')
-        return True
