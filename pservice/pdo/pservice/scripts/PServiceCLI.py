@@ -27,6 +27,7 @@ import argparse
 import json
 import errno
 import hashlib
+import socket
 
 from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
 from sawtooth.helpers.pdo_connect import PdoRegistryHelper
@@ -104,7 +105,7 @@ class ProvisioningServer(resource.Resource):
             with open(self.secrets_file_path, "w") as f:
                 for key in file_secrets:
                     f.write(key + ' : ' + file_secrets[key] + "\n")
-        
+
         return sealed_secret
 
     ## -----------------------------------------------------------------
@@ -198,11 +199,19 @@ class ProvisioningServer(resource.Resource):
             logger.error('This Pservice is not the list of allowed provisioning services, PSerivce ID: %s', self.PSPK)
             raise Error(http.NOT_ALLOWED, 'operation not allowed for {0}'.format(self.PSPK))
 
-        # retrieve the secret
+        # retrieve the sealed secret
         sealed_secret = self._GetContractSecret(contract_id)
 
-        # Generate Secret for Contract Enclave, signs unsealed secret with contract encalve rsa encryptiong key
-        esecret = self.Enclave.generate_enclave_secret(self.SealedData, sealed_secret, enclave_id, contract_id, opk, enclave_info['encryption_key'])["enclave_secret"]
+        logger.debug("Enclave Info: %s", str(enclave_info))
+
+        # Generate Secret for Contract Enclave, signs unsealed secret with contract enclave encryption key
+        esecret = self.Enclave.generate_enclave_secret(
+            self.SealedData,
+            sealed_secret,
+            contract_id,
+            opk,
+            json.dumps(enclave_info),
+            )["enclave_secret"]
 
         logger.debug("Encrypted secret for contract %s: %s", contract_id, esecret)
 
@@ -363,7 +372,8 @@ def LocalMain(config) :
         # enclave configuration is in the 'EnclaveConfig' table
         try :
             logger.debug('initialize the enclave')
-            pdo_enclave.initialize_with_configuration(config.get('EnclaveModule'))
+            pdo_enclave_helper.initialize_enclave(config.get('EnclaveModule'))
+            logger.info('EnclaveModule; %s', config.get('EnclaveModule'))
         except Error as e :
             logger.exception('failed to initialize enclave; %s', e)
             sys.exit(-1)
@@ -379,7 +389,6 @@ def LocalMain(config) :
         enclave = LoadEnclaveData(enclave_config)
         if enclave is None :
             enclave = CreateEnclaveData(enclave_config)
-        enclave = CreateEnclaveData(enclave_config)
         assert enclave
     except Error as e:
         logger.exception('failed to initialize enclave; %s', e)

@@ -205,8 +205,8 @@ def unseal_secret(secret): return enclave.unseal_secret(secret)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def generate_enclave_secret(enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key):
- return enclave.generate_enclave_secret(enclave_sealed_data, sealed_secret, enclave_id, contract_id, opk, enclave_key)
+def generate_enclave_secret(enclave_sealed_data, sealed_secret, contract_id, opk, enclave_info):
+ return enclave.generate_enclave_secret(enclave_sealed_data, sealed_secret, contract_id, opk, enclave_info)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -232,35 +232,6 @@ def create_enclave_info(nonce):
         'enclave_persistent_id': 'Not present'
     }
 
-    # If we are not running in the simulator, we are going to go and get
-    # an attestation verification report for our enclave data.
-    if not enclave.is_sgx_simulator():
-        logger.debug("posting verification to IAS")
-        response = _ias.post_verify_attestation(quote=enclave_data['enclave_quote'], nonce=nonce)
-        logger.debug("posted verification to IAS")
-
-        #check verification report
-        if not _ias.verify_report_fields(enclave_data['enclave_quote'], response['verification_report']):
-            logger.debug("last error: " + _ias.last_verification_error())
-            if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
-                logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
-            else:
-                logger.error("invalid report fields")
-                return None
-        #ALL checks have passed
-        logger.info("report fields verified")
-
-        # Now put the proof data into the dictionary
-        enclave_info['proof_data'] = \
-            json.dumps({
-                'verification_report': response['verification_report'],
-                'signature': response['ias_signature']
-            })
-
-        # Grab the EPID psuedonym and put it in the enclave-persistent ID for the
-        # enclave info
-        verification_report_dict = json.loads(response['verification_report'])
-        enclave_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
 
     # Now we can finally serialize the enclave info and create a corresponding
     # enclave info object.  Because we don't want the sealed enclave data in the

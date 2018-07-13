@@ -283,10 +283,9 @@ std::map<std::string, std::string> unseal_secret(
 std::map<std::string, std::string> generate_enclave_secret(
     const std::string& sealed_enclave_data,
     const std::string& sealed_secret,
-    const std::string& inEServiceEnclaveId,
-    const std::string& inContractId,
-    const std::string& inOpk,
-    const std::string& inEnclaveEncryptKey
+    const std::string& contract_id,
+    const std::string& opk,
+    const std::string& enclave_info
     )
 {
     pdo_err_t presult;
@@ -296,10 +295,9 @@ std::map<std::string, std::string> generate_enclave_secret(
     presult = pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
         sealed_enclave_data,
         sealed_secret,
-        inEServiceEnclaveId,
-        inContractId,
-        inOpk,
-        inEnclaveEncryptKey,
+        contract_id,
+        opk,
+        enclave_info,
         enclave_secret);
     ThrowPDOError(presult);
 
@@ -310,3 +308,4 @@ std::map<std::string, std::string> generate_enclave_secret(
 
     return result;
 } // _generate_enclave_secret
+

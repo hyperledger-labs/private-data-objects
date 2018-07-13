@@ -27,11 +27,18 @@
 #include <sgx_tcrypto.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>  // sgx_get_key, sgx_create_report
+#include <sgx_quote.h>
 
 #include "crypto.h"
 #include "error.h"
 #include "pdo_error.h"
 #include "zero.h"
+
+#include "jsonvalue.h"
+#include "packages/base64/base64.h"
+#include "parson.h"
+#include "types.h"
+
 
 #include "base_enclave.h"
 #include "enclave_data.h"
@@ -42,9 +49,15 @@
 // XX Declaration of static helper functions                         XX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-static void CreateSignupReportData(const char* pOriginatorPublicKeyHash,
-    const EnclaveData& enclaveData,
+pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
+    std::string& enclaveId,
+    std::string& enclaveEncryptKey);
+
+static void CreateReportData(const char* pOriginatorPublicKeyHash,
+    std::string& enclaveId,
+    std::string& enclaveEncryptKey,
     sgx_report_data_t* pReportData);
+
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_CalculateSealedEnclaveDataSize(size_t* pSealedEnclaveDataSize)
@@ -170,7 +183,6 @@ pdo_err_t ecall_CalculatePlainSecretSize(const uint8_t* inSealedSecret, size_t i
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
-    // const char* inOriginatorPublicKeyHash,
     char* outPublicEnclaveData,
     size_t inAllocatedPublicEnclaveDataSize,
     size_t* outPublicEnclaveDataSize,
@@ -299,51 +311,6 @@ pdo_err_t ecall_UnsealEnclaveData(const uint8_t* inSealedEnclaveData,
     return result;
 }  // ecall_UnsealEnclaveData
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// XX Internal helper functions                                      XX
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void CreateSignupReportData(const char* pOriginatorPublicKeyHash,
-    const EnclaveData& enclaveData,
-    sgx_report_data_t* pReportData)
-{
-    // We will put the following in the report data SHA256(PPK|PEK|OPK_HASH)
-
-    // WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
-    //
-    // If anything in this code changes the way in which the actual enclave
-    // report data is represented, the corresponding code that verifies
-    // the report data has to be change accordingly.
-    //
-    // WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
-    std::string hashString;
-
-    hashString.append(enclaveData.get_serialized_signing_key());
-    hashString.append(enclaveData.get_serialized_encryption_key());
-
-    // Canonicalize the originator public key hash string to ensure a consistent
-    // format.
-    std::transform(pOriginatorPublicKeyHash,
-        pOriginatorPublicKeyHash + strlen(pOriginatorPublicKeyHash), std::back_inserter(hashString),
-        [](char c) {
-            return c;  // do nothing
-        });
-
-    // Now we put the SHA256 hash into the report data for the
-    // report we will request.
-    //
-    // NOTE - we are putting the hash directly into the report
-    // data structure because it is (64 bytes) larger than the SHA256
-    // hash (32 bytes) but we zero it out first to ensure that it is
-    // padded with known data.
-    Zero(pReportData, sizeof(*pReportData));
-    sgx_status_t ret = sgx_sha256_msg(reinterpret_cast<const uint8_t*>(hashString.c_str()),
-        static_cast<uint32_t>(hashString.size()),
-        reinterpret_cast<sgx_sha256_hash_t*>(pReportData));
-    pdo::error::ThrowSgxError(ret, "Failed to retrieve SHA256 hash of report data");
-}  // CreateSignupReportData
-
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_CreateSealedSecret(size_t secret_len,
@@ -448,10 +415,9 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
     size_t inSealedEnclaveDataSize,
     const uint8_t* inSealedSecret,
     size_t inSealedSecretSize,
-    const char* inEServiceEnclaveId,
     const char* inContractId,
     const char* inOpk,
-    const char* inEnclaveEncryptKey,
+    const char* inEnclaveInfo,
     uint8_t* outSignedSecret,
     size_t inAllocatedSignedSecretSize)
 {
@@ -461,10 +427,9 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
     try {
         pdo::error::ThrowIfNull(inSealedEnclaveData, "Sealed enclave data pointer is NULL");
         pdo::error::ThrowIfNull(inSealedSecret, "Sealed Secret pointer is NULL");
-        pdo::error::ThrowIfNull(inEServiceEnclaveId, "EService Enclave Id pointer is NULL");
         pdo::error::ThrowIfNull(inContractId, "Contract Id pointer is NULL");
         pdo::error::ThrowIfNull(inOpk, "Opk pointer is NULL");
-        pdo::error::ThrowIfNull(inEnclaveEncryptKey, "Enclave Encrypt key pointer is NULL");
+        pdo::error::ThrowIfNull(inEnclaveInfo, "Enclave Info pointer is NULL");
         pdo::error::ThrowIfNull(outSignedSecret, "Signed Secret pointer is NULL");
 
         pdo_err_t presult;
@@ -484,23 +449,27 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
             plainSecret.length() > ENCODED_SECRET_SIZE,
             "secret is too long");
 
+        const std::string enclaveInfo(inEnclaveInfo);
+        std::string enclaveId;
+        std::string enclaveEncryptKey;
+        const std::string secret(plainSecret);
+        const std::string contractId(inContractId);
+        const std::string opk(inOpk);
+
+        presult = VerifyEnclaveInfo(enclaveInfo, enclaveId, enclaveEncryptKey);
+        if (presult != PDO_SUCCESS)
+            return presult;
 
         // Unseal the enclave persistent data
         EnclaveData enclaveData(inSealedEnclaveData);
 
-        const std::string secret(plainSecret);
-        const std::string eServiceEnclaveId(inEServiceEnclaveId);
-        const std::string contractId(inContractId);
-        const std::string opk(inOpk);
-        const std::string enclaveEncryptKey(inEnclaveEncryptKey);
-
         ByteArray message;
         std::copy(secret.begin(), secret.end(), std::back_inserter(message));
-        std::copy(eServiceEnclaveId.begin(), eServiceEnclaveId.end(), std::back_inserter(message));
+        std::copy(enclaveId.begin(), enclaveId.end(), std::back_inserter(message));
         std::copy(contractId.begin(), contractId.end(), std::back_inserter(message));
         std::copy(opk.begin(), opk.end(), std::back_inserter(message));
 
-        std::string msg = secret + eServiceEnclaveId + contractId + opk;
+        std::string msg = secret + enclaveId + contractId + opk;
         SAFE_LOG(PDO_LOG_WARNING, "MESSAGE: <%s>\n", msg.c_str());
 
         const ByteArray signature = enclaveData.sign_message(message);
@@ -553,3 +522,152 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
 
     return result;
 }// ecall_GenerateEnclaveSecret
+
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XX Internal helper functions                                      XX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
+    std::string& enclaveId,
+    std::string& enclaveEncryptKey
+    )
+{
+
+    pdo_err_t result = PDO_SUCCESS;
+
+    // Parse the enclaveInfo
+    JsonValue enclaveInfoParsed(json_parse_string(enclaveInfo.c_str()));
+    pdo::error::ThrowIfNull(enclaveInfoParsed.value, "Failed to parse the enclave info, badly formed JSON");
+
+    JSON_Object* enclave_info_object = json_value_get_object(enclaveInfoParsed);
+    pdo::error::ThrowIfNull(enclave_info_object, "Invalid enclave_info, expecting object");
+
+    const char* svalue = nullptr;
+
+    svalue = json_object_dotget_string(enclave_info_object, "verifying_key");
+    pdo::error::ThrowIfNull(svalue, "Invalid verifying_key");
+    enclaveId = svalue;
+
+    svalue = json_object_dotget_string(enclave_info_object, "encryption_key");
+    pdo::error::ThrowIfNull(svalue, "Invalid encryption_key");
+    enclaveEncryptKey = svalue;
+
+    svalue = json_object_dotget_string(enclave_info_object, "owner_id");
+    pdo::error::ThrowIfNull(svalue, "Invalid owner_id");
+    const std::string ownerId(svalue);
+
+    if (IS_SGX_SIMULATOR){
+        return result;
+    }
+
+    // Parse proof data
+    svalue = json_object_dotget_string(enclave_info_object, "proof_data");
+    pdo::error::ThrowIfNull(svalue, "Invalid proof_data");
+    const std::string proofData(svalue);
+
+    JsonValue proofDataParsed(json_parse_string(proofData.c_str()));
+    pdo::error::ThrowIfNull(proofDataParsed.value, "Failed to parse the proofData, badly formed JSON");
+
+    JSON_Object* proof_object = json_value_get_object(proofDataParsed);
+    pdo::error::ThrowIfNull(proof_object, "Invalid proof, expecting object");
+
+    svalue = json_object_dotget_string(proof_object, "signature");
+    pdo::error::ThrowIfNull(svalue, "Invalid proof_signature");
+    const std::string proof_signature = svalue;
+
+    //Parse verification report
+    svalue = json_object_dotget_string(proof_object, "verification_report");
+    pdo::error::ThrowIfNull(svalue, "Invalid proof_verification_report");
+    const std::string verificationReport(svalue);
+
+    JsonValue verificationReportParsed(json_parse_string(verificationReport.c_str()));
+    pdo::error::ThrowIfNull(verificationReportParsed.value, "Failed to parse the verificationReport, badly formed JSON");
+
+    JSON_Object* verification_report_object = json_value_get_object(verificationReportParsed);
+    pdo::error::ThrowIfNull(verification_report_object, "Invalid verification_report, expecting object");
+
+    svalue = json_object_dotget_string(verification_report_object, "isvEnclaveQuoteBody");
+    pdo::error::ThrowIfNull(svalue, "Invalid enclave_quote_body");
+    const std::string enclave_quote_body(svalue);
+
+    svalue = json_object_dotget_string(verification_report_object, "epidPseudonym");
+    pdo::error::ThrowIfNull(svalue, "Invalid epid_pseudonym");
+    const std::string epid_pseudonym(svalue);
+
+
+    //Verify verification report signature
+    //To-do
+
+    //Compute OriginatorPublicKeyHash from ownerId
+    ByteArray originatorPublicKey;
+    std::copy(ownerId.begin(), ownerId.end(), std::back_inserter(originatorPublicKey));
+    std::string originatorPublicKeyHash = ByteArrayToHexEncodedString(pdo::crypto::ComputeMessageHash(originatorPublicKey));
+    std::transform(originatorPublicKeyHash.begin(), originatorPublicKeyHash.end(), originatorPublicKeyHash.begin(), ::tolower);
+
+    //Compute ReportData
+    sgx_report_data_t computedReportData = {0};
+    CreateReportData(originatorPublicKeyHash.c_str(), enclaveId, enclaveEncryptKey, &computedReportData);
+
+
+    //Extract ReportData from isvEnclaveQuoteBody in Verification Report
+    sgx_quote_t* quoteBody = reinterpret_cast<sgx_quote_t*>(Base64EncodedStringToByteArray(enclave_quote_body).data());
+    sgx_report_body_t* reportBody = &quoteBody->report_body;
+    sgx_report_data_t expectedReportData = *(&reportBody->report_data);
+
+    //Compare computedReportData with expectedReportData
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        memcmp(computedReportData.d, expectedReportData.d, SGX_REPORT_DATA_SIZE)  != 0,
+        "Invalid Report data: computedReportData does not match expectedReportData");
+
+
+    return result;
+}// VerifyEnclaveInfo
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void CreateReportData(const char* pOriginatorPublicKeyHash,
+    std::string& enclaveId,
+    std::string& enclaveEncryptKey,
+    sgx_report_data_t* pReportData)
+{
+    // We will put the following in the report data SHA256(PPK|PEK|OPK_HASH)
+
+    // WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
+    //
+    // If anything in this code changes the way in which the actual enclave
+    // report data is represented, the corresponding code that creates
+    // the report data has to be change accordingly.
+    //
+    // WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
+    std::string hashString;
+
+    pdo::crypto::sig::PublicKey signingKey(enclaveId);
+    pdo::crypto::pkenc::PublicKey enclaveKey(enclaveEncryptKey);
+
+    hashString.append(signingKey.Serialize());
+    hashString.append(enclaveKey.Serialize());
+
+    // Canonicalize the originator public key hash string to ensure a consistent
+    // format.
+    std::transform(pOriginatorPublicKeyHash,
+        pOriginatorPublicKeyHash + strlen(pOriginatorPublicKeyHash), std::back_inserter(hashString),
+        [](char c) {
+            return c;  // do nothing
+        });
+
+    // Now we put the SHA256 hash into the report data for the
+    // report we will request.
+    //
+    // NOTE - we are putting the hash directly into the report
+    // data structure because it is (64 bytes) larger than the SHA256
+    // hash (32 bytes) but we zero it out first to ensure that it is
+    // padded with known data.
+    Zero(pReportData, sizeof(*pReportData));
+    sgx_status_t ret = sgx_sha256_msg(reinterpret_cast<const uint8_t*>(hashString.c_str()),
+        static_cast<uint32_t>(hashString.size()),
+        reinterpret_cast<sgx_sha256_hash_t*>(pReportData));
+    pdo::error::ThrowSgxError(ret, "Failed to retrieve SHA256 hash of report data");
+}  // CreateReportData
