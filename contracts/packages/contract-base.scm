@@ -85,3 +85,15 @@
 
 ;;(define-method base-contract (encrypt message)
 ;;  (send contract-encryption-keys 'encrypt message))
+
+;; -----------------------------------------------------------------
+;; -----------------------------------------------------------------
+;; key-list-generator is used primarily for generating batches of
+;; keys for building tests
+(include-when
+ (member "debug" *args*)
+ (define (key-list-generator count)
+   (let ((_keys_ (list->vector (do ((count count (- count 1))
+                                    (result '() (cons (make-instance signing-keys) result)))
+                                   ((zero? count) result)))))
+     (lambda (n) (vector-ref _keys_ n)))))

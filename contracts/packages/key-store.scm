@@ -43,7 +43,7 @@
 
 (define-method key-store (exists? key)
   (let ((value (_ht-get_ store key)))
-    (instance? value)))
+    value))
 
 (define-method key-store (get key)
   (let ((value (_ht-get_ store key)))
