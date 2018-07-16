@@ -1,0 +1,66 @@
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## This is a pdo-shell script creates the contract objects required
+## for a colored marble exchange. The assumuption is that there are
+## three keys available:
+##    ${color}_type -- keys used for the asset type object
+##    ${color}_vetting -- keys used for the vetting organization
+##    ${color}_issuer -- keys used for the issuer
+##
+## Two shell variables are used:
+##    color -- the color to use for the marble
+##    path -- the path where the contract objects are stored
+##
+## $ pdo-shell -s create.psh -m color <color> -m path <contract path>
+
+load_plugin -c asset_type
+load_plugin -c vetting
+load_plugin -c issuer
+
+set -q --conditional -s path -v .
+set -q --conditional -s color -v green
+
+## =================================================================
+echo create the asset type for ${color} marbles
+## =================================================================
+identity -n ${color}_type
+create -c asset-type-contract -s _asset_type -f ${path}/${color}_type.pdo
+asset_type -q -w -f ${path}/${color}_type.pdo initialize -n "${color} marbles" -d "${color} marble description" -l "http://"
+asset_type -q -f ${path}/${color}_type.pdo get_identifier -s type_id
+echo created type ${type_id}
+
+## =================================================================
+echo create the ${color} marble vetting organization
+## =================================================================
+identity -n ${color}_vetting
+create -c vetting-organization-contract -s _vetting_organization -f ${path}/${color}_vetting.pdo
+vetting -q -w -f ${path}/${color}_vetting.pdo initialize -t ${type_id}
+echo created the vetting organization
+
+## =================================================================
+echo create ${color} marble issuers
+## =================================================================
+identity -n ${color}_issuer
+create -c issuer-contract -s _issuer -f ${path}/${color}_issuer.pdo
+issuer -q -f ${path}/${color}_issuer.pdo get_verifying_key -s issuer_key
+
+identity -n ${color}_vetting
+vetting -q -w -f ${path}/${color}_vetting.pdo approve -i ${issuer_key}
+
+identity -n ${color}_issuer
+vetting -q -f ${path}/${color}_vetting.pdo get_authority -i ${issuer_key} -s auth
+issuer -q -w -f ${path}/${color}_issuer.pdo initialize -t ${type_id} -a '${auth}'
+
+exit

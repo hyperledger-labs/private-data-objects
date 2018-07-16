@@ -48,6 +48,9 @@ installation.
 For more information about how Private Data Objects work, see the
 [SPECIFICATION](SPECIFICATION.md) document.
 
+A presentation about Private Data Objects is available
+[HERE](https://docs.google.com/presentation/d/16V0kK9M_z86WwI-PfdltY5plXnkOdFuK84sWFaExH_k).
+
 Project Status
 -------------
 

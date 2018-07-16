@@ -85,6 +85,9 @@ def __create_contract(ledger_config, client_keys, enclaveclients, contract) :
     logger.info('Requesting that the enclave initialize the contract...')
     initialize_request = contract.create_initialize_request(client_keys, enclaveclient)
     initialize_response = initialize_request.evaluate()
+    if not initialize_response.status :
+        raise Exception("failed to initialize the contract; %s", initialize_response.result)
+
     contract.set_state(initialize_response.encrypted_state)
 
     logger.info('Contract state created successfully')
@@ -103,6 +106,7 @@ def command_create(state, bindings, pargs) :
     parser.add_argument('-c', '--contract-class', help='Name of the contract class', required = True, type=str)
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
+    parser.add_argument('--symbol', help='binding symbol for result', type=str)
     options = parser.parse_args(pargs)
 
     contract_class = options.contract_class
@@ -191,3 +195,6 @@ def command_create(state, bindings, pargs) :
         contract.save_to_file(contract_file, data_dir=data_directory)
     except Exception as e :
         raise Exception('failed to create the initial contract state; {0}'.format(str(e)))
+
+    if contract_id and options.symbol :
+        bindings.bind(options.symbol, contract_id)
