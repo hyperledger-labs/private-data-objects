@@ -425,15 +425,13 @@ pdo_err_t pdo::enclave_api::enclave_data::UnsealSecret(
     return result;
 } // pdo::enclave_api::base::UnsealSecret
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
         const Base64EncodedString& inSealedEnclaveData,
         const Base64EncodedString& inSealedSecret,
-        const std::string& inEServiceEnclaveId,
         const std::string& inContractId,
         const std::string& inOpk,
-        const std::string& inEnclaveEncryptKey,
+        const std::string& inEnclaveInfo,
         Base64EncodedString& ouSignedSecret
     )
 {
@@ -454,10 +452,9 @@ pdo_err_t pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
               &presult,
               sealed_enclave_data,
               sealed_secret,
-              inEServiceEnclaveId,
               inContractId,
               inOpk,
-              inEnclaveEncryptKey,
+              inEnclaveInfo,
               &signature_buffer] ()
             {
                 sgx_status_t sresult =
@@ -468,10 +465,9 @@ pdo_err_t pdo::enclave_api::enclave_data::GenerateEnclaveSecret(
                     sealed_enclave_data.size(),
                     sealed_secret.data(),
                     sealed_secret.size(),
-                    inEServiceEnclaveId.c_str(),
                     inContractId.c_str(),
                     inOpk.c_str(),
-                    inEnclaveEncryptKey.c_str(),
+                    inEnclaveInfo.c_str(),
                     signature_buffer.data(),
                     signature_buffer.size());
                 return pdo::error::ConvertErrorStatus(sresult, presult);
