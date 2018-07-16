@@ -34,7 +34,7 @@ fail if the invoker lacks sufficient assets for the transfer.
 
     * `_new_owner-identity` -- ECDSA verifying key for the new owner of the assets
 
-    * `_count` -- number of assets transfered
+    * `_count` -- number of assets transferred
 
 * `(escrow _escrow-agent-public-key)`\
 Assign temporary responsibility for assets owned by the invoker to an escrow agent.

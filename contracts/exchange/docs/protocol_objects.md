@@ -19,7 +19,7 @@ committed state update for the authorizing contract object.
 * `parent-authority` is either a recursive proof of authority or the ECDSA verifying key of the
 contract object that serves as the root of the chain of trust. For example, if the parent authority
 is a vetting organization like the BMPA, then the value of the `parent-authority` field would be the
-verifing key from the BMPA contract object. Otherwise, the proof-of-authority object describes the
+verifying key from the BMPA contract object. Otherwise, the proof-of-authority object describes the
 chain of authority for the parent.
 
 * The `signature` is created by the parent authority using its ECDSA signing key. The `signature` is
@@ -63,7 +63,7 @@ state of an asset.
 
 ## Asset Request ##
 
-An asset request creates a predictate that can be used to match assets to requests. Currently, the
+An asset request creates a predicate that can be used to match assets to requests. Currently, the
 asset request object allows specification of three conditions: asset type, count, and
 owner. Any combination of conditions may be used. For example, Alice might request 3 blue marbles
 from Bob. Or Alice might simply request blue marbles.

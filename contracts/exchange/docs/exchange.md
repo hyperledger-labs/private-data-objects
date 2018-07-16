@@ -67,10 +67,10 @@ player association provides the type of asset that will be issued by authorized 
 3. Each local chapter that will issue blue marbles creates an issuer contract object. For now, we'll
 just create the issuer contract object for the BMC chapter. When it is created, the BMC contract
 object holds no authority to issue assets; that is, the issuer contract refuses to issue assets
-until the issuer has been authorized. It must recieve that authority from the BMPA. Out of band, the
+until the issuer has been authorized. It must receive that authority from the BMPA. Out of band, the
 BMPA verifies the integrity of BMP and records in the BMPA vetting organization contract object
 authorization for the BMP issuer contract object to issue blue marble assets. Once the authorization
-is complete, the BMC can retreive a representation of the authorization from the BMPA contract
+is complete, the BMC can retrieve a representation of the authorization from the BMPA contract
 object (the structure of the authorization will be described later). That authorization is then
 stored in the BMC issuer contract object.
 
@@ -85,7 +85,7 @@ BMC issuer contract.
 The fair exchange contract enables a simple, bi-lateral exchange of assets that are managed by
 different issuers. For example, Alice and Bob (out of band) decide to exchange 100 red marbles for
 100 blue marbles. A fair exchange contract coordinates the exchange of ownership to guarantee that
-both sides recieve their assets (or neither does).
+both sides receive their assets (or neither does).
 
 ![](./exchange_flow.png)
 *Figure 1. Simple Fair Exchange Transaction Flow*
@@ -124,7 +124,7 @@ contract object as the escrow agent.
 6. Bob requests a proof of escrow from the RMC and submits it as the response to Alice's
 request. The contract in the exchange object verifies the type and quantity of the asset and also
 that Alice trusts Bob's issuer (that is, that the RMC was vetted by the RMPA). Assuming Bob's
-response is accepted, the exchange contract object enters a "completed" state where no furhter
+response is accepted, the exchange contract object enters a "completed" state where no further
 changes are accepted.
 
 7. To complete the exchange, Bob and Alice independently request a claim from the exchange object
