@@ -98,7 +98,64 @@ def create_parser(prog_name):
     add_generate_test_enclave_info_parser(subparsers, parent_parser)
     add_generate_signer_key_parser(subparsers, parent_parser)
     add_ping_command_parser(subparsers, parent_parser)
+    add_set_setting_parser(subparsers, parent_parser)
     return parser
+
+
+def add_set_setting_parser(subparsers, parent_parser):
+    message = 'Delete a Sawtooth global states for a specified PDO namespace'
+
+    parser = subparsers.add_parser(
+        'set-setting',
+        parents=[parent_parser],
+        description=message,
+        help='Set a Sawtooth global setting <key> <value>')
+
+    parser.add_argument(
+        '--url',
+        type=str,
+        help='specify URL of REST API')
+
+    parser.add_argument(
+        '--keyfile',
+        type=str,
+        help="identify file containing user's private key")
+
+    parser.add_argument(
+        '--wait',
+        nargs='?',
+        const=sys.maxsize,
+        type=int,
+        default=10,
+        help='set time, in seconds, to wait for transaction to commit')
+
+    parser.add_argument(
+        '-v', '--verbose',
+        action='count',
+        default=0,
+        help='enable more verbose output')
+
+    parser.add_argument(
+        'key',
+        type=str,
+        help='Setting key to set')
+
+    parser.add_argument(
+        'value',
+        type=str,
+        help='Setting value to set')
+
+
+def do_set_setting_command(args):
+    key, value, wait = args.key, args.value, args.wait
+
+    client = PdoCliClient(
+        url=DEFAULT_URL if args.url is None else args.url,
+        verbose=args.verbose > 0,
+        keyfile=_get_keyfile(args))
+
+    response = client.execute_set_setting(key, value, wait)
+    print(response)
 
 
 def add_ping_command_parser(subparsers, parent_parser):
@@ -541,6 +598,8 @@ def main(prog_name=os.path.basename(sys.argv[0]), args=None):
         do_generate_signing_key_command(args)
     elif args.command == "ping":
         do_ping_command(args)
+    elif args.command == "set-setting":
+        do_set_setting_command(args)
     else:
         raise PdoCliException("invalid command: {}".format(args.command))
 
