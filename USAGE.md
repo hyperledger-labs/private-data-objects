@@ -36,7 +36,7 @@ A "contract" is, at its core, just some Gipsy Scheme code. This code runs
 inside the contract enclave where it is protected from eavesdropping
 (confidentiality) and tampering (integrity). The contracts themselves enforce
 what they can and can not do - they are just code that runs on data. More
-information about contracts is available [here](client/docs/contract.md).
+information about contracts is available [here](contracts/docs/contract.md).
 
 This project comes bundled with a few example contracts which you can
 experiment with. Here is a brief overview of each one:
