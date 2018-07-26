@@ -272,7 +272,9 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
-        contract.set_state(update_response.encrypted_state)
+        if update_response.state_changed :
+            logger.debug('update state')
+            contract.set_state(update_response.encrypted_state)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

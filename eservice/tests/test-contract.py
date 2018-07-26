@@ -16,6 +16,7 @@
 
 import os
 import sys
+import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
@@ -244,6 +245,8 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     with open(config['expressions'], "r") as efile :
         expressions = efile.readlines()
 
+
+    start_time = time.time()
     for expression in expressions :
         expression = expression.strip()
 
@@ -278,7 +281,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
-        contract.set_state(update_response.encrypted_state)
+        if update_response.state_changed :
+            logger.debug('update state')
+            contract.set_state(update_response.encrypted_state)
+
+    logger.info('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
