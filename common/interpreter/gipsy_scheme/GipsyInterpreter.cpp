@@ -29,10 +29,7 @@
 #include "GipsyInterpreter.h"
 #include "SchemeExtensions.h"
 
-#include "init-package.h"
-#include "catch-package.h"
-#include "oops-package.h"
-
+#include "package.h"
 #include "zero.h"
 
 namespace pc = pdo::contracts;
@@ -269,20 +266,10 @@ GipsyInterpreter::GipsyInterpreter(void)
     scheme_load_extensions(sc);
 
     /* ---------- Load the base environment ---------- */
-    scheme_load_string(sc, (const char *)packages_init_package_scm, packages_init_package_scm_len);
+    scheme_load_string(sc, (const char *)packages_package_scm, packages_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
         "failed to load the gipsy initialization package");
-
-    scheme_load_string(sc, (const char *)packages_catch_package_scm, packages_catch_package_scm_len);
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "failed to load the gipsy error handling package");
-
-    scheme_load_string(sc, (const char *)packages_oops_package_scm, packages_oops_package_scm_len);
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "failed to load the gipsy object package");
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
