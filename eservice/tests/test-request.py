@@ -16,6 +16,7 @@
 
 import os
 import sys
+import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
@@ -240,6 +241,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
 
+    start_time = time.time()
     for x in range(config['iterations']) :
         try :
             expression = "'(inc-value)"
@@ -253,6 +255,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
+
+        # if this operation did not change state then there is nothing
+        # to send to the ledger or to save
+        if not update_response.state_changed :
+            continue
 
         try :
             if use_ledger :
@@ -272,9 +279,10 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
-        if update_response.state_changed :
-            logger.debug('update state')
-            contract.set_state(update_response.encrypted_state)
+        logger.debug('update state')
+        contract.set_state(update_response.encrypted_state)
+
+    logger.warning('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

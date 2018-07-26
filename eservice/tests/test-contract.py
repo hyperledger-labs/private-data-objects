@@ -245,7 +245,6 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     with open(config['expressions'], "r") as efile :
         expressions = efile.readlines()
 
-
     start_time = time.time()
     for expression in expressions :
         expression = expression.strip()
@@ -262,6 +261,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
+
+        # if this operation did not change state then there is nothing
+        # to send to the ledger or to save
+        if not update_response.state_changed :
+            continue
 
         try :
             if ledger_config is not None :
@@ -281,11 +285,10 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
-        if update_response.state_changed :
-            logger.debug('update state')
-            contract.set_state(update_response.encrypted_state)
+        logger.debug('update state')
+        contract.set_state(update_response.encrypted_state)
 
-    logger.info('completed in %s', time.time() - start_time)
+    logger.warn('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

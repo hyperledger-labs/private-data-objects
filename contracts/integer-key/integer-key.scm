@@ -32,17 +32,21 @@
 (define-class integer-key
   (super-class base-contract)
   (instance-vars
-   (state (make-instance key-store))
+   (state #f)
    (count 0)))
+
+(define-method integer-key (initialize-instance . args)
+  (if (not state)
+      (instance-set! self 'state (make-instance key-store))))
 
 ;; -----------------------------------------------------------------
 ;; Methods to interogate the counter store
 ;; -----------------------------------------------------------------
-(define-method integer-key (get-state)
+(define-const-method integer-key (get-state)
   (assert (or (null? creator) (equal? creator (get ':message 'originator))) "only creator may dump state")
   (send state 'get-state))
 
-(define-method integer-key (get-value key)
+(define-const-method integer-key (get-value key)
   (let* ((requestor (get ':message 'originator))
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may get the value of a counter" requestor)
@@ -133,7 +137,7 @@
 ;; PARAMETERS:
 ;;   key -- counter identifier
 ;; -----------------------------------------------------------------
-(define-method integer-key (escrow-attestation key)
+(define-const-method integer-key (escrow-attestation key)
   (let* ((requestor (get ':message 'originator))
          (counter (send state 'get key)))
 

@@ -344,12 +344,11 @@
 
    (define (_serialize-instance-variables l)
      (cond ((null? l) l)
-           ((equal? (caar l) 'self) (_serialize-instance-variables (cdr l)))
-           ;; object variables that start with '_' are restored with an empty value
-           ;; the intention is that they are temporary variables
-           ((char=? #\_ (string-ref (symbol->string (caar l)) 0))
-            (cons (list (caar l) #t)
-                  (_serialize-instance-variables (cdr l))))
+
+           ;; self will be reconstructed from the environment
+           ((equal? (caar l) 'self)
+            (_serialize-instance-variables (cdr l)))
+
            (else
             (cons (_serialize-instance-variable-pair (car l))
                   (_serialize-instance-variables (cdr l))))))

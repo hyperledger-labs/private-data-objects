@@ -16,8 +16,12 @@
   (instance-vars
    (key		"")
    (value	0)
-   (owner	(get ':message 'originator))
+   (owner	"")
    (active	#t)))
+
+(define-method counter (initialize-instance . args)
+  (if (string=? owner "")
+      (instance-set! self 'owner (get ':message 'originator))))
 
 (define-method counter (externalize . args)
   (if (member 'full args)
