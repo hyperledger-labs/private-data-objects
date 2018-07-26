@@ -309,24 +309,26 @@
 ;; ================================================================================
 (define oops-serialize
   (package
+
    (define (_serialize-symbol s)
      (list 'quote s))
 
    (define (_serialize-pair p)
      (list 'cons (_serialize-item (car p)) (_serialize-item (cdr p))))
 
-   (define (_serialize-list-tail l)
-     (cond ((null? l) l)
-           ((list? l)
-            (let ((head (_serialize-item (car l)))
-                  (tail (_serialize-list-tail (cdr l))))
-              (cons head tail)))))
-
    (define (_serialize-list l)
-     (cons 'list (_serialize-list-tail l)))
+     (do ((l l (cdr l))
+          (result () (cons (_serialize-item (car l)) result)))
+         ((null? l) (cons 'list (reverse result)))))
 
+   ;; we cannot just return a vector here since the contents of each
+   ;; cell is not evaluated when it is read in during state load
    (define (_serialize-vector v)
-     (cons 'vector (_serialize-list-tail (vector->list v))))
+     (let* ((vlen (vector-length v))
+            (result (make-vector vlen)))
+       (do ((i 0 (+ i 1)))
+           ((= i vlen) (cons 'vector (vector->list result)))
+         (vector-set! result i (_serialize-item (vector-ref v i))))))
 
    (define (_serialize-item i)
      (cond ((oops::instance? i) (serialize-instance i))
@@ -343,8 +345,11 @@
    (define (_serialize-instance-variables l)
      (cond ((null? l) l)
            ((equal? (caar l) 'self) (_serialize-instance-variables (cdr l)))
+           ;; object variables that start with '_' are restored with an empty value
+           ;; the intention is that they are temporary variables
            ((char=? #\_ (string-ref (symbol->string (caar l)) 0))
-            (_serialize-instance-variables (cdr l)))
+            (cons (list (caar l) #t)
+                  (_serialize-instance-variables (cdr l))))
            (else
             (cons (_serialize-instance-variable-pair (car l))
                   (_serialize-instance-variables (cdr l))))))
