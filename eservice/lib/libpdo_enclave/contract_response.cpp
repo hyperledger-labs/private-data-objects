@@ -46,6 +46,7 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     contract_id_ = request.contract_id_;
     creator_id_ = request.creator_id_;
     operation_succeeded_ = true;
+    state_changed_ = true;
 
     contract_code_hash_ = request.contract_code_.ComputeHash();
     contract_message_hash_ = request.contract_message_.ComputeHash();
@@ -148,12 +149,17 @@ ByteArray ContractResponse::SerializeAndEncrypt(
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the status");
 
+    // --------------- state updated ---------------
+    jret = json_object_dotset_boolean(contract_response_object, "StateChanged", state_changed_);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the status");
+
     // --------------- result ---------------
     jret = json_object_dotset_string(contract_response_object, "Result", result_.c_str());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the result");
 
-    if (operation_succeeded_) {
+    if (operation_succeeded_ && state_changed_) {
         // --------------- signature ---------------
         ByteArray signature = ComputeSignature(enclave_data);
         Base64EncodedString encoded_signature = base64_encode(signature);
