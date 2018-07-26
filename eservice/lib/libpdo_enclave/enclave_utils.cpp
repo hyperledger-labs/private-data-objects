@@ -48,3 +48,14 @@ void Log(int level, const char* fmt, ...)
     ocall_Log(level, buf);
 #endif
 }  // Log
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+uint64_t GetTimer(void)
+{
+    uint64_t value = 0;
+#ifdef ENCLAVE_DEBUG
+    ocall_GetTimer(&value);
+#endif
+
+    return value;
+} // GetTimer

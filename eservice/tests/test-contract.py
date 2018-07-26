@@ -76,7 +76,7 @@ def CreateAndRegisterEnclave(config) :
             enclave.verify_registration(ledger_config)
             logger.info('verified enclave registration')
         else :
-            logger.info('no ledger config; skipping enclave registration')
+            logger.debug('no ledger config; skipping enclave registration')
     except Exception as e :
         logger.exception('failed to register the enclave; %s', str(e))
         sys.exit(-1)
@@ -111,7 +111,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.info('contract registration successful; %s', contract_id)
         else :
             contract_id = crypto.byte_array_to_base64(crypto.compute_message_hash(crypto.random_bit_string(256)))
-            logger.info('no ledger config; skipping contract registration')
+            logger.debug('no ledger config; skipping contract registration')
     except Exception as e :
         logger.error('failed to register the contract; %s', str(e))
         sys.exit(-1)
@@ -183,7 +183,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
             logger.info('contract state encryption key added to contract')
         else :
-            logger.info('no ledger config; skipping state encryption key registration')
+            logger.debug('no ledger config; skipping state encryption key registration')
     except Exception as e :
         logger.error('failed to add state encryption key; %s', str(e))
         sys.exit(-1)
@@ -225,7 +225,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
                 transaction_dependency_list=txn_dependencies)
             txn_dependencies = [txnid]
         else:
-            logger.info('no ledger config; skipping iniatialize state save')
+            logger.debug('no ledger config; skipping iniatialize state save')
     except Exception as e :
         logger.error('failed to save the initial state; %s', str(e))
         sys.exit(-1)
@@ -280,7 +280,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                     transaction_dependency_list = txn_dependencies)
                 txn_dependencies = [ txnid ]
             else :
-                logger.info('no ledger config; skipping state save')
+                logger.debug('no ledger config; skipping state save')
         except Exception as e :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)

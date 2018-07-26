@@ -30,6 +30,7 @@
 #include "SchemeExtensions.h"
 
 #include "package.h"
+#include "timer.h"
 #include "zero.h"
 
 namespace pc = pdo::contracts;
@@ -244,6 +245,8 @@ GipsyInterpreter::~GipsyInterpreter(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 GipsyInterpreter::GipsyInterpreter(void)
 {
+    __TIMEIT__();
+
     safe_malloc_map.clear();
 
     /* ---------- Create the interpreter ---------- */
@@ -303,6 +306,8 @@ void GipsyInterpreter::load_contract_code(
     const pc::ContractCode& inContractCode
     )
 {
+    __TIMEIT__();
+
     scheme* sc = &this->interpreter;
 
     /* ---------- Load contract code ---------- */
@@ -357,6 +362,8 @@ void GipsyInterpreter::load_contract_state(
     const pc::ContractState& inContractState
     )
 {
+    __TIMEIT__();
+
     scheme* sc = &this->interpreter;
 
     if (not inContractState.State.empty())
@@ -382,6 +389,8 @@ void GipsyInterpreter::save_contract_state(
     pc::ContractState& outContractState
     )
 {
+    __TIMEIT__();
+
     scheme* sc = &this->interpreter;
 
     pointer instance = scheme_find_symbol(sc, "_instance");
@@ -463,6 +472,8 @@ void GipsyInterpreter::send_message_to_contract(
     std::string& outMessageResult
     )
 {
+    __TIMEIT__();
+
     scheme* sc = &this->interpreter;
 
     this->load_message(inMessage);

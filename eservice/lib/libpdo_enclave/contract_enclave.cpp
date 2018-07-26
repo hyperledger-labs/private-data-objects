@@ -25,6 +25,7 @@
 #include "error.h"
 #include "packages/base64/base64.h"
 #include "pdo_error.h"
+#include "timer.h"
 #include "types.h"
 #include "zero.h"
 
@@ -145,6 +146,8 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
 
         // Unseal the enclave persistent data
         EnclaveData enclaveData(inSealedSignupData);
+
+        __TIMEIT__();
 
         ByteArray encrypted_key(
             inEncryptedSessionKey, inEncryptedSessionKey + inEncryptedSessionKeySize);

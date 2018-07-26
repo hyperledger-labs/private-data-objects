@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <iostream>
+#include <chrono>
 
 #include "log.h"
 
@@ -40,6 +41,12 @@ extern "C" {
     {
         pdo::Log((pdo_log_level_t)level, str);
     } // ocall_Log
+
+    void ocall_GetTimer(uint64_t* value)
+    {
+        std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
+        (*value) = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    }
 
     void ocall_SetErrorMessage(
         const char* message
