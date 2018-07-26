@@ -176,6 +176,10 @@
           #f)))
 
    ;; -----------------------------------------------------------------
+   (define-macro (define-const-method class lambda-list . body)
+     `(define-method ,class ,lambda-list (begin (put ':method 'immutable #t) ,@body)))
+
+   ;; -----------------------------------------------------------------
    ;; All arguments of the form (instance-var init-value) are used
    ;; to initialize the specified instance variable; then an
    ;; initialize-instance message is sent with all remaining
@@ -288,6 +292,7 @@
 (define class-set! oops::class-set!)
 (define define-class oops::define-class)
 (define define-method oops::define-method)
+(define define-const-method oops::define-const-method)
 (define make-instance oops::make-instance)
 (define make-instance* oops::make-instance*)
 (define send oops::send)

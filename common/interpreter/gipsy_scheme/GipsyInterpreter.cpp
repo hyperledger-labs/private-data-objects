@@ -487,6 +487,7 @@ void GipsyInterpreter::send_message_to_contract(
     gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
     gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
+    gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
 
     /* this might not be the most obvious way to invoke the send function
        but this method is used to ensure that the message is not evaluated
@@ -508,5 +509,7 @@ void GipsyInterpreter::send_message_to_contract(
     outMessageResult = output.str();
 
     // save the state
-    this->save_contract_state(outContractState);
+    pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
+    if (_immutable == sc->NIL)
+        this->save_contract_state(outContractState);
 }
