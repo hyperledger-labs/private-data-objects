@@ -34,6 +34,7 @@
 //         "Expression" : "<string>",
 //         "OriginatorPublicKey" : "<serialized verifying key>",
 //         "ChannelPublicKey" : "<serialized verifying key>",
+//         "Nonce" : "<string>",
 //         "Signature" : "<base64 encoded signature>"
 //     }
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
