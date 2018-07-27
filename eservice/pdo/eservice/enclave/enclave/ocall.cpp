@@ -44,8 +44,7 @@ extern "C" {
 
     void ocall_GetTimer(uint64_t* value)
     {
-        std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
-        (*value) = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        (*value) = pdo::GetTimer();
     }
 
     void ocall_SetErrorMessage(
