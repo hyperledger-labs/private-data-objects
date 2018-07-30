@@ -204,6 +204,7 @@ static pointer ecdsa_create_signing_keys(scheme *sc, pointer args)
 
     try {
         pcrypto::sig::PrivateKey privkey;
+        privkey.Generate();
         pcrypto::sig::PublicKey pubkey(privkey);
 
         std::string encpriv = privkey.Serialize();
@@ -633,6 +634,7 @@ static pointer rsa_create_keys(scheme *sc, pointer args)
 
     try {
         pcrypto::pkenc::PrivateKey privkey;
+        privkey.Generate();
         pcrypto::pkenc::PublicKey pubkey(privkey);
 
         std::string encpriv = privkey.Serialize();
