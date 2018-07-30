@@ -20,7 +20,7 @@
 #include "error.h"
 #include "parson.h"
 
-#ifdef ENCLAVE_DEBUG
+#ifdef DEBUG
 #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
 #else
 #define SAFE_LOG(LEVEL, FMT, ...)
