@@ -94,6 +94,13 @@ if [ ! -d "${CONTRACTHOME}" ]; then
     die CONTRACTHOME directory does not exist
 fi
 
+# Automatically determine how many cores the host system has
+# (for use with multi-threaded make)
+NUM_CORES=$(grep -c '^processor' /proc/cpuinfo)
+if [ "$NUM_CORES " == " " ]; then
+    NUM_CORES=4
+fi
+
 # -----------------------------------------------------------------
 # BUILD
 # -----------------------------------------------------------------
@@ -104,34 +111,34 @@ rm -rf build
 mkdir build
 cd build
 try cmake ..
-try make
+try make "-j$NUM_CORES"
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
 make clean
-try make
+try make "-j$NUM_CORES"
 try make install
 
 yell --------------- ESERVICE ---------------
 cd $SRCDIR/eservice
 make clean
-try make
+try make "-j$NUM_CORES"
 try make install
 
 yell --------------- PSERVICE ---------------
 cd $SRCDIR/pservice
 make clean
-try make
+try make "-j$NUM_CORES"
 try make install
 
 yell --------------- CLIENT ---------------
 cd $SRCDIR/client
 make clean
-try make
+try make "-j$NUM_CORES"
 try make install
 
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
 make clean
-try make all
+try make all "-j$NUM_CORES"
 try make install
