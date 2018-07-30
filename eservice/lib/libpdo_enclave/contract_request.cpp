@@ -53,6 +53,7 @@
 //         "Expression" : "<string>",
 //         "OriginatorPublicKey" : "<serialized verifying key>",
 //         "ChannelPublicKey" : "<serialized verifying key>",
+//         "Nonce" : "<string>",
 //         "Signature" : "<base64 encoded signature>"
 //     },
 //     "ContractState" :
@@ -120,7 +121,7 @@ ContractRequest::ContractRequest(
     // contract state
     ovalue = json_object_dotget_object(request_object, "ContractState");
     pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve ContractState");
+        !ovalue, "invalid request; failed to retrieve ContractState");
 
     ByteArray id_hash = Base64EncodedStringToByteArray(contract_id_);
     pdo::error::ThrowIf<pdo::error::ValueError>(
