@@ -37,9 +37,15 @@ EnclaveData::EnclaveData(void)
     // do not attempt to catch errors here... let the calling procedure
     // handle the constructor errors
 
+    // generate private signing key
+    private_signing_key_.Generate();
+
     // create the public verifying key
     public_signing_key_ = private_signing_key_.GetPublicKey();
 
+    // generate private encryption key
+    private_encryption_key_.Generate();
+ 
     // create the public encryption key
     public_encryption_key_ = private_encryption_key_.GetPublicKey();
 

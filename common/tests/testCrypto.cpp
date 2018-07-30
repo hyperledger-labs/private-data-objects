@@ -79,8 +79,9 @@ int pcrypto::testCrypto()
     // Test ECDSA key management functions
     try
     {
-        // Initialzing constructor
+        // Default constructor
         pcrypto::sig::PrivateKey privateKey_t;
+        privateKey_t.Generate();
         // PublicKey constructor from PrivateKey
         pcrypto::sig::PublicKey publicKey_t(privateKey_t);
 
@@ -95,7 +96,7 @@ int pcrypto::testCrypto()
         publicKey_t2 = publicKey_t;
 
         // Move constructors
-        privateKey_t2 = pcrypto::sig::PrivateKey();
+        privateKey_t2 = pcrypto::sig::PrivateKey(privateKey_t);
         publicKey_t2 = pcrypto::sig::PublicKey(privateKey_t2);
     }
     catch (const Error::RuntimeError& e)
@@ -106,8 +107,9 @@ int pcrypto::testCrypto()
 
     printf("testCrypto: ECDSA keypair constructors test successful!\n\n");
 
-    // Initialzing constructor
+    // Default constructor
     pcrypto::sig::PrivateKey privateKey;
+    privateKey.Generate();
     // PublicKey constructor from PrivateKey
     pcrypto::sig::PublicKey publicKey(privateKey);
 
@@ -136,6 +138,7 @@ int pcrypto::testCrypto()
     std::string privateKeyStr1;
     std::string publicKeyStr1;
     pcrypto::sig::PrivateKey privateKey1;
+    privateKey1.Generate();
     pcrypto::sig::PublicKey publicKey1(privateKey1);
 
     try
@@ -286,8 +289,9 @@ int pcrypto::testCrypto()
     // Test RSA key management functions
     try
     {
-        // Initialzing constructor
+        // Default constructor
         pcrypto::pkenc::PrivateKey privateKey_t;
+        privateKey_t.Generate();
         // PublicKey constructor from PrivateKey
         pcrypto::pkenc::PublicKey publicKey_t(privateKey_t);
 
@@ -302,7 +306,7 @@ int pcrypto::testCrypto()
         publicKey_t2 = publicKey_t;
 
         // Move constructors
-        privateKey_t2 = pcrypto::pkenc::PrivateKey();
+        privateKey_t2 = pcrypto::pkenc::PrivateKey(privateKey_t);
         publicKey_t2 = pcrypto::pkenc::PublicKey(privateKey_t2);
     }
     catch (const Error::RuntimeError& e)
@@ -313,8 +317,9 @@ int pcrypto::testCrypto()
 
     printf("testCrypto: RSA keypair constructors test successful!\n\n");
 
-    // Initialzing constructor
+    // Default constructor
     pcrypto::pkenc::PrivateKey rprivateKey;
+    rprivateKey.Generate();
     // PublicKey constructor from PrivateKey
     pcrypto::pkenc::PublicKey rpublicKey(rprivateKey);
 
@@ -341,6 +346,7 @@ int pcrypto::testCrypto()
     }
 
     pcrypto::pkenc::PrivateKey rprivateKey1;
+    rprivateKey1.Generate();
     pcrypto::pkenc::PublicKey rpublicKey1(rprivateKey1);
     std::string rprivateKeyStr1;
     std::string rpublicKeyStr1;

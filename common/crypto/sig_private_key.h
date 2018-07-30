@@ -33,9 +33,8 @@ namespace crypto
             friend PublicKey;
 
         public:
-            // generate PrivateKey
-            // throws RuntimeError
-            PrivateKey();
+            // Default contructor
+            PrivateKey(): private_key_(nullptr){};
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);
@@ -50,6 +49,9 @@ namespace crypto
             PrivateKey& operator=(const PrivateKey& privateKey);
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
+            // generate PrivateKey
+            // throws RuntimeError
+            void Generate();
             // throws RuntimeError
             PublicKey GetPublicKey() const;
             // throws RuntimeError

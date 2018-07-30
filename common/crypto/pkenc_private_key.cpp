@@ -71,47 +71,6 @@ RSA* deserializeRSAPrivateKey(const std::string& encoded)
     }
     return private_key;
 }  // deserializeRSAPrivateKey
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Constructor
-// throws RuntimeError
-pcrypto::pkenc::PrivateKey::PrivateKey()
-{
-    unsigned long e = RSA_F4;
-    BIGNUM_ptr exp(BN_new(), BN_free);
-    private_key_ = nullptr;
-
-    if (!exp)
-    {
-        std::string msg(
-            "Crypto  Error (pkenc::PrivateKy()): Could not create BIGNUM "
-            "for RSA exponent");
-        throw Error::RuntimeError(msg);
-    }
-
-    if (!BN_set_word(exp.get(), e))
-    {
-        std::string msg("Crypto  Error (pkenc::PrivateKy()): Could not set RSA exponent");
-        throw Error::RuntimeError(msg);
-    }
-
-    RSA_ptr private_key(RSA_new(), RSA_free);
-    if (!private_key)
-    {
-        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not create new RSA key");
-        throw Error::RuntimeError(msg);
-    }
-    if (!RSA_generate_key_ex(private_key.get(), constants::RSA_KEY_SIZE, exp.get(), NULL))
-    {
-        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not generate RSA key");
-        throw Error::RuntimeError(msg);
-    }
-    private_key_ = RSAPrivateKey_dup(private_key.get());
-    if (!private_key_)
-    {
-        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not dup RSA private key");
-        throw Error::RuntimeError(msg);
-    }
-}  // pcrypto::pkenc::PrivateKey::PrivateKey
 
 // Constructor from encoded string
 // throws RuntimeError, ValueError
@@ -184,6 +143,51 @@ void pcrypto::pkenc::PrivateKey::Deserialize(const std::string& encoded)
         RSA_free(private_key_);
     private_key_ = key;
 }  // pcrypto::pkenc::PrivateKey::Deserialize
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Generate RSA private key
+// throws RuntimeError
+void pcrypto::pkenc::PrivateKey::Generate()
+{
+    if (private_key_)
+        RSA_free(private_key_);
+    
+    unsigned long e = RSA_F4;
+    BIGNUM_ptr exp(BN_new(), BN_free);
+    private_key_ = nullptr;
+
+    if (!exp)
+    {
+        std::string msg(
+            "Crypto  Error (pkenc::PrivateKy()): Could not create BIGNUM "
+            "for RSA exponent");
+        throw Error::RuntimeError(msg);
+    }
+
+    if (!BN_set_word(exp.get(), e))
+    {
+        std::string msg("Crypto  Error (pkenc::PrivateKy()): Could not set RSA exponent");
+        throw Error::RuntimeError(msg);
+    }
+
+    RSA_ptr private_key(RSA_new(), RSA_free);
+    if (!private_key)
+    {
+        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not create new RSA key");
+        throw Error::RuntimeError(msg);
+    }
+    if (!RSA_generate_key_ex(private_key.get(), constants::RSA_KEY_SIZE, exp.get(), NULL))
+    {
+        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not generate RSA key");
+        throw Error::RuntimeError(msg);
+    }
+    private_key_ = RSAPrivateKey_dup(private_key.get());
+    if (!private_key_)
+    {
+        std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not dup RSA private key");
+        throw Error::RuntimeError(msg);
+    }
+}  // pcrypto::pkenc::PrivateKey::Generate
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Serialize Private Key
