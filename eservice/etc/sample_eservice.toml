@@ -27,7 +27,7 @@ Host = "localhost"
 [Sawtooth]
 # LedgerURL is used to submit the registration transaction should
 # the enclave require registration
-LedgerURL = "http://localhost:8800/"
+LedgerURL = "${ledger}"
 Organization = "Widgets R Us"
 
 # --------------------------------------------------

@@ -22,7 +22,7 @@ Identity = "${identity}"
 # Sawtooth -- sawtooth ledger configuration
 # --------------------------------------------------
 [Sawtooth]
-LedgerURL = "http://127.0.0.1:8008"
+LedgerURL = "${ledger}"
 
 # --------------------------------------------------
 # Service -- Information about enclave/provisioning services
