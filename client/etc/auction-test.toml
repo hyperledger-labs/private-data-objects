@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [Sawtooth]
-"LedgerURL" = "http://localhost:8800/"
+LedgerURL = "http://localhost:8800/"
 
 [Logging]
 LogLevel = "INFO"
