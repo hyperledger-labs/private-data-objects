@@ -288,7 +288,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
         logger.debug('update state')
         contract.set_state(update_response.encrypted_state)
 
-    logger.warn('completed in %s', time.time() - start_time)
+    logger.info('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
