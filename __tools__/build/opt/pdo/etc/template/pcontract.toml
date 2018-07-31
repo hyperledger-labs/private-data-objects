@@ -60,7 +60,6 @@ SaveFile = "${contract}.pdo"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging
-
 # --------------------------------------------------
 [Logging]
 LogLevel = "INFO"
