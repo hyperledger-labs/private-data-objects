@@ -147,8 +147,6 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
         // Unseal the enclave persistent data
         EnclaveData enclaveData(inSealedSignupData);
 
-        __TIMEIT__();
-
         ByteArray encrypted_key(
             inEncryptedSessionKey, inEncryptedSessionKey + inEncryptedSessionKeySize);
         ByteArray session_key = enclaveData.decrypt_message(encrypted_key);
