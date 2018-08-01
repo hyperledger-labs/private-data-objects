@@ -51,7 +51,7 @@ static void VerifySecretSignature(const std::string& inEnclaveId,
     std::copy(inCreatorId.begin(), inCreatorId.end(), std::back_inserter(message_array));
 
     std::string msg = encoded_secret + inEnclaveId + inContractId + inCreatorId;
-    SAFE_LOG(PDO_LOG_WARNING, "MESSAGE: <%s>\n", msg.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "MESSAGE: <%s>\n", msg.c_str());
 
     int result = ps_public_key.VerifySignature(message_array, signature);
     pdo::error::ThrowIf<pdo::error::ValueError>(
@@ -115,7 +115,7 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
 
         const std::string encoded_secret = decrypted_ps_secret.substr(0, ENCODED_SECRET_SIZE);
 
-        SAFE_LOG(PDO_LOG_ERROR, "Secret: %s\nSignature: %s\n",
+        SAFE_LOG(PDO_LOG_DEBUG, "Secret: %s\nSignature: %s\n",
             decrypted_ps_secret.substr(0, ENCODED_SECRET_SIZE).c_str(),
             decrypted_ps_secret.substr(ENCODED_SECRET_SIZE).c_str());
 
