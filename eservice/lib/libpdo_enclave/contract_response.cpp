@@ -74,27 +74,30 @@ ByteArray ContractResponse::SerializeForSigning(void) const
     std::copy(creator_id_.begin(), creator_id_.end(), std::back_inserter(serialized));
 
 #ifdef DEBUG
-    std::string contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", contract_hash.c_str());
+    std::string debug_contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", debug_contract_hash.c_str());
 #endif
+
     std::copy(
         contract_code_hash_.begin(),
         contract_code_hash_.end(),
         std::back_inserter(serialized));
 
 #ifdef DEBUG
-    std::string message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", message_hash.c_str());
+    std::string debug_message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", debug_message_hash.c_str());
 #endif
+
     std::copy(
         contract_message_hash_.begin(),
         contract_message_hash_.end(),
         std::back_inserter(serialized));
 
 #ifdef DEBUG
-    std::string state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", state_hash.c_str());
+    std::string debug_state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", debug_state_hash.c_str());
 #endif
+
     std::copy(
         output_contract_state_hash_.begin(),
         output_contract_state_hash_.end(),
@@ -114,10 +117,11 @@ ByteArray ContractResponse::SerializeForSigning(void) const
     }
 
 #ifdef DEBUG
-    std::string mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
+    std::string debug_mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
     SAFE_LOG(PDO_LOG_DEBUG, "serialized contract response message has length %d and hash %s",
-        serialized.size(), mhash.c_str());
+        serialized.size(), debug_mhash.c_str());
 #endif
+
     return serialized;
 }
 
