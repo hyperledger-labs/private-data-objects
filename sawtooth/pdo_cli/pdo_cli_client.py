@@ -16,11 +16,13 @@ import base64
 import yaml
 import json
 import time
+import datetime
 
 from google.protobuf import json_format
 
-
 from sawtooth.sawtooth_protos.setting_pb2 import Setting
+from sawtooth.sawtooth_protos.settings_pb2 import SettingsPayload
+from sawtooth.sawtooth_protos.settings_pb2 import SettingProposal
 
 from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
 from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
@@ -38,6 +40,7 @@ from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_TransactionPayload
 from sawtooth.helpers.pdo_debug import PdoDbgDump
 from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
 from sawtooth.helpers.pdo_connect import ClientConnectException
+from sawtooth.helpers.pdo_address_helper import short_hash
 
 from common.pdo_signing import make_ccl_transaction_pdo_hash_input
 from common.pdo_signing import make_add_enclave_to_contract_pdo_hash_input
@@ -49,6 +52,11 @@ from common.pdo_signing import make_add_enclave_to_contract_hash_input
 from common.pdo_signing import secp256k1_sign
 
 from common.create_test_enclave import CreateTestEnclavePayload
+
+
+SETTINGS_NAMESPACE = '000000'
+_MAX_KEY_PARTS = 4
+_ADDRESS_PART_SIZE = 16
 
 address_skip_list = []
 
@@ -821,5 +829,68 @@ class PdoCliClient:
             print("Removal of the contract succeeded")
             return
 
+    def execute_set_setting(self, key, value, wait):
+        print("Set setting command:")
+        print("\tkey: {0}".format(key))
+        print("\tvalue: {0}".format(value))
+        print("\twait: {0}".format(wait))
 
+        payload = self._create_propose_payload(key, value)
+        inputs = self._config_inputs(key)
+        outputs = self._config_outputs(key)
+
+        response = self.connect.send_transaction(
+            payload,
+            "sawtooth_settings",
+            wait=wait,
+            transaction_output_list=outputs,
+            transaction_input_list=inputs,
+            verbose=self._verbose
+        )
+
+        print("response:", response)
+        return "OK"
+
+    def _create_propose_payload(self, setting_key, setting_value):
+        # Creates an individual sawtooth_settings payload for the given key and value
+
+        nonce = str(datetime.datetime.utcnow().timestamp())
+        proposal = SettingProposal(
+            setting=setting_key,
+            value=setting_value,
+            nonce=nonce)
+        payload = SettingsPayload(
+            data=proposal.SerializeToString(),
+            action=SettingsPayload.PROPOSE)
+
+        return payload.SerializeToString()
+
+    def _config_inputs(self, key):
+        # Creates the list of inputs for a sawtooth_settings transaction
+
+        return [
+            self._key_to_address('sawtooth.settings.vote.proposals'),
+            self._key_to_address('sawtooth.settings.vote.authorized_keys'),
+            self._key_to_address('sawtooth.settings.vote.approval_threshold'),
+            self._key_to_address(key)
+        ]
+
+    def _config_outputs(self, key):
+        # Creates the list of outputs for a sawtooth_settings transaction
+
+        return [
+            self._key_to_address('sawtooth.settings.vote.proposals'),
+            self._key_to_address(key)
+        ]
+
+    def _short_hash(self, in_str):
+        return short_hash(in_str.encode())
+
+    def _key_to_address(self, key):
+        """Creates the state address for a given setting key.
+        """
+        key_parts = key.split('.', maxsplit=_MAX_KEY_PARTS - 1)
+        key_parts.extend([''] * (_MAX_KEY_PARTS - len(key_parts)))
+
+        return SETTINGS_NAMESPACE + ''.join(self._short_hash(x) for x in key_parts)
 

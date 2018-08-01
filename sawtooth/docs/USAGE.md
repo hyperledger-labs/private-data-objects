@@ -300,3 +300,30 @@ Example of deleting all PDO registries.
 ```
 bin/pdo-cli delete pdo-all
 ```
+
+**Setting and Displaying Global Sawtooth Settings**
+
+This sections describes pdo-cli commands for interacting with Sawtooth settings transaction processor.
+All examples in this section assume that they are executd from the top PDO folder.
+
+Use set-setting to set a seeting. Use "pdo-cli set-settings --help" to display available options.
+Example belows shows how set pdo.test.registry.measurements with wait delay up to 10 seconds.
+
+```
+sawtooth/bin/pdo-cli set-setting pdo.test.registry.measurements c99f21955e38dbb03d2ca838d3af6e43ef438926ed02db4cc729380c8c7a174e
+```
+
+Below is an example how to list all global Sawtooth settings. 
+Use "pdo-cli list --help" to print all command line options.
+
+```
+sawtooth/bin/pdo-cli list settings
+
+```
+
+Below is an example how to show a specific setting pdo.test.registry.measurements
+Use "pdo-cli show --help" to print all command line options.
+```
+sawtooth/bin/pdo-cli show setting pdo.test.registry.measurements
+
+```
