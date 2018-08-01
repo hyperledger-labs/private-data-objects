@@ -84,46 +84,6 @@ EC_KEY* deserializeECDSAPrivateKey(const std::string& encoded)
     return private_key;
 }  // deserializeECDSAPrivateKey
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Constructor
-// throws RuntimeError
-pcrypto::sig::PrivateKey::PrivateKey()
-{
-    EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
-
-    if (!private_key)
-    {
-        std::string msg("Crypto Error (sig::PrivateKey()): Could not create new EC_KEY");
-        throw Error::RuntimeError(msg);
-    }
-
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(constants::CURVE), EC_GROUP_clear_free);
-    if (!ec_group)
-    {
-        std::string msg("Crypto Error (sig::PrivateKey()): Could not create EC_GROUP");
-        throw Error::RuntimeError(msg);
-    }
-
-    if (!EC_KEY_set_group(private_key.get(), ec_group.get()))
-    {
-        std::string msg("Crypto Error (sig::PrivateKey()): Could not set EC_GROUP");
-        throw Error::RuntimeError(msg);
-    }
-
-    if (!EC_KEY_generate_key(private_key.get()))
-    {
-        std::string msg("Crypto Error (sig::PrivateKey()): Could not generate EC_KEY");
-        throw Error::RuntimeError(msg);
-    }
-
-    private_key_ = EC_KEY_dup(private_key.get());
-    if (!private_key_)
-    {
-        std::string msg("Crypto Error (sig::PrivateKey()): Could not dup private EC_KEY");
-        throw Error::RuntimeError(msg);
-    }
-}  // pcrypto::sig::PrivateKey::PrivateKey
-
 // Constructor from encoded string
 // throws RuntimeError, ValueError
 pcrypto::sig::PrivateKey::PrivateKey(const std::string& encoded)
@@ -195,6 +155,49 @@ void pcrypto::sig::PrivateKey::Deserialize(const std::string& encoded)
         EC_KEY_free(private_key_);
     private_key_ = key;
 }  // pcrypto::sig::PrivateKey::Deserialize
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Generate ECDSA private key
+// throws RuntimeError
+void pcrypto::sig::PrivateKey::Generate()
+{
+    if (private_key_)
+        EC_KEY_free(private_key_);
+    
+    EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
+
+    if (!private_key)
+    {
+        std::string msg("Crypto Error (sig::PrivateKey()): Could not create new EC_KEY");
+        throw Error::RuntimeError(msg);
+    }
+
+    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(constants::CURVE), EC_GROUP_clear_free);
+    if (!ec_group)
+    {
+        std::string msg("Crypto Error (sig::PrivateKey()): Could not create EC_GROUP");
+        throw Error::RuntimeError(msg);
+    }
+
+    if (!EC_KEY_set_group(private_key.get(), ec_group.get()))
+    {
+        std::string msg("Crypto Error (sig::PrivateKey()): Could not set EC_GROUP");
+        throw Error::RuntimeError(msg);
+    }
+
+    if (!EC_KEY_generate_key(private_key.get()))
+    {
+        std::string msg("Crypto Error (sig::PrivateKey()): Could not generate EC_KEY");
+        throw Error::RuntimeError(msg);
+    }
+
+    private_key_ = EC_KEY_dup(private_key.get());
+    if (!private_key_)
+    {
+        std::string msg("Crypto Error (sig::PrivateKey()): Could not dup private EC_KEY");
+        throw Error::RuntimeError(msg);
+    }
+}  // pcrypto::sig::PrivateKey::Generate
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Derive Digital Signature public key from private key

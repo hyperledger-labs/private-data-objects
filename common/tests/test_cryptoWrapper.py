@@ -22,6 +22,7 @@ logging.basicConfig(level=logging.DEBUG)
 # TEST ECDSA
 try:
  esk = crypto.SIG_PrivateKey()
+ esk.Generate()   
  epk = esk.GetPublicKey()
 except Exception as exc:
  logger.error("ERROR: Signature Private and Public keys generation test failed: ", exc)
@@ -36,6 +37,7 @@ try:
  eskString1 = esk1.Serialize()
  epkString1 = epk1.Serialize()
  esk2 = crypto.SIG_PrivateKey()
+ esk2.Generate()   
  epk2 = crypto.SIG_PublicKey(esk2)
  eskString = esk.Serialize()
  esk2.Deserialize(eskString1)
@@ -95,6 +97,7 @@ else:
 # TEST RSA
 try:
  rsk = crypto.PKENC_PrivateKey()
+ rsk.Generate()
  rpk = crypto.PKENC_PublicKey(rsk)
 except Exception as exc:
  logger.error("ERROR: Asymmetric encryption Private and Public keys generation test failed: ", exc)
@@ -108,6 +111,7 @@ try:
  rskString1 = rsk1.Serialize()
  rpkString1 = rpk1.Serialize()
  rsk2 = crypto.PKENC_PrivateKey()
+ rsk2.Generate();
  rpk2 = crypto.PKENC_PublicKey(rsk2)
  rsk2.Deserialize(rskString1)
  rpk2.Deserialize(rpkString1)

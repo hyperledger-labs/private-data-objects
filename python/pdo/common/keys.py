@@ -192,6 +192,7 @@ class ServiceKeys(object) :
     @classmethod
     def create_service_keys(cls) :
         signing_key = crypto.SIG_PrivateKey()
+        signing_key.Generate()
         return cls(signing_key)
 
     # -------------------------------------------------------

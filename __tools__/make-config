@@ -30,6 +30,7 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 HttpsProxy = os.environ.get("https_proxy", "")
 
 config_map = {
@@ -39,6 +40,7 @@ config_map = {
     'host' : ContractHost,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
+    'ledger' : LedgerURL,
     'proxy' : HttpsProxy
 }
 
@@ -97,7 +99,6 @@ parser.add_argument('--count', help='Number of validators to configure', default
 
 options = parser.parse_args()
 
-# and create all of the other nodes
 for n in range(1, int(options.count)+1) :
     node = options.node_base + str(n)
     httpport = options.http_base + n
