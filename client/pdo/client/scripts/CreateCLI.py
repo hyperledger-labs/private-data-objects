@@ -204,6 +204,7 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -213,7 +214,8 @@ config_map = {
     'home' : ContractHome,
     'host' : ContractHost,
     'keys' : ContractKeys,
-    'logs' : ContractLogs
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
 }
 
 # -----------------------------------------------------------------
