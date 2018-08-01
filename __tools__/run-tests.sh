@@ -62,7 +62,7 @@ trap cleanup EXIT
 
 # start the provisioning and enclave services
 yell start enclave and provisioning services
-try ${VIRTUAL_ENV}/opt/pdo/bin/ps-start.sh --count 5 --ledger ${LEDGER_URL} > /dev/null
+try ${VIRTUAL_ENV}/opt/pdo/bin/ps-start.sh --count 5 --ledger ${LEDGER_URL} --clean > /dev/null
 try ${VIRTUAL_ENV}/opt/pdo/bin/es-start.sh --count 5 --ledger ${LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/eservice/tests
