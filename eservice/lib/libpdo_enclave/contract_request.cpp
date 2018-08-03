@@ -209,6 +209,15 @@ ContractResponse ContractRequest::process_initialization_request(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse ContractRequest::process_update_request(void)
 {
+    /*
+       NOTE: for operations that do not modify state, either because the
+       operation fails or because the operation is informational only, we
+       do not return the new state. this design prefers performance (the gains
+       from not requiring encryption, presentation formating, or signing) over
+       confidentiality since some information can be inferred from the size of
+       the response message.
+    */
+
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
@@ -235,9 +244,21 @@ ContractResponse ContractRequest::process_update_request(void)
         interpreter.send_message_to_contract(contract_id_, creator_id_, code, msg,
             current_contract_state, new_contract_state, dependencies, result);
 
-        ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
-        ContractResponse response(*this, dependencies, new_state, result);
-        return response;
+        // check for operations that did not modify state
+        if (new_contract_state.State.empty())
+        {
+            ByteArray empty_state(0);
+            std::map<string, string> dependencies;
+            ContractResponse response(*this, dependencies, empty_state, result);
+            response.state_changed_ = false;
+            return response;
+        }
+        else
+        {
+            ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
+            ContractResponse response(*this, dependencies, new_state, result);
+            return response;
+        }
     }
     catch (pdo::error::ValueError& e)
     {

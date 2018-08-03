@@ -72,7 +72,7 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
     data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Sawtooth'])
 
-    if commit :
+    if update_response.state_changed and commit :
         try :
             logger.debug("send update to the ledger")
             extraparams = {}

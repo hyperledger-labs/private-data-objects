@@ -38,9 +38,13 @@
   (super-class base-contract)
   (instance-vars
    (ledger-initialized #f)
-   (ledger (make-instance key-store))
+   (ledger #f)
    (asset-type-id "")
    (authority '())))
+
+(define-method _issuer (initialize-instance . args)
+  (if (not ledger)
+      (instance-set! self 'ledger (make-instance key-store))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: initialize
@@ -307,7 +311,11 @@
 ;; occurs
 ;; =================================================================
 (define-class issuer-contract
-  (instance-vars (contract (make-instance _issuer))))
+  (instance-vars (contract #f)))
+
+(define-method issuer-contract (initialize-instance . args)
+  (if (not contract)
+      (instance-set! self 'contract (make-instance _issuer))))
 
 (define-method issuer-contract (initialize asset-type-id serialized-authority)
   (send contract 'initialize asset-type-id serialized-authority))
@@ -315,7 +323,7 @@
 (define-method issuer-contract (issue owner-identity count)
   (send contract 'issue owner-identity count))
 
-(define-method issuer-contract (get-balance)
+(define-const-method issuer-contract (get-balance)
   (send contract 'get-balance))
 
 (define-method issuer-contract (transfer new-owner-identity count)
@@ -324,7 +332,7 @@
 (define-method issuer-contract (escrow escrow-agent-public-key)
   (send contract 'escrow escrow-agent-public-key))
 
-(define-method issuer-contract (escrow-attestation)
+(define-const-method issuer-contract (escrow-attestation)
   (send contract 'escrow-attestation))
 
 (define-method issuer-contract (disburse dependencies signature)
@@ -333,7 +341,7 @@
 (define-method issuer-contract (claim owner-identity dependencies signature)
   (send contract 'claim owner-identity dependencies signature))
 
-(define-method issuer-contract (get-verifying-key)
+(define-const-method issuer-contract (get-verifying-key)
   (send contract 'get-public-signing-key))
 
 ;; add a debug method that we can use to examine the ledger

@@ -25,6 +25,7 @@
 #include "error.h"
 #include "packages/base64/base64.h"
 #include "pdo_error.h"
+#include "timer.h"
 #include "types.h"
 #include "zero.h"
 

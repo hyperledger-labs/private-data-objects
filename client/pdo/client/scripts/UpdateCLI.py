@@ -142,6 +142,11 @@ def LocalMain(config, message) :
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
 
+        # if this operation did not change state then there is nothing
+        # to send to the ledger or to save
+        if not update_response.state_changed :
+            continue
+
         try :
             logger.debug("sending to ledger")
             txnid = update_response.submit_update_transaction(ledger_config)

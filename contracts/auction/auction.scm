@@ -87,7 +87,11 @@
    (offered-asset	#f)             ; this should really be oops-util::void, serialization issues
    (maximum-bid         #f)
    (asset-contract-public-key "")
-   (state (make-instance bid-store))))
+   (state #f)))
+
+(define-method auction (initialize-instance . args)
+  (if (not state)
+      (instance-set! self 'state (make-instance bid-store))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: initialize
@@ -152,7 +156,7 @@
 ;; -----------------------------------------------------------------
 ;; NAME: get-offered-asset
 ;; -----------------------------------------------------------------
-(define-method auction (get-offered-asset)
+(define-const-method auction (get-offered-asset)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (list (send offered-asset 'get-key) (send offered-asset 'get-value)))
@@ -218,7 +222,7 @@
 ;; this is distinct from the actual cancellation of the bid because we
 ;; need to record the state change first.
 ;; -----------------------------------------------------------------
-(define-method auction (cancel-attestation)
+(define-const-method auction (cancel-attestation)
   (assert auction-primed "bidding is not active")
   (let* ((requestor (get ':message 'originator))
          (externalized (send state 'get-cancelled-bid requestor 'externalize))
@@ -230,7 +234,7 @@
 ;; ----------------------------------------------------------------
 ;; NAME: check-bid
 ;; ----------------------------------------------------------------
-(define-method auction (check-bid)
+(define-const-method auction (check-bid)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (let* ((requestor (get ':message 'originator)))
@@ -239,7 +243,7 @@
 ;; ----------------------------------------------------------------
 ;; NAME: max-bid
 ;; ----------------------------------------------------------------
-(define-method auction (max-bid)
+(define-const-method auction (max-bid)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (let ((maxbid (send state 'max-bid)))
@@ -275,7 +279,7 @@
 ;; DESCRIPTION: generate the attestation that handles the actual
 ;; exchange of asset ownership in the asset contract
 ;; -----------------------------------------------------------------
-(define-method auction (exchange-attestation)
+(define-const-method auction (exchange-attestation)
   (let ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the auction creator may generate the exchange attestation" requestor))
 

@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <iostream>
+#include <chrono>
 
 #include "log.h"
 
@@ -40,6 +41,11 @@ extern "C" {
     {
         pdo::Log((pdo_log_level_t)level, str);
     } // ocall_Log
+
+    void ocall_GetTimer(uint64_t* value)
+    {
+        (*value) = pdo::GetTimer();
+    }
 
     void ocall_SetErrorMessage(
         const char* message

@@ -46,6 +46,7 @@ public:
     ContractState contract_state_;
     std::string result_;
     bool operation_succeeded_;
+    bool state_changed_;
 
     ContractResponse(const ContractRequest& request,
         const std::map<std::string, std::string>& dependencies,

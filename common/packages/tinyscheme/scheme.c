@@ -104,7 +104,7 @@ static const char *strlwr(char *s)
 #endif
 
 #ifndef FIRST_CELLSEGS
-#define FIRST_CELLSEGS 3
+#define FIRST_CELLSEGS 20
 #endif
 
 enum scheme_types {

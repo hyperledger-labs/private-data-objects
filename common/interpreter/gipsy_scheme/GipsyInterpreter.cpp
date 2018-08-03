@@ -29,10 +29,8 @@
 #include "GipsyInterpreter.h"
 #include "SchemeExtensions.h"
 
-#include "init-package.h"
-#include "catch-package.h"
-#include "oops-package.h"
-
+#include "package.h"
+#include "timer.h"
 #include "zero.h"
 
 namespace pc = pdo::contracts;
@@ -269,20 +267,10 @@ GipsyInterpreter::GipsyInterpreter(void)
     scheme_load_extensions(sc);
 
     /* ---------- Load the base environment ---------- */
-    scheme_load_string(sc, (const char *)packages_init_package_scm, packages_init_package_scm_len);
+    scheme_load_string(sc, (const char *)packages_package_scm, packages_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
         "failed to load the gipsy initialization package");
-
-    scheme_load_string(sc, (const char *)packages_catch_package_scm, packages_catch_package_scm_len);
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "failed to load the gipsy error handling package");
-
-    scheme_load_string(sc, (const char *)packages_oops_package_scm, packages_oops_package_scm_len);
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "failed to load the gipsy object package");
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -487,6 +475,7 @@ void GipsyInterpreter::send_message_to_contract(
     gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
     gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
+    gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
 
     /* this might not be the most obvious way to invoke the send function
        but this method is used to ensure that the message is not evaluated
@@ -508,5 +497,7 @@ void GipsyInterpreter::send_message_to_contract(
     outMessageResult = output.str();
 
     // save the state
-    this->save_contract_state(outContractState);
+    pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
+    if (_immutable == sc->NIL)
+        this->save_contract_state(outContractState);
 }
