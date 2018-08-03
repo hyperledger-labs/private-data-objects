@@ -156,7 +156,7 @@ ByteArray ContractResponse::SerializeAndEncrypt(
     // --------------- state updated ---------------
     jret = json_object_dotset_boolean(contract_response_object, "StateChanged", state_changed_);
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize the status");
+        jret != JSONSuccess, "failed to serialize the state_changed");
 
     // --------------- result ---------------
     jret = json_object_dotset_string(contract_response_object, "Result", result_.c_str());
