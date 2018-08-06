@@ -59,6 +59,7 @@ SET(SGX_EDGER "${SGX_SDK}/bin/x64/sgx_edger8r")
 SET(SGX_SIGN "${SGX_SDK}/bin/x64/sgx_sign")
 
 SET(SGX_INCLUDE "${SGX_SDK}/include")
+SET(SGX_SSL_INCLUDE "${SGX_SSL}/include")
 SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
                         "${SGX_SDK}/include/tlibc"
                         "${SGX_SDK}/include/libcxx")
@@ -98,7 +99,7 @@ FUNCTION(SGX_EDGE_TRUSTED EDL EDGE_FILES)
     SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.c")
     SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
     ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
-        COMMAND "${SGX_EDGER}" --trusted ${EDL} --search-path ${SGX_INCLUDE} --search-path ${EDL_DIR_NAME}
+        COMMAND "${SGX_EDGER}" --trusted ${EDL} --search-path ${SGX_INCLUDE} --search-path ${SGX_SSL_INCLUDE} --search-path ${EDL_DIR_NAME}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${EDL}
     )
@@ -112,7 +113,7 @@ FUNCTION(SGX_EDGE_UNTRUSTED EDL EDGE_FILES)
     SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.c")
     SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
     ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
-        COMMAND "${SGX_EDGER}" --untrusted ${EDL} --search-path ${SGX_INCLUDE} --search-path ${EDL_DIR_NAME}
+        COMMAND "${SGX_EDGER}" --untrusted ${EDL} --search-path ${SGX_INCLUDE} --search-path ${SGX_SSL_INCLUDE} --search-path ${EDL_DIR_NAME}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${EDL}
     )

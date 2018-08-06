@@ -48,7 +48,7 @@ These are used to find the Intel&reg; Software Guard Extensions (SGX) Software
 Development Kit (SDK). They are normally set by sourcing the SGX SDK activation
 script (e.g. `source /opt/intel/sgxsdk/environment`)
 
--`SGX_MODE`
+- `SGX_MODE`
 This variable is used to switch between SGX simulator and hardware mode.
 `SGX_MODE` is expected to be set to either `HW` or `SIM`.
 
@@ -100,26 +100,40 @@ Hyperledger Private Data Objects is intended to be run on SGX-enabled
 Intel&reg; platforms. However, it can also be run in "simulator mode" on
 platforms that do not have hardware support for SGX.
 
+
+## SGX in Hardware-mode
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
-PSW, and SDK. Also, if using PDO jointly with Sawtooth, you will need to set
+PSW, and SDK. You can find the Linux installation instructions for SGX at the
+[main SGX GitHub page](https://github.com/intel/linux-sgx). It is recommended
+to install Intel SGX SDK in /opt/intel/sgxsdk because the SGX OpenSSL library
+expects the Intel SGX SDK in this location by default.
+
+Also, if using PDO jointly with Sawtooth, you will need to set
 up the ledger with the appropriate parameters
 ([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
 for the validation of attestation verifications from the Intel Attestation Service (IAS).
 Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
 For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
+
+You will need to import the Intel IAS Attestation Report Signing CA Certificate,
+in order to enable the verification of attestation inside enclaves. From the project root folder,
+simply make sure you have a working internet connection and type the following:
+```
+cd common/crypto/verify_ias_report
+./build_ias_certificates_cpp.sh
+```
+The script will download the root IAS certificate from the Intel website and
+import it in the enclave code.
+
+Finally, make sure you have the `SGX_SDK` and `LD_LIBRARY_PATH` environment variables
+active for your current shell session before continuing. They are normally set
+by sourcing the SGX SDK activation script (e.g. `source /opt/intel/sgxsdk/environment`).
+
+## SGX in Simulator-mode
 If running only in simulator mode (no hardware support), you only
 need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
 documentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
 visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
-
-You can find the Linux installation instructions for SGX at the
-[main SGX GitHub page](https://github.com/intel/linux-sgx). It is recommended
-to install Intel SGX SDK in /opt/intel/sgxsdk because the SGX OpenSSL library
-expects the Intel SGX SDK in this location by default.
-
-Make sure you have the `SGX_SDK` and `LD_LIBRARY_PATH` environment variables
-active for your current shell session before continuing. They are normally set
-by sourcing the SGX SDK activation script (e.g. `source /opt/intel/sgxsdk/environment`)
 
 # <a name="openssl"></a>OpenSSL
 OpenSSL is a popular cryptography library. This project requires OpenSSL

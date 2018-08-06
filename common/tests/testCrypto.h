@@ -20,5 +20,6 @@ namespace crypto
 {
     // test unit
     int testCrypto();
+    int testVerifyReport();
 }
 }
