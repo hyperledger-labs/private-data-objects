@@ -39,16 +39,7 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-/*
-This ecall is a wrapper of sgx_ra_init to create the trusted
-KE exchange key context needed for the remote attestation
-SIGMA API's. Input pointers aren't checked since the trusted stubs
-copy them into EPC memory.
 
-@param p_context Pointer to the location where the returned key
-    context is to be copied.
-@return Any error returned during the initialization process.
-*/
 pdo_err_t ecall_Initialize()
 {
     pdo_err_t result = PDO_SUCCESS;

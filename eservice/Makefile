@@ -45,7 +45,7 @@ PYTHON_FILES = \
 	pdo/eservice/utility/__init__.py \
 	pdo/__init__.py
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
@@ -77,8 +77,12 @@ clean:
 	find . -iname '*.pyc' -delete
 	find . -iname '__pycache__' -delete
 
+print_enclave_files:
+	@echo $(ENCLAVE_FILES)
+
 .phony : all
 .phony : clean
 .phony : enclave
 .phone : install
 .phony : test
+.phony : print_enclave_files

@@ -19,6 +19,8 @@
 #include "crypto.h"
 #include "error.h"
 
+#include <assert.h>
+#include <string.h>
 #if _UNTRUSTED_
 
 #include <openssl/crypto.h>
@@ -727,5 +729,76 @@ int pcrypto::testCrypto()
         return -1;
     }
     printf("testCrypto: user seeded IV generation successful!\n\n");
+
+    //Test verify report
+    res = testVerifyReport();
+    if(res != 0) {
+        printf("testCrypto: verify report failed\n");
+        return -1;
+    }
+    printf("testCrypto: verify report successful\n");
+
     return 0;
 }  // pcrypto::testCrypto()
+
+int pcrypto::testVerifyReport() {
+    unsigned char mock_verification_report[] = "{\"nonce\":\"35E8FB64ACFB4A8E\",\"id\":\"284773557701539118279755254416631834508\",\"timestamp\":\"2018-07-11T19:30:35.556996\",\"epidPseudonym\":\"2iBfFyk5LE9du4skK9JjlRh1x5RvCIz/Z2nnoViIYY8W8TmIHg53UlEm2sp8NYVgT+LGSp0oxZgFcIg4p0BWxXqoBEEDnJFaVxgw0fS/RfhtF8yVNbVQjYjgQjw06wPalXzzNnjFpb873Rycj3JKSzkR3KfvKZfA/CJqEkTZK7U=\",\"isvEnclaveQuoteStatus\":\"GROUP_OUT_OF_DATE\",\"platformInfoBlob\":\"1502006504000700000808010101010000000000000000000007000006000000020000000000000AE791776C1D5C169132CA96D56CC2D59E5A46F23E39933DFB3B4962A8608AB53D84F77D254627D906B46F08073D33FF511E74BC318E8E0C37483C5B08899D1B5E9F\",\"isvEnclaveQuoteBody\":\"AgABAOcKAAAGAAUAAAAAAImTjvVbjrhQGXLFwbdtyMgAAAAAAAAAAAAAAAAAAAAABwf///8BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAMnL+UpC5HcF6MBCXsbYd5KUw2gc1tWgNPHNtK4g1NgKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACp0uDGT8avpUCoA1LU47KLt5L/RJSpeFFT9807MyvETgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOeQAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy7+m9Dx2rPbbbBWJUud3AHHnxoFWhlMQCyNjtVRvD2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}";
+    unsigned int mock_report_len = strlen((char*)mock_verification_report);
+    unsigned char mock_signature[] = "TuHse3QCPZtyZP436ltUAc6cVlIDzwKyjguOBDMmoou/NlGylzY0EtOEbHvVZ28HT8U1CiCVVmZso2ut2HY3zFDfpUg5/FV7FUSw/UhDOu3xkDwicrOvd/P1C3BKWJ6vJWghv3QLpgDItQPapFH/3OfciWs10kC3KV4UY+Irkrrck9+h3+FaltM/52AL1m1QWZIutMk1gDs5nz5N87gGvbc9VJKXx/RDDmvX1rLfqnPpH3owkprVLhU8iLcmPPN+irjfH4f4GGrnbWYCYK5wfB1BBbFl8ppqxm4Gr8ekePCPLMjYYLpKYWEipvTgaYl63zg+C9r8g+sIA3I9Jr3Exg==";
+
+    sgx_quote_t q;
+    get_quote_from_report(mock_verification_report, mock_report_len, &q);
+    printf("verify_report: get_quote_from_report: successul\n");
+
+    int r;
+    //verify good quote, but group-of-date is not considere ok
+    r = verify_enclave_quote_status((char*)mock_verification_report, mock_report_len, 0);
+    assert(r==VERIFY_FAILURE); //failure because group_out_of_date not ok
+    printf("verify_report: verify_enclave_quote_status: successul\n");
+
+    //verify good quote and group-of-date is considered ok
+    r = verify_enclave_quote_status((char*)mock_verification_report, mock_report_len, 1);
+    assert(r==VERIFY_SUCCESS);
+    printf("verify_report: verify_enclave_quote_status: successul\n");
+
+    //verify chain of hard-coded certificates
+    r = verify_ias_certificate_chain(NULL, 0);
+#ifdef IAS_CA_CERT_REQUIRED
+    assert(r==VERIFY_SUCCESS);
+#else
+    assert(r==VERIFY_FAILURE);
+#endif
+    printf("verify_report: verify_ias_certificate_chain: successul\n");
+
+    //verify the passed certificate (though it's the one stored) against the hard-coded CA certificate
+    r = verify_ias_certificate_chain((char*)ias_report_signing_cert_der, ias_report_signing_cert_der_len);
+#ifdef IAS_CA_CERT_REQUIRED
+    assert(r==VERIFY_SUCCESS);
+#else
+    assert(r==VERIFY_FAILURE);
+#endif
+    printf("verify_report: verify_ias_certificate_chain: successul\n");
+
+    //verify good IAS signature
+    r = verify_ias_report_signature((char*)ias_report_signing_cert_der,
+                                        ias_report_signing_cert_der_len,
+                                        (char*)mock_verification_report,
+                                        mock_report_len,
+                                        (char*)mock_signature,
+                                        strlen((char*)mock_signature));
+    assert(r==VERIFY_SUCCESS);
+    printf("verify_report: verify_ias_report_signature: successul\n");
+
+    //change one byte of report and recheck
+    mock_verification_report[0] = 'r'; //change 1 byte
+    //verify corrupted report
+    r = verify_ias_report_signature((char*)ias_report_signing_cert_der,
+                                        ias_report_signing_cert_der_len,
+                                        (char*)mock_verification_report,
+                                        mock_report_len,
+                                        (char*)mock_signature,
+                                        strlen((char*)mock_signature));
+    assert(r==VERIFY_FAILURE);
+    printf("verify_report: verify_ias_report_signature: successul\n");
+    return 0;
+} //int pcrypto::testVerifyReport()

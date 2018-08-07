@@ -40,10 +40,12 @@ IF("${SGX_MODE}" STREQUAL "SIM")
     SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
     SET(URTS_LIBRARY_NAME "sgx_urts_sim")
     SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
+    SET(IAS_CA_CERT_REQUIRED_FLAGS "")
 ELSE()
     SET(TRTS_LIBRARY_NAME "sgx_trts")
     SET(URTS_LIBRARY_NAME "sgx_urts")
     SET(SERVICE_LIBRARY_NAME "sgx_tservice")
+    SET(IAS_CA_CERT_REQUIRED_FLAGS "-DIAS_CA_CERT_REQUIRED")
 ENDIF()
 
 SET(SGX_SDK "$ENV{SGX_SDK}")
@@ -63,7 +65,7 @@ SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
                         "${SGX_SDK}/include/tlibc"
                         "${SGX_SDK}/include/libcxx")
 
-SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../packages/base64")
+SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 
 enable_testing()

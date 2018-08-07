@@ -24,3 +24,5 @@
 #include "sig_private_key.h"
 #include "sig_public_key.h"
 #include "skenc.h"
+#include "verify_ias_report/ias-certificates.h"
+#include "verify_ias_report/verify-report.h"
