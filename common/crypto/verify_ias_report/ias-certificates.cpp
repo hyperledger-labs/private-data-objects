@@ -21,7 +21,7 @@ unsigned char ias_report_signing_ca_cert_der[] = {
 #endif
 };
 
-unsigned int ias_report_signing_ca_cert_der_len = 
+unsigned int ias_report_signing_ca_cert_der_len =
 #ifdef IAS_CA_CERT_REQUIRED
     IAS_REPORT_SIGNING_CA_CERT_DER_LEN_PLACEMARK
 #else

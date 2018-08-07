@@ -86,7 +86,7 @@ void get_quote_from_report(const uint8_t* report, const int report_len, sgx_quot
     free(quote_bin);
 }
 
-verify_status_t verify_ias_report_signature(char* ias_attestation_signing_cert, 
+verify_status_t verify_ias_report_signature(char* ias_attestation_signing_cert,
                                             unsigned int ias_attestation_signing_cert_len,
                                             char* ias_report,
                                             unsigned int ias_report_len,
@@ -128,7 +128,7 @@ verify_status_t verify_ias_report_signature(char* ias_attestation_signing_cert,
     return VERIFY_SUCCESS; /* success */
 }
 
-verify_status_t verify_ias_certificate_chain(const char* optional_cert, int optional_cert_len) 
+verify_status_t verify_ias_certificate_chain(const char* optional_cert, int optional_cert_len)
 #ifndef IAS_CA_CERT_REQUIRED
 {
     return VERIFY_FAILURE; //fail (conservative approach for simulator-mode and in absence of CA certificate)
@@ -136,14 +136,14 @@ verify_status_t verify_ias_certificate_chain(const char* optional_cert, int opti
 #else //IAS_CA_CERT_REQUIRED is defined
 {
     /* Using the IAS CA certificate as a root of trust. */
-    /* Checking that optional_cert is signed by CA. If optional_cert is NULL, 
-       use the stored attestation signing certificate. */   
+    /* Checking that optional_cert is signed by CA. If optional_cert is NULL,
+       use the stored attestation signing certificate. */
 
     X509* cacrt;
     X509* crt;
     const char *untrusted_cert = (optional_cert == NULL ? (char*)ias_report_signing_cert_der : optional_cert);
     unsigned int untrusted_cert_len = (optional_cert == NULL ? ias_report_signing_cert_der_len : optional_cert_len);
-    
+
     crt = d2i_X509(NULL, (const unsigned char**)&untrusted_cert, untrusted_cert_len);
     assert(crt != NULL);
 
@@ -193,8 +193,8 @@ verify_status_t verify_enclave_quote_status(const char* ias_report, int ias_repo
     const char status_OK[status_OK_max_len] = "OK\"";
     if (0 == strncmp(p_begin, status_OK, strnlen(status_OK, status_OK_max_len)))
         return VERIFY_SUCCESS;
-    
-    if(group_out_of_date_is_ok) 
+
+    if(group_out_of_date_is_ok)
     {
         int status_outdated_max_len = 64;
         const char status_outdated[status_outdated_max_len] = "GROUP_OUT_OF_DATE\"";

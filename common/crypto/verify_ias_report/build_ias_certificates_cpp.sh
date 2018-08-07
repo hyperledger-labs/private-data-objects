@@ -25,7 +25,7 @@ Cleanup () {
     exit 0
 }
 
-trap 'echo "**ERROR - line $LINENO**"; Cleanup' HUP INT QUIT PIPE TERM ERR 
+trap 'echo "**ERROR - line $LINENO**"; Cleanup' HUP INT QUIT PIPE TERM ERR
 
 #get certificate from Intel
 wget https://software.intel.com/sites/default/files/managed/7b/de/RK_PUB.zip
@@ -50,7 +50,7 @@ echo "Der certificate size retrieved"
 
 echo ""
 echo -n "Building ias-certificates.cpp ... "
-#replace the placemark in the template with the der certificate 
+#replace the placemark in the template with the der certificate
 cmd=`echo "sed 's/IAS_REPORT_SIGNING_CA_CERT_DER_PLACEMARK/\`cat AttestationReportSigningCACert.pem.der.hex\`/' < ias-certificates.cpp.template > ias-certificates.cpp.tmp"`
 eval $cmd
 #repplace the second placemark in the updated template with the der certificate size

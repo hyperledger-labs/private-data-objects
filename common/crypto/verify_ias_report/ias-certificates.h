@@ -17,7 +17,7 @@
 #define IAS_CA_CERT_H
 
 //IAS attestation verification report signing certification authority certificate
-/* 
+/*
 This certificate is the root of trust for enclave attestation verification.
 This is the DER format of the SGX root certificate which can be downloaded from
 https://software.intel.com/sites/default/files/managed/7b/de/RK_PUB.zip
@@ -27,9 +27,9 @@ extern unsigned int ias_report_signing_ca_cert_der_len;
 
 //IAS attestation verification report signing certificate
 /*
-This is the certificate that contains the public key to verify the IAS signature 
+This is the certificate that contains the public key to verify the IAS signature
 in the attestation verification reports.
-The certificate is certified by IAS attestation verification report signing 
+The certificate is certified by IAS attestation verification report signing
 Certification Authority, whose certificate is included above.
 
 This certificate is included for convenience, so to jump immediately to the
