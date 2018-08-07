@@ -20,7 +20,7 @@
    (creator (get ':message 'originator))
    (value 0)))
 
-(define-method mock-contract (get-value)
+(define-const-method mock-contract (get-value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can get the value"))
   value)

@@ -22,14 +22,20 @@
 ;; -----------------------------------------------------------------
 (define-class signing-keys
   (instance-vars
-   (_keys_ (ecdsa-create-signing-keys))
-   (private-key (car _keys_))
-   (public-key (cadr _keys_))))
+   (private-key "")
+   (public-key "")))
+
+(define-method signing-keys (initialize-instance . args)
+  (if (string=? public-key "")
+      (let ((_keys_ (ecdsa-create-signing-keys)))
+        (instance-set! self 'private-key (car _keys_))
+        (instance-set! self 'public-key (cadr _keys_)))))
 
 (define-method signing-keys (get-public-signing-key) public-key)
 
 (define-method signing-keys (sign message)
   (assert (string? message) "message must be a string" message)
+  (assert (not (string=? private-key "")) "not initialized for signing")
   (ecdsa-sign-message message private-key))
 
 (define-method signing-keys (sign-expression expression)
@@ -47,18 +53,24 @@
 ;; -----------------------------------------------------------------
 (define-class encryption-keys
   (instance-vars
-   (_keys_ (rsa-create-keys))
-   (private-key (car _keys_))
-   (public-key (cadr _keys_))))
+   (private-key "")
+   (public-key "")))
+
+(define-method encryption-keys (initialize-instance . args)
+  (if (string=? public-key "")
+      (let ((_keys_ (rsa-create-keys)))
+        (instance-set! self 'private-key (car _keys_))
+        (instance-set! self 'public-key (cadr _keys_)))))
 
 (define-method encryption-keys (get-public-encryption-key) public-key)
 
-(define-method encryption-keys (encrypt-expression expression)
-  (send self 'encrypt (expression->string expression)))
-
 (define-method encryption-keys (encrypt message)
   (assert (string? message) "message must be a string" message)
+  (assert (not (string=? private-key "")) "not initialized for encryption")
   (rsa-encrypt message public-key))
+
+(define-method encryption-keys (encrypt-expression expression)
+  (send self 'encrypt (expression->string expression)))
 
 (define-method encryption-keys (decrypt-expression cipher)
   (string->expression (send self 'decrypt cipher)))
@@ -71,16 +83,24 @@
 ;; -----------------------------------------------------------------
 (define-class base-contract
   (instance-vars
-   (creator (get ':message 'originator))
-   (contract-signing-keys (make-instance signing-keys))
-   (contract-encryption-keys (make-instance encryption-keys))))
+   (creator "")
+   (contract-signing-keys #f)
+   (contract-encryption-keys #f)))
+
+(define-method base-contract (initialize-instance . args)
+  (if (string=? creator "")
+      (instance-set! self 'creator (get ':message 'originator)))
+  (if (not contract-signing-keys)
+      (instance-set! self 'contract-signing-keys (make-instance signing-keys)))
+  (if (not contract-encryption-keys)
+      (instance-set! self 'contract-encryption-keys (make-instance encryption-keys))))
 
 (define-method base-contract (get-creator) creator)
 
-(define-method base-contract (get-public-encryption-key)
+(define-const-method base-contract (get-public-encryption-key)
   (send contract-encryption-keys 'get-public-encryption-key))
 
-(define-method base-contract (get-public-signing-key)
+(define-const-method base-contract (get-public-signing-key)
   (send contract-signing-keys 'get-public-signing-key))
 
 ;;(define-method base-contract (encrypt message)

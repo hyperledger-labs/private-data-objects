@@ -86,19 +86,22 @@ def SendMessageAsIdentity(config, contract, invoker_keys, message, fmt = 'python
         logger.warn('method invocation failed for %s; %s', message, response.result)
         raise Exception("method invocation failed; {0}".format(response.result))
 
-    try :
-        if wait :
-            response.submit_update_transaction(ledger_config, wait=30)
-        else :
-            response.submit_update_transaction(ledger_config)
+    # if this operation did not change state then there is nothing
+    # to send to the ledger or to save
+    if response.state_changed :
+        try :
+            if wait :
+                response.submit_update_transaction(ledger_config, wait=30)
+            else :
+                response.submit_update_transaction(ledger_config)
 
-        contract.set_state(response.encrypted_state)
+            contract.set_state(response.encrypted_state)
 
-        data_dir = contract_config['DataDirectory']
-        contract.contract_state.save_to_cache(data_dir=data_dir)
-    except Exception as e:
-        logger.error('transaction submission failed for message %s; %s', message, str(e))
-        sys.exit(-1)
+            data_dir = contract_config['DataDirectory']
+            contract.contract_state.save_to_cache(data_dir=data_dir)
+        except Exception as e:
+            logger.error('transaction submission failed for message %s; %s', message, str(e))
+            sys.exit(-1)
 
     expression = SchemeExpression.ParseExpression(response.result)
     if fmt == 'scheme' :
@@ -373,6 +376,7 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -382,7 +386,8 @@ config_map = {
     'home' : ContractHome,
     'host' : ContractHost,
     'keys' : ContractKeys,
-    'logs' : ContractLogs
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
 }
 
 # -----------------------------------------------------------------

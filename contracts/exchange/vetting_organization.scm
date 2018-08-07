@@ -35,7 +35,11 @@
   (instance-vars
    (initialized #f)
    (asset-type-id "")
-   (approved-keys (make-instance key-store))))
+   (approved-keys #f)))
+
+(define-method vetting-organization-contract (initialize-instance . args)
+  (if (not approved-keys)
+      (instance-set! self 'approved-keys (make-instance key-store))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: initialize
@@ -85,7 +89,7 @@
 ;;
 ;; PARAMETERS:
 ;; -----------------------------------------------------------------
-(define-method vetting-organization-contract (get-authority issuer-verifying-key)
+(define-const-method vetting-organization-contract (get-authority issuer-verifying-key)
   (assert initialized "object not initialized")
 
   (let ((key (make-key issuer-verifying-key))
@@ -101,5 +105,5 @@
 ;;
 ;; PARAMETERS:
 ;; -----------------------------------------------------------------
-(define-method vetting-organization-contract (get-verifying-key)
+(define-const-method vetting-organization-contract (get-verifying-key)
   (send self 'get-public-signing-key))

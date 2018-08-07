@@ -46,6 +46,7 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     contract_id_ = request.contract_id_;
     creator_id_ = request.creator_id_;
     operation_succeeded_ = true;
+    state_changed_ = true;
 
     contract_code_hash_ = request.contract_code_.ComputeHash();
     contract_message_hash_ = request.contract_message_.ComputeHash();
@@ -72,28 +73,31 @@ ByteArray ContractResponse::SerializeForSigning(void) const
     SAFE_LOG(PDO_LOG_DEBUG, "creator id: %s", creator_id_.c_str());
     std::copy(creator_id_.begin(), creator_id_.end(), std::back_inserter(serialized));
 
-#ifdef ENCLAVE_DEBUG
-    std::string contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", contract_hash.c_str());
+#ifdef DEBUG
+    std::string debug_contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", debug_contract_hash.c_str());
 #endif
+
     std::copy(
         contract_code_hash_.begin(),
         contract_code_hash_.end(),
         std::back_inserter(serialized));
 
-#ifdef ENCLAVE_DEBUG
-    std::string message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", message_hash.c_str());
+#ifdef DEBUG
+    std::string debug_message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", debug_message_hash.c_str());
 #endif
+
     std::copy(
         contract_message_hash_.begin(),
         contract_message_hash_.end(),
         std::back_inserter(serialized));
 
-#ifdef ENCLAVE_DEBUG
-    std::string state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
-    SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", state_hash.c_str());
+#ifdef DEBUG
+    std::string debug_state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
+    SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", debug_state_hash.c_str());
 #endif
+
     std::copy(
         output_contract_state_hash_.begin(),
         output_contract_state_hash_.end(),
@@ -112,11 +116,12 @@ ByteArray ContractResponse::SerializeForSigning(void) const
         }
     }
 
-#ifdef ENCLAVE_DEBUG
-    std::string mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
+#ifdef DEBUG
+    std::string debug_mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
     SAFE_LOG(PDO_LOG_DEBUG, "serialized contract response message has length %d and hash %s",
-        serialized.size(), mhash.c_str());
+        serialized.size(), debug_mhash.c_str());
 #endif
+
     return serialized;
 }
 
@@ -148,12 +153,17 @@ ByteArray ContractResponse::SerializeAndEncrypt(
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the status");
 
+    // --------------- state updated ---------------
+    jret = json_object_dotset_boolean(contract_response_object, "StateChanged", state_changed_);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the state_changed");
+
     // --------------- result ---------------
     jret = json_object_dotset_string(contract_response_object, "Result", result_.c_str());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the result");
 
-    if (operation_succeeded_) {
+    if (operation_succeeded_ && state_changed_) {
         // --------------- signature ---------------
         ByteArray signature = ComputeSignature(enclave_data);
         Base64EncodedString encoded_signature = base64_encode(signature);

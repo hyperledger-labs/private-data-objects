@@ -16,6 +16,7 @@
 
 import os
 import sys
+import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
@@ -74,7 +75,7 @@ def CreateAndRegisterEnclave(config) :
             enclave.verify_registration(ledger_config)
             logger.info('verified enclave registration')
         else :
-            logger.info('no ledger config; skipping enclave registration')
+            logger.debug('no ledger config; skipping enclave registration')
     except Exception as e :
         logger.error('failed to register the enclave; %s', str(e))
         sys.exit(-1)
@@ -109,7 +110,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.info('contract registration successful; %s', contract_id)
         else :
             contract_id = crypto.byte_array_to_base64(crypto.compute_message_hash(crypto.random_bit_string(256)))
-            logger.info('no ledger config; skipping contract registration')
+            logger.debug('no ledger config; skipping contract registration')
     except Exception as e :
         logger.error('failed to register the contract; %s', str(e))
         sys.exit(-1)
@@ -181,7 +182,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
             logger.info('contract state encryption key added to contract')
         else :
-            logger.info('no ledger config; skipping state encryption key registration')
+            logger.debug('no ledger config; skipping state encryption key registration')
     except Exception as e :
         logger.error('failed to add state encryption key; %s', str(e))
         sys.exit(-1)
@@ -223,7 +224,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
                 transaction_dependency_list=txn_dependencies)
             txn_dependencies = [txnid]
         else:
-            logger.info('no ledger config; skipping iniatialize state save')
+            logger.debug('no ledger config; skipping iniatialize state save')
     except Exception as e :
         logger.error('failed to save the initial state; %s', str(e))
         sys.exit(-1)
@@ -240,6 +241,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
 
+    start_time = time.time()
     for x in range(config['iterations']) :
         try :
             expression = "'(inc-value)"
@@ -254,6 +256,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
 
+        # if this operation did not change state then there is nothing
+        # to send to the ledger or to save
+        if not update_response.state_changed :
+            continue
+
         try :
             if use_ledger :
                 logger.info("sending to ledger")
@@ -267,12 +274,15 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                     transaction_dependency_list=txn_dependencies)
                 txn_dependencies = [txnid]
             else :
-                logger.info('no ledger config; skipping state save')
+                logger.debug('no ledger config; skipping state save')
         except Exception as e :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
+        logger.debug('update state')
         contract.set_state(update_response.encrypted_state)
+
+    logger.info('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -328,6 +338,7 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -337,7 +348,8 @@ config_map = {
     'home' : ContractHome,
     'host' : ContractHost,
     'keys' : ContractKeys,
-    'logs' : ContractLogs
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
 }
 
 # -----------------------------------------------------------------

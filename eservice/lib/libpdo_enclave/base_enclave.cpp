@@ -43,6 +43,11 @@
 pdo_err_t ecall_Initialize()
 {
     pdo_err_t result = PDO_SUCCESS;
+
+    // we need to make sure we print a warning if the logging is turned on
+    // since it can break confidentiality of contract execution
+    SAFE_LOG(PDO_LOG_CRITICAL, "enclave initialized with debugging turned on");
+
     return result;
 }  // ecall_Initialize
 
@@ -82,4 +87,3 @@ pdo_err_t ecall_CreateErsatzEnclaveReport(sgx_target_info_t* targetInfo, sgx_rep
 
     return result;
 }  // ecall_CreateErsatzEnclaveReport
-

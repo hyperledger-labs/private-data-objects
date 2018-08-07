@@ -31,7 +31,11 @@
    (name "")
    (description "")
    (link "")
-   (creator (get ':message 'originator))))
+   (creator "")))
+
+(define-method asset-type-contract (initialize-instance . args)
+  (if (string=? creator "")
+      (instance-set! self 'creator (get ':message 'originator))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: initialize
@@ -59,20 +63,20 @@
 
   #t)
 
-(define-method asset-type-contract (get-identifier)
+(define-const-method asset-type-contract (get-identifier)
   (assert asset-type-initialized "asset type not initialized")
   (get ':contract 'id))
 
-(define-method asset-type-contract (get-name)
+(define-const-method asset-type-contract (get-name)
   (assert asset-type-initialized "asset type not initialized")
   name)
 
-(define-method asset-type-contract (get-description)
+(define-const-method asset-type-contract (get-description)
   (assert asset-type-initialized "asset type not initialized")
   description)
 
-(define-method asset-type-contract (get-link)
+(define-const-method asset-type-contract (get-link)
   (assert asset-type-initialized "asset type not initialized")
   link)
 
-(define-method asset-type-contract (get-creator) creator)
+(define-const-method asset-type-contract (get-creator) creator)

@@ -224,7 +224,11 @@
 ;; occurs
 ;; =================================================================
 (define-class exchange-contract
-  (instance-vars (contract (make-instance _exchange))))
+  (instance-vars (contract #f)))
+
+(define-method exchange-contract (initialize-instance . args)
+  (if (not contract)
+      (instance-set! self 'contract (make-instance _exchange))))
 
 (define-method exchange-contract (initialize _serialized-asset-request _root-authority-key)
   (send contract 'initialize _serialized-asset-request _root-authority-key))
@@ -235,20 +239,20 @@
 (define-method exchange-contract (cancel-offer)
   (send contract 'cancel-offer))
 
-(define-method exchange-contract (examine-offered-asset)
+(define-const-method exchange-contract (examine-offered-asset)
   (send contract 'examine-offered-asset))
 
-(define-method exchange-contract (examine-requested-asset)
+(define-const-method exchange-contract (examine-requested-asset)
   (send contract 'examine-requested-asset))
 
 (define-method exchange-contract (exchange-asset _serialized-authoritative-asset)
   (send contract 'exchange-asset _serialized-authoritative-asset))
 
-(define-method exchange-contract (claim-exchange)
+(define-const-method exchange-contract (claim-exchange)
   (send contract 'claim-exchange))
 
-(define-method exchange-contract (claim-offer)
+(define-const-method exchange-contract (claim-offer)
   (send contract 'claim-offer))
 
-(define-method exchange-contract (get-verifying-key)
+(define-const-method exchange-contract (get-verifying-key)
   (send contract 'get-public-signing-key))

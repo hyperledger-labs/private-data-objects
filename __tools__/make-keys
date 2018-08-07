@@ -35,7 +35,7 @@ if options.format == 'skf' :
 elif options.format == 'pem' :
     import pdo.common.crypto
     pem_private_key = pdo.common.crypto.SIG_PrivateKey()
-
+    pem_private_key.Generate()
     private_file_name = "{0}_private.pem".format(options.keyfile)
     with open(private_file_name, "w") as pf :
         pf.write(pem_private_key.Serialize())

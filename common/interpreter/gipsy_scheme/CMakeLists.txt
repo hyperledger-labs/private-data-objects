@@ -41,25 +41,13 @@ SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=
 # Package headers compiled from scheme
 ################################################################################
 
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/init-package.h
-                   COMMAND xxd
-                   ARGS -i "packages/init-package.scm" "packages/init-package.h"
-                   DEPENDS "packages/init-package.scm"
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/catch-package.h
-                   COMMAND xxd
-                   ARGS -i "packages/catch-package.scm" "packages/catch-package.h"
-                   DEPENDS "packages/catch-package.scm"
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/oops-package.h
-                   COMMAND xxd
-                   ARGS -i "packages/oops-package.scm" "packages/oops-package.h"
-                   DEPENDS "packages/oops-package.scm"
+ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h
+                   COMMAND packages/build-init-package.sh
+                   ARGS --package "packages/package" -- "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm"
+                   DEPENDS "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm"
                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/init-package.h)
-set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/catch-package.h)
-set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/oops-package.h)
+set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h)
 
 #################################################################################
 ## Trusted Static Gipsy Library
@@ -112,4 +100,3 @@ if(NOT "${TINY_SCHEME_SRC} " STREQUAL " ")
     # Link the untrusted common library
     TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} "-lcrypto" "-lssl")
 endif()
-

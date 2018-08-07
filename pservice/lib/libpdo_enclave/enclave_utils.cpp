@@ -31,7 +31,7 @@ void printf(const char* fmt, ...)
     va_start(ap, fmt);
     vsnprintf_s(buf, BUFSIZ, fmt, ap);
     va_end(ap);
-#ifdef ENCLAVE_DEBUG
+#ifdef DEBUG
     ocall_Print(buf);
 #endif
 }  // printf
@@ -44,7 +44,7 @@ void Log(int level, const char* fmt, ...)
     va_start(ap, fmt);
     vsnprintf_s(buf, BUFSIZ, fmt, ap);
     va_end(ap);
-#ifdef ENCLAVE_DEBUG
+#ifdef DEBUG
     ocall_Log(level, buf);
 #endif
 }  // Log

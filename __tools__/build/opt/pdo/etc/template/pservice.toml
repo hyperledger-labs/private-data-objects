@@ -24,7 +24,7 @@ Host = "localhost"
 # Sawtooth -- sawtooth ledger configuration
 # --------------------------------------------------
 [Sawtooth]
-LedgerURL = "http://127.0.0.1:8008"
+LedgerURL = "${ledger}"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging

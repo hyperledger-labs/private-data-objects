@@ -13,10 +13,12 @@
  * limitations under the License.
  */
 
-#include "log.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <chrono>
+
 #include "c11_support.h"
+#include "log.h"
 
 namespace pdo {
 
@@ -93,5 +95,15 @@ namespace pdo {
             g_LogFunction(logLevel, message);
         }
     } // Log
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    uint64_t GetTimer()
+    {
+        uint64_t value;
+
+        std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
+        value = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        return value;
+    }
 
 } // namespace pdo
