@@ -13,7 +13,7 @@
 # limitations under the License.
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
-PROJECT(libpdo-enclave C CXX)
+#PROJECT(libpdo-enclave C CXX)
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Source Code
@@ -29,8 +29,8 @@ SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include ${PDO_TOP_DIR}/common ${PDO_TOP_DIR}/common/crypto ${PDO_TOP_DIR}/common/packages/parson)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter)
-
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter ../libpoet_shared)
+#INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme )
 # If are compiling for Linux, then we have special linking for the trusted
 # runtime service
 IF(${SGX_USE_SIMULATOR})
@@ -88,7 +88,7 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SDK}
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64/release")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,${PDO_TOP_DIR}/common/build")
-
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64")
 # Remove all the default windows libraries (kernel32, etc)
 SET(CMAKE_C_STANDARD_LIBRARIES_INIT "")
 SET(CMAKE_C_STANDARD_LIBRARIES "")
@@ -102,12 +102,19 @@ SET(CMAKE_CXX_STANDARD_LIBRARIES "")
 # already have lib in the project name, liblibpdo-enclave is stupid.  Stop
 # CMake from doing it.
 SET(CMAKE_SHARED_LIBRARY_PREFIX "")
+PROJECT(libpdo-enclave C CXX)
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
 SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_PEM} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lgipsy -lpdo_contracts -ltinyscheme -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lpdo_contracts -lsgx_tsgxssl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -lsgx_tkey_exchange -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltinyscheme -lgipsy   -Wl,--end-group)
+
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE ${PDO_TOP_DIR}/common/packages/tinyscheme )
+
 TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
 
 ADD_CUSTOM_COMMAND(
@@ -116,3 +123,26 @@ ADD_CUSTOM_COMMAND(
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPS_DIR}/bin"
     COMMAND ${CMAKE_COMMAND} -E copy "${SIGNED_ENCLAVE}" "${DEPS_DIR}/bin"
 )
+
+#############################################################################
+SET(CMAKE_SHARED_LIBRARY_PREFIX "")
+PROJECT(libpdo-enclave_intkey C CXX)
+ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
+SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_PEM} ${PROJECT_CONFIG})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lpdo_contracts -lsgx_tsgxssl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -lsgx_tkey_exchange -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -lintkey   -Wl,--end-group)
+
+TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE "-DINTKEY_CPP_CONTRACT_TEST" )
+TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
+
+ADD_CUSTOM_COMMAND(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPS_DIR}/bin"
+    COMMAND ${CMAKE_COMMAND} -E copy "${SIGNED_ENCLAVE}" "${DEPS_DIR}/bin"
+)
+

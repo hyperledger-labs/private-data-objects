@@ -21,6 +21,9 @@ import pdo.common.utility as putils
 
 import logging
 logger = logging.getLogger(__name__)
+global __enclave_type__ 
+__enclave_type__= "gipsy"
+
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -36,11 +39,17 @@ class ContractCode(object) :
         """
         if source_name is None :
             source_name = name
-        basename = putils.build_file_name(source_name, extension='.scm')
+        #gipsy_enabled = os.environ.get('GIPSY_ENABLED')
+        enclave_type = __enclave_type__
+        if  enclave_type is "intkey" :
+            basename =  putils.build_file_name(source_name, extension='.txt')
+        else :
+            basename = putils.build_file_name(source_name, extension='.scm')
+
+        #basename = putils.build_file_name(source_name, extension='.txt')
         filename = putils.find_file_in_path(basename, search_path)
         with open(filename, "r") as cfile :
-            code = cfile.read()
-
+            code = cfile.read().rstrip('\n')
         return cls(code, name)
 
     # -------------------------------------------------------
