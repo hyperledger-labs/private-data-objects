@@ -59,7 +59,7 @@ $(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
 	@echo Build Enclave
 	$(MAKE) -C build
 
-$(SWIG_TARGET) : $(SWIG_FILES)
+$(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
 	python setup.py build_ext
 
 build :
