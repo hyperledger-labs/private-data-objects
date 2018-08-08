@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 
-//#include "cpp_intkey_processor/IntKeyCppContractExecuter.h"
 #include "ContractInterpreter.h"
 
 namespace pc = pdo::contracts;

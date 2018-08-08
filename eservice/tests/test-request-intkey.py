@@ -116,7 +116,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     contract_state = contract_helper.ContractState.create_new_state(contract_id)
     contract = contract_helper.Contract(contract_code, contract_state, contract_id, contract_creator_id)
-    
+
     # --------------------------------------------------
     logger.info('create the provisioning secrets')
     # --------------------------------------------------
@@ -188,7 +188,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
     contract.save_to_file(contract_name, data_dir=data_dir)
-    
+
     # --------------------------------------------------
     logger.info('create the initial contract state')
     # --------------------------------------------------
@@ -200,7 +200,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             sys.exit(-1)
 
         contract.set_state(initialize_response.encrypted_state)
-        
+
 
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))

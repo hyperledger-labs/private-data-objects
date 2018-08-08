@@ -21,7 +21,7 @@ import pdo.common.utility as putils
 
 import logging
 logger = logging.getLogger(__name__)
-global __enclave_type__ 
+global __enclave_type__
 __enclave_type__= "gipsy"
 
 

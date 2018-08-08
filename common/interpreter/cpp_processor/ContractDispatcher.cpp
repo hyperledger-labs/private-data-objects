@@ -20,5 +20,4 @@
 extern pdo::contracts::ContractInterpreter* intkey_factory();
 
 ContractDispatchTableEntry contractDisptachTable[] = {{"intkey:", intkey_factory},
-    //      { “xo:”, xo_factory },
     {NULL, NULL}};

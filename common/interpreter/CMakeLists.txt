@@ -38,6 +38,5 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/libcxx")
 # Interpretter subdirectory
 ################################################################################
 
-ADD_SUBDIRECTORY (gipsy_scheme)
+ADD_SUBDIRECTORY(gipsy_scheme)
 ADD_SUBDIRECTORY(cpp_processor)
-

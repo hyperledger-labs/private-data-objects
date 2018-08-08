@@ -1,4 +1,3 @@
-/////IntKeyCppContractExecuter.cpp file
 #include "IntKeyCppContractExecuter.h"
 #include <stdio.h>
 #include <iostream>

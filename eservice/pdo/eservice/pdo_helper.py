@@ -37,7 +37,7 @@ import pdo.common.utility as putils
 
 from pdo.submitter.submitter import Submitter
 import sawtooth.helpers.pdo_connect
-from pdo.contract import code as pdo_code 
+from pdo.contract import code as pdo_code
 import logging
 logger = logging.getLogger(__name__)
 
