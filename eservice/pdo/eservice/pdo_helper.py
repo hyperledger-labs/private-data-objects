@@ -37,7 +37,7 @@ import pdo.common.utility as putils
 
 from pdo.submitter.submitter import Submitter
 import sawtooth.helpers.pdo_connect
-
+from pdo.contract import code as pdo_code
 import logging
 logger = logging.getLogger(__name__)
 
@@ -46,12 +46,13 @@ __all__ = [ "Enclave", "initialize_enclave" ]
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def initialize_enclave(enclave_config) :
+def initialize_enclave(enclave_config, **kwargs) :
     """initialize_enclave -- call the initialization function on the
     enclave module
     """
+    if "enclave_type" in kwargs:
+        pdo_code.__enclave_type__ = kwargs["enclave_type"]
     pdo_enclave.initialize_with_configuration(enclave_config)
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class Enclave(object) :
