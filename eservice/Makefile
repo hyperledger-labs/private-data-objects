@@ -35,6 +35,8 @@ SWIG_FILES = $(addprefix pdo/eservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 
 PYTHON_FILES = \
+	pdo/eservice/enclave/pdo_enclave_internal.py \
+	pdo/eservice/pdo_helper.py \
 	pdo/eservice/enclave/__init__.py \
 	pdo/eservice/pdo_helper.py \
 	pdo/eservice/scripts/EServiceCLI.py \
