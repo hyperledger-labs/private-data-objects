@@ -36,6 +36,7 @@ __all__ = [
     'get_enclave_public_info',
     'get_enclave_measurement',
     'get_enclave_basename',
+    'get_enclave_epid_group',
     'verify_secrets',
     'send_to_contract',
     'shutdown'
@@ -94,8 +95,8 @@ def update_sig_rl():
     global _sig_rl_update_period
 
     if _epid_group is None:
-        _epid_group = _pdo.get_epid_group()
-    logger.info("EPID: " + _epid_group)
+        _epid_group = get_enclave_epid_group()
+    logger.debug("EPID: " + _epid_group)
 
     if not _sig_rl_update_time \
         or (time.time() - _sig_rl_update_time) > _sig_rl_update_period:
@@ -154,8 +155,8 @@ def initialize_with_configuration(config) :
         signed_enclave = __find_enclave_library(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
         _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'])
-        logger.info("Basename: %s", get_enclave_basename())
-        logger.info("MRENCLAVE: %s", get_enclave_measurement())
+        logger.debug("Basename: %s", get_enclave_basename())
+        logger.debug("MRENCLAVE: %s", get_enclave_measurement())
 
     sig_rl_updated = False
     while not sig_rl_updated:
@@ -191,6 +192,21 @@ def get_enclave_measurement():
 def get_enclave_basename():
     global _pdo
     return _pdo.basename if _pdo is not None else None
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+
+def get_enclave_epid_group():
+    global _epid_group
+    _epid_group = _pdo.get_epid_group()
+    return _epid_group
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+
+def dump_enclave_ias_settings():
+    global _ias
+    _ias.print_ias_settings()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
