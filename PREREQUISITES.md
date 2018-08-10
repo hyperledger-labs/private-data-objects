@@ -112,7 +112,8 @@ Also, if using PDO jointly with Sawtooth, you will need to set
 up the ledger with the appropriate parameters
 ([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
 for the validation of attestation verifications from the Intel Attestation Service (IAS).
-Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
+Namely: (1) the enclave measurement, (2) the basename and (3) Intel Attestation Service (IAS) public key.
+For retrieving (1) and (2), you may use the `eservice-enclave-info` script.
 For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
 
 You will need to import the Intel IAS Attestation Report Signing CA Certificate,
