@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
+#include <assert.h>
 
 #include <algorithm>
 #include <cctype>
@@ -44,6 +46,7 @@
 #include "enclave_data.h"
 #include "enclave_utils.h"
 #include "secret_enclave.h"
+
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XX Declaration of static helper functions                         XX
@@ -599,18 +602,52 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
 
 
     //Verify verification report signature
-    //To-do
 
-    //Compute OriginatorPublicKeyHash from ownerId
+    int r;
+    //verify good quote, but group-of-date is not considered ok
+    r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(), 1);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        r!=VERIFY_SUCCESS, "Invalid Enclave Quote:  group-of-date NOT OKAY");
+
+
+    //verify chain of hard-coded certificates
+    r = verify_ias_certificate_chain(NULL, 0);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        r!=VERIFY_SUCCESS, "Failed to verify hard-coded IAS chain");
+
+    // //verify the passed certificate (though it's the one stored) against the hard-coded CA certificate
+    r = verify_ias_certificate_chain((char*)ias_report_signing_cert_der, ias_report_signing_cert_der_len);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        r!=VERIFY_SUCCESS, "Failed to verify IAS chain");
+
+    std::vector<char> verificationReportVec(verificationReport.begin(), verificationReport.end());
+    verificationReportVec.push_back('\0');
+    char *verificationReportArr = &verificationReportVec[0];
+
+    std::vector<char> proof_signatureVec(proof_signature.begin(), proof_signature.end());
+    proof_signatureVec.push_back('\0');
+    char *proof_signatureArr = &proof_signatureVec[0];
+
+    //verify IAS signature
+    r = verify_ias_report_signature((char*)ias_report_signing_cert_der,
+                                        ias_report_signing_cert_der_len,
+                                        verificationReportArr,
+                                        strlen(verificationReportArr),
+                                        proof_signatureArr,
+                                        strlen(proof_signatureArr));
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+    r!=VERIFY_SUCCESS, "Invalid verificationReport; Invalid Signature");
+
+    //Verify Report Data by comparing hash of report data in Verification Report with computed report data
+
+    //Compute OriginatorPublicKeyHash from ownerId, enclaveId, and enclaveKey
     ByteArray originatorPublicKey;
     std::copy(ownerId.begin(), ownerId.end(), std::back_inserter(originatorPublicKey));
     std::string originatorPublicKeyHash = ByteArrayToHexEncodedString(pdo::crypto::ComputeMessageHash(originatorPublicKey));
     std::transform(originatorPublicKeyHash.begin(), originatorPublicKeyHash.end(), originatorPublicKeyHash.begin(), ::tolower);
 
-    //Compute ReportData
     sgx_report_data_t computedReportData = {0};
     CreateReportData(originatorPublicKeyHash.c_str(), enclaveId, enclaveEncryptKey, &computedReportData);
-
 
     //Extract ReportData from isvEnclaveQuoteBody in Verification Report
     sgx_quote_t* quoteBody = reinterpret_cast<sgx_quote_t*>(Base64EncodedStringToByteArray(enclave_quote_body).data());

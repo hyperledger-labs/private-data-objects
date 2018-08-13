@@ -71,7 +71,12 @@ clean:
 	find . -iname '*.pyc' -delete
 	find . -iname '__pycache__' -delete
 
+print_enclave_files:
+	@echo $(ENCLAVE_FILES)
+
 .phony : all
 .phony : clean
 .phony : enclave
 .phone : install
+.phony : test
+.phony : print_enclave_files
