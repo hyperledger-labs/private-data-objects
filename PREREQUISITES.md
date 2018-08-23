@@ -67,6 +67,11 @@ openssl genrsa -3 -out private_rsa_key.pem 3072
 export PDO_ENCLAVE_PEM=`pwd`/private_rsa_key.pem
 ```
 
+- `PDO_LEDGER_KEY`
+Needed for running PDO with Sawtooth in Hardware-mode. Needs to be set to the hexadecimal key used to register with IAS.
+This key will be used to update the Sawtooth ledger configuration with appropriate MR_ENCLAVE and BASENAME.
+
+
 # <a name="packages"></a>Required Packages
 On a minimal Ubuntu system, the following packages are required. Other
 distributions will require similar packages.
@@ -115,6 +120,9 @@ for the validation of attestation verifications from the Intel Attestation Servi
 Namely: (1) the enclave measurement, (2) the basename and (3) Intel Attestation Service (IAS) public key.
 For retrieving (1) and (2), you may use the `eservice-enclave-info` script.
 For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
+
+Make sure the environment variable `PDO_LEDGER_KEY` is set to properly update Sawtooth ledger
+configuration upon build.
 
 You will need to import the Intel IAS Attestation Report Signing CA Certificate,
 in order to enable the verification of attestation inside enclaves. From the project root folder,
