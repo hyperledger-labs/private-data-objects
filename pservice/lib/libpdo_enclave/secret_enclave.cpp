@@ -46,6 +46,7 @@
 #include "enclave_data.h"
 #include "enclave_utils.h"
 #include "secret_enclave.h"
+#include "contract_enclave_mrenclave.h"
 
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -609,7 +610,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIf<pdo::error::ValueError>(
         r!=VERIFY_SUCCESS, "Invalid Enclave Quote:  group-of-date NOT OKAY");
 
-
     //verify chain of hard-coded certificates
     r = verify_ias_certificate_chain(NULL, 0);
     pdo::error::ThrowIf<pdo::error::ValueError>(
@@ -638,6 +638,21 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIf<pdo::error::ValueError>(
     r!=VERIFY_SUCCESS, "Invalid verificationReport; Invalid Signature");
 
+    //Extract ReportData and MR_ENCLAVE from isvEnclaveQuoteBody in Verification Report
+    sgx_quote_t* quoteBody = reinterpret_cast<sgx_quote_t*>(Base64EncodedStringToByteArray(enclave_quote_body).data());
+    sgx_report_body_t* reportBody = &quoteBody->report_body;
+    sgx_report_data_t expectedReportData = *(&reportBody->report_data);
+    sgx_measurement_t mrEnclaveFromReport = *(&reportBody->mr_enclave);
+    sgx_basename_t mrBasename = *(&quoteBody->basename);
+
+    ByteArray allowedContractMR_ENCLAVE = HexEncodedStringToByteArray(ALLOWED_CONTRACT_ENCLAVE_MR_ENCLAVE);
+
+    //CHECK MR_ENCLAVE
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        memcmp(mrEnclaveFromReport.m, allowedContractMR_ENCLAVE.data(), SGX_HASH_SIZE)  != 0,
+        "Invalid MR_ENCLAVE");
+
+
     //Verify Report Data by comparing hash of report data in Verification Report with computed report data
 
     //Compute OriginatorPublicKeyHash from ownerId, enclaveId, and enclaveKey
@@ -648,11 +663,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
 
     sgx_report_data_t computedReportData = {0};
     CreateReportData(originatorPublicKeyHash.c_str(), enclaveId, enclaveEncryptKey, &computedReportData);
-
-    //Extract ReportData from isvEnclaveQuoteBody in Verification Report
-    sgx_quote_t* quoteBody = reinterpret_cast<sgx_quote_t*>(Base64EncodedStringToByteArray(enclave_quote_body).data());
-    sgx_report_body_t* reportBody = &quoteBody->report_body;
-    sgx_report_data_t expectedReportData = *(&reportBody->report_data);
 
     //Compare computedReportData with expectedReportData
     pdo::error::ThrowIf<pdo::error::ValueError>(
