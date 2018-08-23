@@ -49,7 +49,7 @@ PYTHON_FILES = \
 
 ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl)
 
-all : $(ENCLAVE_LIB) $(EGG_FILE)
+all : $(ENCLAVE_LIB) $(EGG_FILE) info
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
 	@echo Build Distribution
@@ -82,9 +82,13 @@ clean:
 print_enclave_files:
 	@echo $(ENCLAVE_FILES)
 
+info: install
+	bash -c "./setup_contract_enclave_info.sh"
+
 .phony : all
 .phony : clean
 .phony : enclave
 .phone : install
 .phony : test
 .phony : print_enclave_files
+.phony : info

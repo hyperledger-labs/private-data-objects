@@ -29,16 +29,24 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-def LocalMain(config) :
+def LocalMain(config, save_path) :
     # enclave configuration is in the 'EnclaveConfig' table
     try :
         logger.debug('initialize the enclave')
         pdo_enclave_helper.initialize_enclave(config.get('EnclaveModule'))
-        
+
         logger.info("MRENCLAVE: " + pdo_enclave.get_enclave_measurement())
         logger.info("BASENAME: " + pdo_enclave.get_enclave_basename())
         logger.info("EPID Group: " + pdo_enclave.get_enclave_epid_group())
         pdo_enclave.dump_enclave_ias_settings()
+
+        if save_path :
+            # save_path = os.path.realpath(os.path.join(ContractData, "MR_ENCLAVE.tmp"))
+            logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
+            with open(save_path, "w") as file :
+                file.write("MRENCLAVE:" + pdo_enclave.get_enclave_measurement() +"\n")
+                file.write("BASENAME:" + pdo_enclave.get_enclave_basename() +"\n")
+
     except Error as e :
         logger.exception('failed to initialize enclave; %s', e)
         sys.exit(-1)
@@ -56,6 +64,7 @@ ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "key
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
 LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
+HttpsProxy = os.environ.get("https_proxy", "")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -66,7 +75,9 @@ config_map = {
     'host' : ContractHost,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
-    'ledger' : LedgerURL
+    'ledger' : LedgerURL,
+    'proxy' : HttpsProxy,
+    'httpport' : 8000
 }
 
 # -----------------------------------------------------------------
@@ -75,13 +86,15 @@ def Main() :
     # parse out the configuration file first
     conffiles = [ 'eservice.toml' ]
     confpaths = [ ".", "./etc", ContractEtc ]
+    save_path = None
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='configuration file', nargs = '+')
 
-    parser.add_argument('--identity', help='Identity to use for the process', required = True, type = str)
+    parser.add_argument('--identity', help='Identity to use for the process', type = str)
+    parser.add_argument('--save', help='Where to save info', type=str)
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
@@ -94,6 +107,9 @@ def Main() :
 
     if options.config_dir :
         confpaths = options.config_dir
+
+    if options.save :
+        save_path = options.save
 
     global config_map
     config_map['identity'] = options.identity
@@ -120,7 +136,7 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # GO!
-    LocalMain(config)
+    LocalMain(config, save_path)
 
 ## -----------------------------------------------------------------
 ## Entry points
