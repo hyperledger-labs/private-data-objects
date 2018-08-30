@@ -20,9 +20,8 @@ import toml
 from ssl import SSLError
 from requests.exceptions import Timeout
 from requests.exceptions import HTTPError
-
+from pdo.contract  import code as pdo_code
 from pdo.eservice.utility import ias_client
-
 import pdo.common.crypto as crypto
 import pdo.eservice.enclave.pdo_enclave_internal as enclave
 
@@ -54,13 +53,17 @@ _sig_rl_update_time = None
 _sig_rl_update_period = 8*60*60 # in seconds every 8 hours
 
 _epid_group = None
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
+#---------------------------------------------------------------
+# ----------------------------------------------------------------
 def __find_enclave_library(config) :
-    enclave_file_name = config.get('enclave_library', 'libpdo-enclave.signed.so')
-    enclave_file_path = config.get('enclave_library_path')
+    enclave_type = pdo_code.__enclave_type__
+    if  enclave_type is "intkey" :
+        enclave_file_name = config.get('enclave_library', 'libpdo-enclave_intkey.signed.so')
+    else :
+        enclave_file_name = config.get('enclave_library', 'libpdo-enclave.signed.so')
 
+    #enclave_file_name = config.get('enclave_library', 'libpdo-enclave_intkey.signed.so')
+    enclave_file_path = config.get('enclave_library_path')
     if enclave_file_path :
         enclave_file = os.path.join(enclave_file_path, enclave_file_name);
         if os.path.exists(enclave_file) :

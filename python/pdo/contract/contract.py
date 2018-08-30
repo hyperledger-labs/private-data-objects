@@ -114,7 +114,7 @@ class Contract(object) :
         self.contract_state.encrypted_state = state
 
     # -------------------------------------------------------
-    def create_initialize_request(self, request_originator_keys, enclave_service) :
+    def create_initialize_request(self, request_originator_keys, enclave_service,**kwargs) :
         """create a request to initialize the state of the contract
 
         :param request_originator_keys: object of type ServiceKeys
@@ -124,7 +124,8 @@ class Contract(object) :
             'initialize',
             request_originator_keys,
             enclave_service,
-            self)
+            self,
+            **kwargs)
 
     # -------------------------------------------------------
     def create_update_request(self, request_originator_keys, enclave_service, expression) :
@@ -146,7 +147,10 @@ class Contract(object) :
         serialized = dict()
         serialized['contract_id'] = self.contract_id
         serialized['creator_id'] = self.creator_id
-        serialized['contract_code'] = self.contract_code.serialize()
+        try :
+           serialized['contract_code'] = self.contract_code.serialize()
+        except :
+           serialized['contract_code'] = ""
 
         # this encoding is rather verbose, but mirrors the one that the ledger
         # currently uses
