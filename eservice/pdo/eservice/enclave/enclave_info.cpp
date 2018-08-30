@@ -36,7 +36,7 @@ pdo_enclave_info::pdo_enclave_info(
     const std::string& spid
     )
 {
-    PyLog(PDO_LOG_INFO, "Initializing SGX PDO enclave");
+    PyLog(PDO_LOG_DEBUG, "Initializing SGX PDO enclave");
     PyLogV(PDO_LOG_DEBUG, "Enclave path: %s", enclaveModulePath.c_str());
     PyLogV(PDO_LOG_DEBUG, "SPID: %s", spid.c_str());
 
@@ -46,7 +46,7 @@ pdo_enclave_info::pdo_enclave_info(
         PyLog
         );
     ThrowPDOError(ret);
-    PyLog(PDO_LOG_INFO, "SGX PDO enclave initialized.");
+    PyLog(PDO_LOG_DEBUG, "SGX PDO enclave initialized.");
 
     HexEncodedString mrEnclaveBuffer;
     HexEncodedString basenameBuffer;

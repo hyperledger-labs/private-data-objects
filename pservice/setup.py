@@ -79,7 +79,9 @@ include_dirs = [
 
 library_dirs = [
     os.path.join(pdo_root_dir, "common", "build"),
-    os.path.join(os.environ['SGX_SDK'], 'lib64')
+    os.path.join(os.environ['SGX_SDK'], 'lib64'),
+    os.path.join(os.environ['SGX_SSL'], 'lib64'),
+    os.path.join(os.environ['SGX_SSL'], 'lib64', 'release')
 ]
 
 libraries = [
@@ -94,6 +96,8 @@ if sgx_mode_env == "SIM":
     libraries.append('sgx_urts_sim')
     libraries.append('sgx_uae_service_sim')
     SGX_SIMULATOR_value = '1'
+
+libraries.append('sgx_usgxssl')
 
 module_files = [
     os.path.join(module_src_path, 'pdo_enclave_internal.i'),

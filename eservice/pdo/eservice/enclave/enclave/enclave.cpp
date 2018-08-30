@@ -372,7 +372,7 @@ namespace pdo {
 
                 // Initialize the enclave
                 pdo_err_t pdoError = PDO_SUCCESS;
-                Log(PDO_LOG_INFO, "ecall_Initialize");
+                Log(PDO_LOG_DEBUG, "ecall_Initialize");
                 ret = this->CallSgx([this, &pdoError] () {
                         sgx_status_t ret =
                         ecall_Initialize(

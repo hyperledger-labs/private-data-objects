@@ -31,27 +31,34 @@ class IasClient(object):
     """
 
     def __init__(self, **kwargs):
-        logger.info("IAS settings:")
+        logger.debug("IAS settings:")
         self._proxies = {}
         if "HttpsProxy" in kwargs:
             self._proxies["https"] = kwargs["HttpsProxy"]
-            logger.info("Proxy: " + self._proxies["https"])
+            logger.debug("Proxy: " + self._proxies["https"])
         if "Spid" in kwargs:
             self._spid = kwargs["Spid"]
-            logger.info("SPID: " + self._spid)
+            logger.debug("SPID: " + self._spid)
         else:
             raise KeyError('Missing Spid setting')
         if "IasServer" in kwargs:
             self._ias_url = kwargs["IasServer"]
-            logger.info("URL: " + self._ias_url)
+            logger.debug("URL: " + self._ias_url)
         else:
             raise KeyError('Missing IasServer setting')
         if "SpidCert" in kwargs:
             self._cert = kwargs["SpidCert"]
-            logger.info("SpidCert: " + self._cert)
+            logger.debug("SpidCert: " + self._cert)
         else:
             raise KeyError('Missing SpidCert setting')
         self._timeout=300
+
+    def print_ias_settings(self):
+        logger.info("IAS settings:")
+        logger.info("Proxy: " + self._proxies["https"])
+        logger.info("SPID: " + self._spid)
+        logger.info("URL: " + self._ias_url)
+        logger.info("SpidCert: " + self._cert)
 
     def get_signature_revocation_lists(self,
                                        gid='',

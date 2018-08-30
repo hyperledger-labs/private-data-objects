@@ -13,10 +13,6 @@
  * limitations under the License.
  */
 
-enclave {
-    from "sgx_tstdc.edl" import *;
-    from "sgx_tsgxssl.edl" import *;
-    from "base.edl" import *;
-    from "secret.edl" import *;
-};
+#include "types.h"
 
+extern HexEncodedString ALLOWED_CONTRACT_ENCLAVE_MR_ENCLAVE;

@@ -61,7 +61,7 @@ class Enclave(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def read_from_file(cls, basename, data_dir = './data', txn_keys = None) :
+    def read_from_file(cls, basename, data_dir = './data') :
         """read_from_file -- read enclave data from a file and initialize a new
         Enclave object with the resulting data.
 
@@ -87,7 +87,7 @@ class Enclave(object) :
         except KeyError as ke :
             raise Exception('enclave data missing key {0}'.format(str(ke)))
         except :
-            raise Exception('invalid enclave data file {0}'.format(full_name))
+            raise Exception('invalid enclave data file {0}'.format(filename))
 
         try :
             public_enclave_data = pdo_enclave.get_enclave_public_info(enclave_info['sealed_data'])
@@ -95,7 +95,7 @@ class Enclave(object) :
             assert enclave_info['verifying_key'] == public_enclave_data['verifying_key']
             assert enclave_info['encryption_key'] == public_enclave_data['encryption_key']
         except :
-            raise Exception('sealed storage does not match enclave data file; {}'.format(full_name))
+            raise Exception('sealed storage does not match enclave data file; {}'.format(filename))
 
         return cls(enclave_info)
 
