@@ -33,7 +33,7 @@ endif()
 FILE(GLOB PROJECT_HEADERS *.h packages/init-package.h packages/catch-package.h packages/oops-package.h)
 FILE(GLOB PROJECT_SOURCES *.cpp)
 
-SET(GENERIC_PRIVATE_INCLUDE_DIRS "." "../../crypto" "./packages" "../..")
+SET(GENERIC_PRIVATE_INCLUDE_DIRS "." "../../crypto" "./packages" "../.." "../../packages/tinyscheme")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=c++11")
 

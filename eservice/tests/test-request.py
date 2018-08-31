@@ -93,7 +93,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     contract_creator_id = contract_creator_keys.identity
 
     contract_name = 'mock-contract'
-    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name, search_path = [".", "..", "contracts"])
+    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name,source_name='mock-contract.scm',search_path = [".", "..", "contracts"])
 
     # create the provisioning servers
     if use_pservice :

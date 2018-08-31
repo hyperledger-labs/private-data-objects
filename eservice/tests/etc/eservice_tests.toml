@@ -50,3 +50,7 @@ https_proxy = ''
 # spid_cert_file is the full path to the PEM-encoded certificate file that was
 # submitted to Intel in order to obtain a SPID
 spid_cert_file = ''
+
+#enclvae library to be used
+eservice_enclave_library = 'libpdo-enclave.signed.so'
+#eservice_enclave_library = 'libpdo-enclave_cpp_processor.signed.so'

@@ -48,12 +48,12 @@ data_files = [
     (log_dir, []),
     (key_dir, []),
     ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')]),
-    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave_intkey.signed.so')])
+    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave_cpp_processor.signed.so')])
 ]
 
 ext_deps = [
     'deps/bin/libpdo-enclave.signed.so',
-    'deps/bin/libpdo-enclave_intkey.signed.so'
+    'deps/bin/libpdo-enclave_cpp_processor.signed.so'
 ]
 
 ## -----------------------------------------------------------------

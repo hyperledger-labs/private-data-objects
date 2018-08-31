@@ -17,7 +17,11 @@
 #include <string>
 #include "CppProcessor.h"
 
-extern pdo::contracts::ContractInterpreter* intkey_factory();
+CppContractWrapper* intkey_factory();
+CppContractWrapper* echo_factory();
 
-ContractDispatchTableEntry contractDisptachTable[] = {{"intkey:", intkey_factory},
-    {NULL, NULL}};
+ContractDispatchTableEntry contractDispatchTable[] = {
+	{"intkey:", intkey_factory},
+    { "echo:", echo_factory },
+    {NULL, NULL}
+};

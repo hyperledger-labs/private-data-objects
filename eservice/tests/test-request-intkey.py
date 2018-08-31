@@ -16,6 +16,7 @@
 
 import os
 import sys
+import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
@@ -58,7 +59,7 @@ def CreateAndRegisterEnclave(config) :
     ledger_config = config.get('Sawtooth')
 
     try :
-        enclave_helper.initialize_enclave(enclave_config,enclave_type="intkey")
+        enclave_helper.initialize_enclave(enclave_config)
         enclave = enclave_helper.Enclave.create_new_enclave()
     except Exception as e :
         logger.error('failed to initialize the enclave; %s', str(e))
@@ -91,8 +92,8 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     ledger_config = config.get('Sawtooth')
     contract_creator_id = contract_creator_keys.identity
 
-    contract_name = 'mock-contract'
-    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name, source_name = 'intkey', search_path = [".", "..", "contracts"])
+    contract_name = 'intkey'
+    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name,source_name="intkey.txt", search_path = [".", "..", "contracts"])
     logger.info('name && code: %s %s ',contract_name, contract_code.code);
     # create the provisioning servers
     if use_pservice :
@@ -116,7 +117,6 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     contract_state = contract_helper.ContractState.create_new_state(contract_id)
     contract = contract_helper.Contract(contract_code, contract_state, contract_id, contract_creator_id)
-
     # --------------------------------------------------
     logger.info('create the provisioning secrets')
     # --------------------------------------------------
@@ -188,7 +188,6 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
     contract.save_to_file(contract_name, data_dir=data_dir)
-
     # --------------------------------------------------
     logger.info('create the initial contract state')
     # --------------------------------------------------
@@ -198,9 +197,8 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         if initialize_response.status is False :
             logger.error('contract initialization failed: %s', initialize_response.result)
             sys.exit(-1)
-
+        logger.info('Result :%s///',initialize_response.result)
         contract.set_state(initialize_response.encrypted_state)
-
 
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))
@@ -241,10 +239,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
 
+    start_time = time.time()
     for x in range(config['iterations']) :
         try :
             expression = '2,1'
-            update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
+            update_request = contract.create_update_request(contract_invoker_keys,enclave,expression)
             update_response = update_request.evaluate()
             if update_response.status is False :
                 logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
@@ -254,6 +253,11 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             sys.exit(-1)
+
+        # if this operation did not change state then there is nothing
+        # to send to the ledger or to save
+        if not update_response.state_changed :
+            continue
 
         try :
             if use_ledger :
@@ -273,7 +277,10 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
+        logger.debug('update state')
         contract.set_state(update_response.encrypted_state)
+
+    logger.info('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -329,6 +336,7 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -338,7 +346,8 @@ config_map = {
     'home' : ContractHome,
     'host' : ContractHost,
     'keys' : ContractKeys,
-    'logs' : ContractLogs
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
 }
 
 # -----------------------------------------------------------------
@@ -399,7 +408,6 @@ def ParseCommandLine(config, args) :
     if options.eservice :
         use_eservice = True
         config['eservice-url'] = options.eservice
-
     if options.pservice :
         use_pservice = True
         config['pservice-urls'] = options.pservice
