@@ -13,12 +13,24 @@
  * limitations under the License.
  */
 
-enclave {
-    from "sgx_tstdc.edl" import *;
-    from "sgx_tsgxssl.edl" import *;
-    from "base.edl" import *;
-    from "signup.edl" import *;
-    from "contract.edl" import *;
-    from "block_store.edl" import *;
-};
+#include <string>
+#include <map>
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t block_store_init();
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+int block_store_head(
+    const std::string& key
+    );
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::string block_store_get(
+    const std::string& key
+    );
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void block_store_put(
+    const std::string& key,
+    const std::string& value
+    );

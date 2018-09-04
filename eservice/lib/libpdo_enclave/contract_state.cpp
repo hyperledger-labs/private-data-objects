@@ -32,6 +32,8 @@
 #include "contract_request.h"
 #include "contract_secrets.h"
 
+#include "enclave_t.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //
 // contract state format
@@ -110,11 +112,36 @@ void ContractState::Unpack(const ByteArray& state_encryption_key_,
 
     try
     {
-        pvalue = json_object_dotget_string(object, "EncryptedState");
+        pvalue = json_object_dotget_string(object, "StateHash");
         if (pvalue != NULL && pvalue[0] != '\0')
         {
-            ByteArray decoded_state = base64_decode(pvalue);
-            DecryptState(state_encryption_key_, decoded_state, id_hash, code_hash);
+            ByteArray decoded_state_hash = base64_decode(pvalue);
+
+            /* Untrusted! Need to copy and validate ourselves! */
+            uint8_t *u_state;
+            size_t u_state_size;
+            int ret;
+            int sgx_ret;
+
+            // Fetch the state from the untrusted block storage
+            sgx_ret = ocall_BlockStoreGet(&ret, &decoded_state_hash[0], decoded_state_hash.size(),
+                                          &u_state, &u_state_size);
+            if (sgx_ret != 0) {
+                SAFE_LOG(PDO_LOG_ERROR, "SGX error %d invoking ocall_BlockStoreGet()", sgx_ret);
+                throw;
+            }
+            if (ret != 0) {
+                SAFE_LOG(PDO_LOG_ERROR, "Error %d retrieving state via ocall_BlockStoreGet()", ret);
+                throw;
+            }
+
+            /*
+             * Copy the untrusted state to a new buffer so it can't be
+             * modified by untrusted code while this code is working with it
+             */
+            ByteArray state_copy(u_state, u_state + u_state_size);
+
+            DecryptState(state_encryption_key_, state_copy, id_hash, code_hash);
 
             state_hash_ = ComputeHash();
         }

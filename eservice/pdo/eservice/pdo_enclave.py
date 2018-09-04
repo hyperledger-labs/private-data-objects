@@ -36,6 +36,9 @@ __all__ = [
     'get_enclave_public_info',
     'get_enclave_measurement',
     'get_enclave_basename',
+    'block_store_head',
+    'block_store_get',
+    'block_store_put',
     'verify_secrets',
     'send_to_contract',
     'shutdown'
@@ -167,6 +170,8 @@ def initialize_with_configuration(config) :
             logger.warning("Retrying in 60 sec")
             time.sleep(60)
 
+    enclave.block_store_init()
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def shutdown():
@@ -191,6 +196,18 @@ def get_enclave_measurement():
 def get_enclave_basename():
     global _pdo
     return _pdo.basename if _pdo is not None else None
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def block_store_head(key): return enclave.block_store_head(key)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def block_store_get(key): return enclave.block_store_get(key)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def block_store_put(key, value): return enclave.block_store_put(key, value)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

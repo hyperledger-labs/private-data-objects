@@ -58,7 +58,7 @@ class ContractRequest(object) :
         result['CreatorID'] = self.creator_id
         result['EncryptedStateEncryptionKey'] = self.encrypted_state_encryption_key
 
-        result['ContractState'] = self.contract_state.serialize()
+        result['ContractState'] = self.contract_state.serializeForInvokation()
         result['ContractCode'] = self.contract_code.serialize()
         result['ContractMessage'] = self.message.serialize()
 
@@ -68,11 +68,6 @@ class ContractRequest(object) :
         encrypted_key = self.enclave_keys.encrypt(self.session_key)
         return crypto.byte_array_to_base64(encrypted_key)
 
-    def __encrypt_request(self) :
-        serialized_byte_array = crypto.string_to_byte_array(self.__serialize_for_encryption())
-        encrypted_request = crypto.SKENC_EncryptMessage(self.session_key, serialized_byte_array)
-        return crypto.byte_array_to_base64(encrypted_request)
-
     # response -- base64 encode, response encrypted with session key
     def __decrypt_response(self, response) :
         decoded_response = crypto.base64_to_byte_array(response)
@@ -81,11 +76,30 @@ class ContractRequest(object) :
     # enclave_service -- enclave service wrapper object
     def evaluate(self) :
         encrypted_session_key = self.__encrypt_session_key()
-        encrypted_request = self.__encrypt_request()
+
+        # Encrypt the request
+        serialized_byte_array = crypto.string_to_byte_array(self.__serialize_for_encryption())
+        encrypted_request_raw = crypto.SKENC_EncryptMessage(self.session_key, serialized_byte_array)
+        encrypted_request = crypto.byte_array_to_base64(encrypted_request_raw)
 
         try :
+            # Check and conditionally put the encrypted state into the block store if it is non-empty
+            state_hash_b64 = self.contract_state.getStateHash(encoding='b64')
+            if state_hash_b64:
+                block_store_len = self.enclave_service.block_store_head(state_hash_b64)
+                if block_store_len <= 0:
+                    # This block wasn't present in the block store of this enclave service - need to send it
+                    logger.debug("Block store did not contain block '%s' - sending it", state_hash_b64)
+
+                    ret = self.enclave_service.block_store_put(state_hash_b64, self.contract_state.encrypted_state)
+                    if ret != True:
+                        logger.exception("block_store_put failed for key %s", state_hash_b64)
+                        raise
+
             encoded_encrypted_response = self.enclave_service.send_to_contract(encrypted_session_key, encrypted_request)
-            assert encoded_encrypted_response
+            if encoded_encrypted_response == None:
+                logger.exception("send_to_contract failed but no exception was thrown")
+                raise
 
             logger.debug("raw response from enclave: %s", encoded_encrypted_response)
         except :
@@ -100,8 +114,8 @@ class ContractRequest(object) :
             logger.debug("parsed response: %s", response_parsed)
 
             contract_response = ContractResponse(self, response_parsed)
-        except :
-            logger.exception('contract response is invalid')
+        except Exception as e:
+            logger.exception('contract response is invalid: ' + str(e))
             raise
 
         return contract_response

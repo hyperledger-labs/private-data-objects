@@ -104,7 +104,7 @@ class ContractResponse(object) :
 
         if self.status and self.state_changed :
             self.signature = response['Signature']
-            self.encrypted_state = response['State']
+            state_hash_b64 = response['StateHash']
 
             # we have another mismatch between the field names in the enclave
             # and the field names expected in the transaction; this needs to
@@ -121,7 +121,7 @@ class ContractResponse(object) :
             self.creator_id = request.creator_id
             self.code_hash = request.contract_code.compute_hash()
             self.message_hash = request.message.compute_hash()
-            self.new_state_hash = ContractState.compute_hash(self.encrypted_state)
+            self.new_state_hash = crypto.base64_to_byte_array(state_hash_b64)
             self.originator_keys = request.originator_keys
             self.enclave_service = request.enclave_service
 
@@ -131,6 +131,15 @@ class ContractResponse(object) :
 
             if not self.__verify_enclave_signature(request.enclave_keys) :
                 raise Exception('failed to verify enclave signature')
+
+            # Retrieve the encrypted state from the enclave's block store
+            # Note that this channel is untrusted - must verify the retrieved data has the correct hash!
+            # This is intentionally done after the signature verification
+            encrypted_state_u_b64 = self.enclave_service.block_store_get(state_hash_b64)
+            encrypted_state_u_hash_b64 = ContractState.compute_hash(encrypted_state_u_b64, encoding='b64')
+            if (state_hash_b64 != encrypted_state_u_hash_b64):
+                raise Exception('Encrypted state from block store has incorrect hash!')
+            self.encrypted_state = encrypted_state_u_b64;
 
     # -------------------------------------------------------
     def __verify_enclave_signature(self, enclave_keys) :

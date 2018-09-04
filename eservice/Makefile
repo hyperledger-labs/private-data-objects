@@ -28,9 +28,11 @@ SWIG_SOURCES = \
 	enclave/contract.cpp \
 	enclave/signup.cpp \
 	enclave/enclave.cpp \
+	enclave/block_store.cpp \
 	enclave_info.cpp \
 	signup_info.cpp \
-	contract.cpp
+	contract.cpp \
+	block_store.cpp
 SWIG_FILES = $(addprefix pdo/eservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 
