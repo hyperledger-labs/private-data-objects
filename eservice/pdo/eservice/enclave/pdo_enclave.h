@@ -21,6 +21,7 @@
 #include "signup_info.h"
 #include "enclave_info.h"
 #include "contract.h"
+#include "block_store.h"
 
 void InitializePDOEnclaveModule();
 

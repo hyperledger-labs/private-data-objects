@@ -14,11 +14,18 @@
  */
 
 enclave {
-    from "sgx_tstdc.edl" import *;
-    from "sgx_tsgxssl.edl" import *;
-    from "base.edl" import *;
-    from "signup.edl" import *;
-    from "contract.edl" import *;
-    from "block_store.edl" import *;
-};
+    trusted {
+    };
 
+    untrusted {
+        int ocall_BlockStoreGet([in, size=keySize] const uint8_t* key,
+                                size_t keySize,
+                                [out] uint8_t** value,
+                                [out] size_t* valueSize);
+
+        int ocall_BlockStorePut([in, size=keySize] const uint8_t* key,
+                                size_t keySize,
+                                [in, size=valueSize] const uint8_t* value,
+                                size_t valueSize);
+    };
+};

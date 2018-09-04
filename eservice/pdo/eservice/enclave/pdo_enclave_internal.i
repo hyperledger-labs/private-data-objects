@@ -87,6 +87,7 @@ namespace std {
 %include "signup_info.h"
 %include "enclave_info.h"
 %include "contract.h"
+%include "block_store.h"
 %include "pdo_enclave.h"
 
 %init %{

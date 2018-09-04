@@ -124,11 +124,38 @@ class ContractState(object) :
         self.encrypted_state = encrypted_state
 
     # --------------------------------------------------
+    def getStateHash(self, encoding='raw') :
+        """
+        gets the hash of the encrypted state if it is non-empty
+        returns None if no encrypted state exists
+        """
+        if self.encrypted_state:
+            return ContractState.compute_hash(self.encrypted_state, encoding)
+        return None
+
+    # --------------------------------------------------
+    def serializeForInvokation(self) :
+        """
+        serializes the elements needed by the contract enclave to invoke the contract
+        does not include the encrypted state itself
+        """
+        result = dict()
+        result['ContractID'] = self.contract_id
+        if self.encrypted_state :
+            result['StateHash'] = ContractState.compute_hash(self.encrypted_state, encoding='b64')
+
+        return result
+
+    # --------------------------------------------------
     def serialize(self) :
+        """
+        serializes the entire state (including the state itself) for storage
+        """
         result = dict()
         result['ContractID'] = self.contract_id
         if self.encrypted_state :
             result['EncryptedState'] = self.encrypted_state
+            result['StateHash'] = ContractState.compute_hash(self.encrypted_state, encoding='b64')
 
         return result
 

@@ -28,6 +28,7 @@ import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
+import pdo.eservice.pdo_enclave as pdo_enclave
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,7 +58,10 @@ class ContractEnclaveServer(resource.Resource):
         self.RequestMap = {
             'UpdateContractRequest' : self._HandleUpdateContractRequest,
             'EnclaveDataRequest' : self._HandleEnclaveDataRequest,
-            'VerifySecretRequest' : self._HandleVerifySecretRequest
+            'VerifySecretRequest' : self._HandleVerifySecretRequest,
+            'BlockStoreHeadRequest' : self._HandleBlockStoreHeadRequest,
+            'BlockStoreGetRequest' : self._HandleBlockStoreGetRequest,
+            'BlockStorePutRequest' : self._HandleBlockStorePutRequest,
         }
 
     ## -----------------------------------------------------------------
@@ -221,6 +225,83 @@ class ContractEnclaveServer(resource.Resource):
         response['encryption_key'] = self.EncryptionKey
         response['enclave_id'] = self.EnclaveID
         return response
+
+    ## -----------------------------------------------------------------
+    def _HandleBlockStoreHeadRequest(self, minfo) :
+        """
+        Test if a key is in the untrusted block store / cache
+            {
+                "key" : <>,
+            }
+        """
+
+        try :
+            key = minfo['key']
+
+        except KeyError as ke :
+            logger.error('missing field in request: %s', ke)
+            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
+
+        try :
+            datalen = self.Enclave.block_store_head(key)
+
+            return {'length' : str(datalen)}
+
+        except :
+            logger.exception('HandleBlockStoreHeadRequest')
+            raise Error(http.BAD_REQUEST, "HandleBlockStoreHeadRequest")
+
+    ## -----------------------------------------------------------------
+    def _HandleBlockStoreGetRequest(self, minfo) :
+        """
+        Get a value from the untrusted block store / cache
+            {
+                "key" : <>,
+            }
+        """
+
+        try :
+            key = minfo['key']
+
+        except KeyError as ke :
+            logger.error('missing field in request: %s', ke)
+            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
+
+        try :
+            response = self.Enclave.block_store_get(key)
+
+            return {'result' : response}
+
+        except :
+            logger.exception('HandleBlockStoreGetRequest')
+            raise Error(http.BAD_REQUEST, "HandleBlockStoreGetRequest")
+
+    ## -----------------------------------------------------------------
+    def _HandleBlockStorePutRequest(self, minfo) :
+        """
+        Store a value into the untrusted block store / cache
+            {
+                "key" : <>,
+                "value" : <>,
+            }
+        """
+
+        try :
+            key = minfo['key']
+            value = minfo['value']
+
+        except KeyError as ke :
+            logger.error('missing field in request: %s', ke)
+            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
+
+        try :
+            self.Enclave.block_store_put(key, value)
+
+            return {'result' : "OK"}
+
+        except :
+            logger.exception('HandleBlockStorePutRequest')
+            raise Error(http.BAD_REQUEST, "HandleBlockStorePutRequest")
 
 # -----------------------------------------------------------------
 # sealed_data is base64 encoded string

@@ -99,3 +99,74 @@ class EnclaveServiceClient(GenericServiceClient) :
         except :
             logger.exception('get_enclave_info')
             return None
+
+    # -----------------------------------------------------------------
+    def block_store_head(self, state_hash_b64) :
+        """
+        Checks if a block is present in the block store.
+        Returns:
+            int(length) if present
+            -1 if not present
+            None on error
+        """
+        request = { 'operation' : 'BlockStoreHeadRequest' }
+        request['key'] = state_hash_b64
+
+        try :
+            response = self._postmsg(request)
+            return int(response['length'])
+
+        except MessageException as me :
+            logger.warn('unable to contact enclave service (block_store_head); %s', me)
+            return None
+
+        except :
+            logger.exception('block_store_head')
+            return None
+
+    # -----------------------------------------------------------------
+    def block_store_get(self, state_hash_b64) :
+        """
+        Retrieves a block from the enclave service's block store
+        Returns:
+            base64 encoded block data
+            None on error
+        """
+        request = { 'operation' : 'BlockStoreGetRequest' }
+        request['key'] = state_hash_b64
+
+        try :
+            response = self._postmsg(request)
+            return response['result']
+
+        except MessageException as me :
+            logger.warn('unable to contact enclave service (block_store_get); %s', me)
+            return None
+
+        except :
+            logger.exception('block_store_get')
+            return None
+
+    # -----------------------------------------------------------------
+    def block_store_put(self, state_hash_b64, state_b64) :
+        """
+        Retrieves a block from the enclave service's block store
+        Returns:
+            True - Success
+            False - Failure
+        """
+        request = { 'operation' : 'BlockStorePutRequest' }
+        request['key'] = state_hash_b64
+        request['value'] = state_b64
+
+        try :
+            response = self._postmsg(request)
+            return True
+
+        except MessageException as me :
+            logger.warn('unable to contact enclave service (block_store_put); %s', me)
+            return False
+
+        except :
+            logger.exception('block_store_put')
+            return False

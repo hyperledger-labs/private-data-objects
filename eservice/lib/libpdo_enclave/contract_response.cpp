@@ -32,6 +32,8 @@
 #include "contract_response.h"
 #include "enclave_data.h"
 
+#include "enclave_t.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(const ContractRequest& request,
     const std::map<std::string, std::string>& dependencies,
@@ -174,10 +176,23 @@ ByteArray ContractResponse::SerializeAndEncrypt(
             jret != JSONSuccess, "failed to serialize the signature");
 
         // --------------- state ---------------
-        Base64EncodedString encoded_state = base64_encode(contract_state_.encrypted_state_);
-        jret = json_object_dotset_string(contract_response_object, "State", encoded_state.c_str());
+        int ret;
+        int sgx_ret;
+
+        sgx_ret = ocall_BlockStorePut(&ret, &contract_state_.state_hash_[0], contract_state_.state_hash_.size(),
+                                      &contract_state_.encrypted_state_[0], contract_state_.encrypted_state_.size());
+        if (sgx_ret != 0) {
+            SAFE_LOG(PDO_LOG_ERROR, "SGX error %d invoking ocall_BlockStorePut()", sgx_ret);
+            throw;
+        }
+        if (ret != 0) {
+            SAFE_LOG(PDO_LOG_ERROR, "Error %d saving state via ocall_BlockStorePut()", ret);
+            throw;
+        }
+
+        jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            jret != JSONSuccess, "failed to serialize the state");
+            jret != JSONSuccess, "failed to serialize the state hash");
 
         // --------------- dependencies ---------------
         jret = json_object_set_value(contract_response_object, "Dependencies", json_value_init_array());
