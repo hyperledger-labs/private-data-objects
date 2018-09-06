@@ -37,20 +37,20 @@ pdo_err_t block_store_init()
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 int block_store_head(
-    const std::string& key
+    const std::string& key_b64
     )
 {
-    ByteArray raw_key = base64_decode(key);
+    ByteArray raw_key = base64_decode(key_b64);
 
     return pdo::enclave_api::block_store::BlockStoreHead(raw_key);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::string block_store_get(
-    const std::string& key
+    const std::string& key_b64
     )
 {
-    ByteArray raw_key = base64_decode(key);
+    ByteArray raw_key = base64_decode(key_b64);
     ByteArray raw_value;
 
     pdo_err_t presult = pdo::enclave_api::block_store::BlockStoreGet(raw_key, raw_value);
@@ -61,12 +61,12 @@ std::string block_store_get(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void block_store_put(
-    const std::string& key,
-    const std::string& value
+    const std::string& key_b64,
+    const std::string& value_b64
     )
 {
-    ByteArray raw_key = base64_decode(key);
-    ByteArray raw_value = base64_decode(value);
+    ByteArray raw_key = base64_decode(key_b64);
+    ByteArray raw_value = base64_decode(value_b64);
 
     pdo_err_t presult = pdo::enclave_api::block_store::BlockStorePut(raw_key, raw_value);
     ThrowPDOError(presult);

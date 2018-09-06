@@ -181,14 +181,10 @@ ByteArray ContractResponse::SerializeAndEncrypt(
 
         sgx_ret = ocall_BlockStorePut(&ret, &contract_state_.state_hash_[0], contract_state_.state_hash_.size(),
                                       &contract_state_.encrypted_state_[0], contract_state_.encrypted_state_.size());
-        if (sgx_ret != 0) {
-            SAFE_LOG(PDO_LOG_ERROR, "SGX error %d invoking ocall_BlockStorePut()", sgx_ret);
-            throw;
-        }
-        if (ret != 0) {
-            SAFE_LOG(PDO_LOG_ERROR, "Error %d saving state via ocall_BlockStorePut()", ret);
-            throw;
-        }
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            sgx_ret != 0, "sgx failed during put to the block store");
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            ret != 0, "failed to put to the block store");
 
         jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(

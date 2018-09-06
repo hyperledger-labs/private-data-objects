@@ -18,14 +18,18 @@ enclave {
     };
 
     untrusted {
-        int ocall_BlockStoreGet([in, size=keySize] const uint8_t* key,
-                                size_t keySize,
-                                [out] uint8_t** value,
-                                [out] size_t* valueSize);
+        int ocall_BlockStoreHead([in, size=inKeySize] const uint8_t* inKey,
+                                 size_t inKeySize,
+                                 [out] size_t* outValueSize);
 
-        int ocall_BlockStorePut([in, size=keySize] const uint8_t* key,
-                                size_t keySize,
-                                [in, size=valueSize] const uint8_t* value,
-                                size_t valueSize);
+        int ocall_BlockStoreGet([in, size=inKeySize] const uint8_t* inKey,
+                                size_t inKeySize,
+                                [out, size=inValueSize] uint8_t* outValue,
+                                size_t inValueSize);
+
+        int ocall_BlockStorePut([in, size=inKeySize] const uint8_t* inKey,
+                                size_t inKeySize,
+                                [in, size=inValueSize] const uint8_t* inValue,
+                                size_t inValueSize);
     };
 };

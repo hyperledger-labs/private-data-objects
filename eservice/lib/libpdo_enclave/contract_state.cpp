@@ -117,31 +117,30 @@ void ContractState::Unpack(const ByteArray& state_encryption_key_,
         {
             ByteArray decoded_state_hash = base64_decode(pvalue);
 
-            /* Untrusted! Need to copy and validate ourselves! */
-            uint8_t *u_state;
-            size_t u_state_size;
+            // Ask the block store for the size of the state
+            size_t encrypted_state_size;
             int ret;
-            int sgx_ret;
+            int sgx_ret = ocall_BlockStoreHead(&ret, &decoded_state_hash[0],
+                                               decoded_state_hash.size(),
+                                               &encrypted_state_size);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                sgx_ret != 0, "sgx failed during head request on the block store");
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                ret != 0, "head request failed on the block store");
+
+            // Allocate space for the resulting state payload
+            ByteArray encrypted_state;
+            encrypted_state.resize(encrypted_state_size);
 
             // Fetch the state from the untrusted block storage
             sgx_ret = ocall_BlockStoreGet(&ret, &decoded_state_hash[0], decoded_state_hash.size(),
-                                          &u_state, &u_state_size);
-            if (sgx_ret != 0) {
-                SAFE_LOG(PDO_LOG_ERROR, "SGX error %d invoking ocall_BlockStoreGet()", sgx_ret);
-                throw;
-            }
-            if (ret != 0) {
-                SAFE_LOG(PDO_LOG_ERROR, "Error %d retrieving state via ocall_BlockStoreGet()", ret);
-                throw;
-            }
+                                          &encrypted_state[0], encrypted_state_size);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                sgx_ret != 0, "sgx failed during get request on the block store");
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                ret != 0, "get request failed on the block store");
 
-            /*
-             * Copy the untrusted state to a new buffer so it can't be
-             * modified by untrusted code while this code is working with it
-             */
-            ByteArray state_copy(u_state, u_state + u_state_size);
-
-            DecryptState(state_encryption_key_, state_copy, id_hash, code_hash);
+            DecryptState(state_encryption_key_, encrypted_state, id_hash, code_hash);
 
             state_hash_ = ComputeHash();
         }

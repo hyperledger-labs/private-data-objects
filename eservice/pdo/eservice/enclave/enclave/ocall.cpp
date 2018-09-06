@@ -59,23 +59,32 @@ extern "C" {
         }
     } // ocall_SetErrorMessage
 
-    int ocall_BlockStoreGet(
-        const uint8_t* key,
-        const size_t keySize,
-        uint8_t **value,
-        size_t* valueSize
+    int ocall_BlockStoreHead(
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        size_t* outValueSize
         )
     {
-        return pdo::enclave_api::block_store::BlockStoreGet(key, keySize, value, valueSize);
+        return pdo::enclave_api::block_store::BlockStoreHead(inKey, inKeySize, outValueSize);
+    } // ocall_BlockStoreHead
+
+    int ocall_BlockStoreGet(
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        uint8_t *outValue,
+        const size_t inValueSize
+        )
+    {
+        return pdo::enclave_api::block_store::BlockStoreGet(inKey, inKeySize, outValue, inValueSize);
     } // ocall_BlockStoreGet
 
     int ocall_BlockStorePut(
-        const uint8_t* key,
-        const size_t keySize,
-        const uint8_t* value,
-        const size_t valueSize
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        const uint8_t* inValue,
+        const size_t inValueSize
         )
     {
-        return pdo::enclave_api::block_store::BlockStorePut(key, keySize, value, valueSize);
+        return pdo::enclave_api::block_store::BlockStorePut(inKey, inKeySize, inValue, inValueSize);
     } // ocall_BlockStorePut
 } // extern "C"
