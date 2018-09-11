@@ -93,7 +93,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     contract_creator_id = contract_creator_keys.identity
 
     contract_name = 'intkey'
-    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name,source_name="intkey.txt", search_path = [".", "..", "contracts"])
+    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name,source_name="intkey.txt", search_path = [".", "..", "./contracts"])
     logger.info('name && code: %s %s ',contract_name, contract_code.code);
     # create the provisioning servers
     if use_pservice :

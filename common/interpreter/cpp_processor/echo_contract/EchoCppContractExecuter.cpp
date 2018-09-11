@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <iostream>
 
-static int StrLen(char* str);
-static char* StrCpy(const char* src, char* dst, int size);
 static char* UintToStr(unsigned int value, char* buf, int size);
 static const char* StrToUint(
 const char* strPtr, unsigned int* ptrVal, const char* terminators = ",");
@@ -186,29 +184,3 @@ char* UintToStr(unsigned int value, char* buf, int size)
     return buf;
 }
 
-int StrLen(char* str)
-{
-    int len = 0;
-
-    if (str)
-    {
-        while (*str++)
-        {
-            len++;
-        }
-    }
-    return len;
-}
-
-char* StrCpy(const char* src, char* dst, int size)
-{
-    if (src && dst && size)
-    {
-        while (--size && *src)
-        {
-            *dst++ = *src++;
-        }
-        *dst = 0;
-    }
-    return dst;
-}

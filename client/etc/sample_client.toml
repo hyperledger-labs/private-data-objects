@@ -64,7 +64,7 @@ Name = "${contract}"
 
 # SourceFile is the name of the Gipsy Scheme
 # source file that defines the contract class
-SourceFile = "${contract}.scm"
+SourceFile = "${contract}"
 
 # SourceSearchPath is a list of directories to search
 # for the contract source file

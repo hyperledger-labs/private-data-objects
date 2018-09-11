@@ -88,7 +88,6 @@ public:
     {
         if (result == STUB_INTERPRETOR_NO_ERROR)
             result = state.Init(stateStr);
-        ;
         return (result == STUB_INTERPRETOR_NO_ERROR);
     };
 

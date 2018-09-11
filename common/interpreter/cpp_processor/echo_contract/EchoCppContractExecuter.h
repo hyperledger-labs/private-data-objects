@@ -70,7 +70,6 @@ public:
 
     bool SetMessage(const char* messageStr, const char* originatorId) override
     {
-        // TODO: originatorId is not used
         if (result == STUB_INTERPRETOR_NO_ERROR)
             result = message.Init(messageStr);
         return (result == STUB_INTERPRETOR_NO_ERROR);
@@ -94,8 +93,6 @@ public:
     }
 
     void HandleFailure(const char* msg) override;
-
-    // TODO: GetDependencies()
 
 private:
     EchoCode code;

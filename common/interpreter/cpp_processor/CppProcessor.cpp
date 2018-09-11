@@ -77,7 +77,10 @@ void CppProcessor::send_message_to_contract(const std::string& inContractID,
     std::map<std::string, std::string>& outDependencies,
     std::string& outMessageResult)
 {
-    CppContractWrapper* executer = LookUpContract(inContract.Code.c_str());
+    std::string contractCode = inContract.Code.c_str();
+    std::size_t pos = contractCode.find(':');
+    std::string enclave_type = contractCode.substr(pos + 1);
+    CppContractWrapper* executer = LookUpContract(enclave_type);
 
     //TODO: handle error case
     if(!executer)
@@ -116,7 +119,6 @@ void CppProcessor::send_message_to_contract(const std::string& inContractID,
             {
                 outMessageResult = outResultRaw;
 
-                // TODO: Get dependencies
                 result = true;
             }
         }
