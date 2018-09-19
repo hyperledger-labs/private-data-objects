@@ -39,7 +39,7 @@ contract ContractRegistry {
     mapping(bytes32 => ContractInfo) public contracts;
 
     //keySet stores all registered contracts' ID's
-    bytes32[] public keySet;
+    bytes32[] public contract_ids;
 
     event contractRegistered(bytes32 contract_id);
 
@@ -63,8 +63,8 @@ contract ContractRegistry {
         //update contract registry
         contracts[contract_id] = contract_info;
 
-        //add contract_id to keySet
-        keySet.push(contract_id);
+        //add contract_id to contract_ids
+        contract_ids.push(contract_id);
 
         emit contractRegistered(contract_id);
     }
@@ -86,14 +86,11 @@ contract ContractRegistry {
         mapping(bytes32 => ContractEnclaveInfo) enclave_list = contract_info.enclave_list;
         ContractEnclaveInfo storage contract_enclave_info = enclave_list[verifying_key];
 
+
         EnclaveRegistry enclave_registry = EnclaveRegistry(enclave_contract_addr);
-        bytes32 enclave_registry_verifying_key;
-        string memory enclave_registry_encryption_key;
-        string memory enclave_registry_owner_id;
-        string memory enclave_registry_lrbc;
-        (enclave_registry_verifying_key, enclave_registry_encryption_key,
-        enclave_registry_owner_id, enclave_registry_lrbc) = enclave_registry.getEnclave(verifying_key);
-        require(enclave_registry_verifying_key != 0, 'Enclave not registered');
+        bool registered = enclave_registry.enclaveRegistered(verifying_key);
+        require(registered, 'Enclave not registered');
+
 
         //check if enclave is already in enclave_list
         require(contract_enclave_info.verifying_key == 0, 'Enclave already in list');
@@ -200,7 +197,6 @@ contract ContractRegistry {
 
         //update contract registry
         contracts[contract_id] = contract_info;
-
     }
 
     // Completes the addition of an enclave to a contract's enclave list.
@@ -223,8 +219,7 @@ contract ContractRegistry {
         require(enclave_info.ps_list_keys.length > 0, 'Provisioning service list not initialized');
 
         //ensure all ps are initilized
-        for (uint i = 0; i < enclave_info.ps_list_keys.length; i++)
-        {
+        for (uint i = 0; i < enclave_info.ps_list_keys.length; i++) {
             bytes32 key = enclave_info.ps_list_keys[i];
             PSInfo storage ps_info = enclave_info.ps_list[key];
             require(ps_info.ps_public_key != 0);
@@ -237,7 +232,6 @@ contract ContractRegistry {
         //add enclave verifying_key to enclave_list_keys
         bytes32[] storage enclave_list_keys = contract_info.enclave_list_keys;
         enclave_list_keys.push(enclave_id);
-
     }
 
     // Returns specified provisioning service of a specified enclave of a
@@ -260,32 +254,6 @@ contract ContractRegistry {
         ps_public_key = ps_info.ps_public_key;
         encrypted_contract_state = ps_info.encrypted_contract_state;
         index = ps_info.index;
-    }
-
-    // Deletes an enclave from a contract's enclave list
-    function deleteContractEnclave(bytes32 contract_id, bytes32 enclave_id)
-        public {
-
-        ContractInfo storage contract_info = contracts[contract_id];
-        require(contract_info.contract_id != 0, 'Contract not found');
-        //make sure enclave is being deleted by the contract creator
-        require(msg.sender == contract_info.creator, 'Sender not authorized to delete enclave');
-
-        ContractEnclaveInfo storage enclave_info = contract_info.enclave_list[enclave_id];
-        require(enclave_info.verifying_key != 0, 'Enclave not found');
-
-
-        for(uint i = 0; i < contracts[contract_id].enclave_list[enclave_id].ps_list_keys.length; i++)
-        {
-            bytes32 ps_key = contracts[contract_id].enclave_list[enclave_id].ps_list_keys[i];
-            delete(contracts[contract_id].enclave_list[enclave_id].ps_list[ps_key]);
-        }
-
-        //remove this key from the keys of the enclave list
-        contracts[contract_id].enclave_list_keys = removeFromArray(contract_info.enclave_list_keys, enclave_id);
-
-        //delete enclave
-        delete(contracts[contract_id].enclave_list[enclave_id]);
     }
 
     // Private helper function to keep arrays updated when values are deleted
@@ -311,37 +279,15 @@ contract ContractRegistry {
         return array;
     }
 
-    //Deletes specified contract, calls to delete all enclaves in enclaves list
-    function deleteContract(bytes32 contract_id)
-        public {
-
-        ContractInfo storage contract_info = contracts[contract_id];
-        require(contract_info.contract_id != 0, 'Contract not found');
-        //make sure contract is being deleted by the contract creator
-        require(msg.sender == contract_info.creator, 'Sender not authorized to delete contract');
-
-        //delete components of each enclave -- might be unnecessary
-        for (uint i = 0; i < contracts[contract_id].enclave_list_keys.length; i++)
-        {
-            deleteContractEnclave(contract_id, contracts[contract_id].enclave_list_keys[i]);
-        }
-
-        //delete contract
-        delete(contracts[contract_id]);
-
-        //remove contract key from keySet
-        keySet = removeFromArray(keySet, contract_id);
-    }
-
     // Returns ID's of all registered contracts
     function getContractIDs()
-        view public returns (bytes32[])
+        public view returns (bytes32[])
     {
-        return keySet;
+        return contract_ids;
     }
 
-
 }
+
 
 contract EnclaveRegistry {
     // Define info to be stored for each enclave
@@ -351,8 +297,8 @@ contract EnclaveRegistry {
          string owner_id;
          string last_registration_block_context;
     }
-    address public lastMessageSender;
-    address public result;
+    address public msgSender;
+    address public ecrecoverReturnVal;
 
 
     // This declares a state variable that
@@ -442,12 +388,30 @@ contract EnclaveRegistry {
         return array;
     }
 
+    function enclaveRegistered(bytes32 verifying_key)
+        public view returns(bool) {
+        // assigns reference
+        EnclaveInfo storage info = enclaves[verifying_key];
+
+        //check if enclave is already registered
+        return (info.verifying_key != 0);
+    }
+
     // Verify a signature -- still under development (not working)
     function verify(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
-        public constant returns(bool) {
+        public returns(bool) {
+        ecrecoverReturnVal = ecrecover(hash, v, r, s);
+        msgSender = msg.sender;
+        return ecrecover(hash, v, r, s) == msg.sender;
+    }
 
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hash));
-        return ecrecover(prefixedHash, v, r, s) == msg.sender;
+    function getSender()
+        public view returns(address) {
+        return msgSender;
+    }
+
+    function getResult()
+        public view returns(address) {
+        return ecrecoverReturnVal;
     }
 }
