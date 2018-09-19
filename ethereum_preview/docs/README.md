@@ -1,5 +1,11 @@
-# Introduction
+<!---
+Licensed under Creative Commons Attribution 4.0 International License
+https://creativecommons.org/licenses/by/4.0/
+--->
+# NOTE
+The contents of the `ethereum_preview` directory are not supported and are intended only to provide a preview of what Private Data Objects might look like using the Ethereum block chain.
 
+# Introduction
 
 This document provides information on how to use a demo for smart contracts on Ethereum using PDO. These smart contracts resemble the functionality of the Sawtooth Transaction Processor.
 
