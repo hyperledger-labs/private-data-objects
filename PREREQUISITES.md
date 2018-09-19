@@ -81,7 +81,14 @@ sudo apt-get install -y git unzip dh-autoreconf ocaml ocamlbuild libsecp256k1-de
 Many components of the project use Google's Protocol Buffers (including SGX),
 so installing support for them early is recommended. Protobuf v3 or later
 support is required - check your package manager first to see what is
-available. If a package is not available, follow these steps to compile and
+available.
+
+On Ubuntu 18.04, it is sufficient to install the package directly:
+```
+sudo apt-get install libprotobuf-dev
+```
+
+If a package is not available, follow these steps to compile and
 install protobuf tools manually:
 
 ```
@@ -100,6 +107,27 @@ Hyperledger Private Data Objects is intended to be run on SGX-enabled
 Intel&reg; platforms. However, it can also be run in "simulator mode" on
 platforms that do not have hardware support for SGX.
 
+## SGX SDK
+The SGX SDK is required for both hardware-mode and simulator-mode deployments
+of Private Data Objects. PDO is built and tested against version 2.2 of the SGX
+SDK - newer versions may work, but only v2.2 is supported.
+
+Use these commands to download and compile v2.2 of the SGX SDK:
+```
+git clone https://github.com/intel/linux-sgx.git
+cd linux-sgx
+git checkout sgx_2.2
+./download_prebuilt.sh
+make
+make sdk_install_pkg
+```
+
+Install the SGX SDK to the proper location - `/opt/intel/sgxsdk`. Run the
+following command, enter `no` and `/opt/intel` when prompted for an
+installation path:
+```
+sudo ./linux/installer/bin/sgx_linux_x64_sdk_2.2.100.45311.bin
+```
 
 ## SGX in Hardware-mode
 If you plan to run this on SGX-enabled hardware, you will need the SGX driver,
@@ -130,10 +158,16 @@ active for your current shell session before continuing. They are normally set
 by sourcing the SGX SDK activation script (e.g. `source /opt/intel/sgxsdk/environment`).
 
 ## SGX in Simulator-mode
-If running only in simulator mode (no hardware support), you only
-need the SGX SDK. To learn more about Intel SGX, read the Intel SGX SDK
-documentation [here](https://software.intel.com/en-us/sgx-sdk/documentation) or
-visit the Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
+Simulated SGX mode can be run on any system, regardless of SGX hardware
+support. It is useful to test PDO, though it provides none of the security
+benefits of SGX. When using simulation-mode enclaves, the PDO Sawtooth
+transaction processor must be run in debug mode (since a simulated enclave can
+not generate a valid attestation).
+
+If running only in simulator mode, you only need the SGX SDK. To learn more
+about Intel SGX, read the Intel SGX SDK documentation
+[here](https://software.intel.com/en-us/sgx-sdk/documentation) or visit the
+Intel SGX homepage [here](https://software.intel.com/en-us/sgx).
 
 # <a name="openssl"></a>OpenSSL
 OpenSSL is a popular cryptography library. This project requires OpenSSL
@@ -191,26 +225,30 @@ Guard Extensions secure enclaves.
 
 This project specifically requires SGX OpenSSL based on OpenSSL version 1.1.0h
 or later. It should match the version installed on your host system or set up
-in the previous step.
+in the previous step. Additionally, the version of SGX OpenSSL should match
+that of the SGX SDK - PDO only supports v2.2 of the SGX SDK, though newer
+versions may also work.
 
 Follow these steps to compile and install SGX SSL. Note that if you run into
 trouble there is a [troubleshooting](#troubleshooting) section specifically for
 SGX OpenSSL with fixes for commonly encountered problems.
-- Ensure you have the SGX SDK environment variables activated for the current shell session (e.g. `source /opt/intel/sgxsdk/environment`)
-- Create a new directory to build the sgxssl components
-```
-mkdir ~/sgxssl
-cd ~/sgxssl
-```
+- Ensure you have the SGX SDK environment variables activated for the current
+shell session (e.g. `source /opt/intel/sgxsdk/environment`)
 
 - Download the latest SGX SSL git repository:
 ```
 git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
 
+- Check out the recommended version:
+```
+cd intel-sgx-ssl
+git checkout v2.2
+```
+
 - Download the OpenSSL source package that will form the base of this SGX SSL install:
 ```
-cd intel-sgx-ssl/openssl_source
+cd openssl_source
 wget 'https://www.openssl.org/source/openssl-1.1.0h.tar.gz'
 cd ..
 ```
