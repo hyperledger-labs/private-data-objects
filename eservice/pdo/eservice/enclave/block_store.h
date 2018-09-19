@@ -22,7 +22,7 @@
  *  Success (return PDO_SUCCESS) - Block store ready to use
  *  Failure (return nonzero) - Block store is unusable
  */
-pdo_err_t block_store_init();
+void block_store_init();
 
 /**
  * Gets the size of a block in the block store
