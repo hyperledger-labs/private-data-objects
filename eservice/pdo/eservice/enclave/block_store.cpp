@@ -27,12 +27,10 @@
 #include "enclave/block_store.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t block_store_init()
+void block_store_init()
 {
     pdo_err_t presult = pdo::enclave_api::block_store::BlockStoreInit();
     ThrowPDOError(presult);
-
-    return presult;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
