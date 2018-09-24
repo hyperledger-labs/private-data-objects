@@ -20,16 +20,16 @@
 #include "pdo_error.h"
 #include "types.h"
 #include "packages/base64/base64.h"
+#include "packages/block_store/block_store.h"
 
 #include "block_store.h"
 #include "swig_utils.h"
 
-#include "enclave/block_store.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void block_store_init()
 {
-    pdo_err_t presult = pdo::enclave_api::block_store::BlockStoreInit();
+    pdo_err_t presult = pdo::block_store::BlockStoreInit();
     ThrowPDOError(presult);
 }
 
@@ -40,7 +40,7 @@ int block_store_head(
 {
     ByteArray raw_key = base64_decode(key_b64);
 
-    return pdo::enclave_api::block_store::BlockStoreHead(raw_key);
+    return pdo::block_store::BlockStoreHead(raw_key);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -51,7 +51,7 @@ std::string block_store_get(
     ByteArray raw_key = base64_decode(key_b64);
     ByteArray raw_value;
 
-    pdo_err_t presult = pdo::enclave_api::block_store::BlockStoreGet(raw_key, raw_value);
+    pdo_err_t presult = pdo::block_store::BlockStoreGet(raw_key, raw_value);
     ThrowPDOError(presult);
 
     return base64_encode(raw_value);
@@ -66,6 +66,6 @@ void block_store_put(
     ByteArray raw_key = base64_decode(key_b64);
     ByteArray raw_value = base64_decode(value_b64);
 
-    pdo_err_t presult = pdo::enclave_api::block_store::BlockStorePut(raw_key, raw_value);
+    pdo_err_t presult = pdo::block_store::BlockStorePut(raw_key, raw_value);
     ThrowPDOError(presult);
 }
