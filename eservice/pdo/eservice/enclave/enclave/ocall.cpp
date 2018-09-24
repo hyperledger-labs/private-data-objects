@@ -19,6 +19,7 @@
 #include <chrono>
 
 #include "log.h"
+#include "block_store.h"
 
 std::string g_enclaveError;
 
@@ -58,4 +59,32 @@ extern "C" {
         }
     } // ocall_SetErrorMessage
 
+    int ocall_BlockStoreHead(
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        size_t* outValueSize
+        )
+    {
+        return pdo::enclave_api::block_store::BlockStoreHead(inKey, inKeySize, outValueSize);
+    } // ocall_BlockStoreHead
+
+    int ocall_BlockStoreGet(
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        uint8_t *outValue,
+        const size_t inValueSize
+        )
+    {
+        return pdo::enclave_api::block_store::BlockStoreGet(inKey, inKeySize, outValue, inValueSize);
+    } // ocall_BlockStoreGet
+
+    int ocall_BlockStorePut(
+        const uint8_t* inKey,
+        const size_t inKeySize,
+        const uint8_t* inValue,
+        const size_t inValueSize
+        )
+    {
+        return pdo::enclave_api::block_store::BlockStorePut(inKey, inKeySize, inValue, inValueSize);
+    } // ocall_BlockStorePut
 } // extern "C"

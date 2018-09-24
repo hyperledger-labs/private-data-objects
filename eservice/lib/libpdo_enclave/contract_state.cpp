@@ -32,6 +32,8 @@
 #include "contract_request.h"
 #include "contract_secrets.h"
 
+#include "enclave_t.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //
 // contract state format
@@ -110,11 +112,35 @@ void ContractState::Unpack(const ByteArray& state_encryption_key_,
 
     try
     {
-        pvalue = json_object_dotget_string(object, "EncryptedState");
+        pvalue = json_object_dotget_string(object, "StateHash");
         if (pvalue != NULL && pvalue[0] != '\0')
         {
-            ByteArray decoded_state = base64_decode(pvalue);
-            DecryptState(state_encryption_key_, decoded_state, id_hash, code_hash);
+            ByteArray decoded_state_hash = base64_decode(pvalue);
+
+            // Ask the block store for the size of the state
+            size_t encrypted_state_size;
+            int ret;
+            int sgx_ret = ocall_BlockStoreHead(&ret, &decoded_state_hash[0],
+                                               decoded_state_hash.size(),
+                                               &encrypted_state_size);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                sgx_ret != 0, "sgx failed during head request on the block store");
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                ret != 0, "head request failed on the block store");
+
+            // Allocate space for the resulting state payload
+            ByteArray encrypted_state;
+            encrypted_state.resize(encrypted_state_size);
+
+            // Fetch the state from the untrusted block storage
+            sgx_ret = ocall_BlockStoreGet(&ret, &decoded_state_hash[0], decoded_state_hash.size(),
+                                          &encrypted_state[0], encrypted_state_size);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                sgx_ret != 0, "sgx failed during get request on the block store");
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                ret != 0, "get request failed on the block store");
+
+            DecryptState(state_encryption_key_, encrypted_state, id_hash, code_hash);
 
             state_hash_ = ComputeHash();
         }
