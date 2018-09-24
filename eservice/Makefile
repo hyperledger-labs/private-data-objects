@@ -28,7 +28,6 @@ SWIG_SOURCES = \
 	enclave/contract.cpp \
 	enclave/signup.cpp \
 	enclave/enclave.cpp \
-	enclave/block_store.cpp \
 	enclave_info.cpp \
 	signup_info.cpp \
 	contract.cpp \
