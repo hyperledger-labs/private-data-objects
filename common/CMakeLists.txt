@@ -15,6 +15,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 find_package(PkgConfig REQUIRED)
 
+option(UNTRUSTED_ONLY "Build only untrusted components" OFF)
+
 INCLUDE(CMakeVariables.txt)
 
 ################################################################################
@@ -27,7 +29,6 @@ FILE(GLOB PROJECT_SOURCES *.cpp crypto/*.cpp crypto/verify_ias_report/*.cpp pack
 SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson")
 SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} ${IAS_CA_CERT_REQUIRED_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
-pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
 
 ################################################################################
 # Untrusted Common Library
@@ -35,6 +36,8 @@ pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
 
 SET(UNTRUSTED_LIB_NAME updo-common)
 PROJECT(${UNTRUSTED_LIB_NAME} CXX)
+
+pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
 
 ADD_LIBRARY(${UNTRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES} packages/block_store/block_store.cpp)
 
@@ -50,21 +53,23 @@ TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_LIB_NAME} PRIVATE "-D_UNTRUSTED_=1")
 # Trusted Common Library
 ################################################################################
 
-SET(TRUSTED_LIB_NAME tpdo-common)
-PROJECT(${TRUSTED_LIB_NAME} CXX)
+if(NOT UNTRUSTED_ONLY)
+	SET(TRUSTED_LIB_NAME tpdo-common)
+	PROJECT(${TRUSTED_LIB_NAME} CXX)
 
-ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
+	ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
 
-TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
-TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
-TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SSL}/include)
-TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include/tlibc)
-TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include/libcxx)
+	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
+	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
+	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SSL}/include)
+	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include/tlibc)
+	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include/libcxx)
 
-TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS})
-TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc)
-TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc++)
-TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -fno-builtin-printf)
+	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS})
+	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc)
+	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc++)
+	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -fno-builtin-printf)
+endif()
 
 
 ################################################################################
@@ -76,6 +81,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 link_directories(${CMAKE_BINARY_DIR})
 
-ADD_SUBDIRECTORY (packages/tinyscheme)
-ADD_SUBDIRECTORY (interpreter)
+if(NOT UNTRUSTED_ONLY)
+	ADD_SUBDIRECTORY (packages/tinyscheme)
+	ADD_SUBDIRECTORY (interpreter)
+endif()
 ADD_SUBDIRECTORY (tests)
