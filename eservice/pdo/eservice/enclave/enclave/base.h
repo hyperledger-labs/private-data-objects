@@ -35,6 +35,21 @@ namespace pdo
             int IsSgxSimulator();
 
             /*
+              Gets an index of an enclave that is ready to be used
+              This call blocks until an enclave is available
+              When done, the caller MUST mark this enclave as ready again via
+                PutReadyEnclaveIndex
+            */
+            int GetReadyEnclaveIndex();
+
+            /*
+              Marks an enclave index as ready to be used again
+              Must be called when done with an enclave index retrieved via
+                GetReadyEnclaveIndex
+            */
+            void PutReadyEnclaveIndex(int index);
+
+            /*
               Saves an error message for later retrieval.
              */
             void SetLastError(
@@ -59,6 +74,7 @@ namespace pdo
             pdo_err_t Initialize(
                 const std::string& inPathToEnclave,
                 const HexEncodedString& inSpid,
+                const int numOfEnclaves,
                 pdo_log_t logFunction
                 );
 

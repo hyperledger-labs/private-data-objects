@@ -33,7 +33,8 @@ bool is_sgx_simulator()
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_enclave_info::pdo_enclave_info(
     const std::string& enclaveModulePath,
-    const std::string& spid
+    const std::string& spid,
+    const int num_of_enclaves
     )
 {
     PyLog(PDO_LOG_INFO, "Initializing SGX PDO enclave");
@@ -43,6 +44,7 @@ pdo_enclave_info::pdo_enclave_info(
     pdo_err_t ret = pdo::enclave_api::base::Initialize(
         enclaveModulePath,
         spid,
+        num_of_enclaves,
         PyLog
         );
     ThrowPDOError(ret);

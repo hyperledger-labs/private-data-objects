@@ -38,7 +38,14 @@ logger = logging.getLogger(__name__)
 
 from twisted.web import server, resource, http
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredLock
+from twisted.internet.threads import deferToThread
+from twisted.web.server import NOT_DONE_YET
 from twisted.web.error import Error
+from twisted.python.threadpool import ThreadPool
+
+from twisted.python import log
+log.startLogging(sys.stdout)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -63,6 +70,10 @@ class ContractEnclaveServer(resource.Resource):
             'BlockStoreGetRequest' : self._HandleBlockStoreGetRequest,
             'BlockStorePutRequest' : self._HandleBlockStorePutRequest,
         }
+
+        self.current_work_num = 1;
+        self._lock = DeferredLock();
+
 
     ## -----------------------------------------------------------------
     def ErrorResponse(self, request, response, msg) :
@@ -119,7 +130,6 @@ class ContractEnclaveServer(resource.Resource):
 
         except :
             logger.exception('exception while decoding http request %s', request.path)
-
             msg = 'unabled to decode incoming request {0}'.format(data)
             return self.ErrorResponse(request, http.BAD_REQUEST, msg)
 
@@ -128,30 +138,54 @@ class ContractEnclaveServer(resource.Resource):
             msg = 'unknown request {0}'.format(operation)
             return self.ErrorResponse(request, http.BAD_REQUEST, msg)
 
-        # and finally execute the associated method and send back the results
-        try :
-            logger.debug('received request %s', operation)
 
-            response_dict = self.RequestMap[operation](minfo)
-            if encoding == 'application/json' :
-                response = json.dumps(response_dict)
-            # elif encoding == 'application/cbor' :
-            #     response = cbor.dumps(response_dict)
+        # Add operation to queue
+        logger.debug('received request %s', operation)
 
-            logger.debug('response[%s]: %s', encoding, response)
-            request.setHeader('content-type', encoding)
-            request.setResponseCode(http.OK)
-            return response.encode('utf8')
 
-        except Error as e :
-            #logger.exception('exception while processing request %s', request.path)
-            #msg = 'exception while processing request {0}; {1}'.format(request.path, str(e))
-            return self.ErrorResponse(request, int(e.status), e.message)
+        def getResponse(operation, minfo):
+            # time.sleep(0.001)
+            return self.RequestMap[operation](minfo)
 
-        except :
-            logger.exception('unknown exception while processing request %s', request.path)
-            msg = 'unknown exception processing http request {0}'.format(request.path)
-            return self.ErrorResponse(request, http.BAD_REQUEST, msg)
+        def thereIsAnError(failure):
+            failure.trap(Error, Exception)
+
+        def isDone(response_dict):
+
+            try :
+                # logger.debug('###########executeJob:request %s:%i:%s:%s', request.path,self.current_work_num, operation,request.content.getvalue())
+                # response_dict = self.RequestMap[operation](minfo)
+
+                encoding = request.getHeader('Content-Type')
+                if encoding == 'application/json' :
+                    response = json.dumps(response_dict)
+
+                logger.info('response[%s]: %s', encoding, response)
+                request.setHeader('content-type', encoding)
+                request.setResponseCode(http.OK)
+                request.write(response.encode('utf8'))
+                request.finish()
+
+            except Error as e :
+                request.write(self.ErrorResponse(request, int(e.status), e.message))
+                request.finish()
+
+            except :
+                logger.debug('executeJob:response: %s', str(response))
+                logger.exception('unknown exception while processing request %s:%i:%s:%s', request.path,self.current_work_num, operation,request.content.getvalue())
+                msg = 'unknown exception processing http request {0}'.format(request.path)
+                request.write(self.ErrorResponse(request, http.BAD_REQUEST, msg))
+                request.finish()
+
+        d = deferToThread(getResponse, operation, minfo)
+        d.addCallback(isDone).addErrback(thereIsAnError)
+
+        self._lock.acquire()
+        logger.info('Job %i:%s ...waiting', self.current_work_num, operation)
+        self.current_work_num += 1
+        self._lock.release()
+
+        return NOT_DONE_YET
 
     ## -----------------------------------------------------------------
     def _HandleUpdateContractRequest(self, minfo) :
@@ -359,6 +393,13 @@ def RunEnclaveService(config, enclave) :
 
     root = ContractEnclaveServer(config, enclave)
     site = server.Site(root)
+
+    threadpool = reactor.getThreadPool()
+    threadpool.start()
+    logger.info('workers started: %s', str(threadpool.started))
+    threadpool.adjustPoolsize(5, 30)
+    logger.info('workers: %d', threadpool.workers)
+
     reactor.listenTCP(httpport, site)
 
     try :

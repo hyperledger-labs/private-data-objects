@@ -37,6 +37,7 @@ std::map<std::string, std::string> contract_verify_secrets(
 {
     Base64EncodedString encrypted_contract_key_buffer;
     Base64EncodedString signature_buffer;
+    int enclaveIndex = pdo::enclave_api::base::GetReadyEnclaveIndex();
 
     pdo_err_t presult = pdo::enclave_api::contract::VerifySecrets(
         sealed_signup_data,
@@ -44,7 +45,9 @@ std::map<std::string, std::string> contract_verify_secrets(
         contract_creator_id,
         serialized_secret_list,
         encrypted_contract_key_buffer,
-        signature_buffer);
+        signature_buffer,
+        enclaveIndex);
+    pdo::enclave_api::base::PutReadyEnclaveIndex(enclaveIndex);
     ThrowPDOError(presult);
 
     std::map<std::string, std::string> result;
@@ -65,13 +68,16 @@ std::string contract_handle_contract_request(
 
     uint32_t response_identifier;
     size_t response_size;
+    int enclaveIndex = pdo::enclave_api::base::GetReadyEnclaveIndex();
 
     presult = pdo::enclave_api::contract::HandleContractRequest(
         sealed_signup_data,
         encrypted_session_key,
         serialized_request,
         response_identifier,
-        response_size);
+        response_size,
+        enclaveIndex);
+    if (presult != PDO_SUCCESS) pdo::enclave_api::base::PutReadyEnclaveIndex(enclaveIndex);
     ThrowPDOError(presult);
 
     Base64EncodedString response;
@@ -79,7 +85,9 @@ std::string contract_handle_contract_request(
         sealed_signup_data,
         response_identifier,
         response_size,
-        response);
+        response,
+        enclaveIndex);
+    pdo::enclave_api::base::PutReadyEnclaveIndex(enclaveIndex);
     ThrowPDOError(presult);
 
     return response;
