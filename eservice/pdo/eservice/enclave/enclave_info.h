@@ -25,7 +25,8 @@ class pdo_enclave_info
 public:
     pdo_enclave_info(
         const std::string& enclaveModulePath,
-        const std::string& spid
+        const std::string& spid,
+        const int num_of_enclaves
         );
     virtual ~pdo_enclave_info();
     std::string get_epid_group();

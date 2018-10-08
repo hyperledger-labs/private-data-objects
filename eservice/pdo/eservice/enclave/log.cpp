@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <chrono>
 
+#include <pthread.h>
+
 #include "c11_support.h"
 #include "log.h"
 
@@ -33,6 +35,8 @@ namespace pdo {
         );
 
     static pdo_log_t g_LogFunction = LogStdOut;
+
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     void Log(
@@ -52,6 +56,7 @@ namespace pdo {
         if (logFunction) {
             g_LogFunction = logFunction;
         }
+
     } // SetLogFunction
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -60,6 +65,7 @@ namespace pdo {
         const char* message,
         ...)
     {
+        pthread_mutex_lock(&mutex);
         if (g_LogFunction) {
             const size_t BUFFER_SIZE = 2048;
             char msg[BUFFER_SIZE] = { '\0' };
@@ -70,6 +76,7 @@ namespace pdo {
 
             g_LogFunction(logLevel, msg);
         }
+        pthread_mutex_unlock(&mutex);
     } // Log
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -91,9 +98,11 @@ namespace pdo {
         const char* message
         )
     {
+        pthread_mutex_lock(&mutex);
         if (g_LogFunction) {
             g_LogFunction(logLevel, message);
         }
+        pthread_mutex_unlock(&mutex);
     } // Log
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

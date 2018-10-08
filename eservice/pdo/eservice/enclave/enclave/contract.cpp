@@ -41,7 +41,8 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
     const std::string& inContractCreatorId, /* contract creator's public key */
     const std::string& inSerializedSecretList, /* json */
     Base64EncodedString& outEncryptedContractKey,
-    Base64EncodedString& outContractKeySignature
+    Base64EncodedString& outContractKeySignature,
+    int enclaveIndex
     )
 {
     pdo_err_t result = PDO_SUCCESS;
@@ -53,11 +54,14 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
         ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureSize());
 
         // xxxxx call the enclave
-        sgx_enclave_id_t enclaveid = g_Enclave.GetEnclaveId();
+
+        /// get the enclave id for passing into the ecall
+        sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
+        Log(PDO_LOG_DEBUG, "VerifySecrets - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =
-            g_Enclave.CallSgx(
+            g_Enclave[enclaveIndex].CallSgx(
                 [
                     enclaveid,
                     &presult,
@@ -86,7 +90,7 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
                 }
                 );
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (VerifySecrets)");
-        g_Enclave.ThrowPDOError(presult);
+        g_Enclave[enclaveIndex].ThrowPDOError(presult);
 
         outEncryptedContractKey = ByteArrayToBase64EncodedString(encrypted_contract_key);
         outContractKeySignature = ByteArrayToBase64EncodedString(contract_key_signature);
@@ -116,7 +120,8 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
     const Base64EncodedString& inEncryptedSessionKey,
     const Base64EncodedString& inSerializedRequest,
     uint32_t& outResponseIdentifier,
-    size_t& outSerializedResponseSize
+    size_t& outSerializedResponseSize,
+    int enclaveIndex
     )
 {
     pdo_err_t result = PDO_SUCCESS;
@@ -129,11 +134,14 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
         ByteArray serialized_request = Base64EncodedStringToByteArray(inSerializedRequest);
 
         // xxxxx call the enclave
-        sgx_enclave_id_t enclaveid = g_Enclave.GetEnclaveId();
+
+        /// get the enclave id for passing into the ecall
+        sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
+        Log(PDO_LOG_DEBUG, "HandleContractRequest - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =
-            g_Enclave.CallSgx(
+            g_Enclave[enclaveIndex].CallSgx(
                 [
                     enclaveid,
                     &presult,
@@ -158,7 +166,7 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
                 }
                 );
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (InitializeContract)");
-        g_Enclave.ThrowPDOError(presult);
+        g_Enclave[enclaveIndex].ThrowPDOError(presult);
 
         outSerializedResponseSize = response_size;
 
@@ -187,7 +195,8 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
     const Base64EncodedString& inSealedEnclaveData,
     const uint32_t inResponseIdentifier,
     const size_t inSerializedResponseSize,
-    Base64EncodedString& outSerializedResponse
+    Base64EncodedString& outSerializedResponse,
+    int enclaveIndex
     )
 {
     pdo_err_t result = PDO_SUCCESS;
@@ -198,11 +207,15 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
 
         // xxxxx call the enclave
-        sgx_enclave_id_t enclaveid = g_Enclave.GetEnclaveId();
+
+        /// get the enclave id for passing into the ecall
+        sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
+        Log(PDO_LOG_DEBUG, "GetSerializedResponse - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =
-            g_Enclave.CallSgx(
+
+            g_Enclave[enclaveIndex].CallSgx(
                 [
                     enclaveid,
                     &presult,
@@ -222,7 +235,7 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
                 }
                 );
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (GetSerializedResponse)");
-        g_Enclave.ThrowPDOError(presult);
+        g_Enclave[enclaveIndex].ThrowPDOError(presult);
 
         outSerializedResponse = ByteArrayToBase64EncodedString(serialized_response);
     }
