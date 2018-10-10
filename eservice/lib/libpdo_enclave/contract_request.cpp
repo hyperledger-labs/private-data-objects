@@ -24,6 +24,7 @@
 #include "crypto.h"
 #include "jsonvalue.h"
 #include "parson.h"
+#include "packages/base64/base64.h"
 
 #include "contract_request.h"
 #include "contract_response.h"
@@ -37,6 +38,8 @@
 #else
 #include "interpreter/gipsy_scheme/GipsyInterpreter.h"
 #endif
+
+#include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Request format for create and send methods
@@ -163,11 +166,23 @@ ContractResponse ContractRequest::process_initialization_request(void)
         pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
 
+        //open the kv for the interpreter
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+            ByteArrayToHexEncodedString(contract_state_.contract_kv_hash_).c_str());
+        pstate::Interpreter_KV contract_kv(contract_state_.contract_kv_hash_);
+        interpreter.set_contract_kv(&contract_kv);
+
         interpreter.create_initial_contract_state(
             contract_id_, creator_id_, code, msg, new_contract_state);
 
+        //close contract kv
+        contract_kv.Uninit(contract_state_.contract_kv_hash_);
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id after interpreter: %s\n",
+            ByteArrayToHexEncodedString(contract_state_.contract_kv_hash_).c_str());
+
         ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
         ContractResponse response(*this, dependencies, new_state, "");
+        SAFE_LOG(PDO_LOG_DEBUG, "returning response\n");
 
         return response;
     }
@@ -249,20 +264,32 @@ ContractResponse ContractRequest::process_update_request(void)
         msg.OriginatorID = contract_message_.originator_verifying_key_;
 
         pdo::contracts::ContractState current_contract_state;
+        //include statehash in ContractStateobject, the state will be grabbed from KV store
         current_contract_state.StateHash =
             ByteArrayToBase64EncodedString(contract_state_.state_hash_);
-        current_contract_state.State = ByteArrayToString(contract_state_.decrypted_state_);
 
         pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
         std::string result;
 
+        //open the kv for the interpreter
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter (update op): %s\n",
+            ByteArrayToHexEncodedString(contract_state_.contract_kv_hash_).c_str());
+        pstate::Interpreter_KV contract_kv(contract_state_.contract_kv_hash_);
+        interpreter.set_contract_kv(&contract_kv);
+
         interpreter.send_message_to_contract(contract_id_, creator_id_, code, msg,
             current_contract_state, new_contract_state, dependencies, result);
+
+        //close contract kv
+        contract_kv.Uninit(contract_state_.contract_kv_hash_);
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id after interpreter (update op): %s\n",
+            ByteArrayToHexEncodedString(contract_state_.contract_kv_hash_).c_str());
 
         // check for operations that did not modify state
         if (new_contract_state.State.empty())
         {
+            SAFE_LOG(PDO_LOG_DEBUG, "response with empty state, state unchanged (empty)");
             ByteArray empty_state(0);
             std::map<string, string> dependencies;
             ContractResponse response(*this, dependencies, empty_state, result);
@@ -271,6 +298,7 @@ ContractResponse ContractRequest::process_update_request(void)
         }
         else
         {
+            SAFE_LOG(PDO_LOG_DEBUG, "response with new state");
             ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
             ContractResponse response(*this, dependencies, new_state, result);
             return response;

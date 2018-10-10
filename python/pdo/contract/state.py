@@ -18,6 +18,8 @@ import pdo.common.crypto as crypto
 import pdo.common.utility as putils
 import sawtooth.helpers.pdo_connect
 
+import pdo.common.state as state
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -162,7 +164,9 @@ class ContractState(object) :
     # --------------------------------------------------
     def save_to_cache(self, data_dir = "./data") :
         contract_id = ContractState.safe_filename(self.contract_id)
-        state_hash = ContractState.compute_hash(self.encrypted_state, encoding='hex')
+        #state_hash = ContractState.compute_hash(self.encrypted_state, encoding='hex')
+        state_hash = ContractState.compute_hash(self.encrypted_state, encoding='b64')
+        state_hash = ContractState.safe_filename(state_hash)
 
         cache_dir = os.path.join(data_dir, self.__path__, contract_id)
         filename = putils.build_file_name(state_hash, cache_dir, '.ctx')

@@ -21,6 +21,8 @@ from pdo.submitter.submitter import Submitter
 from pdo.contract.state import ContractState
 from sawtooth.helpers.pdo_connect import PdoRegistryHelper
 
+import pdo.common.state.block_state as state
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,6 @@ class ContractResponse(object) :
         self.status = response['Status']
         self.result = response['Result']
         self.state_changed = response['StateChanged']
-
         if self.status and self.state_changed :
             self.signature = response['Signature']
             state_hash_b64 = response['StateHash']
@@ -136,10 +137,38 @@ class ContractResponse(object) :
             # Note that this channel is untrusted - must verify the retrieved data has the correct hash!
             # This is intentionally done after the signature verification
             encrypted_state_u_b64 = self.enclave_service.block_store_get(state_hash_b64)
+            #check whether this hash is redundant (blockstore does it)
             encrypted_state_u_hash_b64 = ContractState.compute_hash(encrypted_state_u_b64, encoding='b64')
             if (state_hash_b64 != encrypted_state_u_hash_b64):
                 raise Exception('Encrypted state from block store has incorrect hash!')
             self.encrypted_state = encrypted_state_u_b64;
+
+            #retrieve rest of state
+            logger.debug('retrieving state blocks for %s', crypto.byte_array_to_hex(crypto.base64_to_byte_array(state_hash_b64)))
+            while True:
+                try :
+                    #the function raises an exception when it cannot complete
+                    ba_concatenated_block_ids = state.STATE_GetStateBlockList(crypto.base64_to_byte_array(state_hash_b64))
+                    break
+                except Exception as e :
+                    #TODO check exception is right one
+                    #logger.debug('exception %s', str(e))
+                    #get id of missing block
+                    ba_missing_block_id = state.STATE_GetMissingBlockId()
+                    if ba_missing_block_id is None:
+                        raise Exception('error, missing block id is empty')
+                    logger.debug('exception caught for missing block %s', crypto.byte_array_to_hex(ba_missing_block_id))
+                    #retrieve missing block from eservice
+                    b64_missing_block_id = crypto.byte_array_to_base64(ba_missing_block_id)
+                    b64_block = self.enclave_service.block_store_get(b64_missing_block_id)
+                    if b64_block is None:
+                        raise Exception('Unable to retrieve block from EService')
+                    state.STATE_WarmUpCache(b64_missing_block_id, b64_block)
+                    contractstate_block = ContractState(request.contract_id, b64_block)
+                    contractstate_block.save_to_cache() 
+
+            state.STATE_ClearCache()
+            #TODO: check how to take advantage of keeping cache warm
 
     # -------------------------------------------------------
     def __verify_enclave_signature(self, enclave_keys) :

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 
+namespace pstate = pdo::state;
+
 ContractDispatchTableEntry* LookUpContract(std::string contract_code)
 {
     for (int i = 0; contractDisptachTable[i].project_name != NULL; i++)
@@ -45,4 +47,8 @@ void CppProcessor::send_message_to_contract(const std::string& inContractID,
     ContractDispatchTableEntry* entry = LookUpContract(inContract.Code.c_str());
     entry->contract_factory_ptr()->send_message_to_contract(inContractID, inCreatorID, inContract,
         inMessage, inContractState, outContractState, outDependencies, outMessageResult);
+}
+
+void CppProcessor::set_contract_kv(pstate::Basic_KV* contract_kv) {
+    //TODO add support
 }

@@ -21,7 +21,7 @@ FILE(GLOB PROJECT_HEADERS *.h)
 FILE(GLOB PROJECT_SOURCES *.cpp)
 FILE(GLOB HEADERS "./*.h")
 FILE(GLOB SOURCES "./*.cpp")
-SET(GENERIC_PRIVATE_INCLUDE_DIRS "." "../../crypto" "..")
+SET(GENERIC_PRIVATE_INCLUDE_DIRS "." "../../crypto" ".." "../.." "../../state")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=c++11")
 
@@ -45,4 +45,3 @@ TARGET_COMPILE_OPTIONS(${INTKEY_STATIC_NAME} PRIVATE "-fno-builtin-printf")
 TARGET_COMPILE_DEFINITIONS(${INTKEY_STATIC_NAME} PRIVATE "-DUSE_DL=1")
 
 ################################################################################
-

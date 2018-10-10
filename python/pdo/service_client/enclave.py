@@ -170,3 +170,30 @@ class EnclaveServiceClient(GenericServiceClient) :
         except :
             logger.exception('block_store_put')
             return False
+
+    # --------------------------------------------------
+    def get_state_block_list_and_cache(b64_state_hash) :
+        """
+        Retrieves the current state block list
+        :param b64_state_hash: the base64 encoding of the state hash
+        """
+        # ba = byte_array ; baa = byte_array_array
+        ba_state_hash = crypto.base64_to_byte_array(b64_state_hash)
+        while True:
+            baa_block_id_list = STATE_GetStateBlockList(b64_state_hash)
+            #either we have the block list, or a block is missing
+            if(not baa_block_id_list):
+                ba_missing_block_id = STATE_GetMissingBlock()
+                b64_missing_block_id = crypto.byte_array_to_base64(ba_missing_block_id)
+                b64_block = self.enclave_service.block_store_get(b64_missing_block_id)
+                logger.debug('missing block  %s', b64_missing_block_id)
+                STATE_WarmUpCache(b64_missing_block_id, b64_block)
+            else:
+                break
+
+        #dump list
+        logger.debug('Dump of block list:');
+        for ba_block_id in baa_block_id_list:
+            logger.debug('missing block  %s', crypto.byte_array_to_hex(ba_block_id))
+
+        return baa_block_id_list

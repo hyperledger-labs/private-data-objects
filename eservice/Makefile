@@ -28,10 +28,11 @@ SWIG_SOURCES = \
 	enclave/contract.cpp \
 	enclave/signup.cpp \
 	enclave/enclave.cpp \
+	enclave/state/untrusted_cache.cpp \
 	enclave_info.cpp \
 	signup_info.cpp \
 	contract.cpp \
-	block_store.cpp
+    block_store.cpp
 SWIG_FILES = $(addprefix pdo/eservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 
@@ -48,7 +49,7 @@ PYTHON_FILES = \
 	pdo/eservice/utility/__init__.py \
 	pdo/__init__.py
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl)
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl ${SGX_SSL}/include/*.edl)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 

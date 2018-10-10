@@ -76,6 +76,7 @@ include_dirs = [
     os.path.join(script_dir, 'build', module_path),
     os.path.join(pdo_root_dir, 'common'),
     os.path.join(pdo_root_dir, 'common', 'crypto'),
+    os.path.join(pdo_root_dir, 'common', 'state'),
     os.path.join(os.environ['SGX_SDK'],"include")
 ]
 
@@ -111,10 +112,11 @@ module_files = [
     os.path.join(module_src_path, 'enclave/contract.cpp'),
     os.path.join(module_src_path, 'enclave/signup.cpp'),
     os.path.join(module_src_path, 'enclave/enclave.cpp'),
+    os.path.join(module_src_path, 'enclave/state/untrusted_cache.cpp'),
     os.path.join(module_src_path, 'enclave_info.cpp'),
     os.path.join(module_src_path, 'signup_info.cpp'),
     os.path.join(module_src_path, 'contract.cpp'),
-    os.path.join(module_src_path, 'block_store.cpp'),
+    os.path.join(module_src_path, 'block_store.cpp')
 ]
 
 enclave_module = Extension(

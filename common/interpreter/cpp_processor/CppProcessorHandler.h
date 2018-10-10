@@ -1,5 +1,6 @@
 #pragma once
 
+#include "state.h"
 #include <map>
 #include <string>
 using namespace std;
@@ -40,6 +41,8 @@ public:
         pc::ContractState& outContractState,
         std::map<std::string, std::string>& outDependencies,
         std::string& outMessageResult);
+
+    virtual void set_contract_kv(pdo::state::Basic_KV* contract_kv);
 
 private:
     void HandleFailure();

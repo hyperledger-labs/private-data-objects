@@ -65,7 +65,7 @@ SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
                         "${SGX_SDK}/include/tlibc"
                         "${SGX_SDK}/include/libcxx")
 
-SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64")
+SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64" "../state")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 
 enable_testing()
