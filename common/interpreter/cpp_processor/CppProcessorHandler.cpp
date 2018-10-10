@@ -1,6 +1,9 @@
 #include "CppProcessorHandler.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+namespace pstate = pdo::state;
+
 extern "C" {
 void printf(const char* fmt, ...);
 }
@@ -108,6 +111,10 @@ void IntKeyCppContractWrapper::send_message_to_contract(const std::string& inCon
 
     if (!result)
         HandleFailure();
+}
+
+void IntKeyCppContractWrapper::set_contract_kv(pstate::Basic_KV* contract_kv) {
+    //TODO add support
 }
 
 void IntKeyCppContractWrapper::HandleFailure()

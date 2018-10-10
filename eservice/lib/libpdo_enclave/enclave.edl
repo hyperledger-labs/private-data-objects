@@ -20,5 +20,5 @@ enclave {
     from "signup.edl" import *;
     from "contract.edl" import *;
     from "block_store.edl" import *;
+    from "state/state.edl" import *;
 };
-

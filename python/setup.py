@@ -63,7 +63,8 @@ include_dirs = [
     os.path.join(os.environ['SGX_SDK'], "include"),
     os.path.join(pdo_root_dir, 'common'),
     os.path.join(pdo_root_dir, 'common/crypto'),
-    os.path.join(pdo_root_dir, 'common/packages/base64')
+    os.path.join(pdo_root_dir, 'common/packages/base64'),
+    os.path.join(pdo_root_dir, 'common/state')
 ] + openssl_include_dirs
 
 libraries = ['updo-common'] + openssl_libs
@@ -76,9 +77,24 @@ modulefiles = [
     "pdo/common/crypto.i"
 ]
 
+statemodulefiles = [
+    "pdo/common/state/block_state.i",
+    "pdo/common/state/extra/mock_block_store.cpp",
+    "pdo/common/state/extra/log.cpp"
+]
+
 cryptomod = Extension(
     'pdo.common._crypto',
     modulefiles,
+    swig_opts=['-c++'] + openssl_cflags + ['-I%s' % i for i in include_dirs],
+    extra_compile_args=compile_args,
+    include_dirs=include_dirs,
+    library_dirs=library_dirs,
+    libraries=libraries)
+
+statemod = Extension(
+    'pdo.common.state._block_state',
+    statemodulefiles,
     swig_opts=['-c++'] + openssl_cflags + ['-I%s' % i for i in include_dirs],
     extra_compile_args=compile_args,
     include_dirs=include_dirs,
@@ -98,7 +114,7 @@ setup(name='pdo_common_library',
       install_requires=[],
       data_files=data_files,
       namespace_packages=['pdo'],
-      ext_modules=[cryptomod],
+      ext_modules=[cryptomod, statemod],
       entry_points={}
       )
 
@@ -110,7 +126,10 @@ if "clean" in sys.argv and "--all" in sys.argv:
 
     extrafiles = [
         os.path.join(directory, "pdo", "common", "crypto.py"),
-        os.path.join(directory, "pdo", "common", "crypto_wrap.cpp")
+        os.path.join(directory, "pdo", "common", "crypto_wrap.cpp"),
+
+        os.path.join(directory, "pdo", "common", "state", "block_state.py"),
+        os.path.join(directory, "pdo", "common", "state", "block_state_wrap.cpp")
     ]
 
     for filename in extrafiles:

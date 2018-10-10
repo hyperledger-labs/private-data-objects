@@ -22,8 +22,8 @@ PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo
 PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
-SWIG_FILES = pdo/common/crypto.i
-SWIG_TARGET = pdo/common/crypto.py
+SWIG_FILES = pdo/common/crypto.i pdo/common/state/block_state.i
+SWIG_TARGET = pdo/common/crypto.py pdo/common/state/block_state.py
 COMMON_LIB = ../common/build/libupdo-common.a
 
 all: $(EGG_FILE)

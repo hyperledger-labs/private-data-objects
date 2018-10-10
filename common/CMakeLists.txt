@@ -21,10 +21,10 @@ INCLUDE(CMakeVariables.txt)
 # Common components for both trusted and untrusted common libraries
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h crypto/*.h crypto/verify_ias_report/*.h packages/base64/*.h packages/parson/*.h)
-FILE(GLOB PROJECT_SOURCES *.cpp crypto/*.cpp crypto/verify_ias_report/*.cpp packages/base64/*.cpp packages/parson/*.cpp)
+FILE(GLOB PROJECT_HEADERS *.h crypto/*.h crypto/verify_ias_report/*.h packages/base64/*.h packages/parson/*.h state/*.h)
+FILE(GLOB PROJECT_SOURCES *.cpp crypto/*.cpp crypto/verify_ias_report/*.cpp packages/base64/*.cpp packages/parson/*.cpp state/*.cpp)
 
-SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson")
+SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson" "state")
 SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} ${IAS_CA_CERT_REQUIRED_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
 pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
@@ -39,6 +39,8 @@ PROJECT(${UNTRUSTED_LIB_NAME} CXX)
 ADD_LIBRARY(${UNTRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES} packages/block_store/block_store.cpp)
 
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PRIVATE "../eservice/pdo/eservice/enclave/enclave"})
+TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PRIVATE "../eservice/pdo/eservice/enclave/enclave/state"})
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
 
 TARGET_COMPILE_OPTIONS(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS} ${OPENSSL_CFLAGS})
@@ -56,6 +58,8 @@ PROJECT(${TRUSTED_LIB_NAME} CXX)
 ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
 
 TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE "../eservice/lib/libpdo_enclave/")
+TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE "../eservice/lib/libpdo_enclave/state")
 TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
 TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SSL}/include)
 TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include/tlibc)

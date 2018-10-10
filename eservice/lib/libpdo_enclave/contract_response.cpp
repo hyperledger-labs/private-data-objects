@@ -45,6 +45,8 @@ ContractResponse::ContractResponse(const ContractRequest& request,
           request.contract_code_.ComputeHash()),
       dependencies_(dependencies)
 {
+    SAFE_LOG(PDO_LOG_DEBUG, "generating response\n");
+
     contract_id_ = request.contract_id_;
     creator_id_ = request.creator_id_;
     operation_succeeded_ = true;
@@ -55,9 +57,14 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
     contract_initializing_ = request.is_initialize();
 
+    SAFE_LOG(PDO_LOG_DEBUG, "generating response\n");
+
     output_contract_state_hash_ = contract_state_.state_hash_;
-    if (!contract_initializing_)
+    if (!contract_initializing_) {
         input_contract_state_hash_ = request.contract_state_.state_hash_;
+        SAFE_LOG(PDO_LOG_DEBUG, "input state hash: %s\n", ByteArrayToHexEncodedString(input_contract_state_hash_).c_str());
+    }
+    SAFE_LOG(PDO_LOG_DEBUG, "output state hash: %s\n", ByteArrayToHexEncodedString(output_contract_state_hash_).c_str());
 
     result_ = result;
 }
@@ -176,16 +183,6 @@ ByteArray ContractResponse::SerializeAndEncrypt(
             jret != JSONSuccess, "failed to serialize the signature");
 
         // --------------- state ---------------
-        int ret;
-        int sgx_ret;
-
-        sgx_ret = ocall_BlockStorePut(&ret, &contract_state_.state_hash_[0], contract_state_.state_hash_.size(),
-                                      &contract_state_.encrypted_state_[0], contract_state_.encrypted_state_.size());
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            sgx_ret != 0, "sgx failed during put to the block store");
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            ret != 0, "failed to put to the block store");
-
         jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
             jret != JSONSuccess, "failed to serialize the state hash");

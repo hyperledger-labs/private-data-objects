@@ -201,7 +201,6 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             sys.exit(-1)
 
         contract.set_state(initialize_response.encrypted_state)
-
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))
         sys.exit(-1)
@@ -281,7 +280,6 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
 
         logger.debug('update state')
         contract.set_state(update_response.encrypted_state)
-
     logger.info('completed in %s', time.time() - start_time)
 
 # -----------------------------------------------------------------
