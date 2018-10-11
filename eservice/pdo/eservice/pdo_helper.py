@@ -52,6 +52,14 @@ def initialize_enclave(enclave_config) :
     """
     pdo_enclave.initialize_with_configuration(enclave_config)
 
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def get_enclave_service_info() :
+    """get_enclave_service_info -- Retrieve enclave MRENCLAVE & BASENAME
+    """
+    pdo_enclave.get_enclave_service_info()
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class Enclave(object) :
