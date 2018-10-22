@@ -35,8 +35,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/tlibc")
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/libcxx")
 
 ################################################################################
-# Interpretter subdirectory
+# Gipsy subdirectory
 ################################################################################
 
-ADD_SUBDIRECTORY(gipsy_scheme)
-ADD_SUBDIRECTORY(cpp_processor)
+ADD_SUBDIRECTORY (gipsy_scheme)
