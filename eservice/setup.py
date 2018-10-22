@@ -156,7 +156,8 @@ setup(name='pdo_eservice',
       data_files = data_files,
       entry_points = {
           'console_scripts': [
-              'eservice = pdo.eservice.scripts.EServiceCLI:Main'
+              'eservice = pdo.eservice.scripts.EServiceCLI:Main',
+              'eservice-enclave-info = pdo.eservice.scripts.EServiceEnclaveInfoCLI:Main'
           ]
       }
 )
