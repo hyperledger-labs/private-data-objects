@@ -17,12 +17,25 @@
 
 
 eservice_enclave_info_file=$CONTRACTHOME"/data/EServiceEnclaveInfo.tmp"
+template_file="../pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template"
+actual_file="../pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp"
 
+# Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 Store(){
 	echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
 	python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file
 }
 
+# Load MR_ENCLAVE to be built into PService
+Load(){
+	echo "Load MR_ENCLAVE into PLACEMARK at "$actual_file
+	if [ ! -f $eservice_enclave_info_file ]; then
+		echo "Load failed! eservice_enclave_info_file not found!"
+	else
+		cmd=`echo "sed 's/MR_ENCLAVE_PLACEMARK/\`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`/' < $template_file > $actual_file"`
+		eval $cmd
+	fi
+}
 
 Store
-
+Load

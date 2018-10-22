@@ -45,6 +45,10 @@ prompt> export CONTRACTHOME=$VIRTUAL_ENV/opt/pdo
 
 For production deployment, ``CONTRACTHOME`` should be set to ``/opt/pdo``.
 
+Note: EService has to be compiled in SGX hardware-mode before compiling and running
+[PService](../../pservice/docs/BUILD.md) in hardware-mode. Any changes to the EService
+will require the PService to be recompiled.
+
 ## <a name="install">Build & Install the Modules
 
 ### <a name="python">Install additional python libraries
