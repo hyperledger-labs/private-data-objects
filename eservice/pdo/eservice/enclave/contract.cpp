@@ -38,13 +38,16 @@ std::map<std::string, std::string> contract_verify_secrets(
     Base64EncodedString encrypted_contract_key_buffer;
     Base64EncodedString signature_buffer;
 
+    pdo::enclave_queue::ReadyEnclave readyEnclave = pdo::enclave_api::base::GetReadyEnclave();
+
     pdo_err_t presult = pdo::enclave_api::contract::VerifySecrets(
         sealed_signup_data,
         contract_id,
         contract_creator_id,
         serialized_secret_list,
         encrypted_contract_key_buffer,
-        signature_buffer);
+        signature_buffer,
+        readyEnclave.getIndex());
     ThrowPDOError(presult);
 
     std::map<std::string, std::string> result;
@@ -66,12 +69,15 @@ std::string contract_handle_contract_request(
     uint32_t response_identifier;
     size_t response_size;
 
+    pdo::enclave_queue::ReadyEnclave readyEnclave = pdo::enclave_api::base::GetReadyEnclave();
+
     presult = pdo::enclave_api::contract::HandleContractRequest(
         sealed_signup_data,
         encrypted_session_key,
         serialized_request,
         response_identifier,
-        response_size);
+        response_size,
+        readyEnclave.getIndex());
     ThrowPDOError(presult);
 
     Base64EncodedString response;
@@ -79,8 +85,10 @@ std::string contract_handle_contract_request(
         sealed_signup_data,
         response_identifier,
         response_size,
-        response);
+        response,
+        readyEnclave.getIndex());
     ThrowPDOError(presult);
 
     return response;
 }
+

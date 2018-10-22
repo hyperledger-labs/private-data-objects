@@ -145,6 +145,8 @@ def initialize_with_configuration(config) :
                 '{}'.format(
                     ', '.join(sorted(list(missing_keys)))))
 
+    num_of_enclaves = int(config['num_of_enclaves']) if 'num_of_enclaves' in config else 1
+
     if not _ias:
         _ias = \
             ias_client.IasClient(
@@ -156,7 +158,7 @@ def initialize_with_configuration(config) :
     if not _pdo:
         signed_enclave = __find_enclave_library(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
-        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'])
+        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'], num_of_enclaves)
         logger.info("Basename: %s", get_enclave_basename())
         logger.info("MRENCLAVE: %s", get_enclave_measurement())
 

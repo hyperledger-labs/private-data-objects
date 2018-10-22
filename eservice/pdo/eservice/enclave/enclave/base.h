@@ -21,6 +21,7 @@
 #include "error.h"
 #include "pdo_error.h"
 #include "types.h"
+#include "enclave/enclave_queue.h"
 
 namespace pdo
 {
@@ -33,6 +34,12 @@ namespace pdo
               Tests if libpdo is built against the SGX simulator or the SGX runtime
             */
             int IsSgxSimulator();
+
+            /*
+              Returns an object with index of next available enclave as a field
+              Ensures enclave index is returned to queue in case of a crash
+            */
+            pdo::enclave_queue::ReadyEnclave GetReadyEnclave();
 
             /*
               Saves an error message for later retrieval.
@@ -59,6 +66,7 @@ namespace pdo
             pdo_err_t Initialize(
                 const std::string& inPathToEnclave,
                 const HexEncodedString& inSpid,
+                const int numOfEnclaves,
                 pdo_log_t logFunction
                 );
 
