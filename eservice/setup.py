@@ -47,13 +47,11 @@ data_files = [
     (etc_dir, [ 'etc/sample_eservice.toml' ]),
     (log_dir, []),
     (key_dir, []),
-    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')]),
-    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave_intkey.signed.so')])
+    ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')])
 ]
 
 ext_deps = [
-    'deps/bin/libpdo-enclave.signed.so',
-    'deps/bin/libpdo-enclave_intkey.signed.so'
+    'deps/bin/libpdo-enclave.signed.so'
 ]
 
 ## -----------------------------------------------------------------
