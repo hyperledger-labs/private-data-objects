@@ -26,13 +26,14 @@
 #include "packages/base64/base64.h"
 #include "parson.h"
 #include "types.h"
+#include "state.h"
 
 #include "enclave_utils.h"
 
 #include "contract_request.h"
 #include "contract_secrets.h"
 
-#include "block_store.h"
+#include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //
@@ -42,7 +43,19 @@
 //     "EncryptedStateEncryptionKey" : "<base64 encoded encrypted state encryption key>",
 //     "ContractID" : "<string>",
 //     "CreatorID" : "<string>",
-//     "EncryptedState" : ""
+//     "StateHash" : "<base64 encoded root hash of the state>"
+// }
+//
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//
+// contract KV predefined keys
+//
+// {
+//     "IntrinsicState" : "<string of scheme state>",
+//     "IdHash"         : "<string>",
+//     "CodeHash"       : "<string>"
 // }
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -51,55 +64,19 @@
 ContractState::ContractState(const ByteArray& state_encryption_key_,
     const ByteArray& newstate,
     const ByteArray& id_hash,
-    const ByteArray& code_hash)
-    : decrypted_state_(newstate)
+    const ByteArray& code_hash,
+    pdo::state::Interpreter_KV* kv)
 {
-    EncryptState(state_encryption_key_, id_hash, code_hash);
-    state_hash_ = ComputeHash();
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractState::DecryptState(const ByteArray& state_encryption_key_,
-    const ByteArray& encrypted_state,
-    const ByteArray& id_hash,
-    const ByteArray& code_hash)
-{
-    encrypted_state_ = encrypted_state;
-
-    decrypted_state_ = pdo::crypto::skenc::DecryptMessage(state_encryption_key_, encrypted_state_);
-
-    ByteArray decrypted_id_hash(
-        decrypted_state_.begin(), decrypted_state_.begin() + SHA256_DIGEST_LENGTH);
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        id_hash != decrypted_id_hash,
-        "invalid encrypted state; contract id mismatch");
-
-    ByteArray decrypted_code_hash(decrypted_state_.begin() + SHA256_DIGEST_LENGTH,
-        decrypted_state_.begin() + (SHA256_DIGEST_LENGTH << 1));
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        code_hash != decrypted_code_hash,
-        "invalid encrypted state; contract code mismatch");
-
-    decrypted_state_.erase(
-        decrypted_state_.begin(), decrypted_state_.begin() + (SHA256_DIGEST_LENGTH << 1));
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractState::EncryptState(
-    const ByteArray& state_encryption_key_, const ByteArray& id_hash, const ByteArray& code_hash)
-{
-    decrypted_state_.insert(decrypted_state_.begin(), code_hash.begin(), code_hash.end());
-    decrypted_state_.insert(decrypted_state_.begin(), id_hash.begin(), id_hash.end());
-    encrypted_state_ = pdo::crypto::skenc::EncryptMessage(state_encryption_key_, decrypted_state_);
-
-    return encrypted_state_;
+    kv->Uninit(state_hash_);
+    contract_kv_hash_ = {};
+    SAFE_LOG(PDO_LOG_DEBUG, "state hash: %s", ByteArrayToHexEncodedString(state_hash_).c_str());
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ByteArray ContractState::ComputeHash(void) const
 {
-    assert(encrypted_state_.size() > 0);
-    return pdo::crypto::ComputeMessageHash(encrypted_state_);
+    //make sure sal has been uninitialized, so to have the latest state hash
+    return state_hash_;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -115,21 +92,48 @@ void ContractState::Unpack(const ByteArray& state_encryption_key_,
         pvalue = json_object_dotget_string(object, "StateHash");
         if (pvalue != NULL && pvalue[0] != '\0')
         {
-            ByteArray decoded_state_hash = base64_decode(pvalue);
-            ByteArray encrypted_state;
-
-            pdo_err_t ret = pdo::block_store::BlockStoreGet(decoded_state_hash, encrypted_state);
-            pdo::error::ThrowIf<pdo::error::RuntimeError>(
-                ret != PDO_SUCCESS, "Failed to retrieve block from the block store");
-
-            DecryptState(state_encryption_key_, encrypted_state, id_hash, code_hash);
-
-            state_hash_ = ComputeHash();
+            state_hash_ = base64_decode(pvalue);
+            kv_ = new pdo::state::Interpreter_KV(state_hash_, state_encryption_key_);
+            {
+                std::string str = "IdHash";
+                ByteArray k(str.begin(), str.end());
+                pdo::error::ThrowIf<pdo::error::ValueError>(
+                    id_hash != kv_->PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
+            }
+            {
+                std::string str = "CodeHash";
+                ByteArray k(str.begin(), str.end());
+                pdo::error::ThrowIf<pdo::error::ValueError>(
+                    code_hash != kv_->PrivilegedGet(k), "invalid encrypted state; contract code mismatch");
+            }
+            //leave kv initialized
+        }
+        else
+        {
+            SAFE_LOG(PDO_LOG_DEBUG, "No state to unpack");
+            /* here the initial state is created */
+            ByteArray emptyId;
+            kv_ = new pdo::state::Interpreter_KV(emptyId, state_encryption_key_);
+            {
+                std::string str = "IdHash";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(id_hash);
+                kv_->PrivilegedPut(k, v);
+            }
+            {
+                std::string str = "CodeHash";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(code_hash);
+                kv_->PrivilegedPut(k, v);
+            }
+            state_hash_ = ByteArray(STATE_BLOCK_ID_LENGTH, 0);
+            //leave kv initialized
         }
     }
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR, "unable to unpack contract state");
+        kv_->Uninit(state_hash_);
         throw;
     }
 }

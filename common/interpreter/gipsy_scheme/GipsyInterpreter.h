@@ -22,6 +22,8 @@
 
 #include "ContractInterpreter.h"
 
+#include "state.h"
+
 namespace pc = pdo::contracts;
 
 #define MAX_RESULT_SIZE 16000
@@ -33,6 +35,7 @@ class GipsyInterpreter : public pc::ContractInterpreter
 private:
     std::string error_msg_;
     scheme interpreter;
+    pdo::state::Basic_KV_Plus* contract_kv_ = NULL;
 
     // load functions with throw errors when unsuccessful
 
@@ -79,4 +82,6 @@ public:
     GipsyInterpreter(void);
 
     ~GipsyInterpreter(void);
+
+    void set_contract_kv(pdo::state::Basic_KV_Plus* contract_kv);
 };

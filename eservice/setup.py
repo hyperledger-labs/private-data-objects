@@ -74,6 +74,7 @@ include_dirs = [
     os.path.join(script_dir, 'build', module_path),
     os.path.join(pdo_root_dir, 'common'),
     os.path.join(pdo_root_dir, 'common', 'crypto'),
+    os.path.join(pdo_root_dir, 'common', 'state'),
     os.path.join(os.environ['SGX_SDK'],"include")
 ]
 

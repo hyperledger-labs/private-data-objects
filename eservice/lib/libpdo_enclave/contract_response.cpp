@@ -32,8 +32,6 @@
 #include "contract_response.h"
 #include "enclave_data.h"
 
-#include "block_store.h"
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(const ContractRequest& request,
     const std::map<std::string, std::string>& dependencies,
@@ -42,7 +40,8 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     : contract_state_(request.state_encryption_key_,
           computed_state,
           Base64EncodedStringToByteArray(request.contract_id_),
-          request.contract_code_.ComputeHash()),
+          request.contract_code_.ComputeHash(),
+          request.contract_state_.kv_),
       dependencies_(dependencies)
 {
     contract_id_ = request.contract_id_;
@@ -56,8 +55,11 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     contract_initializing_ = request.is_initialize();
 
     output_contract_state_hash_ = contract_state_.state_hash_;
-    if (!contract_initializing_)
+    if (!contract_initializing_) {
         input_contract_state_hash_ = request.contract_state_.state_hash_;
+        SAFE_LOG(PDO_LOG_DEBUG, "input state hash: %s", ByteArrayToHexEncodedString(input_contract_state_hash_).c_str());
+    }
+    SAFE_LOG(PDO_LOG_DEBUG, "output state hash: %s", ByteArrayToHexEncodedString(output_contract_state_hash_).c_str());
 
     result_ = result;
 }
@@ -176,10 +178,6 @@ ByteArray ContractResponse::SerializeAndEncrypt(
             jret != JSONSuccess, "failed to serialize the signature");
 
         // --------------- state ---------------
-        pdo_err_t ret = pdo::block_store::BlockStorePut(contract_state_.state_hash_, contract_state_.encrypted_state_);
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            ret != PDO_SUCCESS, "failed to put to the block store");
-
         jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
             jret != JSONSuccess, "failed to serialize the state hash");

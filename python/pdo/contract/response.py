@@ -101,7 +101,6 @@ class ContractResponse(object) :
         self.status = response['Status']
         self.result = response['Result']
         self.state_changed = response['StateChanged']
-
         if self.status and self.state_changed :
             self.signature = response['Signature']
             state_hash_b64 = response['StateHash']
@@ -136,10 +135,26 @@ class ContractResponse(object) :
             # Note that this channel is untrusted - must verify the retrieved data has the correct hash!
             # This is intentionally done after the signature verification
             encrypted_state_u_b64 = self.enclave_service.block_store_get(state_hash_b64)
+            #check whether this hash is redundant (blockstore does it)
             encrypted_state_u_hash_b64 = ContractState.compute_hash(encrypted_state_u_b64, encoding='b64')
             if (state_hash_b64 != encrypted_state_u_hash_b64):
                 raise Exception('Encrypted state from block store has incorrect hash!')
             self.encrypted_state = encrypted_state_u_b64;
+
+            #retrieve rest of state
+            logger.debug('retrieving state blocks for %s', crypto.byte_array_to_hex(crypto.base64_to_byte_array(state_hash_b64)))
+            string_main_state_block = crypto.byte_array_to_string(crypto.base64_to_byte_array(encrypted_state_u_b64))
+            string_main_state_block = string_main_state_block.rstrip('\0')
+            logger.debug("json blob in main state block: %s", string_main_state_block)
+            json_main_state_block = json.loads(string_main_state_block)
+            for hex_str_block_id in json_main_state_block['BlockIds']:
+                logger.debug("block id: %s", hex_str_block_id)
+                b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_str_block_id))
+                b64_block = self.enclave_service.block_store_get(b64_block_id)
+                if b64_block is None:
+                        raise Exception('Unable to retrieve block from EService')
+                contractstate_block = ContractState(request.contract_id, b64_block)
+                contractstate_block.save_to_cache()
 
     # -------------------------------------------------------
     def __verify_enclave_signature(self, enclave_keys) :
