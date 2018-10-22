@@ -136,13 +136,6 @@ PSW, and SDK. You can find the Linux installation instructions for SGX at the
 to install Intel SGX SDK in /opt/intel/sgxsdk because the SGX OpenSSL library
 expects the Intel SGX SDK in this location by default.
 
-Also, if using PDO jointly with Sawtooth, you will need to set
-up the ledger with the appropriate parameters
-([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
-for the validation of attestation verifications from the Intel Attestation Service (IAS).
-Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
-For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
-
 You will need to import the Intel IAS Attestation Report Signing CA Certificate,
 in order to enable the verification of attestation inside enclaves. From the project root folder,
 simply make sure you have a working internet connection and type the following:
@@ -153,9 +146,33 @@ cd common/crypto/verify_ias_report
 The script will download the root IAS certificate from the Intel website and
 import it in the enclave code.
 
-Finally, make sure you have the `SGX_SDK` and `LD_LIBRARY_PATH` environment variables
+Make sure you have the `SGX_SDK` and `LD_LIBRARY_PATH` environment variables
 active for your current shell session before continuing. They are normally set
 by sourcing the SGX SDK activation script (e.g. `source /opt/intel/sgxsdk/environment`).
+
+Also, if using PDO jointly with Sawtooth, you will need to set up the ledger with the appropriate parameters
+([here](https://github.com/hyperledger-labs/private-data-objects/blob/master/sawtooth/docs/SETUP.md))
+for the validation of attestation verifications from the Intel Attestation Service (IAS).
+Namely: the enclave measurement, the basename and Intel Attestation Service (IAS) public key.
+For information on how to create and register a certificate with IAS see [here](eservice/docs/REQUIREMENTS.md).
+
+Ledger registration can be done after build through a script in the eservice directory,
+given the required environment variables are set. You will need:
+
+- `PDO_LEDGER_KEY`
+Needs to be set to the hexadecimal private key for modifying ledger settings.
+
+- `LEDGER_URL`
+The URL of the ledger you wish to register with.
+
+- `SPID`
+Service provided ID that accompanies certificate registered with Intel Attestation Service (IAS).
+
+Upon a successful EService build, the ledger registration script can be run by:
+```
+cd eservice
+./register_with_ledger.sh
+```
 
 ## SGX in Simulator-mode
 Simulated SGX mode can be run on any system, regardless of SGX hardware
