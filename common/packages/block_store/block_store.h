@@ -36,17 +36,19 @@ namespace pdo
          * Gets the size of a block in the block store
          * Primary expected use: ocall
          *
-         * @param inKey         pointer to raw key byte array
-         * @param inKeySize     length of inKey
-         * @param outValueSize  size (in # bytes) of value will be written here
+         * @param inId          pointer to id byte array
+         * @param inIdSize      length of inId
+         * @param outIsPresent  [output] true if value is present, false if not
+         * @param outValueSize  [output] size (in # bytes) of value if present
          *
          * @return
-         *  Success (return 0) - outValueSize set to the number of bytes of raw value
-         *  Failure (return nonzero) - outValueSize undefined
+         *  PDO_SUCCESS  outValueSize set to the number of bytes of value
+         *  else         failed, outValueSize undefined
          */
-        int BlockStoreHead(
-            const uint8_t* inKey,
-            const size_t inKeySize,
+        pdo_err_t BlockStoreHead(
+            const uint8_t* inId,
+            const size_t inIdSize,
+            bool* outIsPresent,
             size_t* outValueSize
             );
 
@@ -54,18 +56,18 @@ namespace pdo
          * Gets a block from the block store
          * Primary expected use: ocall
          *
-         * @param inKey         pointer to raw key byte array
-         * @param inKeySize     length of inKey
-         * @param outValue      buffer where value should be copied
+         * @param inId          pointer to id byte array
+         * @param inIdSize      length of inId
+         * @param outValue      [output] buffer where value should be copied
          * @param inValueSize   length of caller's outValue buffer
          *
          * @return
-         *  Success (return 0) - outValue contains the requested block
-         *  Failure (return nonzero) - outValue unchanged
+         *  PDO_SUCCESS  outValue contains the requested block
+         *  else         failed, outValue unchanged
          */
-        int BlockStoreGet(
-            const uint8_t* inKey,
-            const size_t inKeySize,
+        pdo_err_t BlockStoreGet(
+            const uint8_t* inId,
+            const size_t inIdSize,
             uint8_t *outValue,
             const size_t inValueSize
             );
@@ -74,18 +76,18 @@ namespace pdo
          * Puts a block into the block store
          * Primary expected use: ocall
          *
-         * @param inKey         pointer to raw key byte array
-         * @param inKeySize     length of inKey
-         * @param inValue       pointer to raw value byte array
+         * @param inId          pointer to id byte array
+         * @param inIdSize      length of inId
+         * @param inValue       pointer to value byte array
          * @param inValueSize   length of inValue
          *
          * @return
-         *  Success (return 0) - key->value stored
-         *  Failure (return nonzero) - block store unchanged
+         *  PDO_SUCCESS  id->value stored
+         *  else         failed, block store unchanged
          */
-        int BlockStorePut(
-            const uint8_t* inKey,
-            const size_t inKeySize,
+        pdo_err_t BlockStorePut(
+            const uint8_t* inId,
+            const size_t inIdSize,
             const uint8_t* inValue,
             const size_t inValueSize
             );
@@ -94,29 +96,34 @@ namespace pdo
          * Gets the size of a block in the block store
          * Primary expected use: python / untrusted side
          *
-         * @param inKey     raw bytes
+         * @param inId          id byte array
+         * @param outIsPresent  [output] true if value is present, false if not
+         * @param outValueSize  [output] size (in # bytes) of value if present
          *
          * @return
-         *  Block present - return size of block
-         *  Block not present - return -1
+         *  PDO_SUCCESS  outValueSize set to the number of bytes of value
+         *  else         failed, outValueSize undefined
          */
-        int BlockStoreHead(
-            const ByteArray& inKey
+        pdo_err_t BlockStoreHead(
+            const ByteArray& inId,
+            bool* outIsPresent,
+            size_t* outValueSize
             );
 
         /**
          * Gets a block from the block store
          * Primary expected use: python / untrusted side
          *
-         * @param inKey     raw bytes
-         * @param outValue  raw bytes
+         * @param inId      id byte array
+         * @param outValue  [output] where block data will be written
          *
          * @return
-         *  Success (return 0) - outValue resized and contains block data
-         *  Failure (return nonzero) - outValue unchanged
+         *  PDO_SUCCESS   outValue contains the requested block
+         *  PDO_ERR_VALUE block was not present in the block store
+         *  else          failed, outValue unchanged
          */
         pdo_err_t BlockStoreGet(
-            const ByteArray& inKey,
+            const ByteArray& inId,
             ByteArray& outValue
             );
 
@@ -124,15 +131,15 @@ namespace pdo
          * Puts a block into the block store
          * Primary expected use: python / untrusted side
          *
-         * @param inKey     raw bytes
-         * @param inValue   raw bytes
+         * @param inId      id byte array
+         * @param inValue   block data to write
          *
          * @return
-         *  Success (return PDO_SUCCESS) - key->value stored
-         *  Failure (return nonzero) - block store unchanged
+         *  PDO_SUCCESS  id->value stored
+         *  else         failed, block store unchanged
          */
         pdo_err_t BlockStorePut(
-            const ByteArray& inKey,
+            const ByteArray& inId,
             const ByteArray& inValue
             );
 

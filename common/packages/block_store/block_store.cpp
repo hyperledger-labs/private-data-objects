@@ -13,16 +13,16 @@
  * limitations under the License.
  */
 
+#include <bits/stdc++.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
-#include <bits/stdc++.h>
 
-#include "pdo_error.h"
 #include "error.h"
-#include "types.h"
 #include "hex_string.h"
+#include "pdo_error.h"
+#include "types.h"
 
 #include "block_store.h"
 
@@ -39,180 +39,179 @@ static pthread_spinlock_t lock;
 
 pdo_err_t pdo::block_store::BlockStoreInit()
 {
-	int ret;
+    int ret;
 
-	ret = pthread_spin_init(&lock, PTHREAD_PROCESS_SHARED);
-	if (ret != 0) {
-		Log(PDO_LOG_DEBUG, "Failed to init block store spinlock: %d", ret);
-		return PDO_ERR_SYSTEM;
-	}
+    ret = pthread_spin_init(&lock, PTHREAD_PROCESS_SHARED);
+    if (ret != 0)
+    {
+        Log(PDO_LOG_DEBUG, "Failed to init block store spinlock: %d", ret);
+        return PDO_ERR_SYSTEM;
+    }
 
-	return PDO_SUCCESS;
+    return PDO_SUCCESS;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int pdo::block_store::BlockStoreHead(
-    const uint8_t *inKey,
-    const size_t inKeySize,
-    size_t *outValueSize
+pdo_err_t pdo::block_store::BlockStoreHead(
+    const uint8_t* inId,
+    const size_t inIdSize,
+    bool* outIsPresent,
+    size_t* outValueSize
 )
 {
-	int result = PDO_SUCCESS;
-	std::string keyStr = BinaryToHexString(inKey, inKeySize);
-	Log(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", keyStr.c_str());
+    std::string keyStr = BinaryToHexString(inId, inIdSize);
+    Log(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", keyStr.c_str());
 
-	// **********
-	// LOCK
-	pthread_spin_lock(&lock);
+    // **********
+    // LOCK
+    pthread_spin_lock(&lock);
 
-	if (map.find(keyStr) == map.end()) {
-		Log(PDO_LOG_DEBUG, "Failed to find key in block store map: '%s'",
-		    keyStr.c_str());
-		result = PDO_ERR_VALUE;
-		goto done;
-	} else {
-		std::string valueStr = map[keyStr];
-		Log(PDO_LOG_DEBUG, "Block store found key: '%s' -> '%s'",
-		    keyStr.c_str(), valueStr.c_str());
+    if (map.find(keyStr) == map.end())
+    {
+        Log(PDO_LOG_DEBUG, "Failed to find key in block store map: '%s'", keyStr.c_str());
+        *outIsPresent = false;
+    }
+    else
+    {
+        std::string valueStr = map[keyStr];
+        Log(PDO_LOG_DEBUG, "Block store found key: '%s' -> '%s'", keyStr.c_str(), valueStr.c_str());
 
-		*outValueSize = valueStr.size() / 2;
-		result = PDO_SUCCESS;
-	}
+        *outIsPresent = true;
+        *outValueSize = valueStr.size() / 2;
+    }
 
-done:
-	pthread_spin_unlock(&lock);
-	// UNLOCK
-	// **********
+    pthread_spin_unlock(&lock);
+    // UNLOCK
+    // **********
 
-	return result;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int pdo::block_store::BlockStoreGet(
-    const uint8_t *inKey,
-    const size_t inKeySize,
-    uint8_t *outValue,
-    const size_t inValueSize
-)
-{
-	int result = PDO_SUCCESS;
-	std::string keyStr = BinaryToHexString(inKey, inKeySize);
-	Log(PDO_LOG_DEBUG, "Block store get: '%s'", keyStr.c_str());
-
-	// **********
-	// LOCK
-	pthread_spin_lock(&lock);
-
-	if (map.find(keyStr) == map.end()) {
-		Log(PDO_LOG_DEBUG, "Failed to find key in block store map: '%s'",
-		    keyStr.c_str());
-		result = PDO_ERR_VALUE;
-		goto done;
-	} else {
-		std::string valueStr = map[keyStr];
-		Log(PDO_LOG_DEBUG, "Block store found key: '%s' -> '%s'",
-		    keyStr.c_str(), valueStr.c_str());
-
-		size_t storedValSize = valueStr.size() / 2;
-		if (inValueSize != storedValSize) {
-			Log(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu",
-			    inValueSize, storedValSize);
-			result = PDO_ERR_VALUE;
-			goto done;
-		}
-
-		// Deserialize the data from the cache into the buffer
-		HexStringToBinary(outValue, inValueSize, valueStr);
-
-		result = PDO_SUCCESS;
-	}
-
-done:
-	pthread_spin_unlock(&lock);
-	// UNLOCK
-	// **********
-
-	return result;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int pdo::block_store::BlockStorePut(
-    const uint8_t *inKey,
-    const size_t inKeySize,
-    const uint8_t *value,
-    const size_t inValueSize
-)
-{
-	std::string keyStr = BinaryToHexString(inKey, inKeySize);
-	std::string valueStr = BinaryToHexString(value, inValueSize);
-
-	Log(PDO_LOG_DEBUG, "Block store Put: %zu bytes '%s' -> %zu bytes '%s'",
-	    inKeySize, keyStr.c_str(), inValueSize, valueStr.c_str());
-	// **********
-	// LOCK
-	pthread_spin_lock(&lock);
-
-	map[keyStr] = valueStr;
-
-	pthread_spin_unlock(&lock);
-	// UNLOCK
-	// **********
-
-	return PDO_SUCCESS;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int pdo::block_store::BlockStoreHead(
-    const ByteArray &inKey
-)
-{
-	size_t value_size;
-
-	// Fetch the state from the block storage
-	pdo_err_t result = (pdo_err_t)BlockStoreHead(inKey.data(), inKey.size(), &value_size);
-	if (result != PDO_SUCCESS) {
-		// No data found - return -1 for size
-		return -1;
-	}
-
-	// Found data - return its size
-	return (int)value_size;
+    return PDO_SUCCESS;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::block_store::BlockStoreGet(
-    const ByteArray &inKey,
-    ByteArray &outValue
+    const uint8_t* inId,
+    const size_t inIdSize,
+    uint8_t* outValue,
+    const size_t inValueSize
 )
 {
-	pdo_err_t result = PDO_SUCCESS;
+    pdo_err_t result = PDO_SUCCESS;
+    std::string keyStr = BinaryToHexString(inId, inIdSize);
+    Log(PDO_LOG_DEBUG, "Block store get: '%s'", keyStr.c_str());
 
-	// Get the size of the state block
-	size_t value_size;
-	result = (pdo_err_t)BlockStoreHead(inKey.data(), inKey.size(), &value_size);
-	if (result != PDO_SUCCESS) {
-		return result;
-	}
+    // **********
+    // LOCK
+    pthread_spin_lock(&lock);
 
-	// Resize the output array
-	outValue.resize(value_size);
+    if (map.find(keyStr) == map.end())
+    {
+        Log(PDO_LOG_DEBUG, "Failed to find key in block store map: '%s'", keyStr.c_str());
+        result = PDO_ERR_VALUE;
+        goto done;
+    }
+    else
+    {
+        std::string valueStr = map[keyStr];
+        Log(PDO_LOG_DEBUG, "Block store found key: '%s' -> '%s'", keyStr.c_str(), valueStr.c_str());
 
-	// Fetch the state from the block storage
-	result = (pdo_err_t)BlockStoreGet(inKey.data(), inKey.size(),
-	                                  &outValue[0], value_size);
-	if (result != PDO_SUCCESS) {
-		return result;
-	}
+        size_t storedValSize = valueStr.size() / 2;
+        if (inValueSize != storedValSize)
+        {
+            Log(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu", inValueSize,
+                storedValSize);
+            result = PDO_ERR_VALUE;
+            goto done;
+        }
 
-	return result;
+        // Deserialize the data from the cache into the buffer
+        HexStringToBinary(outValue, inValueSize, valueStr);
+
+        result = PDO_SUCCESS;
+    }
+
+done:
+    pthread_spin_unlock(&lock);
+    // UNLOCK
+    // **********
+
+    return result;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::block_store::BlockStorePut(
-    const ByteArray &inKey,
+    const uint8_t* inId,
+    const size_t inIdSize,
+    const uint8_t* inValue,
+    const size_t inValueSize
+)
+{
+    std::string keyStr = BinaryToHexString(inId, inIdSize);
+    std::string valueStr = BinaryToHexString(inValue, inValueSize);
+
+    Log(PDO_LOG_DEBUG, "Block store Put: %zu bytes '%s' -> %zu bytes '%s'", inIdSize,
+        keyStr.c_str(), inValueSize, valueStr.c_str());
+    // **********
+    // LOCK
+    pthread_spin_lock(&lock);
+
+    map[keyStr] = valueStr;
+
+    pthread_spin_unlock(&lock);
+    // UNLOCK
+    // **********
+
+    return PDO_SUCCESS;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::block_store::BlockStoreHead(
+    const ByteArray& inId,
+    bool* outIsPresent,
+    size_t* outValueSize
+)
+{
+    return BlockStoreHead(inId.data(), inId.size(), outIsPresent, outValueSize);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::block_store::BlockStoreGet(
+    const ByteArray& inId,
+    ByteArray& outValue
+)
+{
+    pdo_err_t result = PDO_SUCCESS;
+
+    // Get the size of the state block
+    bool isPresent;
+    size_t value_size;
+    result = BlockStoreHead(inId.data(), inId.size(), &isPresent, &value_size);
+    if (result != PDO_SUCCESS)
+    {
+        return result;
+    }
+    else if (!isPresent)
+    {
+        return PDO_ERR_VALUE;
+    }
+
+    // Resize the output array
+    outValue.resize(value_size);
+
+    // Fetch the state from the block storage
+    result = BlockStoreGet(inId.data(), inId.size(), &outValue[0], value_size);
+    if (result != PDO_SUCCESS)
+    {
+        return result;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::block_store::BlockStorePut(
+    const ByteArray &inId,
     const ByteArray &inValue
 )
 {
-	return (pdo_err_t)BlockStorePut(inKey.data(), inKey.size(),
-	                                inValue.data(), inValue.size());
+    return BlockStorePut(inId.data(), inId.size(), inValue.data(), inValue.size());
 }

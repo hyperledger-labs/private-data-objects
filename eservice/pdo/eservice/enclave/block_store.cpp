@@ -40,7 +40,22 @@ int block_store_head(
 {
     ByteArray raw_key = base64_decode(key_b64);
 
-    return pdo::block_store::BlockStoreHead(raw_key);
+    bool is_present;
+    size_t value_size;
+    pdo_err_t presult = pdo::block_store::BlockStoreHead(raw_key, &is_present, &value_size);
+    ThrowPDOError(presult);
+
+    /*
+     * TODO
+     *
+     * It would be better to provide a "block not found" error to the client via another
+     * mechanism (404 error?) instead of returning a negative size.
+     */
+    if (is_present) {
+        return (int)value_size;
+    } else {
+        return -1;
+    }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
