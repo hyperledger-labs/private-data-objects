@@ -91,12 +91,17 @@ void _SetLogger(
     }
 } // _SetLogger
 
+PyGILState_STATE gstate;
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void PyLog(
     pdo_log_level_t type,
     const char *msg
     )
 {
+    //Ensures GIL is available on current thread for python callbacks
+    gstate = PyGILState_Ensure();
+
     if(!glogger) {
         printf("PyLog called before logger set, msg %s \n", msg);
         return;
@@ -129,6 +134,9 @@ void PyLog(
             break;
     }
     Py_DECREF(string);
+    PyGILState_Release(gstate);
+    //Releases GIL for other threads
+
 } // PyLog
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
