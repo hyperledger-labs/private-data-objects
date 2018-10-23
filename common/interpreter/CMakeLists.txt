@@ -15,24 +15,26 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
 ################################################################################
-# Common components for both trusted and untrusted variants
+# Interpreter
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h)
-FILE(GLOB PROJECT_SOURCES *.cpp)
+if(NOT UNTRUSTED_ONLY)
+	FILE(GLOB PROJECT_HEADERS *.h)
+	FILE(GLOB PROJECT_SOURCES *.cpp)
 
-PROJECT(pdo_contracts CXX)
+	PROJECT(pdo_contracts CXX)
 
-ADD_LIBRARY(${PROJECT_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
+	ADD_LIBRARY(${PROJECT_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
 
-TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -fpic -Wno-write-strings -std=c++11)
-TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-nostdinc")
-TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-nostdinc++")
-TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-fno-builtin-printf")
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -fpic -Wno-write-strings -std=c++11)
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-nostdinc")
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-nostdinc++")
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE "-fno-builtin-printf")
 
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include")
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/tlibc")
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/libcxx")
+	TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include")
+	TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/tlibc")
+	TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "${SGX_SDK}/include/libcxx")
+endif()
 
 ################################################################################
 # Gipsy subdirectory
