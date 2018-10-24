@@ -21,6 +21,8 @@
 #include "c11_support.h"
 #include "error.h"
 
+#include "packages/block_store/block_store.h"
+
 #ifdef DEBUG
     #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
 #else // DEBUG not defined
@@ -86,29 +88,6 @@ state_status_t sebio_evict(
     return sebio_ctx.f_sebio_evict(block, block_size, crypto_algo, idOnEviction);
 }
 
-#if _UNTRUSTED_ == 1
-    #include "packages/block_store/block_store.h"
-    #define wrapper_ocall_BlockStoreHead pdo::block_store::BlockStoreHead
-    #define wrapper_ocall_BlockStoreGet pdo::block_store::BlockStoreGet
-    #define wrapper_ocall_BlockStorePut pdo::block_store::BlockStorePut
-#else // _UNTRUSTED_ == 0
-    //#include "wrapper_ocall_BlockStore.h"
-    extern int wrapper_ocall_BlockStoreHead(
-        const uint8_t* inKey,
-        size_t inKeySize,
-        size_t* outValueSize);
-    extern int wrapper_ocall_BlockStoreGet(
-        const uint8_t* inKey,
-        size_t inKeySize,
-        uint8_t* outValue,
-        size_t inValueSize);
-    extern int wrapper_ocall_BlockStorePut(
-        const uint8_t* inKey,
-        size_t inKeySize,
-        const uint8_t* inValue,
-        size_t inValueSize);
-#endif // _UNTRUSTED_
-
 /*
     The fetch function gets a block from the block store.
     It requests first the size of a block,
@@ -125,46 +104,36 @@ state_status_t sebio_fetch_from_block_store(
     uint8_t** block,
     size_t* block_size) {
 
+    ByteArray baBlockId(block_id, block_id + block_id_size);
+    ByteArray baBlock;
     uint8_t* tas_block_address;
     size_t tas_block_size;
-    size_t uas_block_size;
     *block = NULL;
 
-    int ret;
-    ret = wrapper_ocall_BlockStoreHead(block_id, block_id_size, &uas_block_size);
-    if(ret != 0) {
-        SAFE_LOG(PDO_LOG_ERROR, "sebio error, block store head returned %d\n", ret);
-        return STATE_ERR_NOT_FOUND;
-    }
-
-    //allocate memory for the block in trusted address space
-    tas_block_size = uas_block_size;
-    tas_block_address = (uint8_t*) malloc(tas_block_size);
-    if(!tas_block_address) {
-        SAFE_LOG(PDO_LOG_ERROR, "sebio error, out of memory\n");
-        return STATE_ERR_MEMORY;
-    }
     //load the data
-    ret = wrapper_ocall_BlockStoreGet(block_id, block_id_size, tas_block_address, tas_block_size);
-    if(ret!=0) {
-        SAFE_LOG(PDO_LOG_ERROR, "error, block store get returned %d\n", ret);
+    pdo_err_t ret;
+    ret = pdo::block_store::BlockStoreGet(baBlockId, baBlock);
+    if(ret != PDO_SUCCESS) {
+        SAFE_LOG(PDO_LOG_ERROR, "sebio error, BlockStoreGet returned %d\n", ret);
         return STATE_ERR_NOT_FOUND;
     }
 
     //check block hash == block id
-    ByteArray baBlockId(block_id, block_id + block_id_size);
-    ByteArray baBlock(tas_block_address, tas_block_address + tas_block_size);
     ByteArray computedId = pdo::crypto::ComputeMessageHash(baBlock);
-
     if(baBlockId != computedId) {
-        free(tas_block_address);
         return STATE_ERR_BLOCK_AUTHENTICATION;
     }
 
     //decrypt if necessary
     switch(crypto_algo) {
         case SEBIO_NO_CRYPTO: {
-            //do nothing
+            tas_block_size = baBlock.size();
+            tas_block_address = (uint8_t*) malloc(tas_block_size);
+            if(!tas_block_address) {
+                SAFE_LOG(PDO_LOG_DEBUG, "sebio error, out of memory");
+                return STATE_ERR_MEMORY;
+            }
+            memcpy_s(tas_block_address, tas_block_size, baBlock.data(), baBlock.size());
             break;
         }
         case SEBIO_AES_GCM: {
@@ -172,7 +141,6 @@ state_status_t sebio_fetch_from_block_store(
                     sebio_ctx.crypto_algo != crypto_algo, "sebio_fetch, crypto-algo does not match");
             ByteArray decryptedState;
             decryptedState = pdo::crypto::skenc::DecryptMessage(sebio_ctx.key, baBlock);
-            free(tas_block_address);
             tas_block_size = decryptedState.size();
             tas_block_address = (uint8_t*) malloc(tas_block_size);
             if(!tas_block_address) {
@@ -183,7 +151,6 @@ state_status_t sebio_fetch_from_block_store(
             break;
         }
         default:
-            free(tas_block_address);
             return STATE_ERR_UNIMPLEMENTED;
     }
 
@@ -210,7 +177,7 @@ state_status_t sebio_evict_to_block_store(
     switch(crypto_algo) {
         case SEBIO_NO_CRYPTO: {
             idOnEviction = pdo::crypto::ComputeMessageHash(baBlockCopy);
-            ret = wrapper_ocall_BlockStorePut(idOnEviction.data(), idOnEviction.size(), block, block_size);
+            ret = pdo::block_store::BlockStorePut(idOnEviction, baBlockCopy);
             break;
         }
         case SEBIO_AES_GCM: {
@@ -221,8 +188,7 @@ state_status_t sebio_evict_to_block_store(
             //compute block id before it is evicted
             //Notice: since the block may have been encrypted, we propagate this id to the upper layers
             idOnEviction = pdo::crypto::ComputeMessageHash(baEncryptedBlock);
-            ret = wrapper_ocall_BlockStorePut(idOnEviction.data(), idOnEviction.size(),
-                    baEncryptedBlock.data(), baEncryptedBlock.size());
+            ret = pdo::block_store::BlockStorePut(idOnEviction, baEncryptedBlock);
             break;
         }
         default:

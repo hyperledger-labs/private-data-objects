@@ -101,6 +101,7 @@ class ContractResponse(object) :
         self.status = response['Status']
         self.result = response['Result']
         self.state_changed = response['StateChanged']
+
         if self.status and self.state_changed :
             self.signature = response['Signature']
             state_hash_b64 = response['StateHash']
