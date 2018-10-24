@@ -14,22 +14,26 @@
  */
 
 enclave {
+    include "stdbool.h"
+    include "pdo_error.h"
+
     trusted {
     };
 
     untrusted {
-        int ocall_BlockStoreHead([in, size=inKeySize] const uint8_t* inKey,
-                                 size_t inKeySize,
-                                 [out] size_t* outValueSize);
+        pdo_err_t ocall_BlockStoreHead([in, size=inKeySize] const uint8_t* inKey,
+                                       size_t inKeySize,
+                                       [out] bool* outIsPresent,
+                                       [out] size_t* outValueSize);
 
-        int ocall_BlockStoreGet([in, size=inKeySize] const uint8_t* inKey,
-                                size_t inKeySize,
-                                [out, size=inValueSize] uint8_t* outValue,
-                                size_t inValueSize);
+        pdo_err_t ocall_BlockStoreGet([in, size=inKeySize] const uint8_t* inKey,
+                                      size_t inKeySize,
+                                      [out, size=inValueSize] uint8_t* outValue,
+                                      size_t inValueSize);
 
-        int ocall_BlockStorePut([in, size=inKeySize] const uint8_t* inKey,
-                                size_t inKeySize,
-                                [in, size=inValueSize] const uint8_t* inValue,
-                                size_t inValueSize);
+        pdo_err_t ocall_BlockStorePut([in, size=inKeySize] const uint8_t* inKey,
+                                      size_t inKeySize,
+                                      [in, size=inValueSize] const uint8_t* inValue,
+                                      size_t inValueSize);
     };
 };
