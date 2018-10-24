@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-def LocalMain(save_path) :
+def LocalMain(spid, save_path) :
     try :
         logger.debug('initialize the enclave')
-        pdo_enclave_helper.get_enclave_service_info()
+        pdo_enclave_helper.get_enclave_service_info(spid)
 
         logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
         with open(save_path, "w") as file :
@@ -56,9 +56,11 @@ ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "dat
 # -----------------------------------------------------------------
 def Main() :
     save_path = os.path.realpath(os.path.join(ContractData, "EServiceEnclaveInfo.tmp"))
+    spid = os.environ.get("PDO_SPID") if "PDO_SPID" in os.environ else "00000000000000000000000000000000"
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--spid', help='SPID to generate enclave basename', type=str)
     parser.add_argument('--save', help='Where to save MR_ENCLAVE and BASENAME', type=str)
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
@@ -68,6 +70,10 @@ def Main() :
     # Location to save MR_ENCLAVE and MR_BASENAME
     if options.save :
         save_path = options.save
+
+    if options.spid :
+        spid = options.spid
+
 
     LogConfig = {}
     LogConfig['Logging'] = {
@@ -85,7 +91,7 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # GO!
-    LocalMain(save_path)
+    LocalMain(spid, save_path)
 
 ## -----------------------------------------------------------------
 ## Entry points

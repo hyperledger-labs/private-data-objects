@@ -15,13 +15,20 @@
 # limitations under the License.
 
 
-
 eservice_enclave_info_file=$CONTRACTHOME"/data/EServiceEnclaveInfo.tmp"
+SPID=$PDO_SPID
+
+#Set SPID to parameter if passed
+if (( "$#" == 1 ))
+then
+    SPID=$1
+fi
 
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 Store(){
+	echo "PDO_SPID" "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
 	echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
-	python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file
+	python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --spid $SPID --save $eservice_enclave_info_file
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
@@ -30,19 +37,17 @@ Register(){
 	if [ ! -f $eservice_enclave_info_file ]; then
 		echo "Registration failed! eservice_enclave_info_file not found!"
 	else
-		cmd=`echo "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.measurements \`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`"`
-		eval $cmd
-		cmd=`echo "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.measurements \`cat $eservice_enclave_info_file | grep -o 'BASENAME:.*' | cut -f2- -d:\`"`
-		eval $cmd
+		echo "LEDGER_URL " "${LEDGER_URL:?Registration failed! LEDGER_URL environment variable not set}"
+		echo "PDO_LEDGER_KEY" "${PDO_LEDGER_KEY:?Registration failed! PDO_LEDGER_KEY environment variable not set}"
+		echo "PDO_IAS_KEY" "${PDO_IAS_KEY:?Registration failed! PDO_IAS_KEY environment variable not set}"
+
+		eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.measurements \`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`"
+		eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.basenames \`cat $eservice_enclave_info_file | grep -o 'BASENAME:.*' | cut -f2- -d:\`"
+		eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.public_key \"$(cat $PDO_IAS_KEY)\""
 	fi
 }
 
-
-
 if [ "$SGX_MODE" = "HW" ]; then
-	echo "LEDGER_URL " "${LEDGER_URL:?Registration failed! LEDGER_URL environment variable not set}"
-	echo "PDO_LEDGER_KEY" "${PDO_LEDGER_KEY:?Registration failed! PDO_LEDGER_KEY environment variable not set}"
-	echo "SPID" "${SPID:?Registration failed! SPID environment variable not set}"
 	Store
 	Register
 else

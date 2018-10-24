@@ -191,7 +191,7 @@ def shutdown():
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def get_enclave_service_info() :
+def get_enclave_service_info(spid) :
     global _pdo
     global _ias
     global logger
@@ -199,8 +199,6 @@ def get_enclave_service_info() :
     enclave._SetLogger(logger)
 
     num_of_enclaves = 1
-
-    spid = os.environ.get("SPID") if "SPID" in os.environ else "00000000000000000000000000000000"
 
     if not _pdo:
         signed_enclave = __find_enclave_library(None)
