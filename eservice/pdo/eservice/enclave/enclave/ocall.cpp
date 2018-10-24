@@ -59,16 +59,17 @@ extern "C" {
         }
     } // ocall_SetErrorMessage
 
-    int ocall_BlockStoreHead(
+    pdo_err_t ocall_BlockStoreHead(
         const uint8_t* inKey,
         const size_t inKeySize,
+        bool* outIsPresent,
         size_t* outValueSize
         )
     {
-        return pdo::block_store::BlockStoreHead(inKey, inKeySize, outValueSize);
+        return pdo::block_store::BlockStoreHead(inKey, inKeySize, outIsPresent, outValueSize);
     } // ocall_BlockStoreHead
 
-    int ocall_BlockStoreGet(
+    pdo_err_t ocall_BlockStoreGet(
         const uint8_t* inKey,
         const size_t inKeySize,
         uint8_t *outValue,
@@ -78,7 +79,7 @@ extern "C" {
         return pdo::block_store::BlockStoreGet(inKey, inKeySize, outValue, inValueSize);
     } // ocall_BlockStoreGet
 
-    int ocall_BlockStorePut(
+    pdo_err_t ocall_BlockStorePut(
         const uint8_t* inKey,
         const size_t inKeySize,
         const uint8_t* inValue,

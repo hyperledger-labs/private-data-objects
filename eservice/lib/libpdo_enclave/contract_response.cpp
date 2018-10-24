@@ -32,7 +32,7 @@
 #include "contract_response.h"
 #include "enclave_data.h"
 
-#include "enclave_t.h"
+#include "block_store.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(const ContractRequest& request,
@@ -176,15 +176,9 @@ ByteArray ContractResponse::SerializeAndEncrypt(
             jret != JSONSuccess, "failed to serialize the signature");
 
         // --------------- state ---------------
-        int ret;
-        int sgx_ret;
-
-        sgx_ret = ocall_BlockStorePut(&ret, &contract_state_.state_hash_[0], contract_state_.state_hash_.size(),
-                                      &contract_state_.encrypted_state_[0], contract_state_.encrypted_state_.size());
+        pdo_err_t ret = pdo::block_store::BlockStorePut(contract_state_.state_hash_, contract_state_.encrypted_state_);
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            sgx_ret != 0, "sgx failed during put to the block store");
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            ret != 0, "failed to put to the block store");
+            ret != PDO_SUCCESS, "failed to put to the block store");
 
         jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
