@@ -76,6 +76,8 @@ namespace std {
     }
 }
 
+
+%thread;
 %{
 #include "swig_utils.h"
 %}
@@ -89,6 +91,7 @@ namespace std {
 %include "contract.h"
 %include "block_store.h"
 %include "pdo_enclave.h"
+%nothread;
 
 %init %{
     InitializePDOEnclaveModule();

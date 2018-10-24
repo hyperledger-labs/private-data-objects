@@ -120,7 +120,7 @@ module_files = [
 enclave_module = Extension(
     'pdo.eservice.enclave._pdo_enclave_internal',
     module_files,
-    swig_opts = ['-c++'],
+    swig_opts = ['-c++', '-threads'],
     extra_compile_args = compile_args,
     libraries = libraries,
     include_dirs = include_dirs,
