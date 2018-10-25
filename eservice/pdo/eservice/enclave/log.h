@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "pdo_error.h"
 
 namespace pdo {
