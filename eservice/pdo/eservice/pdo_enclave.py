@@ -34,8 +34,10 @@ __all__ = [
     'initialize_with_configuration',
     'create_signup_info',
     'get_enclave_public_info',
+    'get_enclave_service_info',
     'get_enclave_measurement',
     'get_enclave_basename',
+    'get_enclave_epid_group',
     'block_store_head',
     'block_store_get',
     'block_store_put',
@@ -61,8 +63,8 @@ _epid_group = None
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def __find_enclave_library(config) :
-    enclave_file_name = config.get('enclave_library', 'libpdo-enclave.signed.so')
-    enclave_file_path = config.get('enclave_library_path')
+    enclave_file_name = 'libpdo-enclave.signed.so' if config is None else config.get('enclave_library', 'libpdo-enclave.signed.so')
+    enclave_file_path = None if config is None else config.get('enclave_library_path')
 
     if enclave_file_path :
         enclave_file = os.path.join(enclave_file_path, enclave_file_name);
@@ -97,7 +99,7 @@ def update_sig_rl():
     global _sig_rl_update_period
 
     if _epid_group is None:
-        _epid_group = _pdo.get_epid_group()
+        _epid_group = get_enclave_epid_group()
     logger.info("EPID: " + _epid_group)
 
     if not _sig_rl_update_time \
@@ -191,6 +193,25 @@ def shutdown():
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def get_enclave_service_info(spid) :
+    global _pdo
+    global _ias
+    global logger
+
+    enclave._SetLogger(logger)
+
+    num_of_enclaves = 1
+
+    if not _pdo:
+        signed_enclave = __find_enclave_library(None)
+        logger.debug("Attempting to load enclave at: %s", signed_enclave)
+        _pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
+        logger.info("Basename: %s", get_enclave_basename())
+        logger.info("MRENCLAVE: %s", get_enclave_measurement())
+
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def get_enclave_measurement():
     global _pdo
     return _pdo.mr_enclave if _pdo is not None else None
@@ -200,6 +221,11 @@ def get_enclave_measurement():
 def get_enclave_basename():
     global _pdo
     return _pdo.basename if _pdo is not None else None
+
+def get_enclave_epid_group():
+    global _epid_group
+    _epid_group = _pdo.get_epid_group()
+    return _epid_group
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
