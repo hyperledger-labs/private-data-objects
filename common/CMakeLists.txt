@@ -52,10 +52,10 @@ TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_LIB_NAME} PRIVATE "-D_UNTRUSTED_=1")
 # Block Store Library
 ################################################################################
 
-SET(BLOCK_STORE_LIB_NAME updo-blockstore)
+SET(BLOCK_STORE_LIB_NAME updo-lmdb-block-store)
 PROJECT(${BLOCK_STORE_LIB_NAME} CXX)
 
-ADD_LIBRARY(${BLOCK_STORE_LIB_NAME} STATIC packages/block_store/block_store.cpp)
+ADD_LIBRARY(${BLOCK_STORE_LIB_NAME} STATIC packages/block_store/lmdb_block_store.cpp)
 
 TARGET_INCLUDE_DIRECTORIES(${BLOCK_STORE_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
 TARGET_INCLUDE_DIRECTORIES(${BLOCK_STORE_LIB_NAME} PUBLIC ${SGX_SDK}/include)

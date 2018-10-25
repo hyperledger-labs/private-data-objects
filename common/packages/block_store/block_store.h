@@ -20,18 +20,14 @@
 
 namespace pdo
 {
+    /*
+     * Many different implementations of this block store API exist within PDO
+     * The idea is that every implementation has these methods, but they may
+     * have their own methods (particularly initialization) in their own
+     * specific namespaces
+     */
     namespace block_store
     {
-        /**
-         * Initialize the block store - must be called before performing gets/puts
-         * Primary expected use: python / untrusted side
-         *
-         * @return
-         *  Success (return PDO_SUCCESS) - Block store ready to use
-         *  Failure (return nonzero) - Block store is unusable
-         */
-        pdo_err_t BlockStoreInit();
-
         /**
          * Gets the size of a block in the block store
          * Primary expected use: ocall

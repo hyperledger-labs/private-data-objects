@@ -87,7 +87,8 @@ library_dirs = [
 
 libraries = [
     'updo-common',
-    'updo-blockstore'
+    'updo-lmdb-block-store',
+    'lmdb'
 ]
 
 if sgx_mode_env == "HW":
