@@ -163,10 +163,10 @@ given the required environment variables are set. You will need:
 The URL of the ledger you wish to register with.
 
 - `PDO_LEDGER_KEY`
-Needs to be set to the hexadecimal private key for modifying ledger settings.
+The path of the file containing the private key for modifying ledger settings.
 
 - `PDO_IAS_KEY`
-Intel Attestation Service (IAS) public key.
+The path of the PEM file containing the Intel Attestation Service (IAS) public key.
 
 - `PDO_SPID`
 Service provided ID that accompanies certificate registered with Intel Attestation Service (IAS).
