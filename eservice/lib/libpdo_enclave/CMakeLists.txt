@@ -18,8 +18,8 @@ PROJECT(libpdo-enclave C CXX)
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Source Code
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-FILE(GLOB PROJECT_HEADERS *.h ${PDO_TOP_DIR}/common/*.h)
-FILE(GLOB PROJECT_SOURCES *.cpp *.c)
+FILE(GLOB PROJECT_HEADERS *.h state/*.h ${PDO_TOP_DIR}/common/*.h)
+FILE(GLOB PROJECT_SOURCES *.cpp *.c state/*.cpp)
 ##FILE(GLOB PROJECT_EDL *.edl)
 FILE(GLOB PROJECT_EDL enclave.edl)
 FILE(GLOB PROJECT_CONFIG *.xml)
@@ -29,7 +29,9 @@ SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include ${PDO_TOP_DIR}/common ${PDO_TOP_DIR}/common/crypto ${PDO_TOP_DIR}/common/packages/parson)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter ${PDO_TOP_DIR}/common/packages/block_store)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/state state)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/block_store)
 
 # If are compiling for Linux, then we have special linking for the trusted
 # runtime service

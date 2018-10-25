@@ -162,10 +162,15 @@ class Enclave(object) :
         :param encrypted_session_key: base64 encoded encrypted AES key
         :param encrypted_request: base64 encoded encrypted contract request
         """
-        return pdo_enclave.send_to_contract(
-            self.sealed_data,
-            encrypted_session_key,
-            encrypted_request)
+        try :
+            return pdo_enclave.send_to_contract(
+                self.sealed_data,
+                encrypted_session_key,
+                encrypted_request)
+
+        except Exception as e :
+            logger.error('send_to_contract failed; %s', str(e))
+            raise
 
     # -------------------------------------------------------
     def verify_secrets(self, contract_id, owner_id, secret_list) :

@@ -19,6 +19,7 @@ import pdo.common.keys as keys
 
 from pdo.contract.response import ContractResponse
 from pdo.contract.message import ContractMessage
+from pdo.contract.state import ContractState
 from pdo.submitter.submitter import Submitter
 
 import logging
@@ -95,6 +96,32 @@ class ContractRequest(object) :
                     if ret != True:
                         logger.exception("block_store_put failed for key %s", state_hash_b64)
                         raise
+
+                #put rest of state in block store
+                logger.debug('Sending rest of state to EService')
+                #NOTICE: state_hash_b64 is the id of the self.contract_state.encrypted_state block
+                #           which contains the json array of the block ids of the state
+                string_main_state_block = crypto.byte_array_to_string(crypto.base64_to_byte_array(self.contract_state.encrypted_state))
+                string_main_state_block = string_main_state_block.rstrip('\0')
+                logger.debug("json blob in main state block: %s", string_main_state_block)
+                json_main_state_block = json.loads(string_main_state_block)
+                for hex_str_block_id in json_main_state_block['BlockIds']:
+                    logger.debug("block id: %s", hex_str_block_id)
+                    b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_str_block_id))
+                    cs_block = ContractState.read_from_cache(self.contract_id, b64_block_id)
+                    b64_block = cs_block.encrypted_state
+                    if b64_block is None :
+                            raise Exception('Unable to retrieve block from cache, %s', b64_block_id)
+                    block_store_len = self.enclave_service.block_store_head(b64_block_id)
+                    if block_store_len <= 0:
+                        # This block wasn't present in the block store of this enclave service - need to send it
+                        logger.debug("Block store did NOT contain block '%s' - sending it", b64_block_id)
+                        ret = self.enclave_service.block_store_put(b64_block_id, b64_block)
+                        if ret != True:
+                            logger.exception("block_store_put failed for state block %s -> %s", b64_block_id, b64_block)
+                            raise
+                        else:
+                            logger.debug("Block store DID contain block '%s' - skip send", b64_block_id)
 
             encoded_encrypted_response = self.enclave_service.send_to_contract(encrypted_session_key, encrypted_request)
             if encoded_encrypted_response == None:
