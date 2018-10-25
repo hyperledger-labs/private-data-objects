@@ -23,6 +23,7 @@
 #include "error.h"
 #include "pdo_error.h"
 #include "types.h"
+#include "log.h"
 
 #include "scheme-private.h"
 
@@ -52,13 +53,6 @@ namespace pstate = pdo::state;
 #define symprop(p)	cdr(p)
 
 #define strvalue(p)      ((p)->_object._string._svalue)
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern void Log(
-    int         level,
-    const char* fmt,
-    ...
-    );
 
 std::map<uint64_t, size_t> safe_malloc_map;
 

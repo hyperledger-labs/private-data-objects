@@ -54,20 +54,29 @@ FileName = "${identity}_private.skf"
 # it needs to be created for this enclave
 DataPath = "${data}"
 
-# FileName is the name used for sealed storage.
+# BaseName is the root of the name used to store data
+# about the enclave. A 'enc' extension will be added
 BaseName = "${identity}"
 
 # --------------------------------------------------
 # EnclaveModule -- configuration of the SGX contract enclave
 # --------------------------------------------------
 [EnclaveModule]
+
+# Number of available enclave workers to service requests
+num_of_enclaves = '8'
+
+# block_store_file_name is the path where persistent state data is stored
+# This is safe to share between eservice's
+block_store_file_name = "${data}/blockstore.mdb"
+
 # spid is a 32-digit hex string tied to the enclave implementation
 spid = 'DEADBEEF00000000DEADBEEF00000000'
 
 # ias_url is the URL of the Intel Attestation Service (IAS) server.  The
 # example server is for debug enclaves only
 ias_url = 'https://test-as.sgx.trustedservices.intel.com:443'
-https_proxy = 'http://proxy-us.intel.com:912/'
+https_proxy = ''
 
 # spid_cert_file is the full path to the PEM-encoded certificate file that was
 # submitted to Intel in order to obtain a SPID

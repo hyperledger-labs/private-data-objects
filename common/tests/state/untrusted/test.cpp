@@ -16,26 +16,31 @@
 #include <stdio.h>
 
 #include "packages/block_store/block_store.h"
+#include "packages/block_store/lmdb_block_store.h"
 #include "test_state_kv.h"
+#include "log.h"
+
+#define TEST_DATABASE_NAME ("utest.mdb")
 
 /* Application entry */
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     int result = 0;
-    printf("Test UNTRUSTED State API.\n");
+    pdo::Log(PDO_LOG_DEBUG, "Test UNTRUSTED State API.\n");
 
-    pdo::block_store::BlockStoreInit();
-
-    printf("Test State KV: start\n");
-    test_state_kv();
-    printf("Test State KV:end\n");
-
+    result = pdo::lmdb_block_store::BlockStoreInit(TEST_DATABASE_NAME);
     if (result != 0)
     {
-        printf("ERROR: UNTRUSTED State API test FAILED.\n");
+        pdo::Log(PDO_LOG_ERROR, "Failed to initialize block store: %d\n", result);
         return -1;
     }
 
-    printf("Test UNTRUSTED State API SUCCESSFUL!\n");
+    pdo::Log(PDO_LOG_DEBUG, "Test State KV: start\n");
+    test_state_kv();
+    pdo::Log(PDO_LOG_DEBUG, "Test State KV:end\n");
+
+    pdo::lmdb_block_store::BlockStoreClose();
+
+    pdo::Log(PDO_LOG_DEBUG, "Test UNTRUSTED State API SUCCESSFUL!\n");
     return 0;
 }

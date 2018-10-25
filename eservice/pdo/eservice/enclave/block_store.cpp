@@ -21,16 +21,23 @@
 #include "types.h"
 #include "packages/base64/base64.h"
 #include "packages/block_store/block_store.h"
+#include "packages/block_store/lmdb_block_store.h"
 
 #include "block_store.h"
 #include "swig_utils.h"
 
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void block_store_init()
+void block_store_init(const std::string& db_path)
 {
-    pdo_err_t presult = pdo::block_store::BlockStoreInit();
+    pdo_err_t presult = pdo::lmdb_block_store::BlockStoreInit(db_path);
     ThrowPDOError(presult);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void block_store_close()
+{
+    pdo::lmdb_block_store::BlockStoreClose();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

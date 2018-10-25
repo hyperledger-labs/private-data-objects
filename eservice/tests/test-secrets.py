@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 import hashlib
 import random
@@ -33,6 +34,27 @@ logger = logging.getLogger(__name__)
 
 import pdo.common.config as pconfig
 
+## -----------------------------------------------------------------
+ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHome = os.environ.get("CONTRACTHOME") or os.path.realpath("/opt/pdo")
+ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
+ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
+ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
+ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
+ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+
+config_map = {
+    'base' : ScriptBase,
+    'data' : ContractData,
+    'etc'  : ContractEtc,
+    'home' : ContractHome,
+    'host' : ContractHost,
+    'keys' : ContractKeys,
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
+}
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 conffiles = [ 'eservice_tests.toml' ]
@@ -46,8 +68,10 @@ parser.add_argument('--loglevel', help='Set the logging level', default='INFO')
 parser.add_argument('--logfile', help='Name of the log file', default='__screen__')
 options = parser.parse_args()
 
+config_map['identity'] = 'test-secrets'
+
 try :
-    config = pconfig.parse_configuration_files(conffiles, confpaths, {})
+    config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
 except pconfig.ConfigurationException as e :
     logger.error(str(e))
     sys.exit(-1)

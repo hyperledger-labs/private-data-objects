@@ -19,10 +19,16 @@
 /**
  * Initialize the block store - must be called before performing gets/puts
  *
- *  Success (return PDO_SUCCESS) - Block store ready to use
- *  Failure (return nonzero) - Block store is unusable
+ * @param db_path       path to the persistent block store database
  */
-void block_store_init();
+void block_store_init(const std::string& db_path);
+
+/**
+ * Close the block store - must be called when exiting
+ *
+ * @param db_path       path to the persistent block store database
+ */
+void block_store_close();
 
 /**
  * Gets the size of a block in the block store
