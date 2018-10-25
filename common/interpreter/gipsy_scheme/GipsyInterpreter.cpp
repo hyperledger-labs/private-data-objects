@@ -23,6 +23,7 @@
 #include "error.h"
 #include "pdo_error.h"
 #include "types.h"
+#include "log.h"
 
 #include "scheme-private.h"
 
@@ -35,6 +36,7 @@
 
 namespace pc = pdo::contracts;
 namespace pe = pdo::error;
+namespace pstate = pdo::state;
 
 #define car(p)          ((p)->_object._cons._car)
 #define cdr(p)          ((p)->_object._cons._cdr)
@@ -51,13 +53,6 @@ namespace pe = pdo::error;
 #define symprop(p)	cdr(p)
 
 #define strvalue(p)      ((p)->_object._string._svalue)
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern void Log(
-    int         level,
-    const char* fmt,
-    ...
-    );
 
 std::map<uint64_t, size_t> safe_malloc_map;
 
@@ -239,6 +234,10 @@ GipsyInterpreter::~GipsyInterpreter(void)
         free((void*)it->first);
         total += it->second;
         it++;
+    }
+
+    if(contract_kv_) {
+        contract_kv_ = NULL;
     }
 }
 
@@ -450,6 +449,14 @@ void GipsyInterpreter::create_initial_contract_state(
     scheme_define(sc, sc->global_env, mk_symbol(sc, "_instance"), rexpr);
 
     this->save_contract_state(outContractState);
+
+    //write the intrinsic state into the kv
+    pe::ThrowIfNull(contract_kv_, "contract KV not available at contract initializion time");
+    //Convention: we use the "IntrinsicState" key to store the value
+    std::string intrinsicStateString = "IntrinsicState";
+    ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
+    ByteArray v(outContractState.State.begin(), outContractState.State.end());
+    contract_kv_->PrivilegedPut(k, v);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -465,10 +472,23 @@ void GipsyInterpreter::send_message_to_contract(
     )
 {
     scheme* sc = &this->interpreter;
+    pdo::contracts::ContractState current_contract_state;
+
+    //get the intrinsic state from kv
+    pe::ThrowIf<pe::RuntimeError>(contract_kv_ == NULL, "contract KV not available at contract update time");
+    //Convention: we use the "IntrinsicState" key to store the value
+    std::string intrinsicStateString = "IntrinsicState";
+    ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
+    ByteArray v = contract_kv_->PrivilegedGet(k);
+    current_contract_state.State = ByteArrayToString(v);
+    Log(PDO_LOG_DEBUG, "input intrinsic state: %s\n", current_contract_state.State.c_str());
+
+    //the hash is the hash of the encrypted state, in our case it's the root hash given in input
+    current_contract_state.StateHash = inContractState.StateHash;
 
     this->load_message(inMessage);
     this->load_contract_code(inContractCode);
-    this->load_contract_state(inContractState);
+    this->load_contract_state(current_contract_state);
 
     /* --------------- Assign the symbol values --------------- */
     gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
@@ -498,6 +518,40 @@ void GipsyInterpreter::send_message_to_contract(
 
     // save the state
     pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
-    if (_immutable == sc->NIL)
+    if (_immutable == sc->NIL) {
         this->save_contract_state(outContractState);
+        Log(PDO_LOG_DEBUG, "output intrinsic state: %s\n", outContractState.State.c_str());
+
+        std::string intrinsicStateString = "IntrinsicState";
+        ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
+        //delete previous intrinsic state versions (needed when using fixed small state storage space)
+        contract_kv_->Delete(k);
+        ByteArray v(outContractState.State.begin(), outContractState.State.end());
+        contract_kv_->PrivilegedPut(k, v);
+#ifdef DEBUG
+        {//double check intrinsic state
+            std::string is = "IntrinsicState";
+            ByteArray isk(is.begin(), is.end());
+            ByteArray isv = contract_kv_->PrivilegedGet(k);
+            std::string isvs = ByteArrayToString(isv);
+            Log(PDO_LOG_DEBUG, "(double check) output intrinsic state: %s\n", isvs.c_str());
+            if(outContractState.State.compare(isvs) != 0) {
+                Log(PDO_LOG_ERROR, "ERROR: double check output state failed");
+                pe::ThrowIf<pe::ValueError>(1, "Intrinsic state inside KV is wrong");
+            }
+            else {
+                Log(PDO_LOG_DEBUG, "double check success");
+            }
+        }
+#endif
+    }
+    else {
+        //leave the intrinsic state already in the kv
+        Log(PDO_LOG_DEBUG, "gipsy, state unchanged");
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void GipsyInterpreter::set_contract_kv(pstate::Basic_KV_Plus* contract_kv) {
+    contract_kv_ = contract_kv;
 }

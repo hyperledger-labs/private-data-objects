@@ -136,7 +136,7 @@ def initialize_with_configuration(config) :
     enclave._SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
-    valid_keys = set(['spid', 'ias_url', 'spid_cert_file'])
+    valid_keys = set(['spid', 'ias_url', 'spid_cert_file', 'block_store_file_name'])
     found_keys = set(config.keys())
 
     missing_keys = valid_keys.difference(found_keys)
@@ -174,7 +174,7 @@ def initialize_with_configuration(config) :
             logger.warning("Retrying in 60 sec")
             time.sleep(60)
 
-    enclave.block_store_init()
+    enclave.block_store_init(config['block_store_file_name'])
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -188,6 +188,8 @@ def shutdown():
     _ias = None
     _sig_rl_update_time = None
     _epid_group = None
+
+    enclave.block_store_close()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

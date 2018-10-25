@@ -22,14 +22,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 # Untrusted Test Application
 ################################################################################
 
-SET(UNTRUSTED_TEST_NAME utest)
+SET(UNTRUSTED_TEST_NAME u_state_test)
 PROJECT(${UNTRUSTED_TEST_NAME} CXX)
 
-ADD_EXECUTABLE(${UNTRUSTED_TEST_NAME} untrusted/TestUntrusted.cpp testCrypto.cpp)
+ADD_EXECUTABLE(${UNTRUSTED_TEST_NAME} untrusted/test.cpp untrusted/test_state_kv.cpp untrusted/log.cpp untrusted/_kv_gen.cpp)
 
 # Same compile options as untrusted library
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PUBLIC ${SGX_SDK}/include)
+TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/eservice/pdo/eservice/enclave)
+TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/eservice/pdo/eservice/enclave/enclave/state)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common)
+TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/state)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/tests)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/crypto)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/packages/base64)
@@ -39,7 +42,7 @@ TARGET_COMPILE_OPTIONS(${UNTRUSTED_TEST_NAME} PRIVATE ${COMMON_CXX_FLAGS})
 TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_TEST_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
 # Link the untrusted test application against the untrusted library and openssl
-TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS})
+TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} ${UNTRUSTED_LIB_NAME} ${BLOCK_STORE_LIB_NAME} ${OPENSSL_LDFLAGS} -lpthread -llmdb)
 
 # Register this application as a test
 add_test(
@@ -48,54 +51,8 @@ add_test(
 	WORKING_DIRECTORY ${TESTS_OUTPUT_DIR}
 )
 
-
-################################################################################
-# Trusted Test Application
-################################################################################
-
-if(NOT UNTRUSTED_ONLY)
-	ADD_SUBDIRECTORY(trusted/enclave)
-
-	SET(TRUSTED_TEST_NAME ttest)
-	PROJECT(${TRUSTED_TEST_NAME} C CXX)
-
-	# ENCLAVE_EDL is defined in the enclave subdirectory
-	SGX_EDGE_UNTRUSTED(${ENCLAVE_EDL} ENCLAVE_EDGE_SOURCES)
-
-	ADD_EXECUTABLE(${TRUSTED_TEST_NAME} trusted/app/TestApp.cpp ${PDO_TOP_DIR}/common/c11_support.cpp ${ENCLAVE_EDGE_SOURCES})
-
-	# Make sure the enclave builds before the test app that links it
-	ADD_DEPENDENCIES(${TRUSTED_TEST_NAME} TestEnclave)
-
-	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_TEST_NAME} PUBLIC ${SGX_SDK}/include)
-	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common)
-
-	TARGET_COMPILE_OPTIONS(${TRUSTED_TEST_NAME} PRIVATE ${COMMON_CXX_FLAGS})
-
-	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} -Wl,-L,${SGX_SDK}/lib64)
-	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} -Wl,-L,${SGX_SSL}/lib64)
-	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} -Wl,-L,${SGX_SSL}/lib64/release)
-	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} ${URTS_LIBRARY_NAME} sgx_usgxssl)
-	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} pthread)
-
-	# Register this application as a test
-	add_test(
-		NAME ${TRUSTED_TEST_NAME}
-		COMMAND ./${TRUSTED_TEST_NAME}
-		WORKING_DIRECTORY ${TESTS_OUTPUT_DIR}
-	)
-endif()
-
-
 ################################################################################
 # Run the tests automatically after building
 ################################################################################
 
-SET(TEST_TARGET TestAfterBuild)
-ADD_CUSTOM_TARGET(${TEST_TARGET} ALL COMMAND ctest --output-on-failure)
 ADD_DEPENDENCIES(${TEST_TARGET} ${UNTRUSTED_TEST_NAME})
-if(NOT UNTRUSTED_ONLY)
-	ADD_DEPENDENCIES(${TEST_TARGET} ${TRUSTED_TEST_NAME})
-endif()
-
-ADD_SUBDIRECTORY (state)

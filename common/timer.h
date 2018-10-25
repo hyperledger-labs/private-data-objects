@@ -20,9 +20,9 @@
 #include <vector>
 
 #include "pdo_error.h"
+#include "log.h"
 
 extern uint64_t GetTimer(void);
-extern void Log(int level, const char* fmt, ...);
 
 namespace pdo
 {

@@ -62,7 +62,13 @@ BaseName = "${identity}"
 # EnclaveModule -- configuration of the SGX contract enclave
 # --------------------------------------------------
 [EnclaveModule]
+
+# Number of available enclave workers to service requests
 num_of_enclaves = '8'
+
+# block_store_file_name is the path where persistent state data is stored
+# This is safe to share between eservice's
+block_store_file_name = "${data}/blockstore.mdb"
 
 # spid is a 32-digit hex string tied to the enclave implementation
 spid = 'DEADBEEF00000000DEADBEEF00000000'

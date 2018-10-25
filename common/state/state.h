@@ -15,20 +15,11 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "state_status.h"
+#include "StateUtils.h"
+#include "StateBlock.h"
+#include "sebio.h"
+#include "basic_kv.h"
+#include "state_kv.h"
+#include "state_log.h"
 
-#include "pdo_error.h"
-
-namespace pdo {
-
-    void SetLogFunction(
-        pdo_log_t logFunction
-        );
-
-    void Log(
-        pdo_log_level_t logLevel,
-        const char* message,
-        ...);
-
-    uint64_t GetTimer();
-} // namespace pdo

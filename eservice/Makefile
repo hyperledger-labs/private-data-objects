@@ -46,7 +46,7 @@ PYTHON_FILES = \
 	pdo/eservice/utility/__init__.py \
 	pdo/__init__.py
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl)
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE) info
 

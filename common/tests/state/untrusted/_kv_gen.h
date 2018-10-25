@@ -15,20 +15,17 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <string>
 
-#include "pdo_error.h"
+//the test generates 10^TEST_KEY_LENGTH keys
+#define TEST_KEY_STRING_LENGTH 2
 
-namespace pdo {
+#define VAL_STR "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
 
-    void SetLogFunction(
-        pdo_log_t logFunction
-        );
+typedef void (*_kv_f)(std::string key, std::string value);
 
-    void Log(
-        pdo_log_level_t logLevel,
-        const char* message,
-        ...);
-
-    uint64_t GetTimer();
-} // namespace pdo
+void _kv_generator(std::string s, unsigned int chars_left, _kv_f pf);
+void _kv_put(std::string key, std::string value);
+void _kv_get(std::string key, std::string expected_value);
+void _test_kv_put();
+void _test_kv_get();

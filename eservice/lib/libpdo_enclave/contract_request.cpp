@@ -34,6 +34,8 @@
 #include "interpreter/ContractInterpreter.h"
 #include "interpreter/gipsy_scheme/GipsyInterpreter.h"
 
+#include "interpreter_kv.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Request format for create and send methods
 //
@@ -158,6 +160,10 @@ ContractResponse ContractRequest::process_initialization_request(void)
         pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
 
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+            ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
+        interpreter.set_contract_kv(contract_state_.kv_);
+
         interpreter.create_initial_contract_state(
             contract_id_, creator_id_, code, msg, new_contract_state);
 
@@ -234,12 +240,17 @@ ContractResponse ContractRequest::process_update_request(void)
         msg.OriginatorID = contract_message_.originator_verifying_key_;
 
         pdo::contracts::ContractState current_contract_state;
-        current_contract_state.StateHash = ByteArrayToBase64EncodedString(contract_state_.state_hash_);
-        current_contract_state.State = ByteArrayToString(contract_state_.decrypted_state_);
+        //include statehash in ContractStateobject, the state will be grabbed from KV store
+        current_contract_state.StateHash =
+            ByteArrayToBase64EncodedString(contract_state_.state_hash_);
 
         pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
         std::string result;
+
+        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+            ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
+        interpreter.set_contract_kv(contract_state_.kv_);
 
         interpreter.send_message_to_contract(contract_id_, creator_id_, code, msg,
             current_contract_state, new_contract_state, dependencies, result);

@@ -29,12 +29,6 @@
 
 #include "enclave_t.h"
 
-pdo_err_t pdo::block_store::BlockStoreInit()
-{
-    // No setup necessary within the enclave
-    return PDO_SUCCESS;
-}
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::block_store::BlockStoreHead(
     const uint8_t* inId,

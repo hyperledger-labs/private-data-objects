@@ -15,20 +15,19 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include "pdo_error.h"
-
-namespace pdo {
-
-    void SetLogFunction(
-        pdo_log_t logFunction
-        );
-
-    void Log(
-        pdo_log_level_t logLevel,
-        const char* message,
-        ...);
-
-    uint64_t GetTimer();
-} // namespace pdo
+typedef enum {
+    STATE_SUCCESS=0,
+    STATE_ERR_UNKNOWN=-1,
+    STATE_ERR_MEMORY=-2,
+    STATE_ERR_IO =-3,
+    STATE_ERR_RUNTIME=-4,
+    STATE_ERR_INDEX=-5,
+    STATE_ERR_DIVIDE_BY_ZERO=-6,
+    STATE_ERR_OVERFLOW =-7,
+    STATE_ERR_VALUE =-8,
+    STATE_ERR_SYSTEM =-9,
+    STATE_ERR_UNIMPLEMENTED =-10,
+    STATE_ERR_NOT_FOUND =-11,
+    STATE_ERR_BLOCK_AUTHENTICATION =-12,
+    STATE_EOD =-13
+} state_status_t;
