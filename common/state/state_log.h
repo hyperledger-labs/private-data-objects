@@ -15,11 +15,4 @@
 
 #pragma once
 
-#include "state_status.h"
-#include "StateUtils.h"
-#include "StateBlock.h"
-#include "sebio.h"
-#include "basic_kv.h"
-#include "state_kv.h"
-#include "state_log.h"
-
+extern void Log(int level, const char* fmt, ...);

@@ -15,11 +15,17 @@
 
 #pragma once
 
-#include "state_status.h"
-#include "StateUtils.h"
-#include "StateBlock.h"
-#include "sebio.h"
-#include "basic_kv.h"
-#include "state_kv.h"
-#include "state_log.h"
+#include "pdo_error.h"
+namespace pdo
+{
+void Log(
+        pdo_log_level_t logLevel,
+        const char* message,
+        ...);
 
+void Log(
+        pdo_log_level_t logLevel,
+        const char* message);
+}
+
+void Log(int level, const char* fmt, ...);
