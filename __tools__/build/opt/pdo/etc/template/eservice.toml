@@ -62,6 +62,8 @@ BaseName = "${identity}"
 # EnclaveModule -- configuration of the SGX contract enclave
 # --------------------------------------------------
 [EnclaveModule]
+
+# Number of available enclave workers to service requests
 num_of_enclaves = '8'
 
 # spid is a 32-digit hex string tied to the enclave implementation
