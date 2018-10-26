@@ -70,7 +70,13 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
         return PDO_ERR_SYSTEM;
     }
 
-    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR, 0664);
+    /*
+     * MDB_NOSUBDIR avoids creating an additional directory for the database
+     * MDB_WRITEMAP | MDB_NOMETASYNC should substantially improve LMDB's performance
+     * This risks possibly losing at most the last transaction if the system crashes
+     * before it is written to disk.
+     */
+    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC, 0664);
     if (ret != 0)
     {
         Log(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
