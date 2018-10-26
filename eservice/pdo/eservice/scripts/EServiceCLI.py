@@ -130,9 +130,10 @@ class ContractEnclaveServer(resource.Resource):
             msg = 'unknown request {0}'.format(operation)
             return self.ErrorResponse(request, http.BAD_REQUEST, msg)
 
+        # ** This is VERY noisy and significantly degrades performance!
+        #logger.debug('received request %s', operation)
 
         # Add operation to queue
-        logger.debug('received request %s', operation)
 
         def getResponse(operation, minfo):
             return self.RequestMap[operation](minfo)
@@ -147,7 +148,8 @@ class ContractEnclaveServer(resource.Resource):
                 if encoding == 'application/json' :
                     response = json.dumps(response_dict)
 
-                logger.info('response[%s]: %s', encoding, response)
+                # ** This is VERY noisy and significantly degrades performance!
+                #logger.info('response[%s]: %s', encoding, response)
                 request.setHeader('content-type', encoding)
                 request.setResponseCode(http.OK)
                 request.write(response.encode('utf8'))

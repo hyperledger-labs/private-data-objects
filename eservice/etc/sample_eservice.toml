@@ -64,7 +64,7 @@ BaseName = "${identity}"
 [EnclaveModule]
 
 # Number of available enclave workers to service requests
-num_of_enclaves = '8'
+num_of_enclaves = '7'
 
 # block_store_file_name is the path where persistent state data is stored
 # This is safe to share between eservice's

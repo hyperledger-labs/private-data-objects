@@ -22,20 +22,29 @@ actual_file="../pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp"
 
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 Store(){
-	echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
-	python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file
+    echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
+    python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file
+    ret=$?
+    if [[ $ret -ne 0 ]]; then
+        echo "Failed to run eservice to retrieve enclave information - is the virtual environment active?"
+        exit $ret
+    fi
 }
 
 # Load MR_ENCLAVE to be built into PService
 Load(){
-	echo "Load MR_ENCLAVE into PLACEMARK at "$actual_file
-	if [ ! -f $eservice_enclave_info_file ]; then
-		echo "Load failed! eservice_enclave_info_file not found!"
-	else
-		cmd=`echo "sed 's/MR_ENCLAVE_PLACEMARK/\`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`/' < $template_file > $actual_file"`
-		eval $cmd
-	fi
+    echo "Load MR_ENCLAVE into PLACEMARK at "$actual_file
+    if [ ! -f $eservice_enclave_info_file ]; then
+        echo "Load failed! eservice_enclave_info_file not found!"
+    else
+        cmd=`echo "sed 's/MR_ENCLAVE_PLACEMARK/\`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`/' < $template_file > $actual_file"`
+        eval $cmd
+    fi
 }
 
-Store
-Load
+if [ "$SGX_MODE" = "HW" ]; then
+    Store
+    Load
+else
+    echo "This script is only necessary when SGX_MODE is set to HW"
+fi

@@ -35,8 +35,10 @@
 
 /*
  * This must be a multiple of the page size (4096)
+ *
+ * Default to an insanely large max size (1 TB)
  */
-#define DEFAULT_BLOCK_STORE_SIZE (1024 * 1024 * 1024)
+#define DEFAULT_BLOCK_STORE_SIZE (1024ULL * 1024ULL * 1024ULL * 1024ULL)
 
 /* Lightning database environment used to store data */
 static MDB_env* env;
@@ -70,7 +72,13 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
         return PDO_ERR_SYSTEM;
     }
 
-    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR, 0664);
+    /*
+     * MDB_NOSUBDIR avoids creating an additional directory for the database
+     * MDB_WRITEMAP | MDB_NOMETASYNC should substantially improve LMDB's performance
+     * This risks possibly losing at most the last transaction if the system crashes
+     * before it is written to disk.
+     */
+    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC, 0664);
     if (ret != 0)
     {
         Log(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
@@ -101,7 +109,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         Log(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", idStr.c_str());
@@ -148,7 +156,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     *outIsPresent = true;
     *outValueSize = lmdb_data.mv_size;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
@@ -185,7 +193,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         Log(PDO_LOG_DEBUG, "BlockStoreGet: '%s'", idStr.c_str());
@@ -239,7 +247,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
 
     memcpy_s(outValue, inValueSize, lmdb_data.mv_data, lmdb_data.mv_size);
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
@@ -276,7 +284,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString(inValue, inValueSize);
