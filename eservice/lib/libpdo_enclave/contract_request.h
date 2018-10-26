@@ -23,6 +23,7 @@
 #include "contract_code.h"
 #include "contract_message.h"
 #include "contract_state.h"
+#include "contract_enclave.h"
 
 class ContractResponse;
 
@@ -50,8 +51,9 @@ public:
     ContractState contract_state_;
     ContractCode contract_code_; /*  */
     ContractMessage contract_message_;
+    ContractWorker *worker_;
 
-    ContractRequest(const ByteArray& session_key, const ByteArray& encrypted_request);
+    ContractRequest(const ByteArray& session_key, const ByteArray& encrypted_request, ContractWorker* worker);
 
     bool is_initialize(void) const { return operation_ == op_initialize; };
     bool is_update(void) const { return operation_ == op_update; };

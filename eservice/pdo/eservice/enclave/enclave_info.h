@@ -30,6 +30,7 @@ public:
         );
     virtual ~pdo_enclave_info();
     std::string get_epid_group();
+    void shutdown_workers();
     void set_signature_revocation_list(
         const std::string& signature_revocation_list
         );

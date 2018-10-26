@@ -33,6 +33,7 @@ __all__ = [
     'initialize',
     'initialize_with_configuration',
     'create_signup_info',
+    'shutdown_workers',
     'get_enclave_public_info',
     'get_enclave_service_info',
     'get_enclave_measurement',
@@ -189,7 +190,9 @@ def shutdown():
     _sig_rl_update_time = None
     _epid_group = None
 
+    enclave.shutdown_workers()
     enclave.block_store_close()
+
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -208,7 +211,6 @@ def get_enclave_service_info(spid) :
         _pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
         logger.info("Basename: %s", get_enclave_basename())
         logger.info("MRENCLAVE: %s", get_enclave_measurement())
-
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

@@ -21,6 +21,7 @@
 #include <sgx_trts.h>
 #include <sgx_tseal.h>
 #include <sgx_utils.h>
+#include "sgx_thread.h"
 
 #include "error.h"
 #include "packages/base64/base64.h"
@@ -41,6 +42,102 @@
 #include "contract_secrets.h"
 
 ByteArray last_result;
+ContractWorker *worker = NULL;
+static bool worker_initialized = false;
+static bool shutdown_worker = false;
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t ecall_CreateContractWorker(size_t inThreadId){
+    pdo_err_t result = PDO_SUCCESS;
+
+    try {
+        if (!worker_initialized)
+        {
+            worker = new ContractWorker((long) inThreadId);
+            worker_initialized = true;
+            SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - ContractWorker created",
+                (long) worker->threadId_);
+        }
+
+        while (!shutdown_worker)
+        {
+            worker->interpreterInit();
+        }
+    }
+    catch (pdo::error::Error& e)
+    {
+        printf("Error in contract enclave (ecall_CreateContractWorker): %04X -- %s \n", e.error_code(), e.what());
+        ocall_SetErrorMessage(e.what());
+        result = e.error_code();
+    }
+    catch (...)
+    {
+        printf("Unknown error in contract enclave (ecall_CreateContractWorker)\n");
+        result = PDO_ERR_UNKNOWN;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t ecall_ShutdownContractWorker(){
+    pdo_err_t result = PDO_SUCCESS;
+
+    if (worker_initialized)
+    {
+        SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - Shutting down ContractWorker",
+            (long) worker->threadId_);
+        shutdown_worker = true;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractWorker::ContractWorker(long threadId)
+{
+    this->threadId_ = threadId;
+    this->current_state_ = INTERPRETER_DONE;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractWorker::interpreterInit()
+{
+    sgx_thread_mutex_lock(&this->mutex_);
+
+    if (current_state_ == INTERPRETER_DONE) {
+        if (interpreter_ != NULL) {
+            delete interpreter_;
+        }
+
+        interpreter_ = new GipsyInterpreter();
+        current_state_ = INTERPRETER_READY;
+        sgx_thread_cond_signal(&this->ready_cond_);
+    }
+    sgx_thread_mutex_unlock(&this->mutex_);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractWorker::interpreterIsReady()
+{
+    sgx_thread_mutex_lock(&this->mutex_);
+
+    while (!this->current_state_ == INTERPRETER_READY){
+        sgx_thread_cond_wait(&this->ready_cond_, &this->mutex_);
+        this->current_state_ = INTERPRETER_BUSY;
+    }
+
+    sgx_thread_mutex_unlock(&this->mutex_);
+}
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractWorker::interpreterDone()
+{
+    sgx_thread_mutex_lock(&this->mutex_);
+    this->current_state_ = INTERPRETER_DONE;
+    sgx_thread_mutex_unlock(&this->mutex_);
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
@@ -143,6 +240,7 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
         pdo::error::ThrowIfNull(inEncryptedSessionKey, "Session key pointer is NULL");
         pdo::error::ThrowIfNull(inSerializedRequest, "Serialized request pointer is NULL");
         pdo::error::ThrowIfNull(outSerializedResponseSize, "Response size pointer is NULL");
+        pdo::error::ThrowIfNull(worker, "worker pointer is NULL");
 
         // Unseal the enclave persistent data
         EnclaveData enclaveData(inSealedSignupData);
@@ -153,7 +251,7 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
 
         ByteArray encrypted_request(
             inSerializedRequest, inSerializedRequest + inSerializedRequestSize);
-        ContractRequest request(session_key, encrypted_request);
+        ContractRequest request(session_key, encrypted_request, worker);
 
         ContractResponse response(request.process_request());
         last_result = response.SerializeAndEncrypt(session_key, enclaveData);

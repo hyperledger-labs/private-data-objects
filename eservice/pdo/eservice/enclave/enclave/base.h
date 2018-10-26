@@ -76,6 +76,11 @@ namespace pdo
             pdo_err_t Terminate();
 
             /*
+              Stop the pdo enclaves gipsy intt/cleanup worker threads
+            */
+            pdo_err_t ShutdownWorkers();
+
+            /*
               Helper functions to determine buffer sizes for outgoing buffers filled
               in by enclave.
             */

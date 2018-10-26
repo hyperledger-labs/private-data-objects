@@ -21,6 +21,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <sgx_uae_service.h>
 #include "sgx_support.h"
@@ -120,6 +121,74 @@ namespace pdo {
                 this->enclaveId = 0;
             }
         } // Enclave::Unload
+
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        static void* Worker(void* arg)
+        {
+            Enclave* enc = static_cast<Enclave* >(arg);
+
+            Log(PDO_LOG_INFO, "Enclave::Worker - threadID = %ld  EnclaveID = %ld", enc->GetThreadId(), (long)enc->GetEnclaveId());
+
+            sgx_status_t ret;
+            pdo_err_t pdoError = PDO_SUCCESS;
+
+            ret = enc->CallSgx([enc, &pdoError] () {
+                    sgx_status_t ret =
+                    ecall_CreateContractWorker(
+                        enc->GetEnclaveId(),
+                        &pdoError,
+                        enc->GetThreadId());
+                    return error::ConvertErrorStatus(ret, pdoError);
+                });
+            pdo::error::ThrowSgxError(
+                ret,
+                "Enclave call to ecall_CreateContractWorker failed");
+            enc->ThrowPDOError(pdoError);
+
+        } // Enclave::Worker
+
+        void Enclave::StartWorker()
+        {
+            try {
+                pthread_t thread;
+                int err = pthread_create(&thread, NULL, Worker, this);
+                if (err) throw error::Error((pdo_err_t)err, "Enclave::StartWorker(): pthread_create failed");
+                pthread_detach(thread);
+
+                this->threadId = (long)thread;
+
+            } catch (error::Error& e) {
+                Log(
+                    PDO_LOG_ERROR,
+                    "Error starting pdo enclave worker thread: %04X -- %s",
+                    e.error_code(),
+                    e.what());
+            } catch (...) {
+                Log(
+                    PDO_LOG_ERROR,
+                    "Unknown error starting pdo enclave worker");
+            }
+        }// Enclave::StartWorker
+
+        void Enclave::ShutdownWorker()
+        {
+            Log(PDO_LOG_INFO, "Enclave::ShutdownWorker - EnclaveID = %ld", (long)this->GetEnclaveId());
+
+            sgx_status_t ret;
+            pdo_err_t pdoError = PDO_SUCCESS;
+
+            ret = this->CallSgx([this, &pdoError] () {
+                    sgx_status_t ret =
+                    ecall_ShutdownContractWorker(
+                        this->GetEnclaveId(),
+                        &pdoError);
+                    return error::ConvertErrorStatus(ret, pdoError);
+                });
+            pdo::error::ThrowSgxError(
+                ret,
+                "Enclave call to ecall_ShutdownContractWorker failed");
+            this->ThrowPDOError(pdoError);
+        }// Enclave::ShutdownWorker
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEpidGroup(
