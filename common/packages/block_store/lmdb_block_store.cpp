@@ -35,8 +35,10 @@
 
 /*
  * This must be a multiple of the page size (4096)
+ *
+ * Default to an insanely large max size (1 TB)
  */
-#define DEFAULT_BLOCK_STORE_SIZE (1024 * 1024 * 1024)
+#define DEFAULT_BLOCK_STORE_SIZE (1024ULL * 1024ULL * 1024ULL * 1024ULL)
 
 /* Lightning database environment used to store data */
 static MDB_env* env;
