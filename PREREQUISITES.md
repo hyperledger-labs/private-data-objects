@@ -75,6 +75,7 @@ sudo apt-get update
 sudo apt-get install -y cmake swig pkg-config python3-dev python3-venv python
 sudo apt-get install -y software-properties-common virtualenv curl tinyscheme xxd
 sudo apt-get install -y git unzip dh-autoreconf ocaml ocamlbuild libsecp256k1-dev
+sudo apt-get install -y liblmdb-dev
 ```
 
 # <a name="protobuf"></a>Protobuf Compiler
