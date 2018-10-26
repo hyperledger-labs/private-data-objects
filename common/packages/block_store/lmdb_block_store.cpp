@@ -109,7 +109,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         Log(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", idStr.c_str());
@@ -156,7 +156,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     *outIsPresent = true;
     *outValueSize = lmdb_data.mv_size;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
@@ -193,7 +193,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         Log(PDO_LOG_DEBUG, "BlockStoreGet: '%s'", idStr.c_str());
@@ -247,7 +247,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
 
     memcpy_s(outValue, inValueSize, lmdb_data.mv_data, lmdb_data.mv_size);
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
@@ -284,7 +284,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     int ret;
     pdo_err_t result = PDO_SUCCESS;
 
-#ifdef DEBUG
+#if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString(inValue, inValueSize);
