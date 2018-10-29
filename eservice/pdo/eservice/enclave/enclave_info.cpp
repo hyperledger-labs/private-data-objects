@@ -77,13 +77,6 @@ pdo_enclave_info::~pdo_enclave_info()
 } // pdo_enclave_info::~pdo_enclave_info
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void pdo_enclave_info::shutdown_workers()
-{
-    ThrowPDOError(
-        pdo::enclave_api::base::ShutdownWorkers());
-} // pdo_enclave_info::shutdown_workers
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::string pdo_enclave_info::get_epid_group()
 {
     HexEncodedString epidGroupBuffer;

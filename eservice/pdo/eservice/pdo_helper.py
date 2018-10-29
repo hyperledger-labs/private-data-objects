@@ -55,6 +55,14 @@ def initialize_enclave(enclave_config) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def shutdown() :
+    """
+    """
+    pdo_enclave.shutdown()
+
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def get_enclave_service_info(spid) :
     """get_enclave_service_info -- Retrieve enclave MRENCLAVE & BASENAME
     """
