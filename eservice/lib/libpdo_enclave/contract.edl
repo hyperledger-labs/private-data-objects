@@ -20,6 +20,14 @@ enclave {
 
     trusted {
         //
+        public pdo_err_t ecall_CreateContractWorker(
+            size_t inThreadId
+        );
+
+        //
+        public pdo_err_t ecall_ShutdownContractWorker();
+
+        //
         public pdo_err_t ecall_VerifySecrets(
             [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
             size_t inSealedSignupDataSize,
