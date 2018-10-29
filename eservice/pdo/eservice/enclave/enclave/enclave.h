@@ -48,6 +48,10 @@ namespace pdo {
 
             void Unload();
 
+            void StartWorker();
+
+            void ShutdownWorker();
+
             size_t GetQuoteSize() const
             {
                 return this->quoteSize;
@@ -95,12 +99,18 @@ namespace pdo {
                 return this->enclaveId;
             }
 
+            long GetThreadId() const
+            {
+                return this->threadId;
+            }
+
         protected:
             void LoadEnclave();
             static void QuerySgxStatus();
 
             std::string enclaveFilePath;
             sgx_enclave_id_t enclaveId;
+            long threadId;
 
             size_t quoteSize;
             size_t sealedSignupDataSize;
@@ -112,8 +122,9 @@ namespace pdo {
             sgx_epid_group_id_t epidGroupId;
 
             std::string enclaveError;
-
         }; // class Enclave
+
+        static void* Worker(void* arg);
 
     }                          /* namespace enclave_api */
 

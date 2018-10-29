@@ -99,6 +99,7 @@ pdo_err_t pdo::enclave_api::base::Initialize(
             {
                 enc.SetSpid(inSpid);
                 enc.Load(inPathToEnclave);
+                enc.StartWorker();
             }
 
             g_IsInitialized = true;
@@ -126,6 +127,7 @@ pdo_err_t pdo::enclave_api::base::Terminate()
     try {
         if (g_IsInitialized) {
             for (pdo::enclave_api::Enclave& enc : g_Enclave) {
+                enc.ShutdownWorker();
                 enc.Unload();
             }
             g_IsInitialized = false;
@@ -143,6 +145,33 @@ pdo_err_t pdo::enclave_api::base::Terminate()
 
     return ret;
 } // pdo::enclave_api::base::Terminate
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::enclave_api::base::ShutdownWorkers()
+{
+    // Unload the enclave
+    pdo_err_t ret = PDO_SUCCESS;
+
+    try {
+        if (g_IsInitialized) {
+            for (pdo::enclave_api::Enclave& enc : g_Enclave) {
+                enc.ShutdownWorker();
+            }
+        }
+    } catch (pdo::error::Error& e) {
+        pdo::enclave_api::base::SetLastError(e.what());
+        ret = e.error_code();
+    } catch (std::exception& e) {
+        pdo::enclave_api::base::SetLastError(e.what());
+        ret = PDO_ERR_UNKNOWN;
+    } catch (...) {
+        pdo::enclave_api::base::SetLastError("Unexpected exception");
+        ret = PDO_ERR_UNKNOWN;
+    }
+
+    return ret;
+} // pdo::enclave_api::base::ShutdownWorkers
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 size_t pdo::enclave_api::base::GetEnclaveQuoteSize()
