@@ -62,6 +62,11 @@ TARGET_INCLUDE_DIRECTORIES(${BLOCK_STORE_LIB_NAME} PUBLIC ${SGX_SDK}/include)
 
 TARGET_COMPILE_OPTIONS(${BLOCK_STORE_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS} ${OPENSSL_CFLAGS})
 
+option(BLOCK_STORE_DEBUG "Debug logging for block store operations" OFF)
+if (BLOCK_STORE_DEBUG)
+    TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_LIB_NAME} PRIVATE "-DBLOCK_STORE_DEBUG=1")
+endif()
+
 ################################################################################
 # Trusted Common Library
 ################################################################################
