@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 from twisted.web import server, resource, http
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.web.error import Error
 
 import base64
@@ -287,6 +287,13 @@ def RunProvisioningService(config, enclave) :
     root = ProvisioningServer(config, enclave)
     site = server.Site(root)
     reactor.listenTCP(httpport, site)
+
+    @defer.inlineCallbacks
+    def shutdown_twisted():
+        logger.info("Stopping Twisted")
+        yield reactor.callFromThread(reactor.stop)
+
+    reactor.addSystemEventTrigger('before', 'shutdown', shutdown_twisted)
 
     try :
         reactor.run()
