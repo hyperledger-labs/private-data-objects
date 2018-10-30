@@ -111,7 +111,7 @@ class Contract(object) :
     # -------------------------------------------------------
     # state -- base64 encoded, encrypted state
     def set_state(self, state) :
-        self.contract_state.encrypted_state = state
+        self.contract_state.update_state(state)
 
     # -------------------------------------------------------
     def create_initialize_request(self, request_originator_keys, enclave_service) :

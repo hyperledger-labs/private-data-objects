@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 class ContractRequest(object) :
     __ops__ = { 'initialize' : True, 'update' : True }
 
+    # -------------------------------------------------------
     def __init__(self, operation, request_originator_keys, enclave_service, contract, **kwargs) :
         if not self.__ops__[operation] :
             raise ValueError('invalid operation')
@@ -48,10 +49,12 @@ class ContractRequest(object) :
         self.contract_state = contract.contract_state
         self.message = ContractMessage(self.originator_keys, self.channel_keys, **kwargs)
 
+    # -------------------------------------------------------
     @property
     def enclave_keys(self) :
         return self.enclave_service.enclave_keys
 
+    # -------------------------------------------------------
     def __serialize_for_encryption(self) :
         result = dict()
         result['Operation'] = self.operation
@@ -59,23 +62,32 @@ class ContractRequest(object) :
         result['CreatorID'] = self.creator_id
         result['EncryptedStateEncryptionKey'] = self.encrypted_state_encryption_key
 
-        result['ContractState'] = self.contract_state.serializeForInvokation()
+        result['ContractState'] = self.contract_state.serialize_for_invocation()
         result['ContractCode'] = self.contract_code.serialize()
         result['ContractMessage'] = self.message.serialize()
 
         return json.dumps(result)
 
+    # -------------------------------------------------------
     def __encrypt_session_key(self) :
         encrypted_key = self.enclave_keys.encrypt(self.session_key)
         return crypto.byte_array_to_base64(encrypted_key)
 
-    # response -- base64 encode, response encrypted with session key
+    # -------------------------------------------------------
     def __decrypt_response(self, response) :
+        """
+        decrypt the response using the session key
+
+        :param response string: base64 encoded, encrypted with session key
+        """
         decoded_response = crypto.base64_to_byte_array(response)
         return crypto.SKENC_DecryptMessage(self.session_key, decoded_response)
 
-    # enclave_service -- enclave service wrapper object
+    # -------------------------------------------------------
     def evaluate(self) :
+        """
+        evaluate the request using the enclave service
+        """
         encrypted_session_key = self.__encrypt_session_key()
 
         # Encrypt the request
@@ -84,44 +96,7 @@ class ContractRequest(object) :
         encrypted_request = crypto.byte_array_to_base64(encrypted_request_raw)
 
         try :
-            # Check and conditionally put the encrypted state into the block store if it is non-empty
-            state_hash_b64 = self.contract_state.getStateHash(encoding='b64')
-            if state_hash_b64:
-                block_store_len = self.enclave_service.block_store_head(state_hash_b64)
-                if block_store_len <= 0:
-                    # This block wasn't present in the block store of this enclave service - need to send it
-                    logger.debug("Block store did not contain block '%s' - sending it", state_hash_b64)
-
-                    ret = self.enclave_service.block_store_put(state_hash_b64, self.contract_state.encrypted_state)
-                    if ret != True:
-                        logger.exception("block_store_put failed for key %s", state_hash_b64)
-                        raise
-
-                #put rest of state in block store
-                logger.debug('Sending rest of state to EService')
-                #NOTICE: state_hash_b64 is the id of the self.contract_state.encrypted_state block
-                #           which contains the json array of the block ids of the state
-                string_main_state_block = crypto.byte_array_to_string(crypto.base64_to_byte_array(self.contract_state.encrypted_state))
-                string_main_state_block = string_main_state_block.rstrip('\0')
-                logger.debug("json blob in main state block: %s", string_main_state_block)
-                json_main_state_block = json.loads(string_main_state_block)
-                for hex_str_block_id in json_main_state_block['BlockIds']:
-                    logger.debug("block id: %s", hex_str_block_id)
-                    b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_str_block_id))
-                    cs_block = ContractState.read_from_cache(self.contract_id, b64_block_id)
-                    b64_block = cs_block.encrypted_state
-                    if b64_block is None :
-                            raise Exception('Unable to retrieve block from cache, %s', b64_block_id)
-                    block_store_len = self.enclave_service.block_store_head(b64_block_id)
-                    if block_store_len <= 0:
-                        # This block wasn't present in the block store of this enclave service - need to send it
-                        logger.debug("Block store did NOT contain block '%s' - sending it", b64_block_id)
-                        ret = self.enclave_service.block_store_put(b64_block_id, b64_block)
-                        if ret != True:
-                            logger.exception("block_store_put failed for state block %s -> %s", b64_block_id, b64_block)
-                            raise
-                        else:
-                            logger.debug("Block store DID contain block '%s' - skip send", b64_block_id)
+            self.contract_state.push_state_to_eservice(self.enclave_service)
 
             encoded_encrypted_response = self.enclave_service.send_to_contract(encrypted_session_key, encrypted_request)
             if encoded_encrypted_response == None:
@@ -138,7 +113,7 @@ class ContractRequest(object) :
             response_string = crypto.byte_array_to_string(decrypted_response)
             response_parsed = json.loads(response_string[0:-1])
 
-            logger.debug("parsed response: %s", response_parsed)
+            logger.info("parsed response: %s", response_parsed)
 
             contract_response = ContractResponse(self, response_parsed)
         except Exception as e:
