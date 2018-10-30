@@ -55,7 +55,42 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def read_from_cache(cls, contract_id, state_hash, data_dir = "./data") :
+    def __cache_data_block__(cls, contract_id, raw_data, data_dir = "./data") :
+        """
+        save a data block into the local cache
+
+        :param contract_id str: contract identifier, base64 encoded
+        :param raw_data str: base64 encoded string
+        """
+
+        contract_id = ContractState.safe_filename(contract_id)
+        state_hash = ContractState.compute_hash(raw_data, encoding='b64')
+        state_hash = ContractState.safe_filename(state_hash)
+
+        cache_dir = os.path.join(data_dir, cls.__path__, contract_id)
+        filename = putils.build_file_name(state_hash, cache_dir, '.ctx')
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+
+        try :
+            logger.debug('save state block to file %s', filename)
+            with open(filename, 'w') as statefile :
+                statefile.write(raw_data)
+                # json.dump(, statefile)
+        except Exception as e :
+            logger.info('failed to save state; %s', str(e))
+            raise Exception('unable to cache state {}'.format(filename))
+
+    # --------------------------------------------------
+    @classmethod
+    def __read_data_block_from_cache__(cls, contract_id, state_hash, data_dir = "./data") :
+        """
+        read a data block from the local cache
+
+        :param contract_id str: contract identifier, base64 encoded
+        :param state_hash str: b64 encoded string
+        """
+
         contract_id = ContractState.safe_filename(contract_id)
         state_hash = ContractState.safe_filename(state_hash)
 
@@ -63,16 +98,86 @@ class ContractState(object) :
         filename = putils.build_file_name(state_hash, cache_dir, cls.__extension__)
 
         try :
-            logger.debug('load contract state from file %s', filename)
+            logger.debug('read state block from file %s', filename)
             with open(filename, "r") as statefile :
-                state_info = json.load(statefile)
+                raw_data = statefile.read()
         except FileNotFoundError as fe :
+            logger.error('file not found; %s', filename)
             return None
         except Exception as e :
             logger.info('error reading state; %s', str(e))
             raise Exception('failed to read state from cache; {}'.format(contract_id))
 
-        return cls(state_info['ContractID'], state_info.get('EncryptedState'))
+        return raw_data
+
+    # --------------------------------------------------
+    @staticmethod
+    def __push_block_to_eservice__(eservice, contract_id, state_hash, data_dir = "./data") :
+        """
+        ensure that a particular block is stored in the eservice
+
+        :param eservice EnclaveServiceClient object:
+        :param contract_id str: contract identifier
+        :param state_hash string: base64 encoded hash of the block
+        """
+
+        logger.debug('ensure block %s is stored in the eservice', state_hash)
+
+        # check to see if the eservice already has the block
+        if eservice.block_store_head(state_hash) > 0 :
+            return
+
+        raw_data = ContractState.__read_data_block_from_cache__(contract_id, state_hash, data_dir)
+        if raw_data is None :
+            raise Exception('unable to locate required block; {}'.format(state_hash))
+
+        if not eservice.block_store_put(state_hash, raw_data) :
+            raise Exception('failed to push block to eservice; {}'.format(state_hash))
+
+        logger.debug('sent block %s to eservice', state_hash)
+
+    # --------------------------------------------------
+    @classmethod
+    def __cache_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = "./data") :
+        """
+        ensure that a block is cached locally
+
+        :param eservice EnclaveServiceClient object:
+        :param contract_id str: contract identifier
+        :param state_hash string: base64 encoded hash of the block
+        """
+
+        # check to see if the eservice already has the block
+        logger.debug('ensure block %s is stored in the local cache', state_hash)
+
+        # first see if the block is already in the cache
+        safe_contract_id = ContractState.safe_filename(contract_id)
+        safe_state_hash = ContractState.safe_filename(state_hash)
+
+        cache_dir = os.path.join(data_dir, cls.__path__, safe_contract_id)
+        filename = putils.build_file_name(safe_state_hash, cache_dir, cls.__extension__)
+        if os.path.isfile(filename) :
+            return
+
+        # it is not in the cache so grab it from the eservice
+        raw_data = eservice.block_store_get(state_hash)
+        if raw_data :
+            ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
+
+        logger.debug('sent block %s to eservice', state_hash)
+
+
+    # --------------------------------------------------
+    @classmethod
+    def read_from_cache(cls, contract_id, state_hash, data_dir = "./data") :
+        """
+        read a block from the local cache and create contract state for it
+
+        :param contract_id str: contract identifier, base64 encoded
+        :param state_hash str: b64 encoded string
+        """
+        raw_data = ContractState.__read_data_block_from_cache__(contract_id, state_hash, data_dir)
+        return cls(contract_id, raw_data)
 
     # --------------------------------------------------
     @staticmethod
@@ -121,10 +226,21 @@ class ContractState(object) :
     # --------------------------------------------------
     def __init__(self, contract_id, encrypted_state = '') :
         self.contract_id = contract_id
-        self.encrypted_state = encrypted_state
+        self.update_state(encrypted_state)
 
     # --------------------------------------------------
-    def getStateHash(self, encoding='raw') :
+    def update_state(self, encrypted_state) :
+        self.encrypted_state = encrypted_state
+        self.component_block_ids = []
+
+        if self.encrypted_state :
+            b64_decoded_byte_array = crypto.base64_to_byte_array(self.encrypted_state)
+            b64_decoded_string = crypto.byte_array_to_string(b64_decoded_byte_array).rstrip('\0')
+            json_main_state_block = json.loads(b64_decoded_string)
+            self.component_block_ids = json_main_state_block['BlockIds']
+
+    # --------------------------------------------------
+    def get_state_hash(self, encoding='raw') :
         """
         gets the hash of the encrypted state if it is non-empty
         returns None if no encrypted state exists
@@ -134,7 +250,7 @@ class ContractState(object) :
         return None
 
     # --------------------------------------------------
-    def serializeForInvokation(self) :
+    def serialize_for_invocation(self) :
         """
         serializes the elements needed by the contract enclave to invoke the contract
         does not include the encrypted state itself
@@ -160,20 +276,39 @@ class ContractState(object) :
         return result
 
     # --------------------------------------------------
+    def push_state_to_eservice(self, eservice, data_dir = "./data") :
+        """
+        push the blocks associated with the state to the eservice
+
+        :param eservice EnclaveServiceClient object:
+        """
+
+        if self.encrypted_state is '' :
+            return
+
+        ContractState.__push_block_to_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
+
+        for hex_block_id in self.component_block_ids :
+            b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_block_id))
+            ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
+
+    # --------------------------------------------------
+    def pull_state_from_eservice(self, eservice, data_dir = "./data") :
+        """
+        push the blocks associated with the state to the eservice
+
+        :param eservice EnclaveServiceClient object:
+        """
+
+        if self.encrypted_state is '' :
+            return
+
+        ContractState.__cache_block_from_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
+
+        for hex_block_id in self.component_block_ids :
+            b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_block_id))
+            ContractState.__cache_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
+
+    # --------------------------------------------------
     def save_to_cache(self, data_dir = "./data") :
-        contract_id = ContractState.safe_filename(self.contract_id)
-        state_hash = ContractState.compute_hash(self.encrypted_state, encoding='b64')
-        state_hash = ContractState.safe_filename(state_hash)
-
-        cache_dir = os.path.join(data_dir, self.__path__, contract_id)
-        filename = putils.build_file_name(state_hash, cache_dir, '.ctx')
-        if not os.path.exists(os.path.dirname(filename)):
-            os.makedirs(os.path.dirname(filename))
-
-        try :
-            logger.debug('save contract state to file %s', filename)
-            with open(filename, 'w') as statefile :
-                json.dump(self.serialize(), statefile)
-        except Exception as e :
-            logger.info('failed to save state; %s', str(e))
-            raise Exception('unable to cache state {}'.format(filename))
+        ContractState.__cache_data_block__(self.contract_id, self.encrypted_state, data_dir)
