@@ -162,6 +162,11 @@ class ContractState(object) :
         # it is not in the cache so grab it from the eservice
         raw_data = eservice.block_store_get(state_hash)
         if raw_data :
+            # since we don't really trust the eservice, make sure that the
+            # block it sent us is really the one that we were supposed to get
+            if ContractState.compute_hash(raw_data, encoding='b64') != state_hash :
+                raise Exception('invalid block returned from eservice')
+
             ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
 
         logger.debug('sent block %s to eservice', state_hash)
