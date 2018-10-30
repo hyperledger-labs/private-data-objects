@@ -45,6 +45,19 @@ use_pservice = False
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def ErrorShutdown() :
+    """
+    Perform a clean shutdown after an error
+    """
+    try :
+        enclave_helper.shutdown()
+    except Exception as e :
+        logger.exception('shutdown failed')
+
+    sys.exit(-1)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def CreateAndRegisterEnclave(config) :
     global enclave
     global txn_dependencies
@@ -78,7 +91,7 @@ def CreateAndRegisterEnclave(config) :
             logger.debug('no ledger config; skipping enclave registration')
     except Exception as e :
         logger.error('failed to register the enclave; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     return enclave
 
@@ -113,7 +126,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.debug('no ledger config; skipping contract registration')
     except Exception as e :
         logger.error('failed to register the contract; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     contract_state = contract_helper.ContractState.create_new_state(contract_id)
     contract = contract_helper.Contract(contract_code, contract_state, contract_id, contract_creator_id)
@@ -130,7 +143,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             secret = pservice.get_secret(enclave.enclave_id, contract_id, contract_creator_keys.verifying_key, signature)
             if secret is None :
                 logger.error('failed to create secret for %s', pservice.ServiceURL)
-                sys.exit(-1)
+                ErrorShutdown()
             secret_list.append(secret)
     else :
         secret_list = secret_helper.create_secrets_for_services(
@@ -147,7 +160,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     except Exception as e :
         logger.error('failed to create the state encryption key; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     try :
         if not secrets.verify_state_encryption_key_signature(
@@ -160,7 +173,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             raise RuntimeError('signature verification failed')
     except Exception as e :
         logger.error('failed to verify the state encryption key; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     logger.info('encrypted state encryption key: %s', encrypted_state_encryption_key)
 
@@ -185,7 +198,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.debug('no ledger config; skipping state encryption key registration')
     except Exception as e :
         logger.error('failed to add state encryption key; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
     contract.save_to_file(contract_name, data_dir=data_dir)
@@ -198,13 +211,13 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         initialize_response = initialize_request.evaluate()
         if initialize_response.status is False :
             logger.error('contract initialization failed: %s', initialize_response.result)
-            sys.exit(-1)
+            ErrorShutdown()
 
         contract.set_state(initialize_response.encrypted_state)
 
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     logger.info('enclave created initial state')
 
@@ -227,7 +240,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.debug('no ledger config; skipping iniatialize state save')
     except Exception as e :
         logger.error('failed to save the initial state; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     contract.contract_state.save_to_cache(data_dir=data_dir)
 
@@ -254,7 +267,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.info('{0} --> {1}'.format(expression, update_response.result))
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
-            sys.exit(-1)
+            ErrorShutdown()
 
         # if this operation did not change state then there is nothing
         # to send to the ledger or to save
@@ -277,7 +290,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                 logger.debug('no ledger config; skipping state save')
         except Exception as e :
             logger.error('failed to save the new state; %s', str(e))
-            sys.exit(-1)
+            ErrorShutdown()
 
         logger.debug('update state')
         contract.set_state(update_response.encrypted_state)
@@ -315,14 +328,15 @@ def LocalMain(config) :
             contract = contract_helper.Contract.read_from_file(ledger_config, contract_name, data_dir=data_dir)
     except Exception as e :
         logger.error('failed to load the contract from a file; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
     try :
         UpdateTheContract(config, enclave, contract, contract_creator_keys)
     except Exception as e :
         logger.error('contract execution failed; %s', str(e))
-        sys.exit(-1)
+        ErrorShutdown()
 
+    enclave_helper.shutdown()
     sys.exit(0)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

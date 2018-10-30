@@ -147,13 +147,14 @@ namespace pdo {
 
         } // Enclave::Worker
 
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::StartWorker()
         {
             try {
                 pthread_t thread;
                 int err = pthread_create(&thread, NULL, Worker, this);
-                if (err) throw error::Error((pdo_err_t)err, "Enclave::StartWorker(): pthread_create failed");
-                pthread_detach(thread);
+                if (err)
+                    throw error::Error((pdo_err_t)err, "Enclave::StartWorker(): pthread_create failed");
 
                 this->threadId = (long)thread;
 
@@ -170,6 +171,7 @@ namespace pdo {
             }
         }// Enclave::StartWorker
 
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::ShutdownWorker()
         {
             Log(PDO_LOG_INFO, "Enclave::ShutdownWorker - EnclaveID = %ld", (long)this->GetEnclaveId());
@@ -188,6 +190,9 @@ namespace pdo {
                 ret,
                 "Enclave call to ecall_ShutdownContractWorker failed");
             this->ThrowPDOError(pdoError);
+
+            // wait for the worker thread to shutdown before continuing
+            pthread_join(this->threadId, NULL);
         }// Enclave::ShutdownWorker
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

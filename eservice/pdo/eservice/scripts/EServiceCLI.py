@@ -398,6 +398,7 @@ def RunEnclaveService(config, enclave) :
     except :
         logger.warn('shutdown')
 
+    pdo_enclave_helper.shutdown()
     sys.exit(0)
 
 # -----------------------------------------------------------------

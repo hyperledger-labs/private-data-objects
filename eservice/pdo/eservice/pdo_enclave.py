@@ -33,7 +33,6 @@ __all__ = [
     'initialize',
     'initialize_with_configuration',
     'create_signup_info',
-    'shutdown_workers',
     'get_enclave_public_info',
     'get_enclave_service_info',
     'get_enclave_measurement',
@@ -185,14 +184,13 @@ def shutdown():
     global _sig_rl_update_time
     global _epid_group
 
+    logger.info('shutdown enclave')
+    enclave.block_store_close()
+
     _pdo = None
     _ias = None
     _sig_rl_update_time = None
     _epid_group = None
-
-    enclave.shutdown_workers()
-    enclave.block_store_close()
-
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
