@@ -97,7 +97,7 @@ void test_state_kv() {
         pstate::State_KV skv(id, state_encryption_key_, test_key_length);
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start big value test\n");
-        for(int i=1; i<19; i++) {
+        for(int i=1; i<24; i++) {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);
@@ -140,7 +140,7 @@ void test_state_kv() {
         pstate::State_KV skv(emptyId, state_encryption_key_);
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start big value test (fixed kv keys)\n");
-        for(int i=1; i<19; i++) {
+        for(int i=1; i<24; i++) {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);

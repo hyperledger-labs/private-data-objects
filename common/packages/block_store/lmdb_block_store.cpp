@@ -38,7 +38,7 @@
  *
  * Default to an insanely large max size (1 TB)
  */
-#define DEFAULT_BLOCK_STORE_SIZE (1024ULL * 1024ULL * 1024ULL * 1024ULL)
+#define DEFAULT_BLOCK_STORE_SIZE (1ULL << 40)
 
 /* Lightning database environment used to store data */
 static MDB_env* env;
@@ -78,7 +78,7 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
      * This risks possibly losing at most the last transaction if the system crashes
      * before it is written to disk.
      */
-    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC, 0664);
+    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC, 0664);
     if (ret != 0)
     {
         Log(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
