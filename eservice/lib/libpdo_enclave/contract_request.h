@@ -23,7 +23,7 @@
 #include "contract_code.h"
 #include "contract_message.h"
 #include "contract_state.h"
-#include "contract_enclave.h"
+#include "contract_worker.h"
 
 class ContractResponse;
 

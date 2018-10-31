@@ -34,6 +34,7 @@
 
 #include "base_enclave.h"
 #include "contract_enclave.h"
+#include "contract_worker.h"
 #include "enclave_data.h"
 #include "signup_enclave.h"
 
@@ -56,26 +57,29 @@ pdo_err_t ecall_CreateContractWorker(size_t inThreadId){
             worker = new ContractWorker((long) inThreadId);
             worker_initialized = true;
             SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - ContractWorker created",
-                (long) worker->threadId_);
+                (long) worker->thread_id_);
         }
 
         while (!shutdown_worker)
         {
-            worker->interpreterInit();
+            worker->InitializeInterpreter();
+            worker->WaitForCompletion();
         }
     }
     catch (pdo::error::Error& e)
     {
-        printf("Error in contract enclave (ecall_CreateContractWorker): %04X -- %s \n", e.error_code(), e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "Error in contract enclave (ecall_CreateContractWorker): %04X -- %s", e.error_code(), e.what());
         ocall_SetErrorMessage(e.what());
         result = e.error_code();
     }
     catch (...)
     {
-        printf("Unknown error in contract enclave (ecall_CreateContractWorker)\n");
+        SAFE_LOG(PDO_LOG_ERROR, "Unknown error in contract enclave (ecall_CreateContractWorker)");
         result = PDO_ERR_UNKNOWN;
     }
 
+    // does not exit until shutdown
     return result;
 }
 
@@ -86,57 +90,13 @@ pdo_err_t ecall_ShutdownContractWorker(){
     if (worker_initialized)
     {
         SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - Shutting down ContractWorker",
-            (long) worker->threadId_);
+            (long) worker->thread_id_);
+
         shutdown_worker = true;
+        worker->MarkInterpreterDone();
     }
 
     return result;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractWorker::ContractWorker(long threadId)
-{
-    this->threadId_ = threadId;
-    this->current_state_ = INTERPRETER_DONE;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractWorker::interpreterInit()
-{
-    sgx_thread_mutex_lock(&this->mutex_);
-
-    if (current_state_ == INTERPRETER_DONE) {
-        if (interpreter_ != NULL) {
-            delete interpreter_;
-        }
-
-        interpreter_ = new GipsyInterpreter();
-        current_state_ = INTERPRETER_READY;
-        sgx_thread_cond_signal(&this->ready_cond_);
-    }
-    sgx_thread_mutex_unlock(&this->mutex_);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractWorker::interpreterIsReady()
-{
-    sgx_thread_mutex_lock(&this->mutex_);
-
-    while (!this->current_state_ == INTERPRETER_READY){
-        sgx_thread_cond_wait(&this->ready_cond_, &this->mutex_);
-        this->current_state_ = INTERPRETER_BUSY;
-    }
-
-    sgx_thread_mutex_unlock(&this->mutex_);
-}
-
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractWorker::interpreterDone()
-{
-    sgx_thread_mutex_lock(&this->mutex_);
-    this->current_state_ = INTERPRETER_DONE;
-    sgx_thread_mutex_unlock(&this->mutex_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

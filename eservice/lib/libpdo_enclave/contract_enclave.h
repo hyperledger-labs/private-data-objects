@@ -24,40 +24,6 @@ DESCRIPTION:   Function declarations for the contract enclave
 #include "sgx_thread.h"
 
 #include "enclave_utils.h"
-#include "interpreter/ContractInterpreter.h"
-#include "interpreter/gipsy_scheme/GipsyInterpreter.h"
-
-class ContractWorker
-{
-
-protected:
-    enum interpreter_state{
-        INTERPRETER_READY = 0,
-        INTERPRETER_BUSY = -1,
-        INTERPRETER_DONE = 1
-    };
-
-    interpreter_state current_state_;
-
-    sgx_thread_mutex_t mutex_ = SGX_THREAD_MUTEX_INITIALIZER;
-    sgx_thread_cond_t ready_cond_ = SGX_THREAD_COND_INITIALIZER;
-
-public:
-
-    GipsyInterpreter *interpreter_ = NULL;
-
-    ContractWorker(long threadId);
-
-    static int secret;
-
-    long threadId_;
-
-    void interpreterInit(void);
-
-    void interpreterIsReady(void);
-
-    void interpreterDone(void);
-};
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_CreateContractWorker(size_t inThreadId);
