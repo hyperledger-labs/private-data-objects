@@ -25,6 +25,7 @@
 #include "jsonvalue.h"
 #include "parson.h"
 
+#include "contract_worker.h"
 #include "contract_request.h"
 #include "contract_response.h"
 #include "contract_secrets.h"
@@ -147,8 +148,6 @@ ContractResponse ContractRequest::process_initialization_request(void)
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
-        GipsyInterpreter *interpreter = worker_->interpreter_;
-
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
@@ -160,7 +159,7 @@ ContractResponse ContractRequest::process_initialization_request(void)
         pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
 
-        worker_->interpreterIsReady();
+        GipsyInterpreter *interpreter = worker_->GetInitializedInterpreter();
 
         SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
             ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
@@ -169,7 +168,7 @@ ContractResponse ContractRequest::process_initialization_request(void)
         interpreter->create_initial_contract_state(
             contract_id_, creator_id_, code, msg, new_contract_state);
 
-        worker_->interpreterDone();
+        worker_->MarkInterpreterDone();
 
         ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
         ContractResponse response(*this, dependencies, new_state, "");
@@ -231,8 +230,6 @@ ContractResponse ContractRequest::process_update_request(void)
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
-        GipsyInterpreter *interpreter = worker_->interpreter_;
-
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
@@ -250,7 +247,7 @@ ContractResponse ContractRequest::process_update_request(void)
         std::map<string, string> dependencies;
         std::string result;
 
-        worker_->interpreterIsReady();
+        GipsyInterpreter *interpreter = worker_->GetInitializedInterpreter();
 
         SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
             ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
@@ -259,7 +256,7 @@ ContractResponse ContractRequest::process_update_request(void)
         interpreter->send_message_to_contract(contract_id_, creator_id_, code, msg,
             current_contract_state, new_contract_state, dependencies, result);
 
-        worker_->interpreterDone();
+        worker_->MarkInterpreterDone();
 
         // check for operations that did not modify state
         if (new_contract_state.State.empty())
