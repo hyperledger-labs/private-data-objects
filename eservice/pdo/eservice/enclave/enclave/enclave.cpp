@@ -145,6 +145,8 @@ namespace pdo {
                 "Enclave call to ecall_CreateContractWorker failed");
             enc->ThrowPDOError(pdoError);
 
+            return NULL;
+
         } // Enclave::Worker
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
