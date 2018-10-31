@@ -16,6 +16,9 @@
 #pragma once
 
 #include "pdo_error.h"
+
+#define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
+
 namespace pdo
 {
     void Log(pdo_log_level_t logLevel, const char* message, ...);

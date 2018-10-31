@@ -20,24 +20,18 @@
 #include "crypto.h"
 #include "c11_support.h"
 #include "error.h"
+#include "log.h"
 
 #include "packages/block_store/block_store.h"
 
-#ifdef DEBUG
-    #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
-#else // DEBUG not defined
-    #define SAFE_LOG(LEVEL, FMT, ...)
-#endif // DEBUG
+namespace pstate = pdo::state;
 
 state_status_t sebio_fetch_from_block_store(
-    uint8_t* block_id,
-    size_t block_id_size,
+    const pstate::StateBlockId& block_id,
     sebio_crypto_algo_e crypto_algo,
-    uint8_t** block,
-    size_t* block_size);
+    pstate::StateBlock& block);
 state_status_t sebio_evict_to_block_store(
-    uint8_t* block,
-    size_t block_size,
+    const pstate::StateBlock& block,
     sebio_crypto_algo_e crypto_algo,
     ByteArray& idOnEviction);
 
@@ -70,22 +64,19 @@ state_status_t sebio_set(sebio_ctx_t ctx) {
 }
 
 state_status_t sebio_fetch(
-    uint8_t* block_id,
-    size_t block_id_size,
+    const pstate::StateBlockId& block_id,
     sebio_crypto_algo_e crypto_algo,
-    uint8_t** block,
-    size_t* block_size)
+    pstate::StateBlock& block)
 {
-    return sebio_ctx.f_sebio_fetch(block_id, block_id_size, crypto_algo, block, block_size);
+    return sebio_ctx.f_sebio_fetch(block_id, crypto_algo, block);
 }
 
 state_status_t sebio_evict(
-    uint8_t* block,
-    size_t block_size,
+    const pstate::StateBlock& block,
     sebio_crypto_algo_e crypto_algo,
     ByteArray& idOnEviction)
 {
-    return sebio_ctx.f_sebio_evict(block, block_size, crypto_algo, idOnEviction);
+    return sebio_ctx.f_sebio_evict(block, crypto_algo, idOnEviction);
 }
 
 /*
@@ -94,68 +85,43 @@ state_status_t sebio_evict(
     then it allocates memory to contain it and loads it,
     then it hashes the block and checks that it matches the id/hash given by the caller,
     finally it decrypts the block if the caller specified that and set a context.
-
-    CONVENTION: the memory allocated for the block MUST be freed by the caller.
 */
 state_status_t sebio_fetch_from_block_store(
-    uint8_t* block_id,
-    size_t block_id_size,
+    const pstate::StateBlockId& block_id,
     sebio_crypto_algo_e crypto_algo,
-    uint8_t** block,
-    size_t* block_size) {
-
-    ByteArray baBlockId(block_id, block_id + block_id_size);
-    ByteArray baBlock;
-    uint8_t* tas_block_address;
-    size_t tas_block_size;
-    *block = NULL;
+    pstate::StateBlock& block) {
 
     //load the data
     pdo_err_t ret;
-    ret = pdo::block_store::BlockStoreGet(baBlockId, baBlock);
+    ret = pdo::block_store::BlockStoreGet(block_id, block);
     if(ret != PDO_SUCCESS) {
         SAFE_LOG(PDO_LOG_ERROR, "sebio error, BlockStoreGet returned %d\n", ret);
         return STATE_ERR_NOT_FOUND;
     }
 
     //check block hash == block id
-    ByteArray computedId = pdo::crypto::ComputeMessageHash(baBlock);
-    if(baBlockId != computedId) {
+    ByteArray computedId = pdo::crypto::ComputeMessageHash(block);
+    if(block_id != computedId) {
         return STATE_ERR_BLOCK_AUTHENTICATION;
     }
 
     //decrypt if necessary
     switch(crypto_algo) {
         case SEBIO_NO_CRYPTO: {
-            tas_block_size = baBlock.size();
-            tas_block_address = (uint8_t*) malloc(tas_block_size);
-            if(!tas_block_address) {
-                SAFE_LOG(PDO_LOG_DEBUG, "sebio error, out of memory");
-                return STATE_ERR_MEMORY;
-            }
-            memcpy_s(tas_block_address, tas_block_size, baBlock.data(), baBlock.size());
+            //nothing to do
             break;
         }
         case SEBIO_AES_GCM: {
             pdo::error::ThrowIf<pdo::error::RuntimeError>(
                     sebio_ctx.crypto_algo != crypto_algo, "sebio_fetch, crypto-algo does not match");
             ByteArray decryptedState;
-            decryptedState = pdo::crypto::skenc::DecryptMessage(sebio_ctx.key, baBlock);
-            tas_block_size = decryptedState.size();
-            tas_block_address = (uint8_t*) malloc(tas_block_size);
-            if(!tas_block_address) {
-                SAFE_LOG(PDO_LOG_DEBUG, "sebio error, out of memory");
-                return STATE_ERR_MEMORY;
-            }
-            memcpy_s(tas_block_address, tas_block_size, decryptedState.data(), decryptedState.size());
+            block = pdo::crypto::skenc::DecryptMessage(sebio_ctx.key, block);
             break;
         }
         default:
             return STATE_ERR_UNIMPLEMENTED;
     }
 
-    *block = tas_block_address;
-    *block_size = tas_block_size;
     return STATE_SUCCESS;
 }
 
@@ -165,28 +131,25 @@ state_status_t sebio_fetch_from_block_store(
     the block is first encrypted and then sent to the block store.
 */
 state_status_t sebio_evict_to_block_store(
-    uint8_t* block,
-    size_t block_size,
+    const pstate::StateBlock& block,
     sebio_crypto_algo_e crypto_algo,
     ByteArray& idOnEviction) {
 
-    ByteArray baBlockCopy(block, block + block_size);
     ByteArray baEncryptedBlock;
     int ret;
 
     switch(crypto_algo) {
         case SEBIO_NO_CRYPTO: {
-            idOnEviction = pdo::crypto::ComputeMessageHash(baBlockCopy);
-            ret = pdo::block_store::BlockStorePut(idOnEviction, baBlockCopy);
+            idOnEviction = pdo::crypto::ComputeMessageHash(block);
+            ret = pdo::block_store::BlockStorePut(idOnEviction, block);
             break;
         }
         case SEBIO_AES_GCM: {
             //check initialization
             pdo::error::ThrowIf<pdo::error::RuntimeError>(
                     sebio_ctx.crypto_algo != crypto_algo, "sebio_evict, crypto-algo does not match");
-            baEncryptedBlock = pdo::crypto::skenc::EncryptMessage(sebio_ctx.key, baBlockCopy);
-            //compute block id before it is evicted
-            //Notice: since the block may have been encrypted, we propagate this id to the upper layers
+            baEncryptedBlock = pdo::crypto::skenc::EncryptMessage(sebio_ctx.key, block);
+            //compute block id before it is evicted, and propagate this id to the upper layers
             idOnEviction = pdo::crypto::ComputeMessageHash(baEncryptedBlock);
             ret = pdo::block_store::BlockStorePut(idOnEviction, baEncryptedBlock);
             break;
@@ -199,6 +162,5 @@ state_status_t sebio_evict_to_block_store(
         SAFE_LOG(PDO_LOG_ERROR, "sebio error, block store put returned %d\n", ret);
         return STATE_ERR_UNKNOWN;
     }
-    SAFE_LOG(PDO_LOG_DEBUG, "sebio evicted id: %s\n", ByteArrayToHexEncodedString(idOnEviction).c_str());
     return STATE_SUCCESS;
 }

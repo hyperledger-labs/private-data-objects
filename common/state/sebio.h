@@ -31,14 +31,11 @@ typedef struct {
     // This allows the caller to specify custom functions if necessary,
     // and default functions are provided below.
     state_status_t (*f_sebio_fetch)(
-        uint8_t* block_id,
-        size_t block_id_size,
+        const pdo::state::StateBlockId& block_id,
         sebio_crypto_algo_e crypto_algo,
-        uint8_t** block,
-        size_t* block_size);
+        pdo::state::StateBlock& block);
     state_status_t (*f_sebio_evict)(
-        uint8_t* block,
-        size_t block_size,
+        const pdo::state::StateBlockId& block_id,
         sebio_crypto_algo_e crypto_algo,
         ByteArray& idOnEviction);
 } sebio_ctx_t;
@@ -46,14 +43,11 @@ typedef struct {
 state_status_t sebio_set(sebio_ctx_t ctx);
 
 state_status_t sebio_fetch(
-    uint8_t* block_id,
-    size_t block_id_size,
+    const pdo::state::StateBlockId& block_id,
     sebio_crypto_algo_e crypto_algo,
-    uint8_t** block,
-    size_t* block_size);
+    pdo::state::StateBlock& block);
 
 state_status_t sebio_evict(
-    uint8_t* block,
-    size_t block_size,
+    const pdo::state::StateBlock& block,
     sebio_crypto_algo_e crypto_algo,
     ByteArray& idOnEviction);

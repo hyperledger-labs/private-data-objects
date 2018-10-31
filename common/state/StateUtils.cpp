@@ -21,12 +21,6 @@
 
 namespace pstate = pdo::state;
 
-#ifdef DEBUG
-    #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
-#else // DEBUG not defined
-    #define SAFE_LOG(LEVEL, FMT, ...)
-#endif // DEBUG
-
 pdo::state::StateNode::StateNode() {
     blockId_ = new StateBlockId();
     stateBlock_ = new StateBlock();
@@ -79,7 +73,6 @@ void pdo::state::StateNode::AppendChild(StateNode& childNode) {
     }
      catch(const std::bad_alloc &)
     {
-         SAFE_LOG(PDO_LOG_DEBUG, "StateNode::AppendChild, out of memory");
          std::string msg("StateNode::AppendChild, push_back error, out of memory");
          throw pdo::error::MemoryError(msg);
     }
@@ -97,7 +90,6 @@ void pdo::state::StateNode::AppendChildId(StateBlockId& childId) {
     }
      catch(const std::bad_alloc &)
     {
-         SAFE_LOG(PDO_LOG_DEBUG, "StateNode::AppendChildId, out of memory");
          std::string msg("StateNode::AppendChildId, push_back error, out of memory");
          throw pdo::error::MemoryError(msg);
     }
@@ -133,11 +125,9 @@ void pdo::state::StateNode::BlockifyChildren() {
         reinterpret_cast<char*>(&(*stateBlock_)[0]), stateBlock_->size());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "json root block serialization failed");
-    SAFE_LOG(PDO_LOG_DEBUG, "serialized json root block: %s", ByteArrayToString(*stateBlock_).c_str());
 }
 
 void pdo::state::StateNode::UnBlockifyChildren() {
-    SAFE_LOG(PDO_LOG_DEBUG, "unserializing json root block: %s", ByteArrayToString(*stateBlock_).c_str());
     if(stateBlock_->empty()) {
         std::string msg("Can't unblockify state node, block is empty");
         throw pdo::error::ValueError(msg);
@@ -151,7 +141,6 @@ void pdo::state::StateNode::UnBlockifyChildren() {
     int block_ids_count = json_array_get_count(j_block_ids_array);
     for(int i=0; i<block_ids_count; i++) {
         std::string str(json_array_get_string(j_block_ids_array, i));
-        SAFE_LOG(PDO_LOG_DEBUG, "deserialized block id %d: %s", i, str.c_str());
         ChildrenArray_.push_back(new StateBlockId(HexEncodedStringToByteArray(str)));
     }
 }

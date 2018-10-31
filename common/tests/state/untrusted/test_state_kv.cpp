@@ -101,10 +101,29 @@ void test_state_kv() {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);
-            big_string_key.insert(0, TEST_KEY_STRING_LENGTH - big_string_key.length(), '0');
-            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu\n", value_size);
-            _kv_put(big_string_key, big_string);
-            _kv_get(big_string_key, big_string);
+            int prefix_pad_length = TEST_KEY_STRING_LENGTH - big_string_key.length();
+            prefix_pad_length = (prefix_pad_length<0?0:prefix_pad_length);
+            big_string_key.insert(0, prefix_pad_length, '0');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+
+            try
+            {
+                _kv_put(big_string_key, big_string);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on big value");
+                throw;
+            }
+            try
+            {
+                _kv_get(big_string_key, big_string);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Get operation on big value");
+                throw;
+            }
         }
         kv_->Uninit(id);
         kv_ = NULL;
@@ -112,7 +131,50 @@ void test_state_kv() {
     }
     catch (...)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on big value");
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on big value");
+        throw;
+    }
+
+    try
+    {
+        pstate::State_KV skv(emptyId, state_encryption_key_);
+        kv_ = &skv;
+        SAFE_LOG(PDO_LOG_INFO, "start big value test (fixed kv keys)\n");
+        for(int i=1; i<19; i++) {
+            size_t value_size = (1<<i);
+            std::string big_string(value_size, 'a');
+            std::string big_string_key = std::to_string(i);
+            int prefix_pad_length = TEST_KEY_STRING_LENGTH - big_string_key.length();
+            prefix_pad_length = (prefix_pad_length<0?0:prefix_pad_length);
+            big_string_key.insert(0, prefix_pad_length, '0');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+
+            try
+            {
+                _kv_put(big_string_key, big_string);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on big value");
+                throw;
+            }
+            try
+            {
+                _kv_get(big_string_key, big_string);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Get operation on big value");
+                throw;
+            }
+        }
+        kv_->Uninit(id);
+        kv_ = NULL;
+        SAFE_LOG(PDO_LOG_ERROR, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on big value");
         throw;
     }
 }
