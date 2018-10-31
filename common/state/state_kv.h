@@ -18,10 +18,22 @@
 #include "types.h"
 #include "basic_kv.h"
 
+#define STATE_KV_DEFAULT_FIXED_KEY_SIZE 16 //bytes
+
 namespace pdo
 {
     namespace state
     {
+        class StateKV_Key
+        {
+        protected:
+            ByteArray fixed_size_key_;
+        public:
+            StateKV_Key(ByteArray& key);
+            StateKV_Key(ByteArray& key, size_t wanted_key_size);
+            const ByteArray& Get_Key();
+        };
+
         class kv_node;
         class data_node;
 
@@ -44,19 +56,24 @@ namespace pdo
             pdo::state::StateBlockId get_search_root_kvblock_id();
             pdo::state::StateBlockId get_last_datablock_id();
 
-            ByteArray to_kvkey(ByteArray& key);
             void error_on_wrong_key_size(size_t key_size);
-            void operate(kv_node& search_kv_node, unsigned int operation, ByteArray& kvkey, ByteArray& value);
+            void operate(kv_node& search_kv_node, unsigned int operation, const ByteArray& kvkey, ByteArray& value);
 
         public:
             State_KV(ByteArray& id);
             State_KV(ByteArray& id, const ByteArray& key);
-            State_KV(ByteArray& id, const ByteArray& key, const size_t fized_key_size);
+            State_KV(ByteArray& id, const ByteArray& key, const size_t fixed_key_size);
             ~State_KV();
+
             void Uninit(ByteArray& id);
+
             ByteArray Get(ByteArray& key);
             void Put(ByteArray& key, ByteArray& value);
             void Delete(ByteArray& key);
+
+            ByteArray Get(pdo::state::StateKV_Key& statekv_key);
+            void Put(pdo::state::StateKV_Key& key, ByteArray& value);
+            void Delete(pdo::state::StateKV_Key& key);
         };
     }
 }
