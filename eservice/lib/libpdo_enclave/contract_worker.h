@@ -51,3 +51,22 @@ public:
     GipsyInterpreter *GetInitializedInterpreter(void);
     void MarkInterpreterDone(void);
 };
+
+class InitializedInterpreter
+{
+
+public:
+    ContractWorker *worker_ = NULL;
+    GipsyInterpreter *interpreter_ = NULL;
+
+    InitializedInterpreter(ContractWorker* worker)
+    {
+        worker_ = worker;
+        interpreter_ = worker_->GetInitializedInterpreter();
+    }
+
+    ~InitializedInterpreter(void)
+    {
+        worker_->MarkInterpreterDone();
+    }
+};

@@ -24,14 +24,14 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractWorker::ContractWorker(long thread_id)
 {
-    this->thread_id_ = thread_id;
-    this->current_state_ = INTERPRETER_DONE;
+    thread_id_ = thread_id;
+    current_state_ = INTERPRETER_DONE;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractWorker::InitializeInterpreter(void)
 {
-    sgx_thread_mutex_lock(&this->mutex_);
+    sgx_thread_mutex_lock(&mutex_);
 
     if (current_state_ == INTERPRETER_DONE)
     {
@@ -41,46 +41,47 @@ void ContractWorker::InitializeInterpreter(void)
 
         interpreter_ = new GipsyInterpreter();
         current_state_ = INTERPRETER_READY;
-        sgx_thread_cond_signal(&this->ready_cond_);
+        sgx_thread_cond_signal(&ready_cond_);
     }
 
-    sgx_thread_mutex_unlock(&this->mutex_);
+    sgx_thread_mutex_unlock(&mutex_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractWorker::WaitForCompletion(void)
 {
-    sgx_thread_mutex_lock(&this->mutex_);
+    sgx_thread_mutex_lock(&mutex_);
 
     while (current_state_ != INTERPRETER_DONE)
     {
-        sgx_thread_cond_wait(&this->done_cond_, &this->mutex_);
+        sgx_thread_cond_wait(&done_cond_, &mutex_);
     }
 
-    sgx_thread_mutex_unlock(&this->mutex_);
+    sgx_thread_mutex_unlock(&mutex_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-GipsyInterpreter *ContractWorker::GetInitializedInterpreter(void)
+GipsyInterpreter* ContractWorker::GetInitializedInterpreter(void)
 {
-    sgx_thread_mutex_lock(&this->mutex_);
+    sgx_thread_mutex_lock(&mutex_);
 
-    while (!this->current_state_ == INTERPRETER_READY)
+    while (current_state_ != INTERPRETER_READY)
     {
-        sgx_thread_cond_wait(&this->ready_cond_, &this->mutex_);
-        this->current_state_ = INTERPRETER_BUSY;
+        sgx_thread_cond_wait(&ready_cond_, &mutex_);
     }
 
-    sgx_thread_mutex_unlock(&this->mutex_);
+    current_state_ = INTERPRETER_BUSY;
 
-    return this->interpreter_;
+    sgx_thread_mutex_unlock(&mutex_);
+
+    return interpreter_;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractWorker::MarkInterpreterDone(void)
 {
-    sgx_thread_mutex_lock(&this->mutex_);
-    this->current_state_ = INTERPRETER_DONE;
-    sgx_thread_cond_signal(&this->done_cond_);
-    sgx_thread_mutex_unlock(&this->mutex_);
+    sgx_thread_mutex_lock(&mutex_);
+    current_state_ = INTERPRETER_DONE;
+    sgx_thread_cond_signal(&done_cond_);
+    sgx_thread_mutex_unlock(&mutex_);
 }
