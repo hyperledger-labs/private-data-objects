@@ -57,7 +57,7 @@ pdo_err_t ecall_CreateContractWorker(size_t inThreadId){
             worker = new ContractWorker((long) inThreadId);
             worker_initialized = true;
             SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - ContractWorker created",
-                (long) worker->threadId_);
+                (long) worker->thread_id_);
         }
 
         while (!shutdown_worker)
@@ -90,7 +90,7 @@ pdo_err_t ecall_ShutdownContractWorker(){
     if (worker_initialized)
     {
         SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - Shutting down ContractWorker",
-            (long) worker->threadId_);
+            (long) worker->thread_id_);
 
         shutdown_worker = true;
         worker->MarkInterpreterDone();
