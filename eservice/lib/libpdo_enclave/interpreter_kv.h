@@ -27,20 +27,24 @@ namespace pdo
         protected:
             Basic_KV* kv_;
 
-            ByteArray to_kvkey(ByteArray&key);
+            ByteArray Get(ByteArray& key);
+            void Put(ByteArray& key, ByteArray& value);
+            void Delete(ByteArray& key);
 
         public:
             Interpreter_KV(ByteArray& id);
             Interpreter_KV(ByteArray& id, const ByteArray& encryption_key);
             ~Interpreter_KV();
+
             void Uninit(ByteArray& id);
-            ByteArray Get(ByteArray& key);
-            void Put(ByteArray& key, ByteArray& value);
-            void Delete(ByteArray& key);
+
             void PrivilegedPut(ByteArray& key, ByteArray& value);
             ByteArray PrivilegedGet(ByteArray& key);
+            void PrivilegedDelete(const ByteArray& key);
+
             void UnprivilegedPut(ByteArray& key, ByteArray& value);
             ByteArray UnprivilegedGet(ByteArray& key);
+            void UnprivilegedDelete(const ByteArray& key);
         };
     }
 }
