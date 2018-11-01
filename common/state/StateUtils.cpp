@@ -105,7 +105,9 @@ void pdo::state::StateNode::SetHasParent() {
 }
 
 void pdo::state::StateNode::BlockifyChildren() {
+    //create the master block from scratch
     stateBlock_->clear();
+    //insert a JSON blob containing the BlockIds array
     JsonValue j_root_block_value(json_value_init_object());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(!j_root_block_value.value, "Failed to create json root block value");
     JSON_Object* j_root_block_object = json_value_get_object(j_root_block_value);
@@ -115,9 +117,9 @@ void pdo::state::StateNode::BlockifyChildren() {
         pdo::error::ThrowIf<pdo::error::RuntimeError>(jret != JSONSuccess, "failed to serialize block ids");
     JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
         pdo::error::ThrowIfNull(j_block_ids_array, "failed to serialize the block id array");
+    //insert in the array the IDs of all blocks in the list
     for(unsigned int i=0; i<ChildrenArray_.size(); i++) {
-        std::string str(ByteArrayToHexEncodedString(*ChildrenArray_[i]));
-        jret = json_array_append_string(j_block_ids_array, str.c_str());
+        jret = json_array_append_string(j_block_ids_array, ByteArrayToBase64EncodedString(*ChildrenArray_[i]).c_str());
     }
     size_t serializedSize = json_serialization_size(j_root_block_value);
     stateBlock_->resize(serializedSize);
@@ -140,8 +142,8 @@ void pdo::state::StateNode::UnBlockifyChildren() {
     pdo::error::ThrowIfNull(j_block_ids_array, "Failed to parse the block ids, expecting array");
     int block_ids_count = json_array_get_count(j_block_ids_array);
     for(int i=0; i<block_ids_count; i++) {
-        std::string str(json_array_get_string(j_block_ids_array, i));
-        ChildrenArray_.push_back(new StateBlockId(HexEncodedStringToByteArray(str)));
+        ChildrenArray_.push_back(new StateBlockId(Base64EncodedStringToByteArray(
+                                                    json_array_get_string(j_block_ids_array, i))));
     }
 }
 

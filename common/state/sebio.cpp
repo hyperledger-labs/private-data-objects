@@ -114,7 +114,6 @@ state_status_t sebio_fetch_from_block_store(
         case SEBIO_AES_GCM: {
             pdo::error::ThrowIf<pdo::error::RuntimeError>(
                     sebio_ctx.crypto_algo != crypto_algo, "sebio_fetch, crypto-algo does not match");
-            ByteArray decryptedState;
             block = pdo::crypto::skenc::DecryptMessage(sebio_ctx.key, block);
             break;
         }

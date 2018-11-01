@@ -40,11 +40,11 @@ class pstate::data_node {
         unsigned int free_bytes_;
 
 
-        unsigned int offset_to_block_num(ByteArray& offset) {
+        unsigned int offset_to_block_num(const ByteArray& offset) {
             return *((unsigned int*)offset.data()); //the first uint
         }
 
-        unsigned int offset_to_bytes_off(ByteArray& offset) {
+        unsigned int offset_to_bytes_off(const ByteArray& offset) {
             return *((unsigned int*)(offset.data()+sizeof(unsigned int))); //the second uint
         }
 
@@ -71,13 +71,19 @@ class pstate::data_node {
             return block_num_;
         }
 
-        ByteArray serialize_data() {
+        ByteArray& serialize_data() {
             ByteArray header = make_offset(block_num_, free_bytes_);
             std::copy(header.begin(), header.end(), data_.begin());
             return data_;
         }
 
-        void deserialize_data(ByteArray& inData) {
+        void decrypt_and_deserialize_data(const ByteArray& inEncryptedData, const ByteArray& state_encryption_key) {
+            data_ = pdo::crypto::skenc::DecryptMessage(state_encryption_key, inEncryptedData);
+            block_num_ = offset_to_block_num(data_);
+            free_bytes_ = offset_to_bytes_off(data_);
+        }
+
+        void deserialize_data(const ByteArray& inData) {
             block_num_ = offset_to_block_num(inData);
             free_bytes_ = offset_to_bytes_off(inData);
             data_ = inData;
@@ -108,18 +114,19 @@ class pstate::data_node {
             return free_bytes_ >= sizeof(size_t) + 1;
         }
 
-        ByteArray write(ByteArray& buffer, bool continue_writing) {
+        unsigned int write(const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet) {
             //check that there is enough space to write
             pdo::error::ThrowIf<pdo::error::RuntimeError>(
-                ! enough_space_available(continue_writing), "data node, not enough space to write");
+                ! enough_space_available(write_from > 0), "data node, not enough space to write");
 
             //compute cursor where to start writing
             unsigned int cursor = data_.size() - free_bytes_;
             //compute return offset
-            ByteArray retOffset = make_offset(block_num_, cursor);
+            //ByteArray retOffset = make_offset(block_num_, cursor);
+            returnOffSet = make_offset(block_num_, cursor);
 
             //write the buffer size if necessary
-            if(!continue_writing) {
+            if(write_from == 0) { // this is the first write
                 size_t buffer_size = buffer.size();
                 ByteArray ba_buffer_size((uint8_t*)&buffer_size, (uint8_t*)&buffer_size+sizeof(buffer_size));
                 std::copy(ba_buffer_size.begin(), ba_buffer_size.end(), data_.begin() + cursor);
@@ -128,16 +135,13 @@ class pstate::data_node {
             }
 
             //write as much buffer as possible
-            unsigned int bytes_to_write = (free_bytes_ > buffer.size() ? buffer.size() : free_bytes_);
-            std::copy(buffer.begin(), buffer.begin() + bytes_to_write, data_.begin() + cursor);
+            unsigned int buffer_size = buffer.size() - write_from;
+            unsigned int bytes_to_write = (free_bytes_ > buffer_size ? buffer_size : free_bytes_);
+            std::copy(buffer.begin() + write_from, buffer.begin() + write_from + bytes_to_write, data_.begin() + cursor);
             free_bytes_ -= bytes_to_write;
 
-            //erase written bytes from original buffer
-            //(if there are some left, another write will be necessary, using the continue_writing flag)
-            buffer.erase(buffer.begin(), buffer.begin() + bytes_to_write);
-
-            //return the offset
-            return retOffset;
+            //return bytes that have been written
+            return bytes_to_write;
         }
 
         unsigned int read(ByteArray& offset, ByteArray& outBuffer, bool continue_reading, unsigned int continue_reading_bytes) {
@@ -163,27 +167,23 @@ class pstate::data_node {
             unsigned int bytes_to_read = (total_bytes_to_read < bytes_to_endof_data ? total_bytes_to_read : bytes_to_endof_data);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                     bytes_to_read + cursor > data_.size(), "data node, bytes_to_read overflows");
-            ByteArray d(data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
-            outBuffer.insert(outBuffer.end(), d.begin(), d.end());
+            outBuffer.insert(outBuffer.end(), data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
             //update to total bytes that are still left to read
             total_bytes_to_read -= bytes_to_read;
             return total_bytes_to_read; //if 0, read is complete, otherwise it must continue with the next data node
         }
 
-        void load(ByteArray state_encryption_key) {
+        void load(const ByteArray& state_encryption_key) {
             state_status_t ret;
             ByteArray encrypted_buffer;
             ret = sebio_fetch(originalEncryptedDataNodeId_, SEBIO_NO_CRYPTO, encrypted_buffer);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 ret != STATE_SUCCESS, "data node load, sebio returned an error");
-            ByteArray decrypted_buffer = pdo::crypto::skenc::DecryptMessage(state_encryption_key, encrypted_buffer);
-            deserialize_data(decrypted_buffer);
-            deserialize_block_num_from_offset(decrypted_buffer);
+            decrypt_and_deserialize_data(encrypted_buffer, state_encryption_key);
         }
 
-        pstate::StateBlockId unload(ByteArray state_encryption_key) {
-            ByteArray b = serialize_data();
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, b);
+        pstate::StateBlockId unload(const ByteArray& state_encryption_key) {
+            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_data());
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, originalEncryptedDataNodeId_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 ret != STATE_SUCCESS, "data node unload, sebio returned an error");
@@ -260,7 +260,7 @@ class pstate::kv_node {
             next_level_ids_[index] = id;
         }
 
-        void load(ByteArray state_encryption_key) {
+        void load(const ByteArray& state_encryption_key) {
             state_status_t ret;
             ByteArray buffer;
             ret = sebio_fetch(id_, SEBIO_NO_CRYPTO, buffer);
@@ -270,9 +270,8 @@ class pstate::kv_node {
             deserialize_next_level_ids(decrypted_buffer);
         }
 
-        pstate::StateBlockId unload(ByteArray state_encryption_key) {
-            ByteArray b = serialize_next_level_ids();
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, b);
+        pstate::StateBlockId unload(const ByteArray& state_encryption_key) {
+            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_next_level_ids());
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, id_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 ret != STATE_SUCCESS, "kv node unload, sebio returned an error");
@@ -341,12 +340,12 @@ void pdo::state::State_KV::error_on_wrong_key_size(size_t key_size) {
 
 void pdo::state::State_KV::operate(
         pstate::kv_node& search_kv_node,
-        unsigned int operation,
+        const unsigned int operation,
         const ByteArray& kvkey,
         ByteArray& value) {
     unsigned int next_level_index = kvkey[search_kv_node.depth_];
     if(search_kv_node.is_last_level(kvkey)) {
-        pstate::StateBlockId data_node_id = search_kv_node.get_next_level_id(next_level_index);
+        ByteArray offset = search_kv_node.get_next_level_id(next_level_index);
         switch(operation) {
             case 0: { //get
                 if(! search_kv_node.next_level_id_exists(next_level_index)) {
@@ -356,10 +355,9 @@ void pdo::state::State_KV::operate(
                 else {
                     data_node dn(0);
                     //in last level kvnode, the next level ids are offsets to the data nodes
-                    ByteArray offset = data_node_id;
                     dn.deserialize_block_num_from_offset(offset);
                     unsigned int data_block_num = dn.get_block_num();
-                    data_node_id = get_datablock_id_from_datablock_num(data_block_num);
+                    pstate::StateBlockId data_node_id = get_datablock_id_from_datablock_num(data_block_num);
 
                     dn.deserialize_original_encrypted_data_id(data_node_id);
                     dn.load(state_encryption_key_);
@@ -386,19 +384,22 @@ void pdo::state::State_KV::operate(
                 dn.load(state_encryption_key_);
                 pdo::error::ThrowIf<pdo::error::ValueError>(
                     ! dn.enough_space_available(false), "operate, last data node was left without enough space");
-                ByteArray value_copy = value;
-                ByteArray offset = dn.write(value_copy, false);
+                ByteArray offset;
+                unsigned int bytes_written, total_bytes_written = 0;
+                bytes_written = dn.write(value, total_bytes_written, offset);
+                total_bytes_written += bytes_written;
                 bool last_data_node_has_enough_space = dn.enough_space_available(false);
                 pstate::StateBlockId new_last_data_node_id = dn.unload(state_encryption_key_);
                 update_block_id(last_data_node_id, new_last_data_node_id);
                 //IMPORTANT: the ids in the last level kvnodes are the "offset"'s, i.e., block_num||offset_from_origin
                 search_kv_node.set_next_level_id(next_level_index, offset);
                 //keep writing if necessary
-                while(value_copy.size() > 0) {
+                while(total_bytes_written < value.size()) {
                     pstate::data_node dn(++last_appended_data_block_num_);
-                    dn.write(value_copy, true);
+                    bytes_written = dn.write(value, total_bytes_written, offset);
+                    total_bytes_written += bytes_written;
                     pdo::error::ThrowIf<pdo::error::ValueError>(
-                        dn.enough_space_available(true) && value_copy.size() > 0,
+                        dn.enough_space_available(true) && total_bytes_written < value.size(),
                         "operate, unwritten bytes while there is free space");
                     //track whether the data node has space for a future key-value write (used later)
                     last_data_node_has_enough_space = dn.enough_space_available(false);

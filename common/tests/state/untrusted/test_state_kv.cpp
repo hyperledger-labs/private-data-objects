@@ -34,6 +34,8 @@ namespace pstate = pdo::state;
 
 extern pdo::state::Basic_KV* kv_;
 
+#define MAX_BIG_VALUE_LOG2_SIZE 26
+
 void test_state_kv() {
     ByteArray emptyId;
     SAFE_LOG(PDO_LOG_DEBUG, "statekv init empty state kv");
@@ -97,7 +99,7 @@ void test_state_kv() {
         pstate::State_KV skv(id, state_encryption_key_, test_key_length);
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start big value test\n");
-        for(int i=1; i<24; i++) {
+        for(int i=1; i<MAX_BIG_VALUE_LOG2_SIZE; i++) {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);
@@ -137,16 +139,13 @@ void test_state_kv() {
 
     try
     {
+        SAFE_LOG(PDO_LOG_INFO, "start big value test (default fixed kv keys)\n");
         pstate::State_KV skv(emptyId, state_encryption_key_);
         kv_ = &skv;
-        SAFE_LOG(PDO_LOG_INFO, "start big value test (fixed kv keys)\n");
-        for(int i=1; i<24; i++) {
+        for(int i=1; i<MAX_BIG_VALUE_LOG2_SIZE; i++) {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);
-            int prefix_pad_length = TEST_KEY_STRING_LENGTH - big_string_key.length();
-            prefix_pad_length = (prefix_pad_length<0?0:prefix_pad_length);
-            big_string_key.insert(0, prefix_pad_length, '0');
             SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
 
             try
