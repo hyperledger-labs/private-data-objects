@@ -293,8 +293,7 @@ class ContractState(object) :
 
         ContractState.__push_block_to_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
 
-        for hex_block_id in self.component_block_ids :
-            b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_block_id))
+        for b64_block_id in self.component_block_ids :
             ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
 
     # --------------------------------------------------
@@ -310,8 +309,7 @@ class ContractState(object) :
 
         ContractState.__cache_block_from_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
 
-        for hex_block_id in self.component_block_ids :
-            b64_block_id = crypto.byte_array_to_base64(crypto.hex_to_byte_array(hex_block_id))
+        for b64_block_id in self.component_block_ids :
             ContractState.__cache_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
 
     # --------------------------------------------------
