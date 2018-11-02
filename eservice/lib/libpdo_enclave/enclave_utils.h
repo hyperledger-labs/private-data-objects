@@ -18,13 +18,8 @@
 #include <string.h>
 
 #include "error.h"
+#include "log.h"
 #include "parson.h"
-
-#ifdef DEBUG
-#define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
-#else
-#define SAFE_LOG(LEVEL, FMT, ...)
-#endif
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 #if defined(SGX_SIMULATOR)
@@ -35,7 +30,3 @@ const bool IS_SGX_SIMULATOR = false;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern void printf(const char* fmt, ...);
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern void Log(int level, const char* fmt, ...);
-
