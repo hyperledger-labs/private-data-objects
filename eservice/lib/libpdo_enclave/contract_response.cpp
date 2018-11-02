@@ -33,15 +33,15 @@
 #include "enclave_data.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse::ContractResponse(const ContractRequest& request,
+ContractResponse::ContractResponse(
+    const ContractRequest& request,
     const std::map<std::string, std::string>& dependencies,
-    const ByteArray& computed_state,
     const std::string& result)
-    : contract_state_(request.state_encryption_key_,
-          computed_state,
-          Base64EncodedStringToByteArray(request.contract_id_),
-          request.contract_code_.ComputeHash(),
-          request.contract_state_.kv_),
+    : contract_state_(
+        request.state_encryption_key_,
+        Base64EncodedStringToByteArray(request.contract_id_),
+        request.contract_code_.ComputeHash(),
+        request.contract_state_.state_),
       dependencies_(dependencies)
 {
     contract_id_ = request.contract_id_;
@@ -55,11 +55,17 @@ ContractResponse::ContractResponse(const ContractRequest& request,
     contract_initializing_ = request.is_initialize();
 
     output_contract_state_hash_ = contract_state_.state_hash_;
-    if (!contract_initializing_) {
+    if (! contract_initializing_)
+    {
         input_contract_state_hash_ = request.contract_state_.state_hash_;
-        SAFE_LOG(PDO_LOG_DEBUG, "input state hash: %s", ByteArrayToHexEncodedString(input_contract_state_hash_).c_str());
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "input state hash: %s",
+                 ByteArrayToHexEncodedString(input_contract_state_hash_).c_str());
     }
-    SAFE_LOG(PDO_LOG_DEBUG, "output state hash: %s", ByteArrayToHexEncodedString(output_contract_state_hash_).c_str());
+
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "output state hash: %s",
+             ByteArrayToHexEncodedString(output_contract_state_hash_).c_str());
 
     result_ = result;
 }

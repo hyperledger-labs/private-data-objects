@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 
+#include "packages/base64/base64.h"
 #include "crypto.h"
 #include "error.h"
 #include "pdo_error.h"
@@ -71,7 +72,7 @@ void safe_free_for_scheme(void* ptr)
     std::map<uint64_t, size_t>::iterator it = safe_malloc_map.find((uint64_t)ptr);
     if (it == safe_malloc_map.end())
     {
-        Log(PDO_LOG_ERROR, "attempt to free memory not allocated");
+        SAFE_LOG(PDO_LOG_ERROR, "attempt to free memory not allocated");
         return;
     }
 
@@ -223,7 +224,7 @@ static void gipsy_write_to_buffer(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 GipsyInterpreter::~GipsyInterpreter(void)
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
     scheme_deinit(sc);
 
     size_t total = 0;
@@ -235,10 +236,6 @@ GipsyInterpreter::~GipsyInterpreter(void)
         total += it->second;
         it++;
     }
-
-    if(contract_kv_) {
-        contract_kv_ = NULL;
-    }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -247,7 +244,7 @@ GipsyInterpreter::GipsyInterpreter(void)
     safe_malloc_map.clear();
 
     /* ---------- Create the interpreter ---------- */
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     //int status = scheme_init(sc);
     int status = scheme_init_custom_alloc(sc, safe_malloc_for_scheme, safe_free_for_scheme);
@@ -277,7 +274,7 @@ void GipsyInterpreter::save_dependencies(
     map<string,string>& outDependencies
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     pointer dlist = gipsy_get_property(sc, ":ledger", "dependencies");
     if (is_pair(dlist)) {
@@ -303,7 +300,7 @@ void GipsyInterpreter::load_contract_code(
     const pc::ContractCode& inContractCode
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     /* ---------- Load contract code ---------- */
     scheme_load_string(sc, inContractCode.Code.c_str(), inContractCode.Code.size());
@@ -317,7 +314,7 @@ void GipsyInterpreter::load_message(
     const pc::ContractMessage& inMessage
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     if (! inMessage.Message.empty())
     {
@@ -354,15 +351,15 @@ void GipsyInterpreter::load_message(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::load_contract_state(
-    const pc::ContractState& inContractState
+    const StringArray& inIntrinsicState
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
-    if (not inContractState.State.empty())
+    if (inIntrinsicState.size() > 0)
     {
         /* ---------- Load contract state ---------- */
-        scheme_load_string(sc, inContractState.State.c_str(), inContractState.State.size());
+        scheme_load_string(sc, inIntrinsicState.data(), inIntrinsicState.size());
         pe::ThrowIf<pe::RuntimeError>(
             sc->retcode != 0,
             "failed to load the contract state");
@@ -371,18 +368,15 @@ void GipsyInterpreter::load_contract_state(
         pe::ThrowIfNull(sptr, "unable to create the _instance symbol");
 
         scheme_define(sc, sc->global_env, sptr, sc->value);
-
-        /* --------------- Assign the symbol values --------------- */
-        gipsy_put_property(sc, ":contract", "state", inContractState.StateHash.c_str());
     }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::save_contract_state(
-    pc::ContractState& outContractState
+    StringArray& outIntrinsicState
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     pointer instance = scheme_find_symbol(sc, "_instance");
     pe::ThrowIf<pe::RuntimeError>(instance == sc->NIL, "unable to find contract instance");
@@ -402,10 +396,8 @@ void GipsyInterpreter::save_contract_state(
         sc->retcode != 0,
         "state serialization failed");
 
-    StringArray rawstate(0);
-    gipsy_write_to_buffer(sc, rexpr, rawstate);
-
-    outContractState.State = rawstate.str();
+    outIntrinsicState.resize(0);
+    gipsy_write_to_buffer(sc, rexpr, outIntrinsicState);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -414,10 +406,10 @@ void GipsyInterpreter::create_initial_contract_state(
     const std::string& CreatorID,
     const pc::ContractCode& inContractCode,
     const pc::ContractMessage& inMessage,
-    pc::ContractState& outContractState
+    pdo::state::Basic_KV_Plus* inoutContractState
     )
 {
-    scheme* sc = &this->interpreter;
+    scheme* sc = &this->interpreter_;
 
     // the message is not currently used though we should consider
     // how it can be implemented, throug the create-object-instance fn
@@ -448,15 +440,15 @@ void GipsyInterpreter::create_initial_contract_state(
 
     scheme_define(sc, sc->global_env, mk_symbol(sc, "_instance"), rexpr);
 
-    this->save_contract_state(outContractState);
+    StringArray intrinsic_state(0);
+    this->save_contract_state(intrinsic_state);
 
-    //write the intrinsic state into the kv
-    pe::ThrowIfNull(contract_kv_, "contract KV not available at contract initializion time");
-    //Convention: we use the "IntrinsicState" key to store the value
-    std::string intrinsicStateString = "IntrinsicState";
-    ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
-    ByteArray v(outContractState.State.begin(), outContractState.State.end());
-    contract_kv_->PrivilegedPut(k, v);
+    // there is a big copy happening here, might be able to remove the copy
+    // by making the byte array's constants, or possible make the intrinsic
+    // state a byte array rather than a string array
+    ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+    ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
+    inoutContractState->PrivilegedPut(k, v);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -465,36 +457,34 @@ void GipsyInterpreter::send_message_to_contract(
     const std::string& CreatorID,
     const pc::ContractCode& inContractCode,
     const pc::ContractMessage& inMessage,
-    const pc::ContractState& inContractState,
-    pc::ContractState& outContractState,
+    const pdo::state::StateBlockId& inContractStateHash,
+    pdo::state::Basic_KV_Plus* inoutContractState,
+    bool& outStateChangedFlag,
     std::map<std::string,std::string>& outDependencies,
     std::string& outMessageResult
     )
 {
-    scheme* sc = &this->interpreter;
-    pdo::contracts::ContractState current_contract_state;
+    scheme* sc = &this->interpreter_;
 
-    //get the intrinsic state from kv
-    pe::ThrowIf<pe::RuntimeError>(contract_kv_ == NULL, "contract KV not available at contract update time");
     //Convention: we use the "IntrinsicState" key to store the value
-    std::string intrinsicStateString = "IntrinsicState";
-    ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
-    ByteArray v = contract_kv_->PrivilegedGet(k);
-    current_contract_state.State = ByteArrayToString(v);
-    Log(PDO_LOG_DEBUG, "input intrinsic state: %s\n", current_contract_state.State.c_str());
+    ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+    ByteArray v(inoutContractState->PrivilegedGet(k));
+    StringArray intrinsic_state = ByteArrayToStringArray(v);
+    std::string state_hash(base64_encode(inContractStateHash));
+
+    SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state: %s", intrinsic_state.str().c_str());
 
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
-    current_contract_state.StateHash = inContractState.StateHash;
-
     this->load_message(inMessage);
     this->load_contract_code(inContractCode);
-    this->load_contract_state(current_contract_state);
+    this->load_contract_state(intrinsic_state);
 
     /* --------------- Assign the symbol values --------------- */
     gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
     gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
-    gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
+    gipsy_put_property(sc, ":contract", "state", state_hash.c_str());
+    gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
     gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
 
     /* this might not be the most obvious way to invoke the send function
@@ -512,46 +502,46 @@ void GipsyInterpreter::send_message_to_contract(
     this->save_dependencies(outDependencies);
 
     /* write the result into the result buffer */
-    StringArray output(0);
-    gipsy_write_to_buffer(sc, rexpr, output);
-    outMessageResult = output.str();
+    StringArray result(0);
+    gipsy_write_to_buffer(sc, rexpr, result);
+    outMessageResult = result.str();
 
     // save the state
     pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
     if (_immutable == sc->NIL) {
-        this->save_contract_state(outContractState);
-        Log(PDO_LOG_DEBUG, "output intrinsic state: %s\n", outContractState.State.c_str());
+        // serialize
+        intrinsic_state.resize(0);
+        this->save_contract_state(intrinsic_state);
+        SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
 
-        std::string intrinsicStateString = "IntrinsicState";
-        ByteArray k(intrinsicStateString.begin(), intrinsicStateString.end());
-        //delete previous intrinsic state versions (needed when using fixed small state storage space)
-        contract_kv_->Delete(k);
-        ByteArray v(outContractState.State.begin(), outContractState.State.end());
-        contract_kv_->PrivilegedPut(k, v);
+        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+        ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
+        inoutContractState->PrivilegedPut(k, v);
+
 #ifdef DEBUG
         {//double check intrinsic state
-            std::string is = "IntrinsicState";
-            ByteArray isk(is.begin(), is.end());
-            ByteArray isv = contract_kv_->PrivilegedGet(k);
-            std::string isvs = ByteArrayToString(isv);
-            Log(PDO_LOG_DEBUG, "(double check) output intrinsic state: %s\n", isvs.c_str());
-            if(outContractState.State.compare(isvs) != 0) {
-                Log(PDO_LOG_ERROR, "ERROR: double check output state failed");
+            ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+            ByteArray v = inoutContractState->PrivilegedGet(k);
+            StringArray isvs = ByteArrayToStringArray(v);
+
+            SAFE_LOG(PDO_LOG_DEBUG, "(double check) output intrinsic state: %s\n", isvs.str().c_str());
+            if (isvs != intrinsic_state)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "ERROR: double check output state failed");
                 pe::ThrowIf<pe::ValueError>(1, "Intrinsic state inside KV is wrong");
             }
-            else {
-                Log(PDO_LOG_DEBUG, "double check success");
+            else
+            {
+                SAFE_LOG(PDO_LOG_DEBUG, "double check success");
             }
         }
 #endif
+        outStateChangedFlag = true;
     }
-    else {
+    else
+    {
         //leave the intrinsic state already in the kv
-        Log(PDO_LOG_DEBUG, "gipsy, state unchanged");
+        SAFE_LOG(PDO_LOG_DEBUG, "gipsy, state unchanged");
+        outStateChangedFlag = false;
     }
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void GipsyInterpreter::set_contract_kv(pstate::Basic_KV_Plus* contract_kv) {
-    contract_kv_ = contract_kv;
 }

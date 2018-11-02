@@ -48,9 +48,9 @@ public:
     bool operation_succeeded_;
     bool state_changed_;
 
-    ContractResponse(const ContractRequest& request,
+    ContractResponse(
+        const ContractRequest& request,
         const std::map<std::string, std::string>& dependencies,
-        const ByteArray& state,
         const std::string& result);
 
     ByteArray SerializeAndEncrypt(

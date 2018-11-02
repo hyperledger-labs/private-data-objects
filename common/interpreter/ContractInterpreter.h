@@ -18,7 +18,7 @@
 #include <string>
 #include <map>
 
-#include "ContractState.h"
+#include "state.h"
 #include "ContractCode.h"
 #include "ContractMessage.h"
 
@@ -36,21 +36,21 @@ namespace pdo
                 const std::string& inCreatorID,
                 const ContractCode& inContract,
                 const ContractMessage& inMessage,
-                ContractState& outContractState
+                pdo::state::Basic_KV_Plus* inoutContractState
                 ) = 0;
 
             virtual void send_message_to_contract(
                 const std::string& inContractID,
                 const std::string& inCreatorID,
-                const ContractCode& inContract,
+                const ContractCode& inContractCode,
                 const ContractMessage& inMessage,
-                const ContractState& inContractState,
-                ContractState& outContractState,
-                std::map<std::string,std::string>& outDependencies,
+                const pdo::state::StateBlockId& inContractStateHash,
+                pdo::state::Basic_KV_Plus* inoutContractState,
+                bool& outStateChangedFlag,
+                std::map<string,string>& outDependencies,
                 std::string& outMessageResult
                 ) = 0;
         };
     }
 
 }
-

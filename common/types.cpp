@@ -34,7 +34,19 @@ std::string ByteArrayToString(const ByteArray& inArray)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Conversion from byte array to string array
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+StringArray ByteArrayToStringArray(const ByteArray& inArray)
+{
+    StringArray sarray(0);
+    std::transform(inArray.begin(), inArray.end(), std::back_inserter(sarray),
+                   [](unsigned char c) -> char { return (char)c; });
+    return sarray;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Simple conversion from ByteArray to Base64EncodedString
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 Base64EncodedString ByteArrayToBase64EncodedString(const ByteArray& buf)
 {
     return base64_encode(buf);

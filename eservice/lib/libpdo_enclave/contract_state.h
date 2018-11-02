@@ -35,18 +35,18 @@ protected:
 
 public:
     pstate::StateBlockId state_hash_ = {};
-    pstate::StateBlockId contract_kv_hash_ = {};
-    pstate::Interpreter_KV* kv_;
+    pstate::Interpreter_KV* state_ = NULL;
 
     ContractState(void){};
 
-    ContractState(const ByteArray& state_encryption_key_,
-        const ByteArray& newstate,
+    ContractState(
+        const ByteArray& state_encryption_key_,
         const ByteArray& id_hash,
         const ByteArray& code_hash,
-        pstate::Interpreter_KV* kv);
+        pstate::Interpreter_KV* state);
 
-    void Unpack(const ByteArray& state_encryption_key_,
+    void Unpack(
+        const ByteArray& state_encryption_key_,
         const JSON_Object* object,
         const ByteArray& id_hash,
         const ByteArray& code_hash);
