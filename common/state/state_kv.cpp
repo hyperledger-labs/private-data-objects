@@ -71,7 +71,7 @@ class pstate::data_node {
             return block_num_;
         }
 
-        ByteArray& serialize_data() {
+        const ByteArray& serialize_data() {
             ByteArray header = make_offset(block_num_, free_bytes_);
             std::copy(header.begin(), header.end(), data_.begin());
             return data_;
@@ -182,7 +182,7 @@ class pstate::data_node {
             decrypt_and_deserialize_data(encrypted_buffer, state_encryption_key);
         }
 
-        pstate::StateBlockId unload(const ByteArray& state_encryption_key) {
+        const pstate::StateBlockId& unload(const ByteArray& state_encryption_key) {
             ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_data());
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, originalEncryptedDataNodeId_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
@@ -270,7 +270,7 @@ class pstate::kv_node {
             deserialize_next_level_ids(decrypted_buffer);
         }
 
-        pstate::StateBlockId unload(const ByteArray& state_encryption_key) {
+        const pstate::StateBlockId& unload(const ByteArray& state_encryption_key) {
             ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_next_level_ids());
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, id_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
