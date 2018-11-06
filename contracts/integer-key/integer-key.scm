@@ -24,7 +24,7 @@
 (require-when (member "debug" *args*) "debug.scm")
 (require "contract-base.scm")
 (require "escrow-counter.scm")
-(require "key-store.scm")
+(require "key-value-store.scm")
 
 ;; =================================================================
 ;; CLASS: integer-key
@@ -37,14 +37,14 @@
 
 (define-method integer-key (initialize-instance . args)
   (if (not state)
-      (instance-set! self 'state (make-instance key-store))))
+      (instance-set! self 'state (make-instance key-value-store))))
 
 ;; -----------------------------------------------------------------
 ;; Methods to interogate the counter store
 ;; -----------------------------------------------------------------
 (define-const-method integer-key (get-state)
   (assert (or (null? creator) (equal? creator (get ':message 'originator))) "only creator may dump state")
-  (send state 'get-state))
+  (send state 'map (lambda (k v) (send v 'externalize))))
 
 (define-const-method integer-key (get-value key)
   (let* ((requestor (get ':message 'originator))
@@ -60,7 +60,7 @@
     (assert (and (integer? value) (<= 0 value)) "initialization value must not be negative")
     (let* ((requestor (get ':message 'originator))
            (counter (make-instance escrow-counter (key key) (value value) (owner requestor))))
-      (send state 'create key counter)
+      (send state 'set key counter)
       #t)))
 
 ;; no owner check required for increment... any one can do it
@@ -71,6 +71,7 @@
            (counter (send state 'get key)))
       (assert (send counter 'is-active?) "counter must be active to modify")
       (send counter 'inc value)
+      (send state 'set key counter)
       #t)))
 
 (define-method integer-key (dec key . oparam)
@@ -82,6 +83,7 @@
       (assert (send counter 'is-active?) "counter must be active to modify")
       (assert (send counter 'is-owner? requestor) "only the current owner may decrement the value of a counter" requestor)
       (send counter 'dec value)
+      (send state 'set key counter)
       #t)))
 
 (define-method integer-key (xfer src dst param)
@@ -95,6 +97,8 @@
       (assert (send scounter 'is-active?) "counter must be active to transfer")
       (send scounter 'dec value)
       (send dcounter 'inc value)
+      (send state 'set src scounter)
+      (send state 'set dst dcounter)
       #t)))
 
 (define-method integer-key (transfer-ownership key new-owner)
@@ -102,7 +106,9 @@
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may transfer ownership" requestor)
     (assert (send counter 'is-active?) "counter must be active to transfer")
-    (send counter 'set-owner new-owner)))
+    (send counter 'set-owner new-owner)
+    (send state 'set key counter)
+    #t))
 
 ;; -----------------------------------------------------------------
 ;; Methods to handle escrow of a counter
@@ -125,6 +131,7 @@
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may escrow the value" requestor)
     (send counter 'deactivate agent-public-key)
+    (send state 'set key counter)
     #t))
 
 ;; -----------------------------------------------------------------
@@ -179,6 +186,7 @@
       ;; this update cannot be committed unless the dependencies are committed
       (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
       (send counter 'activate)
+      (send state 'set key counter)
 
       #t)))
 
@@ -226,6 +234,9 @@
       (send counter1 'set-owner owner2)
       (send counter2 'activate)
       (send counter2 'set-owner owner1)
+
+      (send state 'set key1 counter1)
+      (send state 'set key2 counter2)
 
       #t)))
 

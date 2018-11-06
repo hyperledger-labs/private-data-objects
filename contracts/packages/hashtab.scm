@@ -69,7 +69,7 @@
                         (arem (vector-ref hashtab num) key)))
          hashtab)))
 
-   (define (hash-map proc ht)
+   (define (hash-map-vector proc ht)
      (define nht (make-vector (vector-length ht)))
      (do ((i (+ -1 (vector-length ht)) (+ -1 i)))
          ((negative? i) nht)
@@ -81,5 +81,10 @@
      (do ((i (+ -1 (vector-length ht)) (+ -1 i)))
          ((negative? i))
        (alist-package::alist-for-each proc (vector-ref ht i))))
+
+   (define (hash-map proc ht)
+     (let loop ((i (+ -1 (vector-length ht))))
+       (cond ((negative? i) ())
+             ((append (alist-package::alist-map proc (vector-ref ht i)) (loop (+ -1 i)))))))
 
    ))
