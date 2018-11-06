@@ -416,6 +416,10 @@ void GipsyInterpreter::create_initial_contract_state(
     // this->load_message(inMessage);
     this->load_contract_code(inContractCode);
 
+    // connect the key value store to the interpreter, i do not believe
+    // there are any security implications for hooking it up at this point
+    scheme_set_external_data(sc, inoutContractState);
+
     /* --------------- Assign the symbol values --------------- */
     gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
     gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
@@ -442,6 +446,11 @@ void GipsyInterpreter::create_initial_contract_state(
 
     StringArray intrinsic_state(0);
     this->save_contract_state(intrinsic_state);
+    SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
+
+    // this should not be necessary, but lets make sure the interpreter
+    // doesn't have any carry over
+    scheme_set_external_data(sc, NULL);
 
     // there is a big copy happening here, might be able to remove the copy
     // by making the byte array's constants, or possible make the intrinsic
@@ -477,6 +486,11 @@ void GipsyInterpreter::send_message_to_contract(
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
     this->load_message(inMessage);
     this->load_contract_code(inContractCode);
+
+    // connect the key value store to the interpreter, i do not believe
+    // there are any security implications for hooking it up at this point
+    scheme_set_external_data(sc, inoutContractState);
+
     this->load_contract_state(intrinsic_state);
 
     /* --------------- Assign the symbol values --------------- */
@@ -514,6 +528,13 @@ void GipsyInterpreter::send_message_to_contract(
         this->save_contract_state(intrinsic_state);
         SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
 
+        // this should not be necessary, but lets make sure the interpreter
+        // doesn't have any carry over
+        scheme_set_external_data(sc, NULL);
+
+        // there is a big copy happening here, might be able to remove the copy
+        // by making the byte array's constants, or possible make the intrinsic
+        // state a byte array rather than a string array
         ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
         ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
         inoutContractState->PrivilegedPut(k, v);

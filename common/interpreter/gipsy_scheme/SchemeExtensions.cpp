@@ -19,11 +19,22 @@
 #include "packages/base64/base64.h"
 #include "crypto.h"
 #include "error.h"
+#include "state.h"
 #include "types.h"
 
+#include "scheme.h"
 #include "scheme-private.h"
 
 #include "SchemeExtensions.h"
+
+#if _UNTRUSTED_
+#include <stdio.h>
+#include "packages/block_store/block_store.h"
+#include "packages/block_store/lmdb_block_store.h"
+
+#define BLOCK_STORE_NAME "pcontract.mdb"
+#define KVSTORE_KEY_LENGTH 8
+#endif
 
 #undef cons
 #undef immutable_cons
@@ -768,6 +779,266 @@ static pointer rsa_decrypt(scheme *sc, pointer args)
 }
 
 /* ----------------------------------------------------------------- */
+/* (key-value-put "key" "value")                                     */
+/* ----------------------------------------------------------------- */
+static pointer key_value_put(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // pull out the key value store
+    if (sc->ext_data == NULL)
+        return scheme_return_error(sc, "key value store is not initialized");
+
+    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+
+    // --------------- key ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; key");
+
+    pointer k = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(k))
+        return scheme_return_error(sc, "key must be a string");
+
+    // too many copies...
+    std::string s_key strvalue(sc, k);
+    ByteArray ba_key(s_key.begin(), s_key.end());
+
+    // --------------- value ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; value");
+
+    pointer v = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(v))
+        return scheme_return_error(sc, "value must be a string");
+
+    // too many copies
+    std::string s_value strvalue(sc, v);
+    ByteArray ba_value(s_value.begin(), s_value.end());
+
+    // --------------- end of arguments ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+    try {
+        keystore->Put(ba_key, ba_value);
+        return sc->T;
+    }
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error_s(sc, "unknown error occurred while processing key-value-put");
+}
+
+/* ----------------------------------------------------------------- */
+/* (key-value-get "key") --> "value"                                 */
+/* ----------------------------------------------------------------- */
+static pointer key_value_get(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // pull out the key value store
+    if (sc->ext_data == NULL)
+        return scheme_return_error(sc, "key value store is not initialized");
+
+    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+
+    // --------------- key ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; key");
+
+    pointer k = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(k))
+        return scheme_return_error(sc, "key must be a string");
+
+    // too many copies...
+    std::string s_key strvalue(sc, k);
+    ByteArray ba_key(s_key.begin(), s_key.end());
+
+    // --------------- end of arguments ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+    try {
+        ByteArray ba_value = keystore->Get(ba_key);
+        std::string s_value = ByteArrayToString(ba_value);
+        pointer result = sc->vptr->mk_string(sc, s_value.c_str());
+        return result;
+    }
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error_s(sc, "unknown error occurred while processing key-value-get");
+}
+
+/* ----------------------------------------------------------------- */
+/* (key-value-delete "key") --> #t/#f                                */
+/* ----------------------------------------------------------------- */
+static pointer key_value_delete(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // pull out the key value store
+    if (sc->ext_data == NULL)
+        return scheme_return_error(sc, "key value store is not initialized");
+
+    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+
+    // --------------- key ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; key");
+
+    pointer k = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(k))
+        return scheme_return_error(sc, "key must be a string");
+
+    // too many copies...
+    std::string s_key strvalue(sc, k);
+    ByteArray ba_key(s_key.begin(), s_key.end());
+
+    // --------------- end of arguments ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+    try {
+        keystore->Delete(ba_key);
+        return sc->T;
+    }
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error_s(sc, "unknown error occurred while processing key-value-delete");
+}
+
+/* ----------------------------------------------------------------- */
+/* (key-value-open "file") --> #t/#f                                 */
+/* ----------------------------------------------------------------- */
+#if _UNTRUSTED_
+static pointer key_value_open(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    if (sc->ext_data != NULL)
+        return scheme_return_error(sc, "key value store is already initialized, close first");
+
+    // --------------- file name ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; key");
+
+    pointer f = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(f))
+        return scheme_return_error(sc, "file name must be a string");
+
+    // too many copies...
+    std::string s_filename strvalue(sc, f);
+
+    // --------------- block id ----------
+    ByteArray block_id;
+    if (sc->vptr->is_pair(sc->vptr->pair_cdr(rest)))
+    {
+        rest = sc->vptr->pair_cdr(rest);
+        pointer b = sc->vptr->pair_car(rest);
+        if (! sc->vptr->is_string(b))
+            return scheme_return_error(sc, "block id must be a string");
+
+        Base64EncodedString encoded_block_id = strvalue(sc, b);
+        block_id = base64_decode(encoded_block_id);
+    }
+
+    // --------------- end of arguments ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+    // create a key value store. we could add commands to explicitly create
+    // open and close the store which would provide some nice testing
+    // benefits though i think it probably excessive
+
+    try {
+        int result = pdo::lmdb_block_store::BlockStoreInit(s_filename);
+        if (result !=  PDO_SUCCESS)
+            return scheme_return_error_s(sc, "failed to create the blockstore");
+
+        ByteArray state_encryption_key(16, 0);
+        pdo::state::State_KV* keystore = new pdo::state::State_KV(block_id, state_encryption_key, KVSTORE_KEY_LENGTH);
+        sc->ext_data = (void*)keystore;
+
+        return sc->T;
+    }
+    catch (pdo::error::ValueError& e)
+    {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error_s(sc, "unknown error occurred while processing key-value-open");
+}
+#endif
+
+/* ----------------------------------------------------------------- */
+/* (key-value-close) --> "base64 encoded blockid"                    */
+/* ----------------------------------------------------------------- */
+#if _UNTRUSTED_
+static pointer key_value_close(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    if (sc->ext_data == NULL)
+        return scheme_return_error(sc, "key value store is not initialized");
+
+    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+
+    // --------------- end of arguments ----------
+    pointer rest = sc->vptr->pair_cdr(args);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+    try {
+        // push pending changes into the block store
+        ByteArray block_id;
+        keystore->Uninit(block_id);
+
+        // close the block store
+        pdo::lmdb_block_store::BlockStoreClose();
+
+        // and clean up the interpreter storage
+        sc->ext_data = NULL;
+        delete keystore;
+
+        Base64EncodedString encoded_block_id = base64_encode(block_id);
+        pointer result = sc->vptr->mk_string(sc, encoded_block_id.c_str());
+
+        return result;
+    }
+    catch (pdo::error::ValueError& e)
+    {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error_s(sc, "unknown error occurred while processing key-value-close");
+}
+#endif
+
+/* ----------------------------------------------------------------- */
 /* ----------------------------------------------------------------- */
 void scheme_load_extensions(scheme *sc)
 {
@@ -841,9 +1112,34 @@ void scheme_load_extensions(scheme *sc)
 		  sc->vptr->mk_symbol(sc, "random-identifier"),
 		  sc->vptr->mk_foreign_func(sc, random_identifier));
 
+    /* ---------- Key/Value store functions ---------- */
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "key-value-put"),
+                  sc->vptr->mk_foreign_func(sc, key_value_put));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "key-value-get"),
+                  sc->vptr->mk_foreign_func(sc, key_value_get));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "key-value-delete"),
+                  sc->vptr->mk_foreign_func(sc, key_value_delete));
+
+#if _UNTRUSTED_
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "key-value-open"),
+                  sc->vptr->mk_foreign_func(sc, key_value_open));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "key-value-close"),
+                  sc->vptr->mk_foreign_func(sc, key_value_close));
+
+#endif
+
 }
 
 extern "C" void init_pcontract(scheme *sc)
 {
     scheme_load_extensions(sc);
+    sc->ext_data = NULL;
 }
