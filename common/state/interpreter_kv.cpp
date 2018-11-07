@@ -128,7 +128,7 @@ void pdo::state::Interpreter_KV::UnprivilegedPut(ByteArray& key, ByteArray& valu
 
 void pdo::state::Interpreter_KV::UnprivilegedDelete(const ByteArray& key)
 {
-    ByteArray privileged_key = to_privileged_key(key);
-    ByteArray kvkey = to_kvkey(privileged_key);
+    ByteArray unprivileged_key = to_unprivileged_key(key);
+    ByteArray kvkey = to_kvkey(unprivileged_key);
     kv_->Delete(kvkey);
 }
