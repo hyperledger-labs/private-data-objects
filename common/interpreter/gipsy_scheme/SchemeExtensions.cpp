@@ -19,6 +19,7 @@
 #include "packages/base64/base64.h"
 #include "crypto.h"
 #include "error.h"
+#include "interpreter_kv.h"
 #include "state.h"
 #include "types.h"
 
@@ -31,9 +32,6 @@
 #include <stdio.h>
 #include "packages/block_store/block_store.h"
 #include "packages/block_store/lmdb_block_store.h"
-
-#define BLOCK_STORE_NAME "pcontract.mdb"
-#define KVSTORE_KEY_LENGTH 8
 #endif
 
 #undef cons
@@ -789,7 +787,7 @@ static pointer key_value_put(scheme *sc, pointer args)
     if (sc->ext_data == NULL)
         return scheme_return_error(sc, "key value store is not initialized");
 
-    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+    pdo::state::Interpreter_KV* keystore = (pdo::state::Interpreter_KV*)sc->ext_data;
 
     // --------------- key ----------
     pointer rest = args;
@@ -823,7 +821,7 @@ static pointer key_value_put(scheme *sc, pointer args)
         return scheme_return_error(sc, "too many parameters");
 
     try {
-        keystore->Put(ba_key, ba_value);
+        keystore->UnprivilegedPut(ba_key, ba_value);
         return sc->T;
     }
     catch (pdo::error::Error& e) {
@@ -846,7 +844,7 @@ static pointer key_value_get(scheme *sc, pointer args)
     if (sc->ext_data == NULL)
         return scheme_return_error(sc, "key value store is not initialized");
 
-    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+    pdo::state::Interpreter_KV* keystore = (pdo::state::Interpreter_KV*)sc->ext_data;
 
     // --------------- key ----------
     pointer rest = args;
@@ -867,7 +865,7 @@ static pointer key_value_get(scheme *sc, pointer args)
         return scheme_return_error(sc, "too many parameters");
 
     try {
-        ByteArray ba_value = keystore->Get(ba_key);
+        ByteArray ba_value = keystore->UnprivilegedGet(ba_key);
         std::string s_value = ByteArrayToString(ba_value);
         pointer result = sc->vptr->mk_string(sc, s_value.c_str());
         return result;
@@ -892,7 +890,7 @@ static pointer key_value_delete(scheme *sc, pointer args)
     if (sc->ext_data == NULL)
         return scheme_return_error(sc, "key value store is not initialized");
 
-    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+    pdo::state::Interpreter_KV* keystore = (pdo::state::Interpreter_KV*)sc->ext_data;
 
     // --------------- key ----------
     pointer rest = args;
@@ -913,7 +911,7 @@ static pointer key_value_delete(scheme *sc, pointer args)
         return scheme_return_error(sc, "too many parameters");
 
     try {
-        keystore->Delete(ba_key);
+        keystore->UnprivilegedDelete(ba_key);
         return sc->T;
     }
     catch (pdo::error::Error& e) {
@@ -976,7 +974,8 @@ static pointer key_value_open(scheme *sc, pointer args)
             return scheme_return_error_s(sc, "failed to create the blockstore");
 
         ByteArray state_encryption_key(16, 0);
-        pdo::state::State_KV* keystore = new pdo::state::State_KV(block_id, state_encryption_key, KVSTORE_KEY_LENGTH);
+        pdo::state::Interpreter_KV* keystore = new pdo::state::Interpreter_KV(block_id, state_encryption_key);
+
         sc->ext_data = (void*)keystore;
 
         return sc->T;
@@ -1003,7 +1002,7 @@ static pointer key_value_close(scheme *sc, pointer args)
     if (sc->ext_data == NULL)
         return scheme_return_error(sc, "key value store is not initialized");
 
-    pdo::state::State_KV* keystore = (pdo::state::State_KV*)sc->ext_data;
+    pdo::state::Interpreter_KV* keystore = (pdo::state::Interpreter_KV*)sc->ext_data;
 
     // --------------- end of arguments ----------
     pointer rest = sc->vptr->pair_cdr(args);

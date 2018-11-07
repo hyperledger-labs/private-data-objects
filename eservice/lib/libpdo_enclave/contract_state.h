@@ -30,20 +30,16 @@ namespace pstate = pdo::state;
 
 class ContractState
 {
-protected:
-    ByteArray ComputeHash(void) const;
-
 public:
-    pstate::StateBlockId state_hash_ = {};
+
+    pdo::state::StateBlockId input_block_id_;
+    pdo::state::StateBlockId output_block_id_;
     pstate::Interpreter_KV* state_ = NULL;
 
-    ContractState(void){};
+    ContractState(void);
+    ~ContractState(void);
 
-    ContractState(
-        const ByteArray& state_encryption_key_,
-        const ByteArray& id_hash,
-        const ByteArray& code_hash,
-        pstate::Interpreter_KV* state);
+    void Finalize(void);
 
     void Unpack(
         const ByteArray& state_encryption_key_,

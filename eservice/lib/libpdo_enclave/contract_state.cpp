@@ -60,24 +60,27 @@
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractState::ContractState(
-    const ByteArray& state_encryption_key_,
-    const ByteArray& id_hash,
-    const ByteArray& code_hash,
-    pdo::state::Interpreter_KV* state)
+ContractState::ContractState(void)
 {
-    state_ = state;
-    state_->Uninit(state_hash_);
-
-    SAFE_LOG(PDO_LOG_DEBUG, "state hash: %s", ByteArrayToHexEncodedString(state_hash_).c_str());
+    input_block_id_.resize(STATE_BLOCK_ID_LENGTH, 0);
+    output_block_id_.resize(STATE_BLOCK_ID_LENGTH, 0);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractState::ComputeHash(void) const
+ContractState::~ContractState(void)
 {
-    //make sure sal has been uninitialized, so to have the latest state hash
-    return state_hash_;
+    if (state_ != NULL)
+        delete state_;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractState::Finalize(void)
+{
+    pdo::error::ThrowIfNull(state_, "attempt to finalize uninitialized state");
+    state_->Uninit(output_block_id_);
+
+    delete state_;
+    state_ = NULL;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -94,8 +97,8 @@ void ContractState::Unpack(
         pvalue = json_object_dotget_string(object, "StateHash");
         if (pvalue != NULL && pvalue[0] != '\0')
         {
-            state_hash_ = base64_decode(pvalue);
-            state_ = new pdo::state::Interpreter_KV(state_hash_, state_encryption_key_);
+            input_block_id_ = base64_decode(pvalue);
+            state_ = new pdo::state::Interpreter_KV(input_block_id_, state_encryption_key_);
 
             // verify the integrity of the state, the contract id must match
             // and the code hash must match
@@ -133,15 +136,18 @@ void ContractState::Unpack(
                 ByteArray v(code_hash);
                 state_->PrivilegedPut(k, v);
             }
-
-            state_hash_ = ByteArray(STATE_BLOCK_ID_LENGTH, 0);
         }
     }
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR, "unable to unpack contract state");
 
-        state_->Uninit(state_hash_);
+        if (state_ != NULL)
+        {
+            state_->Uninit(input_block_id_);
+            state_ = NULL;
+        }
+
         throw;
     }
 }

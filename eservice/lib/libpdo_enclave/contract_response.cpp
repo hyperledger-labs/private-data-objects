@@ -24,6 +24,7 @@
 #include "jsonvalue.h"
 #include "packages/base64/base64.h"
 #include "parson.h"
+#include "state.h"
 #include "types.h"
 
 #include "enclave_utils.h"
@@ -36,12 +37,9 @@
 ContractResponse::ContractResponse(
     const ContractRequest& request,
     const std::map<std::string, std::string>& dependencies,
-    const std::string& result)
-    : contract_state_(
-        request.state_encryption_key_,
-        Base64EncodedStringToByteArray(request.contract_id_),
-        request.contract_code_.ComputeHash(),
-        request.contract_state_.state_),
+    const std::string& result,
+    const pdo::state::StateBlockId& output_block_id)
+    : output_block_id_(output_block_id),
       dependencies_(dependencies)
 {
     contract_id_ = request.contract_id_;
@@ -54,18 +52,18 @@ ContractResponse::ContractResponse(
     channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
     contract_initializing_ = request.is_initialize();
 
-    output_contract_state_hash_ = contract_state_.state_hash_;
+    //output_block_id_ = contract_state_.state_hash_;
     if (! contract_initializing_)
     {
-        input_contract_state_hash_ = request.contract_state_.state_hash_;
+        input_block_id_ = request.contract_state_.input_block_id_;
         SAFE_LOG(PDO_LOG_DEBUG,
                  "input state hash: %s",
-                 ByteArrayToHexEncodedString(input_contract_state_hash_).c_str());
+                 ByteArrayToHexEncodedString(input_block_id_).c_str());
     }
 
     SAFE_LOG(PDO_LOG_DEBUG,
              "output state hash: %s",
-             ByteArrayToHexEncodedString(output_contract_state_hash_).c_str());
+             ByteArrayToHexEncodedString(output_block_id_).c_str());
 
     result_ = result;
 }
@@ -104,18 +102,18 @@ ByteArray ContractResponse::SerializeForSigning(void) const
         std::back_inserter(serialized));
 
 #ifdef DEBUG
-    std::string debug_state_hash = ByteArrayToBase64EncodedString(output_contract_state_hash_);
+    std::string debug_state_hash = ByteArrayToBase64EncodedString(output_block_id_);
     SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", debug_state_hash.c_str());
 #endif
 
     std::copy(
-        output_contract_state_hash_.begin(),
-        output_contract_state_hash_.end(),
+        output_block_id_.begin(),
+        output_block_id_.end(),
         std::back_inserter(serialized));
 
     if (not contract_initializing_)
     {
-        std::copy(input_contract_state_hash_.begin(), input_contract_state_hash_.end(),
+        std::copy(input_block_id_.begin(), input_block_id_.end(),
             std::back_inserter(serialized));
 
         std::map<std::string, std::string>::const_iterator iter;
@@ -184,7 +182,7 @@ ByteArray ContractResponse::SerializeAndEncrypt(
             jret != JSONSuccess, "failed to serialize the signature");
 
         // --------------- state ---------------
-        jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(contract_state_.state_hash_).c_str());
+        jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(output_block_id_).c_str());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
             jret != JSONSuccess, "failed to serialize the state hash");
 
