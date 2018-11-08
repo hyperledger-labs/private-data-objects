@@ -23,11 +23,13 @@
    (asset-type-id "")
    (count 0)
    (owner "")
-   (escrow "")))
+   (escrow-key "")
+   (escrow-identifier "")))
 
 (define-method asset-class (get-count) count)
 (define-method asset-class (get-owner) owner)
-(define-method asset-class (get-escrow) escrow)
+(define-method asset-class (get-escrow-key) escrow-key)
+(define-method asset-class (get-escrow-identifier) escrow-identifier)
 (define-method asset-class (get-asset-type-id) asset-type-id)
 
 ;; -----------------------------------------------------------------
@@ -38,7 +40,7 @@
 ;; PARAMETERS:
 ;; -----------------------------------------------------------------
 (define-method asset-class (serialize-for-signing)
-  (list asset-type-id count owner escrow))
+  (list asset-type-id count owner escrow-key escrow-identifier))
 
 ;; -----------------------------------------------------------------
 ;; NAME:
@@ -48,7 +50,7 @@
 ;; PARAMETERS:
 ;; -----------------------------------------------------------------
 (define-method asset-class (serialize-for-sending)
-  (list asset-type-id count owner escrow))
+  (list asset-type-id count owner escrow-key escrow-identifier))
 
 ;; -----------------------------------------------------------------
 ;; NAME:
@@ -61,7 +63,8 @@
   (instance-set! self 'asset-type-id (nth serialized 0))
   (instance-set! self 'count (nth serialized 1))
   (instance-set! self 'owner (nth serialized 2))
-  (instance-set! self 'escrow (nth serialized 3)))
+  (instance-set! self 'escrow-key (nth serialized 3))
+  (instance-set! self 'escrow-identifier (nth serialized 4)))
 
 ;; -----------------------------------------------------------------
 ;; NAME:
@@ -76,5 +79,7 @@
     (instance-set! object 'count (send counter 'get-count))
     (instance-set! object 'owner (send counter 'get-owner))
     (if (not (send counter 'is-active?))
-        (instance-set! object 'escrow (send counter 'get-escrow-key)))
+        (begin
+          (instance-set! object 'escrow-key (send counter 'get-escrow-key))
+          (instance-set! object 'escrow-identifier (send counter 'get-escrow-identifier))))
     object))

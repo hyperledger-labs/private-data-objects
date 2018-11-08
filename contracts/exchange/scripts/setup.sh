@@ -51,12 +51,25 @@ function try() {
     "$@" || die "test failed: $*"
 }
 
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/../../..)"
+KEYGEN=${SRCDIR}/__tools__/make-keys
+
+if [ ! -f ${CONTRACTHOME}/keys/red_type_private.pem ]; then
+    yell create keys for the contracts
+    for color in red green blue ; do
+        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_type --format pem
+        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_vetting --format pem
+        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_issuer --format pem
+    done
+fi
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 : "${LEDGER_URL?Missing environment variable LEDGER_URL}"
 
-pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color red
-pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color green
+try pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color red
+try pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color green
 
 for p in $(seq 1 5); do
     pdo-shell --ledger $LEDGER_URL -s scripts/issue.psh -m color green -m issuee user$p -m count $(($p * 10))

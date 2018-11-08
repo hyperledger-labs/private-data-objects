@@ -34,11 +34,12 @@
 
 (define-method bid-store (set-bid identity new-bid)
   (assert (instance? new-bid) "bid must be an instance of bid class" new-bid)
-  (if (send self 'exists? identity)
-      (let ((current-bid (send self 'get identity)))
-        (assert (not (send current-bid 'is-active?)) "old bid must be cancelled before a new one is submitted" identity)
-        (send self 'set identity new-bid))
-      (send self 'set identity new-bid)))
+  (let ((current-bid (send self 'exists? identity)))
+    (assert (or (not current-bid)
+                (not (send current-bid 'is-active?)))
+            "old bid must be cancelled before a new one is submitted" identity))
+
+  (send self ' identity new-bid))
 
 (define-method bid-store (del-bid identity)
   (let ((current-bid (send self 'get identity)))
@@ -146,7 +147,11 @@
             "Bid must be signed by the asset contract" expression))
 
   (instance-set! self 'offered-asset initial-bid)
+<<<<<<< HEAD
   (send state 'set creator initial-bid)
+=======
+  (send state 'set-bid creator initial-bid)
+>>>>>>> Fairly substantial change to the exchange contract family to enable auctions.
   (instance-set! self 'auction-primed #t)
 
   ;; this update cannot be committed unless the dependencies are committed

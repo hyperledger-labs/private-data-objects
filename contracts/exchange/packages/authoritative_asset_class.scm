@@ -130,8 +130,7 @@
 ;; -----------------------------------------------------------------
 (define (deserialize-authoritative-asset serialized)
   (let ((object (make-instance authoritative-asset-class)))
-    (display "deserialize\n")
-    (send object 'deserialize serialized)
+    (protect (send object 'deserialize serialized) "failed to deserialize authoritative asset")
     object))
 
 ;; -----------------------------------------------------------------
