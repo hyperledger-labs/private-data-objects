@@ -78,7 +78,7 @@
 
   (let ((key (make-key _verifying-key)))
     (if (not (send approved-keys 'exists? key))
-        (send approved-keys 'create key _verifying-key)))
+        (send approved-keys 'set key _verifying-key)))
 
   #t)
 

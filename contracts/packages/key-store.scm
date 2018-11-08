@@ -41,11 +41,6 @@
 ;; Methods to update the value associated with a value, note that
 ;; value is an instance of the value object and value is an integer
 ;; -----------------------------------------------------------------
-(define-method key-store (create key value)
-  (assert (not (_ht-get_ store key)) "key already exists" key)
-  (_ht-set_ store key value)
-  #t)
-
 (define-method key-store (exists? key)
   (let ((value (_ht-get_ store key)))
     value))
@@ -57,8 +52,7 @@
 
 (define-method key-store (set key value)
   (let ((oldvalue (_ht-get_ store key)))
-    (assert oldvalue "key does not exist" key)
-    (_ht-del_ store key)
+    (if oldvalue (_ht-del_ store key))
     (_ht-set_ store key value)))
 
 (define-method key-store (del key)

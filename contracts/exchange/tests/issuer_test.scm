@@ -21,38 +21,20 @@
 (require "issuer.scm")
 (require "vetting_organization.scm")
 
+(require "test_common.scm")
+
 ;; -----------------------------------------------------------------
-(put ':contract 'id (random-identifier 32))
-(put ':contract 'state (random-identifier 32))
-
-(define person-key (key-list-generator 30))
-
 ;; indexes for some keys
 (define creator  20)
 (define exchange 21)
 (define vetting  22)
-
-(define (person n) (send (person-key n) 'get-public-signing-key))
-(define (use-person n) (put ':message 'originator (person n)))
-(define (use-person* n) (list ':message 'originator (person n)))
-
-;; -----------------------------------------------------------------
-(define (dump-ledger ledger-pdo)
-  (result-print "---------- LEDGER STATE ----------")
-  (let loop ((ledger-state (send ledger-pdo 'dump-ledger)))
-    (if (pair? ledger-state)
-        (let* ((entry (car ledger-state))
-               (entry-key (car entry))
-               (entry-val (cadr (assoc 'count (cadr entry))))
-               (owner (cadr (assoc 'owner (cadr entry)))))
-          (result-print (string-append entry-key " --> ") entry-val)
-          (loop (cdr ledger-state))))))
 
 ;; -----------------------------------------------------------------
 ;; create the asset type pdo
 ;; -----------------------------------------------------------------
 (use-person vetting)
 (define asset-type-pdo (make-instance asset-type-contract))
+
 (send asset-type-pdo 'initialize "blue marbles" "asset type for representing blue marbles" "")
 (define type-identifier (send asset-type-pdo 'get-identifier))
 
@@ -131,15 +113,21 @@
          (assert (string=? (get ':contract 'state) (cadar dependencies)) "incorrect state hash in dependencies")
 
          (result-print "---------- disburse escrowed asset ----------")
+         ;; reproduces create-cancellation
          (let* ((dependencies (list (list (random-identifier 32) (random-identifier 32))))
-                (expression (list "_disburse_" (send asset-object 'get-owner) dependencies))
+                (escrow-identifier (send asset-object 'get-escrow-identifier))
+                (expression (list "_disburse_"  escrow-identifier (send asset-object 'get-owner) dependencies))
                 (signature (send (person-key exchange) 'sign-expression expression)))
            (assert (send issuer-pdo 'disburse dependencies signature (use-person* 3)) "disburse failed")
            (let ((balance3 (send issuer-pdo 'get-balance (use-person* 3)))
                  (balance13 (send issuer-pdo 'get-balance (use-person* 13))))
              (assert (send issuer-pdo 'transfer (person 13) 1 (use-person* 3)) "transfer failed")
              (assert (= (send issuer-pdo 'get-balance (use-person* 3)) (- balance3 1)) "wrong balance")
-             (assert (= (send issuer-pdo 'get-balance (use-person* 13)) (+ balance13 1)) "wrong balance")))))
+             (assert (= (send issuer-pdo 'get-balance (use-person* 13)) (+ balance13 1)) "wrong balance"))
+
+           ;; attempt duplicate cancellation
+           (assert (send issuer-pdo 'escrow (person exchange) (use-person* 3)) "escrow failed")
+           (catch-success (send issuer-pdo 'disburse dependencies signature (use-person* 3)) "illegal cancel succeeded"))))
 
 (dump-ledger issuer-pdo)
 
@@ -154,8 +142,10 @@
               (authoritative-asset-object (deserialize-authoritative-asset serialized-attestation))
               (asset-object (send authoritative-asset-object 'get-asset))
 
+              ;; reproduce create claim
               (dependencies (list (list (random-identifier 32) (random-identifier 32))))
-              (expression (list "_claim_" (send asset-object 'get-owner) (person 14) dependencies))
+              (escrow-identifier (send asset-object 'get-escrow-identifier))
+              (expression (list "_claim_" escrow-identifier (send asset-object 'get-owner) (person 14) dependencies))
               (signature (send (person-key exchange) 'sign-expression expression))
 
               (balance4 (send issuer-pdo 'get-balance (use-person* 4)))

@@ -17,12 +17,13 @@
    (active	#t)
    (count	0)
    (owner	"")
-   (escrow-key	"")))
+   (escrow-key	"")
+   (escrow-identifier "")))
 
 ;; -----------------------------------------------------------------
 (define-method ledger-entry (externalize . args)
   (if (member 'full args)
-      `((count ,count) (owner ,owner) (active ,active) (escrow-key ,escrow-key))
+      `((count ,count) (owner ,owner) (active ,active) (escrow-key ,escrow-key) (escrow-identifier ,escrow-identifier))
       `((count ,count) (owner ,owner))))
 
 (define-method ledger-entry (serialize)
@@ -57,6 +58,10 @@
   (assert (not active) "counter is not in escrow")
   escrow-key)
 
+(define-method ledger-entry (get-escrow-identifier)
+  (assert (not active) "counter is not in escrow")
+  escrow-identifier)
+
 ;; -----------------------------------------------------------------
 (define-method ledger-entry (is-active?) active)
 
@@ -64,9 +69,11 @@
   (assert active "cannot deactivate an inactive counter")
   (instance-set! self 'active #f)
   (let ((public-key (if (pair? args) (car args) "")))
+    (instance-set! self 'escrow-identifier (random-identifier 32)) ; identifier is 256 bit, base64 encoded string
     (instance-set! self 'escrow-key public-key)))
 
 (define-method ledger-entry (activate)
   (assert (not active) "cannot activate an active counter")
   (instance-set! self 'active #t)
+  (instance-set! self 'escrow-identifier "")
   (instance-set! self 'escrow-key ""))

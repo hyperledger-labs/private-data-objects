@@ -15,6 +15,9 @@
 (define-macro (assert pred . message)
   `(if (not ,pred) (throw ,@message)))
 
+(define-macro (protect expr . message)
+  `(catch (lambda x (throw ,@message)) ,expr))
+
 (define (coerce-number value)
   (if (number? value) value (string->number value)))
 
