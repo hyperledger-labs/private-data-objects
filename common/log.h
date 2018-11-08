@@ -17,7 +17,11 @@
 
 #include "pdo_error.h"
 
+#ifdef DEBUG
 #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
+#else
+#define SAFE_LOG(LEVEL, FMT, ...)
+#endif
 
 namespace pdo
 {

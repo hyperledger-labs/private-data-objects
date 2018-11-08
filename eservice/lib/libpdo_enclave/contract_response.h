@@ -23,6 +23,7 @@
 #include "contract_request.h"
 #include "contract_state.h"
 #include "enclave_data.h"
+#include "state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -37,21 +38,21 @@ protected:
     std::string channel_verifying_key_;
     ByteArray contract_code_hash_;
     ByteArray contract_message_hash_;
-    ByteArray input_contract_state_hash_;
-    ByteArray output_contract_state_hash_;
+    pdo::state::StateBlockId input_block_id_;
+    pdo::state::StateBlockId output_block_id_;
     bool contract_initializing_;
 
 public:
     std::map<std::string, std::string> dependencies_;
-    ContractState contract_state_;
     std::string result_;
     bool operation_succeeded_;
     bool state_changed_;
 
-    ContractResponse(const ContractRequest& request,
+    ContractResponse(
+        const ContractRequest& request,
         const std::map<std::string, std::string>& dependencies,
-        const ByteArray& state,
-        const std::string& result);
+        const std::string& result,
+        const pdo::state::StateBlockId& output_state_hash);
 
     ByteArray SerializeAndEncrypt(
         const ByteArray& session_key, const EnclaveData& enclave_data) const;

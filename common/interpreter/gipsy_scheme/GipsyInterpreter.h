@@ -20,9 +20,8 @@
 #include <string>
 #include <map>
 
+#include "basic_kv.h"
 #include "ContractInterpreter.h"
-
-#include "state.h"
 
 namespace pc = pdo::contracts;
 
@@ -34,8 +33,10 @@ class GipsyInterpreter : public pc::ContractInterpreter
 {
 private:
     std::string error_msg_;
-    scheme interpreter;
-    pdo::state::Basic_KV_Plus* contract_kv_ = NULL;
+    scheme interpreter_;
+
+    //Convention: we use the key "IntrinsicState" key to store the value
+    const std::string intrinsic_state_key_ = "IntrinsicState";
 
     // load functions with throw errors when unsuccessful
 
@@ -48,11 +49,11 @@ private:
         );
 
     void load_contract_state(
-        const pc::ContractState& inContractState
+        const StringArray& inIntrinsicState
         );
 
     void save_contract_state(
-        pc::ContractState& outContractState
+        StringArray& outIntrinsicState
         );
 
     void save_dependencies(
@@ -65,7 +66,7 @@ public:
         const std::string& CreatorID,
         const pc::ContractCode& inContractCode,
         const pc::ContractMessage& inMessage,
-        pc::ContractState& outContractState
+        pdo::state::Basic_KV_Plus* inoutContractState
         );
 
     void send_message_to_contract(
@@ -73,8 +74,9 @@ public:
         const std::string& CreatorID,
         const pc::ContractCode& inContractCode,
         const pc::ContractMessage& inMessage,
-        const pc::ContractState& inContractState,
-        pc::ContractState& outContractState,
+        const pdo::state::StateBlockId& inContractStateHash,
+        pdo::state::Basic_KV_Plus* inoutContractState,
+        bool& outStateChangedFlag,
         std::map<string,string>& outDependencies,
         std::string& outMessageResult
         );
@@ -82,6 +84,4 @@ public:
     GipsyInterpreter(void);
 
     ~GipsyInterpreter(void);
-
-    void set_contract_kv(pdo::state::Basic_KV_Plus* contract_kv);
 };

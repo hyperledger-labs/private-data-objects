@@ -68,7 +68,9 @@
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractRequest::ContractRequest(
-    const ByteArray& session_key, const ByteArray& encrypted_request, ContractWorker* worker)
+    const ByteArray& session_key,
+    const ByteArray& encrypted_request,
+    ContractWorker* worker)
 {
     worker_ = worker;
 
@@ -156,21 +158,19 @@ ContractResponse ContractRequest::process_initialization_request(void)
         msg.Message = contract_message_.expression_;
         msg.OriginatorID = contract_message_.originator_verifying_key_;
 
-        pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
 
         // this class ensures that the interpreter is released on exit
         InitializedInterpreter interpreter(worker_);
 
         SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-            ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
-        interpreter.interpreter_->set_contract_kv(contract_state_.kv_);
+            ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
 
         interpreter.interpreter_->create_initial_contract_state(
-            contract_id_, creator_id_, code, msg, new_contract_state);
+            contract_id_, creator_id_, code, msg, contract_state_.state_);
 
-        ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
-        ContractResponse response(*this, dependencies, new_state, "");
+        contract_state_.Finalize();
+        ContractResponse response(*this, dependencies, "", contract_state_.output_block_id_);
 
         return response;
     }
@@ -181,9 +181,9 @@ ContractResponse ContractRequest::process_initialization_request(void)
                  contract_code_.name_.c_str(),
                  e.what());
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, e.what());
+        ContractResponse response(*this, dependencies, e.what(), output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -195,9 +195,9 @@ ContractResponse ContractRequest::process_initialization_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, "internal error");
+        ContractResponse response(*this, dependencies, "internal error", output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -206,9 +206,9 @@ ContractResponse ContractRequest::process_initialization_request(void)
         SAFE_LOG(PDO_LOG_ERROR,
                  "unknown exception while processing initialization request");
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, "unknown internal error");
+        ContractResponse response(*this, dependencies, "unknown internal error", output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -229,6 +229,7 @@ ContractResponse ContractRequest::process_update_request(void)
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
+
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
@@ -237,12 +238,6 @@ ContractResponse ContractRequest::process_update_request(void)
         msg.Message = contract_message_.expression_;
         msg.OriginatorID = contract_message_.originator_verifying_key_;
 
-        pdo::contracts::ContractState current_contract_state;
-        //include statehash in ContractStateobject, the state will be grabbed from KV store
-        current_contract_state.StateHash =
-            ByteArrayToBase64EncodedString(contract_state_.state_hash_);
-
-        pdo::contracts::ContractState new_contract_state;
         std::map<string, string> dependencies;
         std::string result;
 
@@ -250,25 +245,33 @@ ContractResponse ContractRequest::process_update_request(void)
         InitializedInterpreter interpreter(worker_);
 
         SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-            ByteArrayToHexEncodedString(contract_state_.state_hash_).c_str());
-        interpreter.interpreter_->set_contract_kv(contract_state_.kv_);
+            ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
 
-        interpreter.interpreter_->send_message_to_contract(contract_id_, creator_id_, code, msg,
-            current_contract_state, new_contract_state, dependencies, result);
+        bool state_changed_flag;
+        interpreter.interpreter_->send_message_to_contract(
+            contract_id_,
+            creator_id_,
+            code, msg,
+            contract_state_.input_block_id_,
+            contract_state_.state_,
+            state_changed_flag,
+            dependencies,
+            result);
 
         // check for operations that did not modify state
-        if (new_contract_state.State.empty())
+        if (state_changed_flag)
         {
-            ByteArray empty_state(0);
-            std::map<string, string> dependencies;
-            ContractResponse response(*this, dependencies, empty_state, result);
-            response.state_changed_ = false;
+            contract_state_.Finalize();
+            ContractResponse response(*this, dependencies, result, contract_state_.output_block_id_);
             return response;
         }
         else
         {
-            ByteArray new_state(new_contract_state.State.begin(), new_contract_state.State.end());
-            ContractResponse response(*this, dependencies, new_state, result);
+            // since the state is unchanged, we can just use the input block id as the output block id
+            std::map<string, string> dependencies;
+            ContractResponse response(*this, dependencies, result, contract_state_.input_block_id_);
+
+            response.state_changed_ = false;
             return response;
         }
     }
@@ -280,9 +283,9 @@ ContractResponse ContractRequest::process_update_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, e.what());
+        ContractResponse response(*this, dependencies, e.what(), output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -294,9 +297,9 @@ ContractResponse ContractRequest::process_update_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, "internal error");
+        ContractResponse response(*this, dependencies, "internal error", output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -305,9 +308,9 @@ ContractResponse ContractRequest::process_update_request(void)
         SAFE_LOG(PDO_LOG_ERROR,
                  "unknown exception while processing update request");
 
-        ByteArray error_state(0);
+        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, error_state, "unknown internal error");
+        ContractResponse response(*this, dependencies, "unknown internal error", output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }

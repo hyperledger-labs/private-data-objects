@@ -6,3 +6,4 @@
 '(create "b" 5)
 '(escrow "b" "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEz9s2L5K+0ikrWbh0JrzdkYyOPnqZb/Ui\n/3CKAAxrBVeZ/As6fBCiGjOdtq5Nlwk17+rc/EcDWrskGtb7YvzMIw==\n-----END PUBLIC KEY-----")
 '(escrow-attestation "b")
+'(get-state)

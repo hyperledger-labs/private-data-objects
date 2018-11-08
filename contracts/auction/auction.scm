@@ -22,13 +22,13 @@
 (require-when (member "debug" *args*) "debug.scm")
 (require "contract-base.scm")
 (require "escrow-counter.scm")
-(require "key-store.scm")
+(require "key-value-store.scm")
 
 ;; ================================================================================
 ;; CLASS: bid-store
 ;; ================================================================================
 (define-class bid-store
-  (super-class key-store)
+  (super-class key-value-store)
   (instance-vars
    (minimum-bid 0)))
 
@@ -38,12 +38,13 @@
       (let ((current-bid (send self 'get identity)))
         (assert (not (send current-bid 'is-active?)) "old bid must be cancelled before a new one is submitted" identity)
         (send self 'set identity new-bid))
-      (send self 'create identity new-bid)))
+      (send self 'set identity new-bid)))
 
 (define-method bid-store (del-bid identity)
   (let ((current-bid (send self 'get identity)))
     (assert (instance? current-bid) "unknown identity" identity)
-    (send current-bid 'deactivate)))
+    (send current-bid 'deactivate)
+    (send self 'set identity current-bid)))
 
 (define-method bid-store (get-active-bid identity . flags)
   (let ((current-bid (send self 'get identity)))
@@ -63,12 +64,11 @@
 
 (define-method bid-store (max-bid . flags)
   (let ((high-bid ()))
-    (hashtab-package::hash-for-each
-     (lambda (k b)
-       (if (send b 'is-active?)
-           (if (or (null? high-bid) (send b 'is-greater-than? high-bid))
-               (set! high-bid b))))
-     store)
+    (send self 'for-each
+          (lambda (key bid)
+            (if (send bid 'is-active?)
+                (if (or (null? high-bid) (send bid 'is-greater-than? high-bid))
+                    (set! high-bid bid)))))
     (if (member 'externalize flags)
         (send high-bid 'externalize)
         high-bid)))
@@ -146,7 +146,7 @@
             "Bid must be signed by the asset contract" expression))
 
   (instance-set! self 'offered-asset initial-bid)
-  (send state 'create creator initial-bid)
+  (send state 'set creator initial-bid)
   (instance-set! self 'auction-primed #t)
 
   ;; this update cannot be committed unless the dependencies are committed

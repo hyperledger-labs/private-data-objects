@@ -51,9 +51,12 @@ public:
     ContractState contract_state_;
     ContractCode contract_code_; /*  */
     ContractMessage contract_message_;
-    ContractWorker *worker_;
+    ContractWorker *worker_ = NULL;
 
-    ContractRequest(const ByteArray& session_key, const ByteArray& encrypted_request, ContractWorker* worker);
+    ContractRequest(
+        const ByteArray& session_key,
+        const ByteArray& encrypted_request,
+        ContractWorker* worker);
 
     bool is_initialize(void) const { return operation_ == op_initialize; };
     bool is_update(void) const { return operation_ == op_update; };
