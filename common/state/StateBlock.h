@@ -33,7 +33,8 @@ namespace pdo {
 
         StateBlockIdArray StateBlockIdRefArray_To_StateBlockIdArray(StateBlockIdRefArray& refArray);
         ByteArray StateBlockIdRefArray_To_ByteArray(StateBlockIdRefArray& refArray);
-        ByteArray StateBlockIdArray_To_ByteArray(pdo::state::StateBlockIdArray& array);
-        StateBlockIdArray ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize);
+
+        void StateBlockIdArray_To_ByteArray(pdo::state::StateBlockIdArray& array, ByteArray& outB);
+        void ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, pdo::state::StateBlockIdArray& outA);
     }
 }

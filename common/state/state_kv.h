@@ -46,15 +46,15 @@ namespace pdo
             unsigned int last_appended_data_block_num_;
             size_t fixed_key_size_ = 0;
 
-            ByteArray serialize_block_ids();
+            void serialize_block_ids();
             void deserialize_block_ids();
             void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
             void add_block_id(pdo::state::StateBlockId& id);
             void add_kvblock_id(pdo::state::StateBlockId& id);
             void add_datablock_id(pdo::state::StateBlockId& id);
-            pdo::state::StateBlockId get_datablock_id_from_datablock_num(unsigned int data_block_num);
-            pdo::state::StateBlockId get_search_root_kvblock_id();
-            pdo::state::StateBlockId get_last_datablock_id();
+            void get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId);
+            void get_search_root_kvblock_id(pdo::state::StateBlockId& outId);
+            void get_last_datablock_id(pdo::state::StateBlockId& outId);
 
             void error_on_wrong_key_size(size_t key_size);
             void operate(kv_node& search_kv_node, unsigned int operation, const ByteArray& kvkey, ByteArray& value);

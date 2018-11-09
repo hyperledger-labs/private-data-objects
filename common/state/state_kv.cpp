@@ -35,7 +35,7 @@ namespace pstate = pdo::state;
 class pstate::data_node {
     private:
         ByteArray data_;
-        pstate::StateBlockId originalEncryptedDataNodeId_;
+        StateBlockId originalEncryptedDataNodeId_;
         unsigned block_num_;
         unsigned int free_bytes_;
 
@@ -71,10 +71,9 @@ class pstate::data_node {
             return block_num_;
         }
 
-        const ByteArray& serialize_data() {
+        void serialize_data_header() {
             ByteArray header = make_offset(block_num_, free_bytes_);
             std::copy(header.begin(), header.end(), data_.begin());
-            return data_;
         }
 
         void decrypt_and_deserialize_data(const ByteArray& inEncryptedData, const ByteArray& state_encryption_key) {
@@ -93,13 +92,8 @@ class pstate::data_node {
             block_num_ = offset_to_block_num(offset);
         }
 
-        void deserialize_original_encrypted_data_id(pstate::StateBlockId& id) {
+        void deserialize_original_encrypted_data_id(StateBlockId& id) {
             originalEncryptedDataNodeId_ = id;
-        }
-
-        pstate::StateBlockId serialize_id() {
-            pstate::StateBlockId retId = originalEncryptedDataNodeId_;
-            return retId;
         }
 
         unsigned int free_bytes() {
@@ -182,19 +176,21 @@ class pstate::data_node {
             decrypt_and_deserialize_data(encrypted_buffer, state_encryption_key);
         }
 
-        const pstate::StateBlockId& unload(const ByteArray& state_encryption_key) {
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_data());
+        void unload(const ByteArray& state_encryption_key, StateBlockId& outEncryptedDataNodeId) {
+            serialize_data_header();
+            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, data_);
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, originalEncryptedDataNodeId_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 ret != STATE_SUCCESS, "data node unload, sebio returned an error");
-            return originalEncryptedDataNodeId_;
+            //return new id
+            outEncryptedDataNodeId = originalEncryptedDataNodeId_;
         }
 };
 
 class pstate::kv_node {
     private:
-        pstate::StateBlockId id_;
-        pstate::StateBlockIdArray next_level_ids_;
+        StateBlockId id_;
+        StateBlockIdArray next_level_ids_;
         size_t next_level_id_size_ = 0;
         const unsigned next_level_id_num = (1<<8);
 
@@ -211,9 +207,9 @@ class pstate::kv_node {
         void initialize(unsigned int depth, bool is_last_level) {
             //empty id
             depth_ = depth;
-            id_ = pstate::StateBlockId(STATE_BLOCK_ID_LENGTH, 0);
+            id_ = StateBlockId(STATE_BLOCK_ID_LENGTH, 0);
             next_level_id_size_ = (is_last_level ? data_node::offset_size() : STATE_BLOCK_ID_LENGTH);
-            pstate::StateBlockId next_id = pstate::StateBlockId(next_level_id_size_, 0);
+            StateBlockId next_id = StateBlockId(next_level_id_size_, 0);
             for(unsigned int i=0; i<next_level_id_num; i++) { //children ids of kv node
                 next_level_ids_.push_back(next_id);
             }
@@ -224,30 +220,25 @@ class pstate::kv_node {
             return (depth_+1 == kvkey.size());
         }
 
-        pstate::StateBlockId serialize_id() {
-            pstate::StateBlockId retId = id_;
-            return retId;
-        }
-
         void deserialize_id(ByteArray& inId) {
             id_ = inId;
         }
 
-        ByteArray serialize_next_level_ids() {
-            return pstate::StateBlockIdArray_To_ByteArray(next_level_ids_);
+        void serialize_next_level_ids(ByteArray& outBuffer) {
+            StateBlockIdArray_To_ByteArray(next_level_ids_, outBuffer);
         }
 
         void deserialize_next_level_ids(ByteArray& buffer) {
             next_level_id_size_ = buffer.size() / next_level_id_num;
-            next_level_ids_ = pstate::ByteArrayToStateBlockIdArray(buffer, next_level_id_size_);
+            ByteArrayToStateBlockIdArray(buffer, next_level_id_size_, next_level_ids_);
         }
 
-        pstate::StateBlockId get_next_level_id(unsigned int index) {
+        StateBlockId get_next_level_id(unsigned int index) {
             return next_level_ids_[index];
         }
 
         bool next_level_id_exists(unsigned int index) {
-            pstate::StateBlockId empty(next_level_id_size_, 0);
+            StateBlockId empty(next_level_id_size_, 0);
             if(next_level_ids_[index] != empty)
                 return true;
             return false;
@@ -270,12 +261,15 @@ class pstate::kv_node {
             deserialize_next_level_ids(decrypted_buffer);
         }
 
-        const pstate::StateBlockId& unload(const ByteArray& state_encryption_key) {
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serialize_next_level_ids());
+        void unload(const ByteArray& state_encryption_key, StateBlockId& outKVNodeId) {
+            ByteArray serializedNextLevelIds;
+            serialize_next_level_ids(serializedNextLevelIds);
+            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serializedNextLevelIds);
             state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, id_);
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 ret != STATE_SUCCESS, "kv node unload, sebio returned an error");
-            return id_;
+            //return id
+            outKVNodeId = id_;
         }
 };
 
@@ -283,18 +277,17 @@ class pstate::kv_node {
 
 //##################### PROTECTED DEFINITIONS #################################
 
-ByteArray pdo::state::State_KV::serialize_block_ids() {
+void pdo::state::State_KV::serialize_block_ids() {
     rootNode_->ClearChildren();
     for(unsigned int i=0; i<blockIds_.size(); i++) {
         rootNode_->AppendChildId(blockIds_[i]);
     }
     rootNode_->BlockifyChildren();
-    return rootNode_->GetBlock();
 }
 
 void pdo::state::State_KV::deserialize_block_ids() {
     rootNode_->UnBlockifyChildren();
-    pstate::StateBlockIdRefArray refArray = rootNode_->GetChildrenBlocks();
+    StateBlockIdRefArray refArray = rootNode_->GetChildrenBlocks();
     blockIds_ = StateBlockIdRefArray_To_StateBlockIdArray(refArray);
 }
 
@@ -317,20 +310,20 @@ void pdo::state::State_KV::add_datablock_id(pstate::StateBlockId& id) {
     blockIds_.push_back(id);
 }
 
-pstate::StateBlockId pdo::state::State_KV::get_datablock_id_from_datablock_num(unsigned int data_block_num) {
+void pdo::state::State_KV::get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId) {
     //CONVENTION:   the data blocks are put in sequential order in the list,
     //              where the last block is the last appended data block, namely:
     //              last item of blockIds_ is the data block with block num last_appended_data_block_num_
     unsigned int index = blockIds_.size() - 1 - last_appended_data_block_num_ + data_block_num;
-    return blockIds_[index];
+    outId = blockIds_[index];
 }
 
-pstate::StateBlockId pdo::state::State_KV::get_search_root_kvblock_id() {
-    return blockIds_[0];
+void pdo::state::State_KV::get_search_root_kvblock_id(pdo::state::StateBlockId& outId) {
+    outId = blockIds_[0];
 }
 
-pstate::StateBlockId pdo::state::State_KV::get_last_datablock_id() {
-    return blockIds_[blockIds_.size() - 1];
+void pdo::state::State_KV::get_last_datablock_id(pdo::state::StateBlockId& outId) {
+    outId = blockIds_[blockIds_.size() - 1];
 }
 
 void pdo::state::State_KV::error_on_wrong_key_size(size_t key_size) {
@@ -357,7 +350,8 @@ void pdo::state::State_KV::operate(
                     //in last level kvnode, the next level ids are offsets to the data nodes
                     dn.deserialize_block_num_from_offset(offset);
                     unsigned int data_block_num = dn.get_block_num();
-                    pstate::StateBlockId data_node_id = get_datablock_id_from_datablock_num(data_block_num);
+                    StateBlockId data_node_id;
+                    get_datablock_id_from_datablock_num(data_block_num, data_node_id);
 
                     dn.deserialize_original_encrypted_data_id(data_node_id);
                     dn.load(state_encryption_key_);
@@ -365,8 +359,8 @@ void pdo::state::State_KV::operate(
                     unsigned int bytes_to_read = dn.read(offset, value, false, 0);
                     while(bytes_to_read > 0) {
                         unsigned int next_data_block_num = dn.get_block_num() + 1;
-                        pstate::StateBlockId next_data_node_id =
-                            get_datablock_id_from_datablock_num(next_data_block_num);
+                        StateBlockId next_data_node_id;
+                        get_datablock_id_from_datablock_num(next_data_block_num, next_data_node_id);
                         dn = data_node(next_data_block_num);
                         dn.deserialize_original_encrypted_data_id(next_data_node_id);
                         dn.load(state_encryption_key_);
@@ -378,7 +372,8 @@ void pdo::state::State_KV::operate(
                 }
             }
             case 1: { //put
-                pstate::StateBlockId last_data_node_id = get_datablock_id_from_datablock_num(last_appended_data_block_num_);
+                StateBlockId last_data_node_id;
+                get_datablock_id_from_datablock_num(last_appended_data_block_num_, last_data_node_id);
                 data_node dn(0);
                 dn.deserialize_original_encrypted_data_id(last_data_node_id);
                 dn.load(state_encryption_key_);
@@ -389,13 +384,14 @@ void pdo::state::State_KV::operate(
                 bytes_written = dn.write(value, total_bytes_written, offset);
                 total_bytes_written += bytes_written;
                 bool last_data_node_has_enough_space = dn.enough_space_available(false);
-                pstate::StateBlockId new_last_data_node_id = dn.unload(state_encryption_key_);
+                StateBlockId new_last_data_node_id;
+                dn.unload(state_encryption_key_, new_last_data_node_id);
                 update_block_id(last_data_node_id, new_last_data_node_id);
                 //IMPORTANT: the ids in the last level kvnodes are the "offset"'s, i.e., block_num||offset_from_origin
                 search_kv_node.set_next_level_id(next_level_index, offset);
                 //keep writing if necessary
                 while(total_bytes_written < value.size()) {
-                    pstate::data_node dn(++last_appended_data_block_num_);
+                    data_node dn(++last_appended_data_block_num_);
                     bytes_written = dn.write(value, total_bytes_written, offset);
                     total_bytes_written += bytes_written;
                     pdo::error::ThrowIf<pdo::error::ValueError>(
@@ -403,13 +399,15 @@ void pdo::state::State_KV::operate(
                         "operate, unwritten bytes while there is free space");
                     //track whether the data node has space for a future key-value write (used later)
                     last_data_node_has_enough_space = dn.enough_space_available(false);
-                    pstate::StateBlockId new_data_node_id = dn.unload(state_encryption_key_);
+                    StateBlockId new_data_node_id;
+                    dn.unload(state_encryption_key_, new_data_node_id);
                     add_datablock_id(new_data_node_id);
                 }
                 //leave last data node with enough space
                 if(!last_data_node_has_enough_space) {
                     data_node dn(++last_appended_data_block_num_);
-                    pstate::StateBlockId new_data_node_id = dn.unload(state_encryption_key_);
+                    StateBlockId new_data_node_id;
+                    dn.unload(state_encryption_key_, new_data_node_id);
                     add_datablock_id(new_data_node_id);
                 }
                 return;
@@ -419,7 +417,7 @@ void pdo::state::State_KV::operate(
                     //no node to delete
                 }
                 else {
-                    pstate::StateBlockId empty_id(data_node::offset_size(), 0);
+                    StateBlockId empty_id(data_node::offset_size(), 0);
                     search_kv_node.set_next_level_id(next_level_index, empty_id);
                 }
                 return;
@@ -431,13 +429,14 @@ void pdo::state::State_KV::operate(
     }
     else { //kv node is NOT last level
         if(search_kv_node.next_level_id_exists(next_level_index)) {
-            pstate::StateBlockId old_kv_node_id = search_kv_node.get_next_level_id(next_level_index);
-            pstate::kv_node new_kv_node;
+            StateBlockId old_kv_node_id = search_kv_node.get_next_level_id(next_level_index);
+            kv_node new_kv_node;
             new_kv_node.depth_ = search_kv_node.depth_ + 1;
             new_kv_node.deserialize_id(old_kv_node_id);
             new_kv_node.load(state_encryption_key_);
             operate(new_kv_node, operation, kvkey, value);
-            pstate::StateBlockId new_kv_node_id = new_kv_node.unload(state_encryption_key_);
+            StateBlockId new_kv_node_id;
+            new_kv_node.unload(state_encryption_key_, new_kv_node_id);
             if(new_kv_node_id != old_kv_node_id) {
                 search_kv_node.set_next_level_id(next_level_index, new_kv_node_id);
                 update_block_id(old_kv_node_id, new_kv_node_id);
@@ -454,7 +453,8 @@ void pdo::state::State_KV::operate(
             bool is_last_level = (search_kv_node.depth_ + 2 == kvkey.size());
             new_kv_node.initialize(search_kv_node.depth_ + 1, is_last_level);
             operate(new_kv_node, operation, kvkey, value);
-            pstate::StateBlockId new_kv_node_id = new_kv_node.unload(state_encryption_key_);
+            StateBlockId new_kv_node_id;
+            new_kv_node.unload(state_encryption_key_, new_kv_node_id);
             search_kv_node.set_next_level_id(next_level_index, new_kv_node_id);
             add_kvblock_id(new_kv_node_id);
             return;
@@ -477,18 +477,20 @@ pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key, const size_t
 
     if(id.empty()) { //no id, create root
         //root node will contain the list of block/ids (first of list is search root block, last one is last data node)
-        rootNode_ = new pdo::state::StateNode(*new StateBlockId(), *new StateBlock());
+        rootNode_ = new StateNode(*new StateBlockId(), *new StateBlock());
         //initialized search root kv node
         kv_node search_root_kv_node;
         unsigned int depth = 0;
         bool is_last_level = (depth+1 == fixed_key_size);
         search_root_kv_node.initialize(depth, is_last_level);
-        StateBlockId root_kv_node_id = search_root_kv_node.unload(state_encryption_key_);
+        StateBlockId root_kv_node_id;
+        search_root_kv_node.unload(state_encryption_key_, root_kv_node_id);
         add_block_id(root_kv_node_id);
         //initialize first data node
         last_appended_data_block_num_ = 0;
         data_node dn(last_appended_data_block_num_);
-        StateBlockId dn_id = dn.unload(state_encryption_key_);
+        StateBlockId dn_id;
+        dn.unload(state_encryption_key_, dn_id);
         add_datablock_id(dn_id);
     }
     else { //retrieve main state block, search root node and last data node
@@ -497,11 +499,12 @@ pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key, const size_t
         ret = sebio_fetch(id, SEBIO_NO_CRYPTO, *p_block);
         pdo::error::ThrowIf<pdo::error::ValueError>(
             ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
-        rootNode_ = new pdo::state::StateNode(*new StateBlockId(id), *p_block);
+        rootNode_ = new StateNode(*new StateBlockId(id), *p_block);
         deserialize_block_ids();
 
         //retrieve last data block num from last appended data block
-        StateBlockId lastAppendedDataNodeId = get_last_datablock_id();
+        StateBlockId lastAppendedDataNodeId;
+        get_last_datablock_id(lastAppendedDataNodeId);
         data_node dn(0);
         dn.deserialize_original_encrypted_data_id(lastAppendedDataNodeId);
         dn.load(state_encryption_key_);
@@ -549,7 +552,8 @@ void pdo::state::State_KV::Delete(ByteArray& key) {
 
 ByteArray pstate::State_KV::Get(pstate::StateKV_Key& statekv_key) {
     //initialize search root kv node
-    StateBlockId search_kv_node_id = get_search_root_kvblock_id();
+    StateBlockId search_kv_node_id;
+    get_search_root_kvblock_id(search_kv_node_id);
     kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
 
     //perform operation
@@ -558,16 +562,13 @@ ByteArray pstate::State_KV::Get(pstate::StateKV_Key& statekv_key) {
     error_on_wrong_key_size(kvkey.size());
     operate(search_kv_node, 0, kvkey, value);
 
-    //update search root kv node
-    pstate::StateBlockId new_search_kv_node_id = search_kv_node.unload(state_encryption_key_);
-    update_block_id(search_kv_node_id, new_search_kv_node_id);
-
     return value;
 }
 
 void pstate::State_KV::Put(pstate::StateKV_Key& statekv_key, ByteArray& value) {
     //initialize search root kv node
-    StateBlockId search_kv_node_id = get_search_root_kvblock_id();
+    StateBlockId search_kv_node_id;
+    get_search_root_kvblock_id(search_kv_node_id);
     kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
 
     //perform operation
@@ -576,13 +577,15 @@ void pstate::State_KV::Put(pstate::StateKV_Key& statekv_key, ByteArray& value) {
     operate(search_kv_node, 1, kvkey, value);
 
     //update search root kv node
-    pstate::StateBlockId new_search_kv_node_id = search_kv_node.unload(state_encryption_key_);
+    StateBlockId new_search_kv_node_id;
+    search_kv_node.unload(state_encryption_key_, new_search_kv_node_id);
     update_block_id(search_kv_node_id, new_search_kv_node_id);
 }
 
 void pstate::State_KV::Delete(pstate::StateKV_Key& statekv_key) {
     //initialize search root kv node
-    StateBlockId search_kv_node_id = get_search_root_kvblock_id();
+    StateBlockId search_kv_node_id;
+    get_search_root_kvblock_id(search_kv_node_id);
     kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
 
     //perform operation
@@ -592,7 +595,8 @@ void pstate::State_KV::Delete(pstate::StateKV_Key& statekv_key) {
     operate(search_kv_node, 2, kvkey, value);
 
     //update search root kv node
-    pstate::StateBlockId new_search_kv_node_id = search_kv_node.unload(state_encryption_key_);
+    StateBlockId new_search_kv_node_id;
+    search_kv_node.unload(state_encryption_key_, new_search_kv_node_id);
     update_block_id(search_kv_node_id, new_search_kv_node_id);
 }
 
