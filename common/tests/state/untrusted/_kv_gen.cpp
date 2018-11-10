@@ -30,7 +30,6 @@ void _kv_generator(std::string s, unsigned int chars_left, _kv_f pf) {
 void _kv_put(std::string key, std::string value) {
     ByteArray baKey(key.begin(), key.end());
     ByteArray baValue(value.begin(), value.end());
-    SAFE_LOG("Put %s %s\n", key.c_str(), value.c_str());
     kv_->Put(baKey, baValue);
 }
 
@@ -52,7 +51,6 @@ void _kv_get(std::string key, std::string expected_value) {
         SAFE_LOG(PDO_LOG_INFO, "ERROR Get %s %s (expected %s)\n", key.c_str(), value.c_str(), expected_value.c_str());
         throw pdo::error::RuntimeError("error: retrieved value and expected value do not match");
     }
-    SAFE_LOG(PDO_LOG_INFO, "SUCCESS Get %s %s (expected %s)\n", key.c_str(), value.c_str(), expected_value.c_str());
 }
 
 void _test_kv_put() {

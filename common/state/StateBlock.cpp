@@ -37,19 +37,15 @@ ByteArray pdo::state::StateBlockIdRefArray_To_ByteArray(
     return concatenatedIds;
 }
 
-ByteArray pdo::state::StateBlockIdArray_To_ByteArray(pdo::state::StateBlockIdArray& array) {
-    ByteArray b;
+void pdo::state::StateBlockIdArray_To_ByteArray(pdo::state::StateBlockIdArray& array, ByteArray& outB) {
     for(unsigned int i=0; i<array.size(); i+=1) {
-        b.insert(b.end(), array[i].begin(), array[i].end());
+        outB.insert(outB.end(), array[i].begin(), array[i].end());
     }
-    return b;
 }
 
-pdo::state::StateBlockIdArray pdo::state::ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize) {
-    pdo::state::StateBlockIdArray array;
+void pdo::state::ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, pdo::state::StateBlockIdArray& outA) {
     for(unsigned int i=0; i<b.size(); i+=idSize) {
         pdo::state::StateBlockId id(b.data() + i, b.data() + i + idSize);
-        array.push_back(id);
+        outA.push_back(id);
     }
-    return array;
 }
