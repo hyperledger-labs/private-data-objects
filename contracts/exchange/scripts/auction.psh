@@ -1,0 +1,151 @@
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## This is a pdo-shell script the demonstrates the flow of a fair exchange
+## of assets between two parties where the only mediator is the contract
+## object.
+##
+## The following shell variables are assumed:
+##    path -- the path where the contract objects are stored (default = '.')
+##    offer_user -- the identity of the user initiating the exchange (default = user1)
+##    offer_color -- the color to use for the offered marbles (default = 'green')
+##    exchange_user -- the identity of the user responding to the exchange (default = user6)
+##    bid_color -- the color to use for the requested marbles (default = 'red')
+##    request_count -- the number of marbles requested for the offered marbles (default = 60)
+
+## $ pdo-shell -s exchange.psh
+
+load_plugin -c asset_type
+load_plugin -c vetting
+load_plugin -c issuer
+load_plugin -c auction
+
+set -q --conditional -s path -v .
+set -q --conditional -s auction_user -v user1
+set -q --conditional -s auction_color -v green
+set -q --conditional -s bidder1 -v user6
+set -q --conditional -s bidder2 -v user7
+set -q --conditional -s bidder3 -v user8
+set -q --conditional -s bidder4 -v user9
+set -q --conditional -s bidder5 -v user10
+set -q --conditional -s bid_color -v red
+set -q --conditional -s minimum_bid -v 50
+
+## =================================================================
+echo ${auction_user} creates an auction to trade ${auction_color} marbles for at least ${minimum_bid} ${bid_color} marbles
+## =================================================================
+identity -n ${auction_user}
+create -c auction-contract -s _auction -f ${path}/auction.pdo
+
+## Get some information that will be used later
+## auction_vk -- auction contract verifying key/identity
+## request_vk -- vetting organization identity for requested asset
+## request_type_id -- type identifier for the requested marble type
+auction -q -f ${path}/auction.pdo get_verifying_key -s auction_vk
+vetting -q -f ${path}/${bid_color}_vetting.pdo get_verifying_key -s request_vk
+asset_type -q -f ${path}/${bid_color}_type.pdo get_identifier -s request_type_id
+
+## Initialize the auction with the request parameters
+auction -q -w -f ${path}/auction.pdo initialize -r ${request_vk} -t ${request_type_id} -c ${minimum_bid}
+
+## =================================================================
+echo escrow ${auction_color} marbles for ${auction_user} and add to the auction
+## =================================================================
+identity -n ${auction_user}
+issuer -f ${path}/${auction_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${auction_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo offer -a '${escrow}'
+
+## =================================================================
+echo escrow ${bid_color} marbles and submit the bid to the auction
+## =================================================================
+identity -n ${bidder1}
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo submit_bid -a '${escrow}'
+auction -f ${path}/auction.pdo max_bid
+
+identity -n ${bidder2}
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo submit_bid -a '${escrow}'
+auction -f ${path}/auction.pdo max_bid
+
+identity -n ${bidder3}
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo submit_bid -a '${escrow}'
+auction -f ${path}/auction.pdo max_bid
+
+identity -n ${bidder4}
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo submit_bid -a '${escrow}'
+auction -f ${path}/auction.pdo max_bid
+
+identity -n ${bidder5}
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
+auction -q -w -f ${path}/auction.pdo submit_bid -a '${escrow}'
+auction -f ${path}/auction.pdo max_bid
+
+## =================================================================
+echo close the auction
+## =================================================================
+identity -n ${auction_user}
+auction -q -w -f ${path}/auction.pdo close_auction
+
+identity -n ${bidder5}
+auction -q -w -f ${path}/auction.pdo confirm_close
+
+## =================================================================
+echo claim resources
+## =================================================================
+identity -n ${auction_user}
+auction -q -w -f ${path}/auction.pdo claim_bid -s asset
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo claim -a '${asset}'
+
+identity -n ${bidder5}
+auction -q -w -f ${path}/auction.pdo claim_offer -s asset
+issuer -q -w -f ${path}/${auction_color}_issuer.pdo claim -a '${asset}'
+
+## =================================================================
+echo cancel losing bids
+## =================================================================
+identity -n ${bidder1}
+auction -q -w -f ${path}/auction.pdo cancel_bid -s cancel
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder2}
+auction -q -w -f ${path}/auction.pdo cancel_bid -s cancel
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder3}
+auction -q -w -f ${path}/auction.pdo cancel_bid -s cancel
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder4}
+auction -q -w -f ${path}/auction.pdo cancel_bid -s cancel
+issuer -q -w -f ${path}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+
+echo attempt to cancel the winning bid, this should fail
+identity -n ${bidder5}
+auction -q -w -f ${path}/auction.pdo cancel_bid -s cancel
+issuer -f ${path}/${bid_color}_issuer.pdo get_balance
+
+exit

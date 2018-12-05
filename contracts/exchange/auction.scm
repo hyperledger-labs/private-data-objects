@@ -270,7 +270,7 @@
    ;; Contract method to examine maximum bid
    ;;
    ;; RETURNS:
-   ;; Serialized bid
+   ;; The pair of bid asset type and bid amount for the maximum bid
    ;; ----------------------------------------------------------------
    (define-method _auction (max-bid)
      (send bids 'max-bid-information))
