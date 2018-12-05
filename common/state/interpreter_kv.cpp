@@ -16,19 +16,11 @@
 #include "interpreter_kv.h"
 #include "crypto.h"
 #include "state.h"
-
-#define INTERPRETER_KV_KEY_SIZE_BYTES (SHA256_DIGEST_LENGTH / 2)  // 16 bytes == 128bits
+#include "log.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Local Functions
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static ByteArray to_kvkey(const ByteArray& key)
-{
-    ByteArray kvKey = pdo::crypto::ComputeMessageHash(key);
-    kvKey.resize(INTERPRETER_KV_KEY_SIZE_BYTES);
-    return kvKey;
-}
-
 static ByteArray to_privileged_key(const ByteArray& key)
 {
     uint8_t access_right = 'P';
@@ -55,7 +47,7 @@ pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id, const ByteArray& encry
     : Interpreter_KV(id)
 {
     ByteArray key = encryption_key;
-    State_KV* state_kv = new pdo::state::State_KV(id, key, INTERPRETER_KV_KEY_SIZE_BYTES);
+    State_KV* state_kv = new pdo::state::State_KV(id, key);
     kv_ = state_kv;
 }
 
@@ -63,6 +55,9 @@ pdo::state::Interpreter_KV::~Interpreter_KV()
 {
     if (kv_ != NULL)
     {
+        ByteArray id;
+        kv_->Uninit(id);
+
         delete kv_;
         kv_ = NULL;
     }
@@ -75,60 +70,55 @@ void pdo::state::Interpreter_KV::Uninit(ByteArray& id)
 
 ByteArray pdo::state::Interpreter_KV::Get(ByteArray& key)
 {
-    ByteArray kvkey = to_kvkey(key);
-    return kv_->Get(kvkey);
+    return kv_->Get(key);
 }
 
 void pdo::state::Interpreter_KV::Put(ByteArray& key, ByteArray& value)
 {
-    ByteArray kvkey = to_kvkey(key);
-    kv_->Put(kvkey, value);
+    kv_->Put(key, value);
 }
 
 void pdo::state::Interpreter_KV::Delete(ByteArray& key)
 {
-    ByteArray kvkey = to_kvkey(key);
-    kv_->Delete(kvkey);
+    kv_->Delete(key);
 }
 
-ByteArray pdo::state::Interpreter_KV::PrivilegedGet(ByteArray& key)
+//########## FUNCTION BELOW ARE BASED ON THE ONES ABOVE################################################################
+
+ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
 {
     ByteArray privileged_key = to_privileged_key(key);
-    ByteArray kvkey = to_kvkey(privileged_key);
-    return kv_->Get(kvkey);
+    return Get(privileged_key);
 }
 
-void pdo::state::Interpreter_KV::PrivilegedPut(ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::PrivilegedPut(const ByteArray& key, ByteArray& value)
 {
     ByteArray privileged_key = to_privileged_key(key);
-    ByteArray kvkey = to_kvkey(privileged_key);
-    kv_->Put(kvkey, value);
+    Put(privileged_key, value);
 }
 
 void pdo::state::Interpreter_KV::PrivilegedDelete(const ByteArray& key)
 {
     ByteArray privileged_key = to_privileged_key(key);
-    ByteArray kvkey = to_kvkey(privileged_key);
-    kv_->Delete(kvkey);
+    Delete(privileged_key);
 }
 
-ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(ByteArray& key)
+ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(const ByteArray& key)
 {
+    SAFE_LOG(PDO_LOG_DEBUG, "get unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
     ByteArray unprivileged_key = to_unprivileged_key(key);
-    ByteArray kvkey = to_kvkey(unprivileged_key);
-    return kv_->Get(kvkey);
+    return Get(unprivileged_key);
 }
 
-void pdo::state::Interpreter_KV::UnprivilegedPut(ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, ByteArray& value)
 {
     ByteArray unprivileged_key = to_unprivileged_key(key);
-    ByteArray kvkey = to_kvkey(unprivileged_key);
-    kv_->Put(kvkey, value);
+    SAFE_LOG(PDO_LOG_DEBUG, "put unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
+    Put(unprivileged_key, value);
 }
 
 void pdo::state::Interpreter_KV::UnprivilegedDelete(const ByteArray& key)
 {
     ByteArray unprivileged_key = to_unprivileged_key(key);
-    ByteArray kvkey = to_kvkey(unprivileged_key);
-    kv_->Delete(kvkey);
+    Delete(unprivileged_key);
 }

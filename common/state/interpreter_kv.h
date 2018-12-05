@@ -38,12 +38,12 @@ namespace pdo
 
             void Uninit(ByteArray& id);
 
-            void PrivilegedPut(ByteArray& key, ByteArray& value);
-            ByteArray PrivilegedGet(ByteArray& key);
+            void PrivilegedPut(const ByteArray& key, ByteArray& value);
+            ByteArray PrivilegedGet(const ByteArray& key);
             void PrivilegedDelete(const ByteArray& key);
 
-            void UnprivilegedPut(ByteArray& key, ByteArray& value);
-            ByteArray UnprivilegedGet(ByteArray& key);
+            void UnprivilegedPut(const ByteArray& key, ByteArray& value);
+            ByteArray UnprivilegedGet(const ByteArray& key);
             void UnprivilegedDelete(const ByteArray& key);
         };
     }

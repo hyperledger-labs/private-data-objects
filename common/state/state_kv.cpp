@@ -14,8 +14,6 @@
  */
 
 #include "state.h"
-#include "state_kv.h"
-#include "basic_kv.h"
 #include "jsonvalue.h"
 #include "packages/base64/base64.h"
 #include "parson.h"
@@ -25,292 +23,1063 @@
 #include "c11_support.h"
 #include "crypto.h"
 #include <algorithm>
+#include <map>
+#include "log.h"
 
 #define FIXED_DATA_NODE_BYTE_SIZE (1<<13) // 8 KB
 
 namespace pstate = pdo::state;
 
 //############ INTERNAL TOOLS #################################################
+namespace pdo
+{
+    namespace state
+    {
+        struct __attribute__((packed)) block_offset_t {
+            unsigned int block_num;
+            unsigned int bytes; //usually treated as an offset within a block
+        };
 
-class pstate::data_node {
-    private:
-        ByteArray data_;
-        StateBlockId originalEncryptedDataNodeId_;
-        unsigned block_num_;
-        unsigned int free_bytes_;
+        const block_offset_t empty_block_offset = {0, 0};
 
-
-        unsigned int offset_to_block_num(const ByteArray& offset) {
-            return *((unsigned int*)offset.data()); //the first uint
+        bool operator==(const block_offset_t& lhs, const block_offset_t& rhs) {
+            return (lhs.block_num == rhs.block_num && lhs.bytes == rhs.bytes);
         }
 
-        unsigned int offset_to_bytes_off(const ByteArray& offset) {
-            return *((unsigned int*)(offset.data()+sizeof(unsigned int))); //the second uint
+        bool operator!=(const block_offset_t& lhs, const block_offset_t& rhs) {
+            return !(lhs==rhs);
         }
 
-    public:
-        static unsigned int offset_size() {
-            return sizeof(unsigned int) + sizeof(unsigned int);
-        }
+        class block_offset {
+            public:
+            block_offset_t block_offset_ = empty_block_offset;
 
-        ByteArray make_offset(unsigned int block_num, unsigned int bytes_off) {
-            ByteArray ba_block_num((uint8_t*)&block_num, (uint8_t*)&block_num + sizeof(block_num));
-            ByteArray ba_off_from_start((uint8_t*)&bytes_off, (uint8_t*)&bytes_off + sizeof(bytes_off));
-            //concatenate the two values
-            ba_block_num.insert(ba_block_num.end(), ba_off_from_start.begin(), ba_off_from_start.end());
-            return ba_block_num;
-        }
-
-        data_node(unsigned int block_num) {
-            block_num_ = block_num;
-            free_bytes_ = FIXED_DATA_NODE_BYTE_SIZE - sizeof(unsigned int) - sizeof(unsigned int);
-            data_.resize(FIXED_DATA_NODE_BYTE_SIZE);
-        }
-
-        unsigned int get_block_num() {
-            return block_num_;
-        }
-
-        void serialize_data_header() {
-            ByteArray header = make_offset(block_num_, free_bytes_);
-            std::copy(header.begin(), header.end(), data_.begin());
-        }
-
-        void decrypt_and_deserialize_data(const ByteArray& inEncryptedData, const ByteArray& state_encryption_key) {
-            data_ = pdo::crypto::skenc::DecryptMessage(state_encryption_key, inEncryptedData);
-            block_num_ = offset_to_block_num(data_);
-            free_bytes_ = offset_to_bytes_off(data_);
-        }
-
-        void deserialize_data(const ByteArray& inData) {
-            block_num_ = offset_to_block_num(inData);
-            free_bytes_ = offset_to_bytes_off(inData);
-            data_ = inData;
-        }
-
-        void deserialize_block_num_from_offset(ByteArray& offset) {
-            block_num_ = offset_to_block_num(offset);
-        }
-
-        void deserialize_original_encrypted_data_id(StateBlockId& id) {
-            originalEncryptedDataNodeId_ = id;
-        }
-
-        unsigned int free_bytes() {
-            return free_bytes_;
-        }
-
-        bool enough_space_available(bool continue_writing) {
-            if(continue_writing) {
-                return free_bytes_ >= 1;
-            }
-            //else
-            return free_bytes_ >= sizeof(size_t) + 1;
-        }
-
-        unsigned int write(const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet) {
-            //check that there is enough space to write
-            pdo::error::ThrowIf<pdo::error::RuntimeError>(
-                ! enough_space_available(write_from > 0), "data node, not enough space to write");
-
-            //compute cursor where to start writing
-            unsigned int cursor = data_.size() - free_bytes_;
-            //compute return offset
-            //ByteArray retOffset = make_offset(block_num_, cursor);
-            returnOffSet = make_offset(block_num_, cursor);
-
-            //write the buffer size if necessary
-            if(write_from == 0) { // this is the first write
-                size_t buffer_size = buffer.size();
-                ByteArray ba_buffer_size((uint8_t*)&buffer_size, (uint8_t*)&buffer_size+sizeof(buffer_size));
-                std::copy(ba_buffer_size.begin(), ba_buffer_size.end(), data_.begin() + cursor);
-                cursor += ba_buffer_size.size();
-                free_bytes_ -= ba_buffer_size.size();
+            static unsigned int offset_size() {
+                return sizeof(block_offset_t);
             }
 
-            //write as much buffer as possible
-            unsigned int buffer_size = buffer.size() - write_from;
-            unsigned int bytes_to_write = (free_bytes_ > buffer_size ? buffer_size : free_bytes_);
-            std::copy(buffer.begin() + write_from, buffer.begin() + write_from + bytes_to_write, data_.begin() + cursor);
-            free_bytes_ -= bytes_to_write;
-
-            //return bytes that have been written
-            return bytes_to_write;
-        }
-
-        unsigned int read(ByteArray& offset, ByteArray& outBuffer, bool continue_reading, unsigned int continue_reading_bytes) {
-            //point cursor at beginning of data
-            unsigned int cursor = offset_size();
-            unsigned int total_bytes_to_read = continue_reading_bytes;
-            if(!continue_reading) {
-                //the provided offset must contain the block num of the current data node
-                pdo::error::ThrowIf<pdo::error::ValueError>(
-                    offset_to_block_num(offset) != block_num_, "data node, block num mismatch in offset");
-                //update the cursor
-                cursor = offset_to_bytes_off(offset);
-                //read the buffer size
-                ByteArray ba_buffer_size(data_.begin() + cursor, data_.begin() + cursor + sizeof(size_t));
-                cursor += sizeof(size_t);
-                size_t buffer_size = *((size_t*)ba_buffer_size.data());
-                //update the byte to read
-                total_bytes_to_read = buffer_size;
+            static unsigned int serialized_offset_to_block_num(const ByteArray& serialized_offset) {
+                block_offset_t* p = (block_offset_t*) serialized_offset.data();
+                return p->block_num;
             }
 
-            //read as much as possible in outbuffer
-            unsigned int bytes_to_endof_data = data_.size() - cursor;
-            unsigned int bytes_to_read = (total_bytes_to_read < bytes_to_endof_data ? total_bytes_to_read : bytes_to_endof_data);
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                    bytes_to_read + cursor > data_.size(), "data node, bytes_to_read overflows");
-            outBuffer.insert(outBuffer.end(), data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
-            //update to total bytes that are still left to read
-            total_bytes_to_read -= bytes_to_read;
-            return total_bytes_to_read; //if 0, read is complete, otherwise it must continue with the next data node
-        }
+            static unsigned int serialized_offset_to_bytes(const ByteArray& serialized_offset) {
+                block_offset_t* p = (block_offset_t*) serialized_offset.data();
+                return p->bytes;
+            }
 
-        void load(const ByteArray& state_encryption_key) {
-            state_status_t ret;
-            ByteArray encrypted_buffer;
-            ret = sebio_fetch(originalEncryptedDataNodeId_, SEBIO_NO_CRYPTO, encrypted_buffer);
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                ret != STATE_SUCCESS, "data node load, sebio returned an error");
-            decrypt_and_deserialize_data(encrypted_buffer, state_encryption_key);
-        }
+            static ByteArray to_ByteArray(const block_offset_t bo) {
+                uint8_t* p = (uint8_t*)&bo;
+                return ByteArray(p, p + sizeof(block_offset_t));
+            }
 
-        void unload(const ByteArray& state_encryption_key, StateBlockId& outEncryptedDataNodeId) {
-            serialize_data_header();
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, data_);
-            state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, originalEncryptedDataNodeId_);
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                ret != STATE_SUCCESS, "data node unload, sebio returned an error");
-            //return new id
-            outEncryptedDataNodeId = originalEncryptedDataNodeId_;
-        }
-};
+            void serialize_offset(ByteArray& outBuffer) {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(outBuffer.size() < offset_size(), "serialize, short buf");
+                block_offset_t* p = (block_offset_t*) outBuffer.data();
+                *p = block_offset_;
+            }
 
-class pstate::kv_node {
-    private:
-        StateBlockId id_;
-        StateBlockIdArray next_level_ids_;
-        size_t next_level_id_size_ = 0;
-        const unsigned next_level_id_num = (1<<8);
+            void deserialize_offset(const ByteArray& inBuffer) {
+                block_offset_t* p = (block_offset_t*) inBuffer.data();
+                block_offset_ = *p;
+            }
 
-    public:
-        unsigned int depth_ = 0;
-        kv_node() {}
+            void deserialize_offset(const block_offset_t bo) {
+                block_offset_ = bo;
+            }
 
-        kv_node(unsigned int depth, StateBlockId& id, ByteArray& state_encryption_key) {
-            depth_ = depth;
-            deserialize_id(id);
-            load(state_encryption_key);
-        }
+            void empty() {
+                block_offset_ = empty_block_offset;
+            }
 
-        void initialize(unsigned int depth, bool is_last_level) {
-            //empty id
-            depth_ = depth;
-            id_ = StateBlockId(STATE_BLOCK_ID_LENGTH, 0);
-            next_level_id_size_ = (is_last_level ? data_node::offset_size() : STATE_BLOCK_ID_LENGTH);
-            StateBlockId next_id = StateBlockId(next_level_id_size_, 0);
-            for(unsigned int i=0; i<next_level_id_num; i++) { //children ids of kv node
-                next_level_ids_.push_back(next_id);
+            bool is_empty() {
+                return (block_offset_ == empty_block_offset);
+            }
+
+            ByteArray to_ByteArray() {
+                ByteArray b(sizeof(block_offset_t));
+                serialize_offset(b);
+                return b;
+            }
+        };
+
+
+// in a trie node, this is the max length of a piece of key that can be indexed
+// (SEE trie_node_header_t struct below)
+#define MAX_KEY_CHUNK_BYTE_SIZE 15
+
+        struct __attribute__((packed)) trie_node_header_t {
+            uint8_t isDeleted : 1;
+            uint8_t hasNext : 1;
+            uint8_t hasChild : 1;
+            uint8_t isValue : 1;
+            uint8_t keyChunkSize : 4;
+        };
+        struct __attribute__((packed)) trie_node_h_with_n_t {
+            struct trie_node_header_t hdr;
+            struct block_offset_t next_offset;
+        };
+        struct __attribute__((packed)) trie_node_h_with_c_t {
+            struct trie_node_header_t hdr;
+            struct block_offset_t child_offset;
+        };
+        struct __attribute__((packed)) trie_node_h_with_nc_t {
+            trie_node_header_t hdr;
+            block_offset_t next_offset;
+            block_offset_t child_offset;
+        };
+
+        const trie_node_header_t deleted_trie_header        = {1, 0, 0, 0, 0};
+        const trie_node_header_t empty_trie_header          = {0, 0, 0, 0, 0};
+        const trie_node_header_t empty_trie_header_with_n   = {0, 1, 0, 0, 0};
+        const trie_node_header_t empty_trie_header_with_c   = {0, 0, 1, 0, 0};
+        const trie_node_header_t empty_trie_header_with_nc  = {0, 1, 1, 0, 0};
+        const trie_node_h_with_n_t empty_trie_node_h_with_n   = {empty_trie_header_with_n, empty_block_offset};
+        const trie_node_h_with_c_t empty_trie_node_h_with_c   = {empty_trie_header_with_c, empty_block_offset};
+        const trie_node_h_with_nc_t empty_trie_node_h_with_nc = {empty_trie_header_with_nc, empty_block_offset};
+
+        class block_warehouse {
+            public:
+            pdo::state::StateBlockIdArray blockIds_ = {};
+            unsigned int last_appended_data_block_num_;
+            ByteArray state_encryption_key_;
+
+            void serialize_block_ids(pdo::state::StateNode* node);
+            void deserialize_block_ids(pdo::state::StateNode* node);
+            void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
+            void update_datablock_id(unsigned int data_block_num, pdo::state::StateBlockId& newId);
+            void add_block_id(pdo::state::StateBlockId& id);
+            void add_datablock_id(pdo::state::StateBlockId& id);
+            void get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId);
+            void get_last_datablock_id(pdo::state::StateBlockId& outId);
+            unsigned int get_root_block_num();
+        };
+
+        class data_node {
+            private:
+            ByteArray data_;
+            StateBlockId originalEncryptedDataNodeId_;
+            unsigned block_num_;
+            unsigned int free_bytes_;
+
+            public:
+            ByteArray make_offset(unsigned int block_num, unsigned int bytes_off);
+            data_node(unsigned int block_num);
+            unsigned int get_block_num();
+            void serialize_data_header();
+            void decrypt_and_deserialize_data(const ByteArray& inEncryptedData, const ByteArray& state_encryption_key);
+            void deserialize_data(const ByteArray& inData);
+            void deserialize_block_num_from_offset(ByteArray& offset);
+            void deserialize_original_encrypted_data_id(StateBlockId& id);
+            unsigned int free_bytes();
+            bool enough_space_for_value(bool continue_writing);
+            unsigned int write(const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet);
+            unsigned int read(
+                            const ByteArray& offset,
+                            ByteArray& outBuffer,
+                            bool continue_reading,
+                            unsigned int continue_reading_bytes);
+            uint8_t* offset_to_pointer(const ByteArray& offset);
+            void load(const ByteArray& state_encryption_key);
+            void unload(const ByteArray& state_encryption_key, StateBlockId& outEncryptedDataNodeId);
+
+            trie_node_header_t* write_trie_node(
+                                    bool isDeleted,
+                                    bool hasNext,
+                                    bool hasChild,
+                                    const ByteArray& key,
+                                    unsigned int keyChunkBegin,
+                                    unsigned int keyChunkEnd,
+                                    ByteArray& returnOffset);
+        };
+
+        class data_node_io {
+            public:
+            //the block_warehouse class is in scope as long as the KV store is inited
+            block_warehouse& block_warehouse_;
+            //append_dn points to a data note pinned in cache
+            data_node* append_dn_;
+
+            data_node_io(block_warehouse& bw) : block_warehouse_(bw) {}
+            void init_append_data_node();
+            void add_and_init_append_data_node();
+            void add_and_init_append_data_node_cond(bool cond);
+
+            struct block_cache_entry_t {
+                bool pinned;
+                unsigned int references;
+                bool modified;
+                uint64_t clock;
+                data_node* dn;
+            };
+            std::map<unsigned int, block_cache_entry_t> block_cache_;
+            uint64_t cache_clock_ = 0;
+
+            void cache_replacement_policy();
+            void cache_dump();
+            void cache_flush_entry(unsigned int block_num);
+            void cache_flush();
+            void cache_put(unsigned int block_num, data_node* dn);
+            data_node& cache_retrieve(unsigned int block_num, bool pinned);
+            void cache_done(unsigned int block_num, bool modified);
+            void cache_pin(unsigned int block_num);
+            void cache_unpin(unsigned int block_num);
+            void cache_modified(unsigned int block_num);
+        };
+
+        class trie_node {
+        public:
+            static block_offset_t* goto_next_offset(trie_node_header_t* header) {
+                if(header->hasNext) {
+                    trie_node_h_with_n_t* p = (trie_node_h_with_n_t*)header;
+                    return &(p->next_offset);
+                }
+                return NULL;
+            }
+
+            static block_offset_t* goto_child_offset(trie_node_header_t* header) {
+                if(header->hasNext) {
+                    if(header->hasChild) {
+                        trie_node_h_with_nc_t* p = (trie_node_h_with_nc_t*)header;
+                        return &(p->child_offset);
+                    }
+                    return NULL;
+                }
+                if(header->hasChild) {
+                    trie_node_h_with_c_t* p = (trie_node_h_with_c_t*)header;
+                    return &(p->child_offset);
+                }
+                return NULL;
+            }
+
+            static uint8_t* goto_key_chunk(trie_node_header_t* header) {
+                if(header->keyChunkSize == 0) {
+                    return NULL;
+                }
+                uint8_t *p = (uint8_t*)header;
+                p += sizeof(trie_node_header_t);
+                if(header->hasNext)     p += sizeof(block_offset_t);
+                if(header->hasChild)    p += sizeof(block_offset_t);
+                return p;
+            }
+
+            static void resize_key_chunk(trie_node_header_t* header, unsigned int new_size) {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    header->keyChunkSize < new_size, "resize key chunk, new size is larger");
+                uint8_t* p = goto_key_chunk(header);
+                for(int i=new_size; i < header->keyChunkSize; i++)
+                    p[i] = *((uint8_t*)&deleted_trie_header);
+                header->keyChunkSize = new_size;
+            }
+
+            static void delete_child_offset(trie_node_header_t* header) {
+                *goto_child_offset(header) = empty_block_offset;
+            }
+            static void delete_next_offset(trie_node_header_t* header) {
+                *goto_next_offset(header) = empty_block_offset;
+            }
+
+            static unsigned int shared_prefix_length(
+                                    const uint8_t* stored_chunk,
+                                    size_t sc_length,
+                                    const uint8_t* key_chunk,
+                                    size_t kc_length) {
+                unsigned int spl=0;
+                while(spl < sc_length && spl < kc_length && stored_chunk[spl] == key_chunk[spl]) {
+                    spl++;
+                }
+                return spl;
+            }
+
+            static void delete_trie_node(trie_node_header_t* header) {
+                resize_key_chunk(header, 0);
+                delete_child_offset(header);
+                delete_next_offset(header);
+                header->isDeleted = 1;
+            }
+
+            static void delete_trie_node_childless(trie_node_header_t* header, block_offset& out_bo_new) {
+                if(!header->hasChild || *goto_child_offset(header) == empty_block_offset) {
+                    //set new offset as next offset
+                    out_bo_new.block_offset_ = *goto_next_offset(header);
+                    //mark node as deleted
+                    delete_trie_node(header);
+                }
+            }
+
+            static void update_trie_node_next(
+                                trie_node_header_t* header,
+                                block_offset_t* bo_next,
+                                data_node_io* dn_io,
+                                block_offset& out_bo_new) {
+                trie_node_header_t* tnh = header;
+                block_offset_t* bon = goto_next_offset(tnh);
+                *bon = *bo_next;
+            }
+
+            static void update_trie_node_child(
+                                trie_node_header_t* header,
+                                block_offset_t* bo_child,
+                                data_node_io* dn_io,
+                                block_offset& out_bo_new) {
+                trie_node_header_t* tnh = header;
+                block_offset_t* boc = goto_child_offset(tnh);
+                *boc = *bo_child;
+            }
+
+            static void do_operate_trie_child(
+                            data_node_io* dn_io,
+                            trie_node_header_t* trie_node_header,
+                            const kv_operation_e operation,
+                            const unsigned int depth,
+                            const ByteArray& kvkey,
+                            ByteArray& value,
+                            block_offset& outBlockOffset) {
+                block_offset current_child_bo;
+                unsigned int cached_child_block_index;
+                trie_node_header_t* child;
+
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    !trie_node_header->hasChild, "operate trie child expects a child node");
+
+                //retrieve child node from cache (if it exists)
+                current_child_bo.deserialize_offset(*goto_child_offset(trie_node_header));
+                cached_child_block_index = current_child_bo.block_offset_.block_num;
+                data_node& dn = dn_io->cache_retrieve(cached_child_block_index, false);
+                if(current_child_bo.is_empty()) {
+                    child = NULL;
+                }
+                else {
+                    child = (trie_node_header_t*)dn.offset_to_pointer(current_child_bo.to_ByteArray());
+                }
+
+                //operate on child node
+                operate_trie(
+                    dn_io,
+                    child,
+                    operation,
+                    depth + trie_node_header->keyChunkSize, //all key chunk was matched
+                    kvkey,
+                    value,
+                    current_child_bo);
+
+                //if node modified, mark cached block as modified
+                update_trie_node_child(trie_node_header, &current_child_bo.block_offset_, dn_io, outBlockOffset);
+                dn_io->cache_done(cached_child_block_index, false); //keeps modified flag of operate_trie
+            }
+
+            static void do_operate_trie_next(
+                            data_node_io* dn_io,
+                            trie_node_header_t* trie_node_header,
+                            const kv_operation_e operation,
+                            const unsigned int depth,
+                            const ByteArray& kvkey,
+                            ByteArray& value,
+                            block_offset& outBlockOffset) {
+                //the trie node might not have a "next" node
+                block_offset current_next_bo;
+                trie_node_header_t* next;
+                unsigned int cached_next_block_index=0;
+
+                //retrieve next node from cache (if it exists) -- i.e., cache the block of the next node
+                current_next_bo.deserialize_offset(*goto_next_offset(trie_node_header));
+                cached_next_block_index = current_next_bo.block_offset_.block_num;
+                data_node& dn = dn_io->cache_retrieve(cached_next_block_index, false);
+                if(current_next_bo.is_empty()) {
+                    next = NULL;
+                }
+                else {
+                    next = (trie_node_header_t*)dn.offset_to_pointer(current_next_bo.to_ByteArray());
+                }
+
+                //operate on next node
+                operate_trie(
+                    dn_io,
+                    next,
+                    operation,
+                    depth, //same depth
+                    kvkey,
+                    value,
+                    current_next_bo);
+
+                //if node modified, mark cached block as modified
+                update_trie_node_next(trie_node_header, &current_next_bo.block_offset_, dn_io, outBlockOffset);
+                dn_io->cache_done(cached_next_block_index, false); //keeps modified flag of operate_trie
+            }
+
+            static void do_write_value(
+                            data_node_io* dn_io,
+                            trie_node_header_t* header,
+                            ByteArray& value,
+                            block_offset& outBlockOffset) {
+                unsigned int bytes_written, total_bytes_written = 0;
+                ByteArray baOffset;
+                //switch to an empty data node (if necessary)
+                dn_io->add_and_init_append_data_node_cond(! dn_io->append_dn_->enough_space_for_value(false));
+
+                //start writing value
+                bytes_written = dn_io->append_dn_->write(value, total_bytes_written, baOffset);
+                total_bytes_written += bytes_written;
+
+                //update child with offset of initial write
+                block_offset child_bo;
+                child_bo.deserialize_offset(baOffset);
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                        !header->hasChild, "write value, header must have been created with child");
+                update_trie_node_child(header, &child_bo.block_offset_, dn_io, outBlockOffset);
+
+                //keep writing if necessary
+                while(total_bytes_written < value.size()) {
+                    dn_io->add_and_init_append_data_node();
+                    bytes_written = dn_io->append_dn_->write(value, total_bytes_written, baOffset);
+                    total_bytes_written += bytes_written;
+                    pdo::error::ThrowIf<pdo::error::ValueError>(
+                        dn_io->append_dn_->enough_space_for_value(true) && total_bytes_written < value.size(),
+                        "operate, unwritten bytes while there is free space");
+                }
+            }
+
+            static void do_read_value(data_node_io* dn_io, trie_node_header_t* trie_node_header, ByteArray& value) {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                        !trie_node_header->hasChild, "read value, header must have child");
+                block_offset current_child_bo;
+                current_child_bo.deserialize_offset(*goto_child_offset(trie_node_header));
+                if(current_child_bo.is_empty()) {
+                    //value is absent
+                    return;
+                }
+
+                //read value
+                unsigned int next_block_num = current_child_bo.block_offset_.block_num;
+                bool first_read_done = false;
+                unsigned int bytes_to_read = 0;
+                while(1) {
+                    data_node& dn = dn_io->cache_retrieve(next_block_num, false);
+                    bytes_to_read = dn.read(current_child_bo.to_ByteArray(), value, first_read_done, bytes_to_read);
+                    dn_io->cache_done(next_block_num, false);
+                    first_read_done = true;
+                    next_block_num++;
+                    if(bytes_to_read == 0)
+                        break;
+                }
+            }
+
+            static void do_delete(trie_node_header_t* header) {
+                delete_child_offset(header);
+            }
+
+            static void do_split_trie_node(
+                            data_node_io* dn_io,
+                            trie_node_header_t* header,
+                            unsigned int spl) {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                        !(header->keyChunkSize > 0 && spl < header->keyChunkSize),
+                        "split node, wrong key chunk size and/or spl");
+                dn_io->add_and_init_append_data_node_cond(
+                        trie_node::new_trie_node_size() > dn_io->append_dn_->free_bytes());
+
+                ByteArray second_chunk(goto_key_chunk(header) + spl, goto_key_chunk(header) + header->keyChunkSize);
+
+                //make new node with second part of key chunk and same child offset and no next offset
+                ByteArray baSecondHeaderOffset; //not important now
+                trie_node_header_t* second_header = dn_io->append_dn_->write_trie_node(
+                                                                        false,
+                                                                        header->hasNext, //same as original
+                                                                        header->hasChild,//same as original
+                                                                        second_chunk,
+                                                                        0,
+                                                                        second_chunk.size(),
+                                                                        baSecondHeaderOffset);
+                block_offset child_bo, next_bo, new_bo;
+
+                //adjust second header
+                update_trie_node_child(second_header, goto_child_offset(header), dn_io, new_bo);
+                delete_next_offset(second_header);
+
+                //adjust first (i.e., original) header, with original next offset, and new node as child
+                resize_key_chunk(header, spl);
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(!header->hasChild, "split node, header must have child");
+                child_bo.deserialize_offset(baSecondHeaderOffset);
+                update_trie_node_child(header, &child_bo.block_offset_, dn_io, new_bo);
+                //header pointer and its block_offset (unavailable here) remain unchanged
+            }
+
+            static size_t new_trie_node_size() {
+                return sizeof(trie_node_h_with_nc_t) + MAX_KEY_CHUNK_BYTE_SIZE;
+            }
+
+            static trie_node_header_t* append_trie_node(
+                    data_node_io* dn_io,
+                    const ByteArray& kvkey,
+                    const unsigned int key_begin,
+                    const unsigned int key_end,
+                    block_offset& outBlockOffset) {
+                ByteArray returnOffset;
+                trie_node_header_t* new_tnh;
+
+                dn_io->add_and_init_append_data_node_cond(new_trie_node_size() > dn_io->append_dn_->free_bytes());
+                new_tnh = dn_io->append_dn_->write_trie_node(
+                                        false,  // not deleted
+                                        true,   // has next node
+                                        true,   // has a child node
+                                        kvkey,
+                                        key_begin,  // add key chunk starting at depth
+                                        key_end,    //end key chunk at key size
+                                        returnOffset);
+                outBlockOffset.deserialize_offset(returnOffset);
+                return new_tnh;
+            }
+
+            static void operate_trie(
+                    data_node_io* dn_io,
+                    trie_node_header_t* trie_node_header,
+                    const kv_operation_e operation,
+                    const unsigned int depth,
+                    const ByteArray& kvkey,
+                    ByteArray& value,
+                    block_offset& outBlockOffset) {
+
+                trie_node_header_t* current_tnh;
+                ByteArray returnOffset;
+                unsigned int cur_thn_block_num;
+
+                //first, create the node if necessary, or fail
+                if(trie_node_header == NULL) {
+                    if(operation == PUT_OP) {
+                        //in put operation, always create a trie node
+                        current_tnh = append_trie_node(dn_io, kvkey, depth, kvkey.size(), outBlockOffset);
+                    }
+                    else {
+                        //no trie node to proceed with delete or get
+                        return;
+                    }
+                }
+                else {
+                    current_tnh = trie_node_header;
+                }
+
+                //ensure it remains cached
+                cur_thn_block_num = outBlockOffset.block_offset_.block_num;
+                dn_io->cache_retrieve(cur_thn_block_num, false);
+                block_offset_t orig_next_bo = *goto_next_offset(current_tnh);
+                block_offset_t orig_child_bo = *goto_child_offset(current_tnh);
+
+                //operate on trie node
+                unsigned int spl = shared_prefix_length(
+                                        goto_key_chunk(current_tnh),
+                                        current_tnh->keyChunkSize,
+                                        kvkey.data() + depth,
+                                        kvkey.size() - depth);
+
+                if(spl==0) { //no match, so either go next or EOS matched
+                    if(depth < kvkey.size()) { // no match, go next
+                        do_operate_trie_next(dn_io, current_tnh, operation, depth, kvkey, value, outBlockOffset);
+                    }
+                    else { // match EOS, do op
+                        switch(operation) {
+                            case PUT_OP:
+                            {
+                                do_write_value(dn_io, current_tnh, value, outBlockOffset);
+                                break;
+                            }
+                            case GET_OP:
+                            {
+                                do_read_value(dn_io, current_tnh, value);
+                                break;
+                            }
+                            case DEL_OP:
+                            {
+                                do_delete(current_tnh);
+                                break;
+                            }
+                            default:
+                            {
+                                throw error::ValueError("invalid kv/trie operation");
+                            }
+                        }
+                    }
+                }
+                else { //some match, so either partial or full
+                    if(spl == current_tnh->keyChunkSize) { //full match
+                        do_operate_trie_child(dn_io, current_tnh, operation, depth, kvkey, value, outBlockOffset);
+                    }
+                    else { //partial match, continue only on PUT op
+                        if(operation == PUT_OP) {
+                            //split chunk and redo operate
+                            do_split_trie_node(dn_io, current_tnh, spl);
+                            //notice: current_tnh remains the same because: 1) chunk is just shorter; 2) its next
+                            //         (if any) is removed; 3) it had and keeps having a child
+                            operate_trie(dn_io, current_tnh, operation, depth, kvkey, value, outBlockOffset);
+                        }
+                    }
+                }
+
+                if(operation == DEL_OP) {
+                    //check whether we should delete this trie node, while going bottom up
+                    delete_trie_node_childless(current_tnh, outBlockOffset);
+                }
+                //the cached block of currentnh can be released -- the modified field maintains previous updates
+                bool cache_modified = (orig_next_bo  != *goto_next_offset(current_tnh) ||
+                                       orig_child_bo != *goto_child_offset(current_tnh));
+                dn_io->cache_done(cur_thn_block_num, cache_modified);
+            } // operate_trie
+
+            static void init_trie_root(data_node_io* dn_io) {
+                ByteArray retOffset;
+                ByteArray emptyKey;
+                block_offset_t expected_block_offset = {0, FIXED_DATA_NODE_BYTE_SIZE - dn_io->append_dn_->free_bytes()};
+                dn_io->append_dn_->write_trie_node(
+                                            false,
+                                            true,
+                                            true,
+                                            emptyKey,
+                                            0,
+                                            0,
+                                            retOffset);
+                //check
+                block_offset bo;
+                bo.deserialize_offset(retOffset);
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    !(expected_block_offset == bo.block_offset_), "unexpected block offset for trie root");
+            }
+
+            static void operate_trie_root(
+                            data_node_io* dn_io,
+                            const kv_operation_e operation,
+                            const ByteArray& kvkey,
+                            ByteArray& value) {
+                unsigned int depth = 0;
+                //the first entry of the first data node is the trie root
+                //if the trie contains data then the root has a next node
+                //if the trie is empty then the next node is null/empty
+                unsigned int root_block_num = dn_io->block_warehouse_.get_root_block_num();
+                data_node& dn = dn_io->cache_retrieve(root_block_num, true); //get first data node
+                //get pointer to trie root
+                block_offset root_bo;
+                root_bo.block_offset_ = {root_block_num, block_offset::offset_size()};
+                ByteArray ba_serialized_offset;
+                ba_serialized_offset.resize(block_offset::offset_size());
+                root_bo.serialize_offset(ba_serialized_offset);
+                trie_node_header_t* trie_root = (trie_node_header_t*)dn.offset_to_pointer(ba_serialized_offset);
+                //save next offset to check for modifications
+                block_offset_t bo_next_prev = *goto_next_offset(trie_root);
+
+                do_operate_trie_next(dn_io, trie_root, operation, depth, kvkey, value, root_bo);
+
+                //check modifications
+                bool current_tnh_modified = !(bo_next_prev == *goto_next_offset(trie_root));
+                //release block in cache
+                dn_io->cache_done(root_block_num, current_tnh_modified);
+            }
+        }; //class trie_node
+    } //namespace state
+} //namespace pdo
+
+ByteArray pstate::data_node::make_offset(unsigned int block_num, unsigned int bytes_off) {
+    ByteArray ba_block_num((uint8_t*)&block_num, (uint8_t*)&block_num + sizeof(block_num));
+    ByteArray ba_off_from_start((uint8_t*)&bytes_off, (uint8_t*)&bytes_off + sizeof(bytes_off));
+    //concatenate the two values
+    ba_block_num.insert(ba_block_num.end(), ba_off_from_start.begin(), ba_off_from_start.end());
+    return ba_block_num;
+}
+
+pstate::data_node::data_node(unsigned int block_num) {
+    block_num_ = block_num;
+    free_bytes_ = FIXED_DATA_NODE_BYTE_SIZE - sizeof(unsigned int) - sizeof(unsigned int);
+    data_.resize(FIXED_DATA_NODE_BYTE_SIZE);
+}
+
+unsigned int pstate::data_node::get_block_num() {
+    return block_num_;
+}
+
+void pstate::data_node::serialize_data_header() {
+    ByteArray header = make_offset(block_num_, free_bytes_);
+    std::copy(header.begin(), header.end(), data_.begin());
+}
+
+void pstate::data_node::decrypt_and_deserialize_data(
+                            const ByteArray& inEncryptedData,
+                            const ByteArray& state_encryption_key) {
+    data_ = pdo::crypto::skenc::DecryptMessage(state_encryption_key, inEncryptedData);
+    block_num_ = block_offset::serialized_offset_to_block_num(data_);
+    free_bytes_ = block_offset::serialized_offset_to_bytes(data_);
+}
+
+void pstate::data_node::deserialize_data(const ByteArray& inData) {
+    block_num_ = block_offset::serialized_offset_to_block_num(inData);
+    free_bytes_ = block_offset::serialized_offset_to_bytes(inData);
+    data_ = inData;
+}
+
+void pstate::data_node::deserialize_block_num_from_offset(ByteArray& offset) {
+    block_num_ = block_offset::serialized_offset_to_block_num(offset);
+}
+
+void pstate::data_node::deserialize_original_encrypted_data_id(StateBlockId& id) {
+    originalEncryptedDataNodeId_ = id;
+}
+
+unsigned int pstate::data_node::free_bytes() {
+    return free_bytes_;
+}
+
+bool pstate::data_node::enough_space_for_value(bool continue_writing) {
+    if(continue_writing) {
+        return free_bytes_ >= 1;
+    }
+    //value in kv is: trie node (but just 1 byte) || size (4 bytes) || string value
+    //need at least 6 bytes to proceed (trie node, size and one value byte)
+    return free_bytes_ >= sizeof(trie_node_header_t) + sizeof(size_t) + 1;
+}
+
+unsigned int pstate::data_node::write(const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet) {
+    //check that there is enough space to write
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        ! enough_space_for_value(write_from > 0), "data node, not enough space to write");
+
+    //compute cursor where to start writing
+    unsigned int cursor = data_.size() - free_bytes_;
+    //compute return offset
+    returnOffSet = make_offset(block_num_, cursor);
+
+    //write the buffer size if necessary
+    if(write_from == 0) { // this is the first write
+        //write trie node first
+        ByteArray ba_trie_node(sizeof(trie_node_header_t), 0);
+        trie_node_header_t* h = (trie_node_header_t*) ba_trie_node.data();
+        *h = empty_trie_header;
+        h->isValue = 1;
+        std::copy(ba_trie_node.begin(), ba_trie_node.end(), data_.begin() + cursor);
+        cursor += ba_trie_node.size();
+        free_bytes_ -= ba_trie_node.size();
+
+        //write buffer size second
+        size_t buffer_size = buffer.size();
+        ByteArray ba_buffer_size((uint8_t*)&buffer_size, (uint8_t*)&buffer_size+sizeof(buffer_size));
+        std::copy(ba_buffer_size.begin(), ba_buffer_size.end(), data_.begin() + cursor);
+        cursor += ba_buffer_size.size();
+        free_bytes_ -= ba_buffer_size.size();
+    }
+
+    //write as much buffer as possible
+    unsigned int buffer_size = buffer.size() - write_from;
+    unsigned int bytes_to_write = (free_bytes_ > buffer_size ? buffer_size : free_bytes_);
+    std::copy(buffer.begin() + write_from, buffer.begin() + write_from + bytes_to_write, data_.begin() + cursor);
+    free_bytes_ -= bytes_to_write;
+    //return bytes that have been written
+    return bytes_to_write;
+}
+
+unsigned int pstate::data_node::read(
+                                    const ByteArray& offset,
+                                    ByteArray& outBuffer,
+                                    bool continue_reading,
+                                    unsigned int continue_reading_bytes) {
+    //point cursor at beginning of data
+    unsigned int cursor = block_offset::offset_size();
+    unsigned int total_bytes_to_read = continue_reading_bytes;
+    if(!continue_reading) {
+        //the provided offset must contain the block num of the current data node
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            block_offset::serialized_offset_to_block_num(offset) != block_num_,
+            "data node, block num mismatch in offset");
+        //update the cursor
+        cursor = block_offset::serialized_offset_to_bytes(offset);
+
+        //read trie node header (1 byte) first
+        ByteArray ba_trie_node(data_.begin() + cursor, data_.begin() + cursor + sizeof(trie_node_header_t));
+        cursor += sizeof(trie_node_header_t);
+        trie_node_header_t* h = (trie_node_header_t*) ba_trie_node.data();
+        pdo::error::ThrowIf<pdo::error::ValueError>(!h->isValue, "stored value does not have value trie node header");
+
+        //read the buffer size second
+        ByteArray ba_buffer_size(data_.begin() + cursor, data_.begin() + cursor + sizeof(size_t));
+        cursor += sizeof(size_t);
+        size_t buffer_size = *((size_t*)ba_buffer_size.data());
+        //update the byte to read
+        total_bytes_to_read = buffer_size;
+    }
+
+    //read as much as possible in outbuffer
+    unsigned int bytes_to_endof_data = data_.size() - cursor;
+    unsigned int bytes_to_read = (total_bytes_to_read < bytes_to_endof_data ?
+                                                                                total_bytes_to_read
+                                                                            :
+                                                                                bytes_to_endof_data);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+            bytes_to_read + cursor > data_.size(), "data node, bytes_to_read overflows");
+    outBuffer.insert(outBuffer.end(), data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
+    //update to total bytes that are still left to read
+    total_bytes_to_read -= bytes_to_read;
+    return total_bytes_to_read; //if 0, read is complete, otherwise it must continue with the next data node
+}
+
+uint8_t* pstate::data_node::offset_to_pointer(const ByteArray& offset) {
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        block_offset::serialized_offset_to_block_num(offset) != block_num_,
+        "request pointer does not match block num");
+
+    unsigned int cursor = block_offset::serialized_offset_to_bytes(offset);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        cursor > FIXED_DATA_NODE_BYTE_SIZE - free_bytes_,
+        "error setting cursor in offset to pointer");
+
+    return data_.data() + cursor;
+}
+
+void pstate::data_node::load(const ByteArray& state_encryption_key) {
+    state_status_t ret;
+    ByteArray encrypted_buffer;
+    ret = sebio_fetch(originalEncryptedDataNodeId_, SEBIO_NO_CRYPTO, encrypted_buffer);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        ret != STATE_SUCCESS,
+        ("data node load, sebio returned an error-"+ByteArrayToHexEncodedString(originalEncryptedDataNodeId_)).c_str());
+    decrypt_and_deserialize_data(encrypted_buffer, state_encryption_key);
+}
+
+void pstate::data_node::unload(const ByteArray& state_encryption_key, StateBlockId& outEncryptedDataNodeId) {
+    serialize_data_header();
+    ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, data_);
+    state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, originalEncryptedDataNodeId_);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        ret != STATE_SUCCESS, "data node unload, sebio returned an error");
+    //return new id
+    outEncryptedDataNodeId = originalEncryptedDataNodeId_;
+}
+
+//################ TRIE NODE SPECIFIC FUNCTIONS #######################################################################
+
+pstate::trie_node_header_t* pstate::data_node::write_trie_node(
+                            bool isDeleted,
+                            bool hasNext,
+                            bool hasChild,
+                            const ByteArray& key,
+                            unsigned int keyChunkBegin,
+                            unsigned int keyChunkEnd,
+                            ByteArray& returnOffset) {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(!hasNext, "new header must have next");
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(!hasChild, "new header must have child");
+
+    size_t space_required = trie_node::new_trie_node_size();
+
+    //check that there is enough space to write
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(free_bytes_ < space_required, "no space to write trie node");
+    //compute cursor where to start writing
+    unsigned int cursor = data_.size() - free_bytes_;
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        cursor > FIXED_DATA_NODE_BYTE_SIZE - free_bytes_,
+        "error setting cursor in offset to pointer");
+
+    //compute return offset
+    returnOffset = make_offset(block_num_, cursor);
+    //write structure
+    trie_node_header_t* returnHeader = (trie_node_header_t*)(data_.data() + cursor);
+    returnHeader->hasNext = 1;
+    returnHeader->hasChild = 1;
+    *(trie_node::goto_next_offset(returnHeader)) = empty_block_offset;
+    *(trie_node::goto_child_offset(returnHeader)) = empty_block_offset;
+    //compute key chunk length that can be copied
+    size_t kcl = keyChunkEnd - keyChunkBegin;
+    //recall that returnHeader->keyChunkSize has limits
+    returnHeader->keyChunkSize = (kcl > MAX_KEY_CHUNK_BYTE_SIZE ? MAX_KEY_CHUNK_BYTE_SIZE : kcl);
+
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        returnHeader->keyChunkSize != kcl && returnHeader->keyChunkSize != MAX_KEY_CHUNK_BYTE_SIZE,
+        "bad variable assignement in key chunk length");
+
+    //copy only what can be written, aligned at the beginning of key chunk
+    std::copy(key.begin() + keyChunkBegin, key.begin() + keyChunkBegin + returnHeader->keyChunkSize,
+              trie_node::goto_key_chunk(returnHeader));
+    //consume written space
+    free_bytes_ -= space_required;
+    return returnHeader; 
+}
+
+//#####################################################################################################################
+
+void pstate::data_node_io::init_append_data_node() {
+    //the append node to be inited already exists, grab it
+    StateBlockId data_node_id;
+    block_warehouse_.get_datablock_id_from_datablock_num(
+                        block_warehouse_.last_appended_data_block_num_,
+                        data_node_id);
+    append_dn_ = &cache_retrieve(block_warehouse_.last_appended_data_block_num_, true);
+    cache_done(block_warehouse_.last_appended_data_block_num_, true); //nobody is using it now; new nodes are modified
+}
+
+void pstate::data_node_io::add_and_init_append_data_node() {
+    //make space in cache if necessary
+    cache_unpin(block_warehouse_.last_appended_data_block_num_);
+    cache_replacement_policy();
+    //create new data note
+    try {
+        append_dn_ = new data_node(++ block_warehouse_.last_appended_data_block_num_);
+    }
+    catch(std::exception& e) {
+        throw error::RuntimeError("cannot create data node");
+    }
+    //put and pin it in cache
+    cache_put(block_warehouse_.last_appended_data_block_num_, append_dn_);
+    cache_pin(block_warehouse_.last_appended_data_block_num_);
+    cache_modified(block_warehouse_.last_appended_data_block_num_);
+    //add empty id in list
+    StateBlockId dn_id(STATE_BLOCK_ID_LENGTH, 0);
+    block_warehouse_.add_datablock_id(dn_id);
+}
+
+void pstate::data_node_io::add_and_init_append_data_node_cond(bool cond) {
+    if(cond)
+        pstate::data_node_io::add_and_init_append_data_node();
+}
+
+#define CACHE_SIZE (1<<23) // 1 MB
+#define BLOCK_CACHE_MAX_ITEMS 1024
+
+void pstate::data_node_io::cache_replacement_policy() {
+    while(block_cache_.size() >= BLOCK_CACHE_MAX_ITEMS) {
+        int index_to_remove = -1;
+        uint64_t clock = UINT64_MAX;
+        std::map<unsigned int, block_cache_entry_t>::iterator it;
+
+        for (it=block_cache_.begin(); it!=block_cache_.end(); ++it) {
+            block_cache_entry_t& bce = it->second;
+            if(!bce.pinned && bce.references == 0) { //candidate for replacement
+                if(index_to_remove == -1 || bce.clock < clock) {
+                    index_to_remove = it->first;
+                    clock = bce.clock;
+                }
             }
         }
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(index_to_remove == -1, "cache replacement, no item to replace");
+        cache_flush_entry(index_to_remove);
+    }
+}
 
-        bool is_last_level(const ByteArray& kvkey) {
-            //ASSUMPTION: each depth level considers 8bits of id
-            return (depth_+1 == kvkey.size());
-        }
+void pstate::data_node_io::cache_flush_entry(unsigned int block_num) {
+    std::map<unsigned int, block_cache_entry_t>::iterator it;
 
-        void deserialize_id(ByteArray& inId) {
-            id_ = inId;
-        }
+    it = block_cache_.find(block_num);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(it == block_cache_.end(), "cache flush entry, entry not found");
 
-        void serialize_next_level_ids(ByteArray& outBuffer) {
-            StateBlockIdArray_To_ByteArray(next_level_ids_, outBuffer);
-        }
+    block_cache_entry_t& bce = it->second;
 
-        void deserialize_next_level_ids(ByteArray& buffer) {
-            next_level_id_size_ = buffer.size() / next_level_id_num;
-            ByteArrayToStateBlockIdArray(buffer, next_level_id_size_, next_level_ids_);
-        }
+    if(bce.modified) {
+        StateBlockId new_data_node_id;
+        bce.dn->unload(block_warehouse_.state_encryption_key_, new_data_node_id);
+        block_warehouse_.update_datablock_id(block_num, new_data_node_id);
+    }
+    delete bce.dn;
+    block_cache_.erase(it);
+}
 
-        StateBlockId get_next_level_id(unsigned int index) {
-            return next_level_ids_[index];
-        }
+void pstate::data_node_io::cache_flush() {
+    std::map<unsigned int, block_cache_entry_t>::iterator it;
+    while(! block_cache_.empty()) {
+        it=block_cache_.begin();
+        cache_flush_entry(it->first);
+    }
+}
 
-        bool next_level_id_exists(unsigned int index) {
-            StateBlockId empty(next_level_id_size_, 0);
-            if(next_level_ids_[index] != empty)
-                return true;
-            return false;
-        }
+void pstate::data_node_io::cache_put(unsigned int block_num, data_node* dn) {
+    block_cache_entry_t bce;
+    bce.dn = dn;
+    bce.references = 0;
+    bce.modified = false;
+    bce.pinned = false;
+    bce.clock = (cache_clock_++);
+    block_cache_[block_num] = bce;
+}
 
-        void set_next_level_id(unsigned int index, StateBlockId& id) {
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                id.size() != next_level_ids_[index].size(),
-                "state_kv set next id, different sizes (possible bad initialize)");
-            next_level_ids_[index] = id;
-        }
+pstate::data_node& pstate::data_node_io::cache_retrieve(unsigned int block_num, bool pinned) {
+    if(block_cache_.count(block_num) == 0) { //not in cache
+        block_cache_entry_t bce;
+        pstate::data_node_io::cache_replacement_policy();
 
-        void load(const ByteArray& state_encryption_key) {
-            state_status_t ret;
-            ByteArray buffer;
-            ret = sebio_fetch(id_, SEBIO_NO_CRYPTO, buffer);
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
-            ByteArray decrypted_buffer = pdo::crypto::skenc::DecryptMessage(state_encryption_key, buffer);
-            deserialize_next_level_ids(decrypted_buffer);
+        StateBlockId data_node_id;
+        block_warehouse_.get_datablock_id_from_datablock_num(
+                        block_num,
+                        data_node_id);
+        try {
+            bce.dn = new data_node(0);
         }
+        catch(std::exception& e) {
+            throw error::RuntimeError("cannot create data node");
+        }
+        bce.dn->deserialize_original_encrypted_data_id(data_node_id);
+        bce.dn->load(block_warehouse_.state_encryption_key_);
 
-        void unload(const ByteArray& state_encryption_key, StateBlockId& outKVNodeId) {
-            ByteArray serializedNextLevelIds;
-            serialize_next_level_ids(serializedNextLevelIds);
-            ByteArray baEncryptedData = pdo::crypto::skenc::EncryptMessage(state_encryption_key, serializedNextLevelIds);
-            state_status_t ret = sebio_evict(baEncryptedData, SEBIO_NO_CRYPTO, id_);
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                ret != STATE_SUCCESS, "kv node unload, sebio returned an error");
-            //return id
-            outKVNodeId = id_;
-        }
-};
+        cache_put(block_num, bce.dn);
+
+        if(pinned)
+            cache_pin(block_num);
+    }
+    //now it is in cache, grab it
+    block_cache_entry_t& bce = block_cache_[block_num];
+    bce.references++;
+    return *bce.dn;
+}
+
+void pstate::data_node_io::cache_done(unsigned int block_num, bool modified) {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(block_cache_.count(block_num) == 0, "cache done, item not in cache");
+    block_cache_entry_t& bce = block_cache_[block_num];
+    bce.references--;
+    if(modified)
+        bce.modified = modified;
+}
+
+void pstate::data_node_io::cache_pin(unsigned int block_num) {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(block_cache_.count(block_num) == 0, "cache done, item not in cache");
+    block_cache_entry_t& bce = block_cache_[block_num];
+    bce.pinned = true;
+}
+
+void pstate::data_node_io::cache_unpin(unsigned int block_num) {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(block_cache_.count(block_num) == 0, "cache done, item not in cache");
+    block_cache_entry_t& bce = block_cache_[block_num];
+    bce.pinned = false;
+}
+
+void pstate::data_node_io::cache_modified(unsigned int block_num) {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(block_cache_.count(block_num) == 0, "cache done, item not in cache");
+    block_cache_entry_t& bce = block_cache_[block_num];
+    bce.modified = true;
+}
 
 // #################### END OF INTERNAL TOOLS #################################
 
-//##################### PROTECTED DEFINITIONS #################################
-
-void pdo::state::State_KV::serialize_block_ids() {
-    rootNode_->ClearChildren();
+void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode* node) {
+    node->ClearChildren();
     for(unsigned int i=0; i<blockIds_.size(); i++) {
-        rootNode_->AppendChildId(blockIds_[i]);
+        node->AppendChildId(blockIds_[i]);
     }
-    rootNode_->BlockifyChildren();
+    node->BlockifyChildren();
 }
 
-void pdo::state::State_KV::deserialize_block_ids() {
-    rootNode_->UnBlockifyChildren();
-    StateBlockIdRefArray refArray = rootNode_->GetChildrenBlocks();
+void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode* node) {
+    node->UnBlockifyChildren();
+    StateBlockIdRefArray refArray = node->GetChildrenBlocks();
     blockIds_ = StateBlockIdRefArray_To_StateBlockIdArray(refArray);
 }
 
-void pdo::state::State_KV::update_block_id(pstate::StateBlockId& prevId, pstate::StateBlockId& newId) {
+void pdo::state::block_warehouse::update_block_id(pstate::StateBlockId& prevId, pstate::StateBlockId& newId) {
     std::replace(blockIds_.begin(), blockIds_.end(), prevId, newId);
 }
 
-void pdo::state::State_KV::add_block_id(pstate::StateBlockId& id) {
+void pdo::state::block_warehouse::update_datablock_id(unsigned int data_block_num, pdo::state::StateBlockId& newId) {
+    unsigned int index = blockIds_.size() - 1 - last_appended_data_block_num_ + data_block_num;
+    blockIds_[index] = newId;
+}
+
+void pdo::state::block_warehouse::add_block_id(pstate::StateBlockId& id) {
     blockIds_.push_back(id);
 }
 
-void pdo::state::State_KV::add_kvblock_id(pstate::StateBlockId& id) {
-    //new kv nodes are after the first one
-    //RATIONALE: for convention, the first one is the search root kv node,
-    //           the last one is the non filled-up data node
-    blockIds_.insert(blockIds_.begin() + 1, id);
-}
-
-void pdo::state::State_KV::add_datablock_id(pstate::StateBlockId& id) {
+void pdo::state::block_warehouse::add_datablock_id(pstate::StateBlockId& id) {
     blockIds_.push_back(id);
 }
 
-void pdo::state::State_KV::get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId) {
+void pdo::state::block_warehouse::get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId) {
     //CONVENTION:   the data blocks are put in sequential order in the list,
     //              where the last block is the last appended data block, namely:
     //              last item of blockIds_ is the data block with block num last_appended_data_block_num_
@@ -318,197 +1087,62 @@ void pdo::state::State_KV::get_datablock_id_from_datablock_num(unsigned int data
     outId = blockIds_[index];
 }
 
-void pdo::state::State_KV::get_search_root_kvblock_id(pdo::state::StateBlockId& outId) {
-    outId = blockIds_[0];
+unsigned int pdo::state::block_warehouse::get_root_block_num() {
+    return 0; //convention
 }
 
-void pdo::state::State_KV::get_last_datablock_id(pdo::state::StateBlockId& outId) {
+void pdo::state::block_warehouse::get_last_datablock_id(pdo::state::StateBlockId& outId) {
     outId = blockIds_[blockIds_.size() - 1];
 }
-
-void pdo::state::State_KV::error_on_wrong_key_size(size_t key_size) {
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        key_size != fixed_key_size_ && fixed_key_size_ > 0, "state kv error, using kv with different key size");
-}
-
-void pdo::state::State_KV::operate(
-        pstate::kv_node& search_kv_node,
-        const unsigned int operation,
-        const ByteArray& kvkey,
-        ByteArray& value) {
-    unsigned int next_level_index = kvkey[search_kv_node.depth_];
-    if(search_kv_node.is_last_level(kvkey)) {
-        ByteArray offset = search_kv_node.get_next_level_id(next_level_index);
-        switch(operation) {
-            case 0: { //get
-                if(! search_kv_node.next_level_id_exists(next_level_index)) {
-                    // no data node to get
-                    return;
-                }
-                else {
-                    data_node dn(0);
-                    //in last level kvnode, the next level ids are offsets to the data nodes
-                    dn.deserialize_block_num_from_offset(offset);
-                    unsigned int data_block_num = dn.get_block_num();
-                    StateBlockId data_node_id;
-                    get_datablock_id_from_datablock_num(data_block_num, data_node_id);
-
-                    dn.deserialize_original_encrypted_data_id(data_node_id);
-                    dn.load(state_encryption_key_);
-
-                    unsigned int bytes_to_read = dn.read(offset, value, false, 0);
-                    while(bytes_to_read > 0) {
-                        unsigned int next_data_block_num = dn.get_block_num() + 1;
-                        StateBlockId next_data_node_id;
-                        get_datablock_id_from_datablock_num(next_data_block_num, next_data_node_id);
-                        dn = data_node(next_data_block_num);
-                        dn.deserialize_original_encrypted_data_id(next_data_node_id);
-                        dn.load(state_encryption_key_);
-                        bytes_to_read = dn.read(offset, value, true, bytes_to_read);
-                    }
-
-                    //do nothing (no encryption since we do not modify block)
-                    return;
-                }
-            }
-            case 1: { //put
-                StateBlockId last_data_node_id;
-                get_datablock_id_from_datablock_num(last_appended_data_block_num_, last_data_node_id);
-                data_node dn(0);
-                dn.deserialize_original_encrypted_data_id(last_data_node_id);
-                dn.load(state_encryption_key_);
-                pdo::error::ThrowIf<pdo::error::ValueError>(
-                    ! dn.enough_space_available(false), "operate, last data node was left without enough space");
-                ByteArray offset;
-                unsigned int bytes_written, total_bytes_written = 0;
-                bytes_written = dn.write(value, total_bytes_written, offset);
-                total_bytes_written += bytes_written;
-                bool last_data_node_has_enough_space = dn.enough_space_available(false);
-                StateBlockId new_last_data_node_id;
-                dn.unload(state_encryption_key_, new_last_data_node_id);
-                update_block_id(last_data_node_id, new_last_data_node_id);
-                //IMPORTANT: the ids in the last level kvnodes are the "offset"'s, i.e., block_num||offset_from_origin
-                search_kv_node.set_next_level_id(next_level_index, offset);
-                //keep writing if necessary
-                while(total_bytes_written < value.size()) {
-                    data_node dn(++last_appended_data_block_num_);
-                    bytes_written = dn.write(value, total_bytes_written, offset);
-                    total_bytes_written += bytes_written;
-                    pdo::error::ThrowIf<pdo::error::ValueError>(
-                        dn.enough_space_available(true) && total_bytes_written < value.size(),
-                        "operate, unwritten bytes while there is free space");
-                    //track whether the data node has space for a future key-value write (used later)
-                    last_data_node_has_enough_space = dn.enough_space_available(false);
-                    StateBlockId new_data_node_id;
-                    dn.unload(state_encryption_key_, new_data_node_id);
-                    add_datablock_id(new_data_node_id);
-                }
-                //leave last data node with enough space
-                if(!last_data_node_has_enough_space) {
-                    data_node dn(++last_appended_data_block_num_);
-                    StateBlockId new_data_node_id;
-                    dn.unload(state_encryption_key_, new_data_node_id);
-                    add_datablock_id(new_data_node_id);
-                }
-                return;
-            }
-            case 2: { //delete
-                if(! search_kv_node.next_level_id_exists(next_level_index)) {
-                    //no node to delete
-                }
-                else {
-                    StateBlockId empty_id(data_node::offset_size(), 0);
-                    search_kv_node.set_next_level_id(next_level_index, empty_id);
-                }
-                return;
-            }
-            default: {
-                throw pdo::error::ValueError("kv operation unimplemented");
-            }
-        }
-    }
-    else { //kv node is NOT last level
-        if(search_kv_node.next_level_id_exists(next_level_index)) {
-            StateBlockId old_kv_node_id = search_kv_node.get_next_level_id(next_level_index);
-            kv_node new_kv_node;
-            new_kv_node.depth_ = search_kv_node.depth_ + 1;
-            new_kv_node.deserialize_id(old_kv_node_id);
-            new_kv_node.load(state_encryption_key_);
-            operate(new_kv_node, operation, kvkey, value);
-            StateBlockId new_kv_node_id;
-            new_kv_node.unload(state_encryption_key_, new_kv_node_id);
-            if(new_kv_node_id != old_kv_node_id) {
-                search_kv_node.set_next_level_id(next_level_index, new_kv_node_id);
-                update_block_id(old_kv_node_id, new_kv_node_id);
-            }
-            return;
-        }
-        else { // next kv node id does NOT exists
-            if(operation != 1) {
-                //no next id, just return
-                return;
-            }
-            //else
-            kv_node new_kv_node;
-            bool is_last_level = (search_kv_node.depth_ + 2 == kvkey.size());
-            new_kv_node.initialize(search_kv_node.depth_ + 1, is_last_level);
-            operate(new_kv_node, operation, kvkey, value);
-            StateBlockId new_kv_node_id;
-            new_kv_node.unload(state_encryption_key_, new_kv_node_id);
-            search_kv_node.set_next_level_id(next_level_index, new_kv_node_id);
-            add_kvblock_id(new_kv_node_id);
-            return;
-        }
-    }
-}
-
-//############ END OF PROTECTED DEFINITIONS ###################################
-
-//############ PUBLIC DEFINITIONS #############################################
 
 pdo::state::State_KV::State_KV(ByteArray& id) : Basic_KV(id) {
 }
 
-pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : State_KV(id, key, STATE_KV_DEFAULT_FIXED_KEY_SIZE) {}
-
-pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key, const size_t fixed_key_size) : State_KV(id) {
-    fixed_key_size_ = fixed_key_size;
+pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : Basic_KV(id) {
     state_encryption_key_ = key;
 
+    block_warehouse_ = new block_warehouse();
+    block_warehouse_->state_encryption_key_ = state_encryption_key_;
+    dn_io_ = new data_node_io(*block_warehouse_);
+
     if(id.empty()) { //no id, create root
-        //root node will contain the list of block/ids (first of list is search root block, last one is last data node)
+        //root node will contain the list of block/ids (first of list is root block, last one is last data node)
         rootNode_ = new StateNode(*new StateBlockId(), *new StateBlock());
-        //initialized search root kv node
-        kv_node search_root_kv_node;
-        unsigned int depth = 0;
-        bool is_last_level = (depth+1 == fixed_key_size);
-        search_root_kv_node.initialize(depth, is_last_level);
-        StateBlockId root_kv_node_id;
-        search_root_kv_node.unload(state_encryption_key_, root_kv_node_id);
-        add_block_id(root_kv_node_id);
+
         //initialize first data node
-        last_appended_data_block_num_ = 0;
-        data_node dn(last_appended_data_block_num_);
+        block_warehouse_->last_appended_data_block_num_ = block_warehouse_->get_root_block_num();
+        data_node dn(block_warehouse_->last_appended_data_block_num_);
         StateBlockId dn_id;
         dn.unload(state_encryption_key_, dn_id);
-        add_datablock_id(dn_id);
+        block_warehouse_->add_datablock_id(dn_id);
+
+        //cache and pin first data node
+        dn_io_->init_append_data_node();
+
+        //init trie root node in first data node
+        trie_node::init_trie_root(dn_io_);
+
+        //add new data node
+        dn_io_->add_and_init_append_data_node();
+        //pin in cache the first one
+        dn_io_->cache_pin(block_warehouse_->get_root_block_num());
     }
-    else { //retrieve main state block, search root node and last data node
+    else { //retrieve main state block, root node and last data node
         state_status_t ret;
         StateBlock* p_block = new StateBlock();
         ret = sebio_fetch(id, SEBIO_NO_CRYPTO, *p_block);
         pdo::error::ThrowIf<pdo::error::ValueError>(
             ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
         rootNode_ = new StateNode(*new StateBlockId(id), *p_block);
-        deserialize_block_ids();
-
+        block_warehouse_->deserialize_block_ids(rootNode_);
         //retrieve last data block num from last appended data block
         StateBlockId lastAppendedDataNodeId;
-        get_last_datablock_id(lastAppendedDataNodeId);
+        block_warehouse_->get_last_datablock_id(lastAppendedDataNodeId);
         data_node dn(0);
         dn.deserialize_original_encrypted_data_id(lastAppendedDataNodeId);
         dn.load(state_encryption_key_);
-        last_appended_data_block_num_ = dn.get_block_num();
+        block_warehouse_->last_appended_data_block_num_ = dn.get_block_num();
+        dn_io_->init_append_data_node();
     }
 }
 
@@ -520,8 +1154,11 @@ pdo::state::State_KV::~State_KV() {
 void pdo::state::State_KV::Uninit(ByteArray& outId) {
     StateBlockId retId;
     if(rootNode_ != NULL) {
+        //flush cache first
+        dn_io_->cache_flush();
+
         //serialize block ids
-        serialize_block_ids();
+        block_warehouse_->serialize_block_ids(rootNode_);
         //evict root block
         ByteArray baBlock = rootNode_->GetBlock();
         state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_->GetBlockId());
@@ -532,87 +1169,39 @@ void pdo::state::State_KV::Uninit(ByteArray& outId) {
         outId = retId;
         delete rootNode_;
         rootNode_ = NULL;
+        delete block_warehouse_;
+        block_warehouse_ = NULL;
+        delete dn_io_;
+        dn_io_ = NULL;
     }
 }
 
-ByteArray pdo::state::State_KV::Get(ByteArray& key) {
-    StateKV_Key kvkey(key, fixed_key_size_);
-    return Get(kvkey);
-}
-
-void pdo::state::State_KV::Put(ByteArray& key, ByteArray& value) {
-    StateKV_Key kvkey(key, fixed_key_size_);
-    Put(kvkey, value);
-}
-
-void pdo::state::State_KV::Delete(ByteArray& key) {
-    StateKV_Key kvkey(key, fixed_key_size_);
-    Delete(kvkey);
-}
-
-ByteArray pstate::State_KV::Get(pstate::StateKV_Key& statekv_key) {
-    //initialize search root kv node
-    StateBlockId search_kv_node_id;
-    get_search_root_kvblock_id(search_kv_node_id);
-    kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
-
+ByteArray pstate::State_KV::Get(ByteArray& key) {
     //perform operation
     ByteArray value;
-    const ByteArray& kvkey = statekv_key.Get_Key();
-    error_on_wrong_key_size(kvkey.size());
-    operate(search_kv_node, 0, kvkey, value);
-
+    const ByteArray& kvkey = key;
+    trie_node::operate_trie_root(dn_io_, GET_OP, kvkey, value);
     return value;
 }
 
-void pstate::State_KV::Put(pstate::StateKV_Key& statekv_key, ByteArray& value) {
-    //initialize search root kv node
-    StateBlockId search_kv_node_id;
-    get_search_root_kvblock_id(search_kv_node_id);
-    kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
-
+void pstate::State_KV::Put(ByteArray& key, ByteArray& value) {
     //perform operation
-    const ByteArray& kvkey = statekv_key.Get_Key();
-    error_on_wrong_key_size(kvkey.size());
-    operate(search_kv_node, 1, kvkey, value);
-
-    //update search root kv node
-    StateBlockId new_search_kv_node_id;
-    search_kv_node.unload(state_encryption_key_, new_search_kv_node_id);
-    update_block_id(search_kv_node_id, new_search_kv_node_id);
+    const ByteArray& kvkey = key;
+    try
+    {
+        trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, value);
+    }
+    catch(const std::exception& e) {
+        throw error::RuntimeError(e.what());
+    }
+    catch(...) {
+        throw error::RuntimeError("Put failed");
+    }
 }
 
-void pstate::State_KV::Delete(pstate::StateKV_Key& statekv_key) {
-    //initialize search root kv node
-    StateBlockId search_kv_node_id;
-    get_search_root_kvblock_id(search_kv_node_id);
-    kv_node search_kv_node(0, search_kv_node_id, state_encryption_key_);
-
+void pstate::State_KV::Delete(ByteArray& key) {
     //perform operation
     ByteArray value;
-    const ByteArray& kvkey = statekv_key.Get_Key();
-    error_on_wrong_key_size(kvkey.size());
-    operate(search_kv_node, 2, kvkey, value);
-
-    //update search root kv node
-    StateBlockId new_search_kv_node_id;
-    search_kv_node.unload(state_encryption_key_, new_search_kv_node_id);
-    update_block_id(search_kv_node_id, new_search_kv_node_id);
+    const ByteArray& kvkey = key;
+    trie_node::operate_trie_root(dn_io_, DEL_OP, kvkey, value);
 }
-
-//############ END OF PUBLIC DEFINITIONS ######################################
-
-//############ STATE_KV KEY TYPE OBJECT #######################################
-
-pstate::StateKV_Key::StateKV_Key(ByteArray& key, size_t wanted_key_size) {
-    fixed_size_key_ = pdo::crypto::ComputeMessageHash(key);
-    fixed_size_key_.resize(wanted_key_size);
-}
-
-pstate::StateKV_Key::StateKV_Key(ByteArray& key) : StateKV_Key(key, STATE_KV_DEFAULT_FIXED_KEY_SIZE) {}
-
-const ByteArray& pstate::StateKV_Key::Get_Key() {
-    return fixed_size_key_;
-}
-
-//############ END OF STATE_KV KEY TYPE OBJECT ################################

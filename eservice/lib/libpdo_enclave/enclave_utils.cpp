@@ -59,3 +59,20 @@ uint64_t GetTimer(void)
 
     return value;
 } // GetTimer
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+namespace pdo
+{
+    void Log(pdo_log_level_t level, const char* fmt, ...)
+    {
+        char buf[BUFSIZ] = {'\0'};
+        va_list ap;
+        va_start(ap, fmt);
+        vsnprintf_s(buf, BUFSIZ, fmt, ap);
+        va_end(ap);
+#ifdef DEBUG
+        ocall_Log(level, buf);
+#endif
+    }  // Log
+
+}

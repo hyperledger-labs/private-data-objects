@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <list>
 
 //*** For binary unformatted data***//
 typedef std::vector<uint8_t> ByteArray;
