@@ -80,13 +80,13 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
                 extraparams['wait'] = 30
             txnid = update_response.submit_update_transaction(ledger_config, **extraparams)
         except Exception as e :
-            raise Exception('failed to save the new state; {0}'.format(str(e)))
+            raise Exception('failed to save the new state to the ledger; {0}'.format(str(e)))
 
         try :
             contract.set_state(update_response.encrypted_state)
             contract.contract_state.save_to_cache(data_dir = data_directory)
         except Exception as e :
-            logger.exception('BAD RESPONSE: %s, %s', update_response.status, update_response.result)
+            logger.exception('failed to save the new state in the cache')
 
     return update_response.result
 
