@@ -144,3 +144,4 @@ committed to the ledger.
 * [Vetting Organization Contract](vetting.md)
 * [Issuer Contract](issuer.md)
 * [Fair Exchange Contract](fair_exchange.md)
+* [Auction Contract](auction.md)

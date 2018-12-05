@@ -12,19 +12,19 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-## This is a pdo-shell script the demonstrates the flow of a fair exchange
-## of assets between two parties where the only mediator is the contract
+## This is a pdo-shell script the demonstrates the flow of an auction
+## of assets between multiple parties where the only mediator is the contract
 ## object.
 ##
 ## The following shell variables are assumed:
 ##    path -- the path where the contract objects are stored (default = '.')
-##    offer_user -- the identity of the user initiating the exchange (default = user1)
-##    offer_color -- the color to use for the offered marbles (default = 'green')
-##    exchange_user -- the identity of the user responding to the exchange (default = user6)
+##    auction_user -- the identity of the user initiating the auction (default = user1)
+##    auction_color -- the color to use for the offered marbles (default = 'green')
+##    bidder[1-5] -- the identity of the user responding to the auction (default = user[6-10])
 ##    bid_color -- the color to use for the requested marbles (default = 'red')
-##    request_count -- the number of marbles requested for the offered marbles (default = 60)
+##    minimum_bid -- the minimum number of marbles requested for the offered marbles (default = 50)
 
-## $ pdo-shell -s exchange.psh
+## $ pdo-shell -s auction.psh
 
 load_plugin -c asset_type
 load_plugin -c vetting

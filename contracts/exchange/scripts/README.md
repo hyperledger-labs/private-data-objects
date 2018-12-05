@@ -72,3 +72,21 @@ The following pdo-shell variables are assumed:
 This can be invoked as follows:
 
 `$ pdo-shell -s exchange.psh -m offer_user <identity> -m exchange_user <identity>`
+
+## auction.psh
+
+This script demonstrates the flow of an auction of assets between
+multiple parties where the only mediator is the contract object.
+
+The following pdo-shell variables are assumed:
+
+    - path -- the path where the contract objects are stored (default = '.')
+    - auction_user -- the identity of the user initiating the auction (default = user1)
+    - auction_color -- the color to use for the offered marbles (default = 'green')
+    - bidder[1-5] -- the identity of the user responding to the auction (default = user[6-10])
+    - bid_color -- the color to use for the requested marbles (default = 'red')
+    - minimum_bid -- the minimum number of marbles requested for the offered marbles (default = 50)
+
+This can be invoked as follows:
+
+`$ pdo-shell -s auction.psh -m auction_user <identity> -m bidder1 <identity>`
