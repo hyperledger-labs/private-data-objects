@@ -144,6 +144,8 @@ namespace pdo
             unsigned int last_appended_data_block_num_;
             ByteArray state_encryption_key_;
 
+            block_warehouse(ByteArray& state_encryption_key) : state_encryption_key_(state_encryption_key) {}
+
             void serialize_block_ids(pdo::state::StateNode* node);
             void deserialize_block_ids(pdo::state::StateNode* node);
             void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
@@ -195,12 +197,11 @@ namespace pdo
 
         class data_node_io {
             public:
-            //the block_warehouse class is in scope as long as the KV store is inited
-            block_warehouse& block_warehouse_;
+            block_warehouse block_warehouse_;
             //append_dn points to a data note pinned in cache
             data_node* append_dn_;
 
-            data_node_io(block_warehouse& bw) : block_warehouse_(bw) {}
+            data_node_io(ByteArray& key) : block_warehouse_(key) {}
             void init_append_data_node();
             void add_and_init_append_data_node();
             void add_and_init_append_data_node_cond(bool cond);
@@ -225,6 +226,12 @@ namespace pdo
             void cache_pin(unsigned int block_num);
             void cache_unpin(unsigned int block_num);
             void cache_modified(unsigned int block_num);
+        };
+
+        enum kv_operation_e {
+                GET_OP,
+                PUT_OP,
+                DEL_OP
         };
 
         class trie_node {
@@ -1100,21 +1107,18 @@ pdo::state::State_KV::State_KV(ByteArray& id) : Basic_KV(id) {
 
 pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : Basic_KV(id) {
     state_encryption_key_ = key;
-
-    block_warehouse_ = new block_warehouse();
-    block_warehouse_->state_encryption_key_ = state_encryption_key_;
-    dn_io_ = new data_node_io(*block_warehouse_);
+    dn_io_ = new data_node_io(state_encryption_key_);
 
     if(id.empty()) { //no id, create root
         //root node will contain the list of block/ids (first of list is root block, last one is last data node)
         rootNode_ = new StateNode(*new StateBlockId(), *new StateBlock());
 
         //initialize first data node
-        block_warehouse_->last_appended_data_block_num_ = block_warehouse_->get_root_block_num();
-        data_node dn(block_warehouse_->last_appended_data_block_num_);
+        dn_io_->block_warehouse_.last_appended_data_block_num_ = dn_io_->block_warehouse_.get_root_block_num();
+        data_node dn(dn_io_->block_warehouse_.last_appended_data_block_num_);
         StateBlockId dn_id;
         dn.unload(state_encryption_key_, dn_id);
-        block_warehouse_->add_datablock_id(dn_id);
+        dn_io_->block_warehouse_.add_datablock_id(dn_id);
 
         //cache and pin first data node
         dn_io_->init_append_data_node();
@@ -1125,7 +1129,7 @@ pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : Basic_KV(i
         //add new data node
         dn_io_->add_and_init_append_data_node();
         //pin in cache the first one
-        dn_io_->cache_pin(block_warehouse_->get_root_block_num());
+        dn_io_->cache_pin(dn_io_->block_warehouse_.get_root_block_num());
     }
     else { //retrieve main state block, root node and last data node
         state_status_t ret;
@@ -1134,14 +1138,14 @@ pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : Basic_KV(i
         pdo::error::ThrowIf<pdo::error::ValueError>(
             ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
         rootNode_ = new StateNode(*new StateBlockId(id), *p_block);
-        block_warehouse_->deserialize_block_ids(rootNode_);
+        dn_io_->block_warehouse_.deserialize_block_ids(rootNode_);
         //retrieve last data block num from last appended data block
         StateBlockId lastAppendedDataNodeId;
-        block_warehouse_->get_last_datablock_id(lastAppendedDataNodeId);
+        dn_io_->block_warehouse_.get_last_datablock_id(lastAppendedDataNodeId);
         data_node dn(0);
         dn.deserialize_original_encrypted_data_id(lastAppendedDataNodeId);
         dn.load(state_encryption_key_);
-        block_warehouse_->last_appended_data_block_num_ = dn.get_block_num();
+        dn_io_->block_warehouse_.last_appended_data_block_num_ = dn.get_block_num();
         dn_io_->init_append_data_node();
     }
 }
@@ -1158,7 +1162,7 @@ void pdo::state::State_KV::Uninit(ByteArray& outId) {
         dn_io_->cache_flush();
 
         //serialize block ids
-        block_warehouse_->serialize_block_ids(rootNode_);
+        dn_io_->block_warehouse_.serialize_block_ids(rootNode_);
         //evict root block
         ByteArray baBlock = rootNode_->GetBlock();
         state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_->GetBlockId());
@@ -1169,8 +1173,6 @@ void pdo::state::State_KV::Uninit(ByteArray& outId) {
         outId = retId;
         delete rootNode_;
         rootNode_ = NULL;
-        delete block_warehouse_;
-        block_warehouse_ = NULL;
         delete dn_io_;
         dn_io_ = NULL;
     }

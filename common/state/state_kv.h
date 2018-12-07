@@ -18,23 +18,14 @@
 #include "types.h"
 #include "basic_kv.h"
 
-#define STATE_KV_DEFAULT_FIXED_KEY_SIZE 16 //bytes
-
 namespace pdo
 {
     namespace state
     {
-        enum kv_operation_e {
-                GET_OP,
-                PUT_OP,
-                DEL_OP
-        };
-
         class block_offset;
         class kv_node;
         class data_node;
         class data_node_io;
-        class block_warehouse;
 
         class State_KV : public Basic_KV
         {
@@ -42,20 +33,6 @@ namespace pdo
             pdo::state::StateNode* rootNode_;
             ByteArray state_encryption_key_;
             data_node_io* dn_io_;
-            block_warehouse* block_warehouse_;
-
-            void serialize_block_ids();
-            void deserialize_block_ids();
-            void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
-            void add_block_id(pdo::state::StateBlockId& id);
-            void add_kvblock_id(pdo::state::StateBlockId& id);
-            void add_datablock_id(pdo::state::StateBlockId& id);
-            void get_datablock_id_from_datablock_num(unsigned int data_block_num, pdo::state::StateBlockId& outId);
-            void get_search_root_kvblock_id(pdo::state::StateBlockId& outId);
-            void get_last_datablock_id(pdo::state::StateBlockId& outId);
-
-            void error_on_wrong_key_size(size_t key_size);
-            void operate(kv_node& search_kv_node, kv_operation_e operation, const ByteArray& kvkey, ByteArray& value);
 
         public:
             State_KV(ByteArray& id);
