@@ -1053,8 +1053,6 @@ void pstate::data_node_io::cache_modified(unsigned int block_num) {
     bce.modified = true;
 }
 
-// #################### END OF INTERNAL TOOLS #################################
-
 void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode* node) {
     node->ClearChildren();
     for(unsigned int i=0; i<blockIds_.size(); i++) {
@@ -1102,6 +1100,8 @@ void pdo::state::block_warehouse::get_last_datablock_id(pdo::state::StateBlockId
     outId = blockIds_[blockIds_.size() - 1];
 }
 
+// #################### END OF INTERNAL TOOLS #################################
+
 pdo::state::State_KV::State_KV(ByteArray& id) : Basic_KV(id) {
 }
 
@@ -1140,12 +1140,7 @@ pdo::state::State_KV::State_KV(ByteArray& id, const ByteArray& key) : Basic_KV(i
         rootNode_ = new StateNode(*new StateBlockId(id), *p_block);
         dn_io_->block_warehouse_.deserialize_block_ids(rootNode_);
         //retrieve last data block num from last appended data block
-        StateBlockId lastAppendedDataNodeId;
-        dn_io_->block_warehouse_.get_last_datablock_id(lastAppendedDataNodeId);
-        data_node dn(0);
-        dn.deserialize_original_encrypted_data_id(lastAppendedDataNodeId);
-        dn.load(state_encryption_key_);
-        dn_io_->block_warehouse_.last_appended_data_block_num_ = dn.get_block_num();
+        dn_io_->block_warehouse_.last_appended_data_block_num_ = dn_io_->block_warehouse_.blockIds_.size()-1;
         dn_io_->init_append_data_node();
     }
 }
