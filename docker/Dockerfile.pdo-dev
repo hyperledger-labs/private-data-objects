@@ -66,6 +66,7 @@ RUN apt-get update \
     dh-autoreconf \
     git \
     libcurl4-openssl-dev \
+    liblmdb-dev \
     libprotobuf-dev \
     libssl-dev \
     libtool \
