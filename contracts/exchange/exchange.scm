@@ -19,6 +19,8 @@
 ;;
 ;; Externalized asset: ((value <integer>) (owner <ecdsa verifying key>))
 
+(require-when (member "debug" *args*) "debug.scm")
+
 (require "contract-base.scm")
 (require "exchange_common.scm")
 (require "asset_request_class.scm")

@@ -12,7 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(require "key-store.scm")
+(require "key-value-store.scm")
 
 (define bid-store-package
   (package
@@ -61,7 +61,7 @@
    ;; minimum deactivate, is-active?, externalize, is-greater-than?.
    ;; ================================================================================
    (define-class bid-store-class
-     (super-class key-store)
+     (super-class key-value-store)
      (instance-vars))
 
    ;; -----------------------------------------------------------------
@@ -93,9 +93,9 @@
    ;; identity -- string, identity of the bidder
    ;; -----------------------------------------------------------------
    (define-method bid-store-class (cancel-bid identity)
-     (let ((current-bid (send self 'exists? identity)))
-       (assert current-bid "unknown identity" identity)
-       (send current-bid 'deactivate)))
+     (let ((current-bid (send self 'get-active-bid identity)))
+       (send current-bid 'deactivate)
+       (send self 'set identity current-bid)))
 
    ;; -----------------------------------------------------------------
    ;; NAME: get-active-bid
@@ -107,8 +107,7 @@
    ;; flags --
    ;; -----------------------------------------------------------------
    (define-method bid-store-class (get-active-bid identity . flags)
-     (let ((current-bid (send self 'exists? identity)))
-       (assert current-bid "unknown identity" identity)
+     (let ((current-bid (send self 'get identity)))
        (assert (send current-bid 'is-active?) "bid is not active" identity)
        (if (member 'externalize flags)
            (send current-bid 'externalize)
@@ -122,8 +121,7 @@
    ;; PARAMETERS:
    ;; -----------------------------------------------------------------
    (define-method bid-store-class (get-canceled-bid identity . flags)
-     (let ((current-bid (send self 'exists? identity)))
-       (assert current-bid "unknown identity" identity)
+     (let ((current-bid (send self 'get identity)))
        (assert (send current-bid 'is-inactive?) "bid is active" identity)
        (if (member 'externalize flags)
            (send current-bid 'externalize)
@@ -140,9 +138,10 @@
      (let ((high-bid ()))
        (hashtab-package::hash-for-each
         (lambda (k b)
-          (if (send b 'is-active?)
-              (if (or (null? high-bid) (send b 'is-greater-than? high-bid))
-                  (set! high-bid b))))
+          (let ((value (send self 'get k)))
+            (if (send value 'is-active?)
+                (if (or (null? high-bid) (send value 'is-greater-than? high-bid))
+                    (set! high-bid value)))))
         store)
 
        high-bid))

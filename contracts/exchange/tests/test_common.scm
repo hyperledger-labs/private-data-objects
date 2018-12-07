@@ -17,6 +17,8 @@
 (require "debug.scm")
 (require "contract-base.scm")
 
+(key-value-open "exchange-test.mdb")
+
 ;; -----------------------------------------------------------------
 (put ':contract 'id (random-identifier 32))
 (put ':contract 'state (random-identifier 32))
@@ -39,15 +41,15 @@
     (display "AUTHORITY: ") (write authority) (newline)))
 
 ;; -----------------------------------------------------------------
-(define (dump-ledger ledger-pdo)
-  (result-print "---------- LEDGER STATE ----------")
+(define (dump-ledger ledger-pdo . args)
+  (result-print (string-append "---------- " (if (pair? args) (car args) "LEDGER") " STATE ---------- "))
   (let loop ((ledger-state (send ledger-pdo 'dump-ledger)))
     (if (pair? ledger-state)
         (let* ((entry (car ledger-state))
                (entry-key (car entry))
-               (entry-val (cadr (assoc 'count (cadr entry))))
-               (escrow (cadr (assoc 'escrow-key (cadr entry))))
-               (owner (cadr (assoc 'owner (cadr entry)))))
+               (entry-val (cadr (assoc 'count (cdr entry))))
+               (escrow (cadr (assoc 'escrow-key (cdr entry))))
+               (owner (cadr (assoc 'owner (cdr entry)))))
           (if (string=? escrow "")
               (result-print (string-append entry-key " --> " (number->string entry-val)))
               (result-print (string-append entry-key " --> " (number->string entry-val) " <ESCROW>")))

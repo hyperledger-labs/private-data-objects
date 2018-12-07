@@ -23,8 +23,10 @@
 ;; authority -- (vetting-organization-id signature)
 ;;
 
+(require-when (member "debug" *args*) "debug.scm")
+
 (require "contract-base.scm")
-(require "key-store.scm")
+(require "key-value-store.scm")
 
 (require "exchange_common.scm")
 (require "authority_class.scm")
@@ -47,7 +49,7 @@
 
    (define-method _issuer (initialize-instance . args)
      (if (not ledger)
-         (instance-set! self 'ledger (make-instance key-store))))
+         (instance-set! self 'ledger (make-instance key-value-store))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: initialize
@@ -95,7 +97,7 @@
        (assert (and (integer? count) (<= 0 count)) "count must not be negative")
 
        ;; TODO: add type checking on the _owner-identity, must be an ecdsa verifying key
-       (let ((key (make-key _owner-identity)))
+       (let ((key (make-key _owner-identity (send self 'get-public-signing-key))))
          (assert (not (send ledger 'exists? key)) "duplicate issuance")
          (let ((counter (make-instance ledger-entry (count count) (owner _owner-identity))))
            (send ledger 'set key counter))))
@@ -114,7 +116,7 @@
    (define-method _issuer (get-balance)
      (assert ledger-initialized "ledger has not been initialized")
      (let* ((owner-identity (get ':message 'originator))
-            (key (make-key owner-identity)))
+            (key (make-key owner-identity (send self 'get-public-signing-key))))
        (if (send ledger 'exists? key)
            (send (send ledger 'get key) 'get-count)
            0)))
@@ -158,9 +160,9 @@
 
      (let ((count (coerce-number _count)))
 
-                                        ; decrement the current owner's balance
+       ;; decrement the current owner's balance
        (let* ((owner-identity (get ':message 'originator))
-              (src-key (make-key owner-identity)))
+              (src-key (make-key owner-identity (send self 'get-public-signing-key))))
          (assert (send ledger 'exists? src-key) "insufficient funds")
          (let ((src-counter (send ledger 'get src-key)))
            (assert (send src-counter 'is-active?) "cannot transfer escrowed balance")
@@ -169,17 +171,21 @@
              (assert (<= count balance) "insufficient funds")
              (if (= balance count)
                  (send ledger 'del src-key)    ; remove the key when the balance is 0
-                 (send src-counter 'dec count)))))
+                 (begin
+                   (send src-counter 'dec count)
+                   (send ledger 'set src-key src-counter))))))
 
-                                        ; increment the new owner's balance
-       (let* ((dst-key (make-key _new-owner-identity))
+       ;; increment the new owner's balance
+       (let* ((dst-key (make-key _new-owner-identity (send self 'get-public-signing-key)))
               (count (coerce-number _count)))
          (if (not (send ledger 'exists? dst-key))
              (let ((dst-counter (make-instance ledger-entry (count count) (owner _new-owner-identity))))
                (send ledger 'set dst-key dst-counter))
              (let ((dst-counter (send ledger 'get dst-key)))
                (assert (send dst-counter 'is-active?) "cannot overwrite escrowed balance")
-               (send dst-counter 'inc count)))))
+               (begin
+                 (send dst-counter 'inc count)
+                 (send ledger 'set dst-key dst-counter))))))
 
      #t)
 
@@ -199,11 +205,12 @@
 
      ;; TODO: type checking on escrow-agent-public-key
      (let* ((owner-identity (get ':message 'originator))
-            (key (make-key owner-identity)))
+            (key (make-key owner-identity (send self 'get-public-signing-key))))
        (assert (send ledger 'exists? key) "insufficient funds")
        (let ((counter (send ledger 'get key)))
          (assert (send counter 'is-active?) "balance already in escrow")
-         (send counter 'deactivate _escrow-agent-public-key)))
+         (send counter 'deactivate _escrow-agent-public-key)
+         (send ledger 'set key counter)))
 
      #t)
 
@@ -220,7 +227,7 @@
      (assert ledger-initialized "ledger has not been initialized")
 
      (let* ((owner-identity (get ':message 'originator))
-            (key (make-key owner-identity)))
+            (key (make-key owner-identity (send self 'get-public-signing-key))))
                                         ; verify that there really is a key, no key is treated like unescrowed balance 0
        (assert (send ledger 'exists? key) "balance not escrowed")
 
@@ -247,7 +254,7 @@
      (assert ledger-initialized "ledger has not been initialized")
 
      (let* ((owner-identity (get ':message 'originator))
-            (key (make-key owner-identity)))
+            (key (make-key owner-identity (send self 'get-public-signing-key))))
                                         ; verify that the key really exists
        (assert (send ledger 'exists? key) "balance not escrowed")
 
@@ -259,7 +266,8 @@
          ;; this update cannot be committed unless the dependencies are committed
          (if (pair? _dependencies)
              (put ':ledger 'dependencies _dependencies))
-         (send counter 'activate)))
+         (send counter 'activate)
+         (send ledger 'set key counter)))
 
      #t)
 
@@ -277,13 +285,13 @@
      (assert ledger-initialized "ledger has not been initialized")
 
      (let* ((new-owner-identity (get ':message 'originator))
-            (new-key (make-key new-owner-identity))
-            (old-key (make-key _owner-identity)))
-                                        ; verify that the source key really exists
+            (new-key (make-key new-owner-identity (send self 'get-public-signing-key)))
+            (old-key (make-key _owner-identity (send self 'get-public-signing-key))))
+       ;; verify that the source key really exists
        (assert (send ledger 'exists? old-key) "balance not escrowed")
 
        (let ((old-counter (send ledger 'get old-key)))
-                                        ; verify that the key really is escrowed and that this is a valid claim
+         ;; verify that the key really is escrowed and that this is a valid claim
          (assert (not (send old-counter 'is-active?)) "balance not escrowed")
          (verify-claim old-counter _owner-identity new-owner-identity _dependencies _signature)
 
@@ -296,7 +304,8 @@
                  (send ledger 'set new-key new-counter))
                (let ((new-counter (send ledger 'get new-key)))
                  (assert (send new-counter 'is-active?) "cannot overwrite escrowed balance")
-                 (send new-counter 'inc count))))))
+                 (send new-counter 'inc count)
+                 (send ledger 'set new-key new-counter))))))
 
      ;; this update cannot be committed unless the dependencies are committed
      (if (pair? _dependencies)
@@ -368,7 +377,7 @@
 (include-when
  (member "debug" *args*)
  (define-method issuer-package::_issuer (dump-ledger)
-   (send ledger 'get-state)))
+   (send ledger 'map (lambda (key value) (send value 'externalize 'full)))))
 
 (include-when
  (member "debug" *args*)

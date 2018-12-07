@@ -59,7 +59,7 @@
       (assert (send blue-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* blue-issuer)) "issue failed")
       (assert (= (send blue-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; set up the red marble issuer
@@ -86,7 +86,7 @@
       (assert (send red-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* red-issuer)) "issue failed")
       (assert (= (send red-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as alice
@@ -115,7 +115,7 @@
 (result-print "OFFERED ASSET: " (send exchange-pdo 'examine-offered-asset))
 (result-print "REQUESTED ASSET: " (send exchange-pdo 'examine-requested-asset))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as bob
@@ -129,10 +129,9 @@
 
 (assert (send red-issuer-pdo 'escrow (send exchange-pdo 'get-verifying-key)) "failed to escrow red marbles")
 (let ((serialized-attestation (send red-issuer-pdo 'escrow-attestation)))
-  (display "pre-exchange\n")
   (assert (send exchange-pdo 'exchange-asset serialized-attestation) "failed to offer asset"))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 (display "---------- bob claims the offer ----------\n")
 (let* ((claim-attestation (send exchange-pdo 'claim-offer))
@@ -142,7 +141,7 @@
   ;; time for bob to claim his blue marbles
   (assert (send blue-issuer-pdo 'claim owner-identity dependencies signature) "failed to claim blue marbles"))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as alice
@@ -158,4 +157,4 @@
   ;; time for alice to claim her red marbles
   (assert (send red-issuer-pdo 'claim owner-identity dependencies signature) "failed to claim red marbles"))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")

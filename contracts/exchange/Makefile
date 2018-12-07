@@ -36,6 +36,7 @@ TESTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
 
 all: $(CONTRACTS)
 
+debug : $(TESTS)
 test : $(TESTS)
 
 _auction_test.scm : tests/auction_test.bld tests/auction_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)

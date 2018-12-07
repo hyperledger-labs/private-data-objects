@@ -64,7 +64,7 @@
       (assert (send blue-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* blue-issuer)) "issue failed")
       (assert (= (send blue-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; set up the red marble issuer
@@ -92,7 +92,7 @@
       (assert (send red-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* red-issuer)) "issue failed")
       (assert (= (send red-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as alice
@@ -121,7 +121,7 @@
 (result-print "OFFERED ASSET: " (send auction-pdo 'examine-offered-asset))
 (result-print "REQUESTED ASSET: " (send auction-pdo 'examine-requested-asset))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as bob
@@ -136,7 +136,9 @@
 (let ((serialized-attestation (send red-issuer-pdo 'escrow-attestation)))
   (assert (send auction-pdo 'submit-bid serialized-attestation) "failed to offer asset"))
 
-(dump-authoritative-asset (send auction-pdo 'check-bid))
+(display "submit completed\n")
+(let ((serialized-bid (send auction-pdo 'check-bid)))
+  (dump-authoritative-asset serialized-bid))
 
 ;; -----------------------------------------------------------------
 ;; work as carl
@@ -183,7 +185,7 @@
 
 (dump-authoritative-asset (send auction-pdo 'check-bid))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as bob
@@ -201,7 +203,10 @@
        (signature (nth serialized-attestation 1)))
   (assert (send red-issuer-pdo 'disburse dependencies signature) "disburse failed"))
 
-(dump-ledger red-issuer-pdo)
+(catch-success
+ (dump-authoritative-asset (send auction-pdo 'check-bid)) "bid was not cancelled")
+
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as alice
@@ -236,6 +241,8 @@
 
 (display "---------- claim the winning bid ----------\n")
 
+(dump-ledger red-issuer-pdo "RED LEDGER")
+
 (use-person alice)
 
 (let* ((serialized-claim (send auction-pdo 'claim-bid))
@@ -244,7 +251,7 @@
        (signature (nth serialized-claim 2)))
   (assert (send red-issuer-pdo 'claim old-owner dependencies signature) "failed to claim the bid asset"))
 
-(dump-ledger red-issuer-pdo)
+(dump-ledger red-issuer-pdo "RED LEDGER")
 
 ;; -----------------------------------------------------------------
 ;; work as erin
@@ -254,7 +261,7 @@
 
 (display "---------- claim the offered asset ----------\n")
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")
 
 (use-person erin)
 
@@ -264,4 +271,4 @@
        (signature (nth serialized-claim 2)))
   (assert (send blue-issuer-pdo 'claim old-owner dependencies signature) "failed to claim the bid asset"))
 
-(dump-ledger blue-issuer-pdo)
+(dump-ledger blue-issuer-pdo "BLUE LEDGER")

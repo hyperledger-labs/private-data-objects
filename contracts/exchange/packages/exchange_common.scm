@@ -18,8 +18,9 @@
 ;; DESCRIPTION: this is a utility function to create a shorter key
 ;; from an owner's identity (which is an ECDSA public key)
 ;; -----------------------------------------------------------------
-(define (make-key identity)
-  (compute-message-hash identity))
+(define (make-key identity . args)
+  (let ((value (string-append identity (if (pair? args) (car args) ""))))
+    (compute-message-hash value)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: nth
