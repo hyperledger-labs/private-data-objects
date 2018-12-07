@@ -16,7 +16,7 @@
 #pragma once
 
 #include "types.h"
-#include "basic_kv.h"
+#include "state.h"
 
 namespace pdo
 {
@@ -25,7 +25,7 @@ namespace pdo
         class Interpreter_KV : public Basic_KV_Plus
         {
         protected:
-            Basic_KV* kv_;
+            State_KV kv_;
 
             ByteArray Get(ByteArray& key);
             void Put(ByteArray& key, ByteArray& value);

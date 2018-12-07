@@ -41,46 +41,35 @@ static ByteArray to_unprivileged_key(const ByteArray& key)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Class: Interpreter_KV
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id) {}
+pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id) {}
 
 pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id, const ByteArray& encryption_key)
-    : Interpreter_KV(id)
-{
-    ByteArray key = encryption_key;
-    State_KV* state_kv = new pdo::state::State_KV(id, key);
-    kv_ = state_kv;
-}
+    : Basic_KV_Plus(id), kv_(id, encryption_key) {}
 
 pdo::state::Interpreter_KV::~Interpreter_KV()
 {
-    if (kv_ != NULL)
-    {
-        ByteArray id;
-        kv_->Uninit(id);
-
-        delete kv_;
-        kv_ = NULL;
-    }
+    ByteArray id;
+    kv_.Uninit(id);
 }
 
 void pdo::state::Interpreter_KV::Uninit(ByteArray& id)
 {
-    kv_->Uninit(id);
+    kv_.Uninit(id);
 }
 
 ByteArray pdo::state::Interpreter_KV::Get(ByteArray& key)
 {
-    return kv_->Get(key);
+    return kv_.Get(key);
 }
 
 void pdo::state::Interpreter_KV::Put(ByteArray& key, ByteArray& value)
 {
-    kv_->Put(key, value);
+    kv_.Put(key, value);
 }
 
 void pdo::state::Interpreter_KV::Delete(ByteArray& key)
 {
-    kv_->Delete(key);
+    kv_.Delete(key);
 }
 
 //########## FUNCTION BELOW ARE BASED ON THE ONES ABOVE################################################################
