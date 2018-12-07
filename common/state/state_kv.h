@@ -22,9 +22,6 @@ namespace pdo
 {
     namespace state
     {
-        class block_offset;
-        class kv_node;
-        class data_node;
         class data_node_io;
 
         class State_KV : public Basic_KV
