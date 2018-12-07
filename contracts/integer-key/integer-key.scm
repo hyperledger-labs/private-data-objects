@@ -44,7 +44,7 @@
 ;; -----------------------------------------------------------------
 (define-const-method integer-key (get-state)
   (assert (or (null? creator) (equal? creator (get ':message 'originator))) "only creator may dump state")
-  (send state 'map (lambda (k v) (send v 'externalize))))
+  (send state 'map (lambda (k v) (send v 'externalize 'full))))
 
 (define-const-method integer-key (get-value key)
   (let* ((requestor (get ':message 'originator))

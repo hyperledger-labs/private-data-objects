@@ -16,6 +16,8 @@
 (put ':contract 'id "contract1")
 (put ':contract 'state "contract-state")
 
+(key-value-open "integer-key-test.mdb")
+
 (define tc (make-instance integer-key))
 
 ;; -----------------------------------------------------------------

@@ -412,7 +412,7 @@ def Main() :
 
     parser.add_argument('--asset-contract', help='Name of the asset contract', default="integer-key", type = str)
     parser.add_argument('--asset-identity', help='Identity to use for the asset contract', default="ikey-contract", type=str)
-    parser.add_argument('--auction-contract', help='Name of the auction contract', default="auction", type = str)
+    parser.add_argument('--auction-contract', help='Name of the auction contract', default="integer-key-auction", type = str)
     parser.add_argument('--auction-identity', help='Identity to use for the auction contract', default="auc-contract", type=str)
 
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')

@@ -19,7 +19,7 @@
 (define package-directories
   '("." "../integer-key" "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
-(define contract-input "auction.scm")
+(define contract-input "integer-key-auction.scm")
 (define contract-output (string-append "_" contract-input))
 
 (if (member "debug" *args*)

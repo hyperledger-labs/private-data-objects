@@ -15,9 +15,11 @@
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------
 (require-when (member "debug" *args*) "debug.scm")
+(key-value-open "auction-protocol-test.mdb")
+
 (require "hash.scm")
 (require "integer-key.scm")
-(require "auction.scm")
+(require "integer-key-auction.scm")
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------
@@ -88,7 +90,7 @@
 ;; create and prime the auction
 ;; -----------------------------------------------------------------
 (use-person auc-owner)
-(define auc-contract (make-instance auction))
+(define auc-contract (make-instance integer-key-auction))
 (let ((pubkey (send ikey-contract 'get-public-signing-key (use-person* auc-owner))))
   (send auc-contract 'initialize pubkey (use-person* auc-owner)))
 
@@ -155,7 +157,7 @@
 (let loop ((state (send ikey-contract 'get-state (use-person* ikey-owner))))
   (if (pair? state)
       (let* ((info (car state))
-             (counter (make-instance* escrow-counter (cadr info)))
+             (counter (make-instance* escrow-counter (cdr info)))
              (active (send counter 'is-active?)))
         (if (not active)
             (begin
@@ -177,7 +179,7 @@
 (let loop ((state (send ikey-contract 'get-state (use-person* ikey-owner))))
   (if (pair? state)
       (let* ((info (car state))
-             (counter (make-instance* escrow-counter (cadr info)))
+             (counter (make-instance* escrow-counter (cdr info)))
              (active (send counter 'is-active?)))
         (if (not active)
             (begin

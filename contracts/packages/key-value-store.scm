@@ -50,7 +50,9 @@
 (define-method key-value-store (set key value)
   (assert (oops::instance? value) "value must be an object instance" value)
   (_ht-set_ store key #t)
-  (key-value-put key (expression->string (serialize-instance value)))
+  (let* ((serialized-list (serialize-instance value))
+         (serialized-string (expression->string serialized-list)))
+    (key-value-put key serialized-string))
   #t)
 
 (define-method key-value-store (del key)
