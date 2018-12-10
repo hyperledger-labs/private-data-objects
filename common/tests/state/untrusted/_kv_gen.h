@@ -27,5 +27,6 @@ typedef void (*_kv_f)(std::string key, std::string value);
 void _kv_generator(std::string s, unsigned int chars_left, _kv_f pf);
 void _kv_put(std::string key, std::string value);
 void _kv_get(std::string key, std::string expected_value);
+void _kv_delete(std::string key);
 void _test_kv_put();
 void _test_kv_get();

@@ -26,6 +26,16 @@ pdo::state::StateBlockIdArray pdo::state::StateBlockIdRefArray_To_StateBlockIdAr
     return array;
 }
 
+void pdo::state::StateBlockIdRefArray_To_StateBlockIdList(
+        pdo::state::StateBlockIdRefArray& refArray,
+        pdo::state::StateBlockIdList& outList)
+{
+    unsigned int i;
+    for(i=0; i<refArray.size(); i++) {
+        outList.push_back(*refArray[i]);
+    }
+}
+
 ByteArray pdo::state::StateBlockIdRefArray_To_ByteArray(
     pdo::state::StateBlockIdRefArray& refArray)
 {
