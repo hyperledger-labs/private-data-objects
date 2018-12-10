@@ -24,9 +24,12 @@
 #include "crypto.h"
 #include <algorithm>
 #include <map>
+#include <queue>
 #include "log.h"
 
 #define FIXED_DATA_NODE_BYTE_SIZE (1<<13) // 8 KB
+#define CACHE_SIZE (1<<23) // 8 MB
+#define BLOCK_CACHE_MAX_ITEMS (CACHE_SIZE / FIXED_DATA_NODE_BYTE_SIZE)
 
 namespace pstate = pdo::state;
 
@@ -195,6 +198,39 @@ namespace pdo
                                     ByteArray& returnOffset);
         };
 
+        class cache_slots {
+            public:
+
+            cache_slots() : data_nodes_(BLOCK_CACHE_MAX_ITEMS, data_node(0)) {
+                for(unsigned int i=0; i<data_nodes_.size(); i++) {
+                    dn_queue_.push( &(data_nodes_[i]) );
+                }
+            }
+
+            data_node* allocate() {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(dn_queue_.empty(),
+                    "cache full -- cannot allocate additional cache slots, queue empty");
+                data_node* d = dn_queue_.front();
+                dn_queue_.pop();
+                return d;
+            }
+
+            void release(data_node** dn) {
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(dn_queue_.size() >= data_nodes_.size(),
+                    "cache empty -- nothing to release, nothing to return to queue");
+                dn_queue_.push(*dn);
+                //delete original pointer
+                *dn = NULL;
+            }
+
+            private:
+            // the data nodes constitute the cache slots
+            // pointers to these slots are initially pushed in the queue,
+            // and then popped/pushed as they are allocated/released
+            std::vector<data_node> data_nodes_;
+            std::queue<data_node*> dn_queue_;
+        };
+
         class data_node_io {
             public:
             block_warehouse block_warehouse_;
@@ -214,6 +250,7 @@ namespace pdo
                 data_node* dn;
             };
             std::map<unsigned int, block_cache_entry_t> block_cache_;
+            cache_slots cache_slots_;
             uint64_t cache_clock_ = 0;
 
             void cache_replacement_policy();
@@ -919,17 +956,16 @@ void pstate::data_node_io::add_and_init_append_data_node() {
     //make space in cache if necessary
     cache_unpin(block_warehouse_.last_appended_data_block_num_);
     cache_replacement_policy();
-    //create new data note
-    try {
-        append_dn_ = new data_node(++ block_warehouse_.last_appended_data_block_num_);
-    }
-    catch(std::exception& e) {
-        throw error::RuntimeError("cannot create data node");
-    }
+
+    //allocate and initialized data node
+    append_dn_ = cache_slots_.allocate();
+    *append_dn_ = data_node(++ block_warehouse_.last_appended_data_block_num_);
+
     //put and pin it in cache
     cache_put(block_warehouse_.last_appended_data_block_num_, append_dn_);
     cache_pin(block_warehouse_.last_appended_data_block_num_);
     cache_modified(block_warehouse_.last_appended_data_block_num_);
+
     //add empty id in list
     StateBlockId dn_id(STATE_BLOCK_ID_LENGTH, 0);
     block_warehouse_.add_datablock_id(dn_id);
@@ -939,9 +975,6 @@ void pstate::data_node_io::add_and_init_append_data_node_cond(bool cond) {
     if(cond)
         pstate::data_node_io::add_and_init_append_data_node();
 }
-
-#define CACHE_SIZE (1<<23) // 1 MB
-#define BLOCK_CACHE_MAX_ITEMS 1024
 
 void pstate::data_node_io::cache_replacement_policy() {
     while(block_cache_.size() >= BLOCK_CACHE_MAX_ITEMS) {
@@ -976,7 +1009,9 @@ void pstate::data_node_io::cache_flush_entry(unsigned int block_num) {
         bce.dn->unload(block_warehouse_.state_encryption_key_, new_data_node_id);
         block_warehouse_.update_datablock_id(block_num, new_data_node_id);
     }
-    delete bce.dn;
+
+    cache_slots_.release( &(bce.dn) );
+
     block_cache_.erase(it);
 }
 
@@ -1000,23 +1035,20 @@ void pstate::data_node_io::cache_put(unsigned int block_num, data_node* dn) {
 
 pstate::data_node& pstate::data_node_io::cache_retrieve(unsigned int block_num, bool pinned) {
     if(block_cache_.count(block_num) == 0) { //not in cache
-        block_cache_entry_t bce;
         pstate::data_node_io::cache_replacement_policy();
 
         StateBlockId data_node_id;
         block_warehouse_.get_datablock_id_from_datablock_num(
                         block_num,
                         data_node_id);
-        try {
-            bce.dn = new data_node(0);
-        }
-        catch(std::exception& e) {
-            throw error::RuntimeError("cannot create data node");
-        }
-        bce.dn->deserialize_original_encrypted_data_id(data_node_id);
-        bce.dn->load(block_warehouse_.state_encryption_key_);
 
-        cache_put(block_num, bce.dn);
+        //allocate data node and load block into it
+        data_node* dn = cache_slots_.allocate();
+        dn->deserialize_original_encrypted_data_id(data_node_id);
+        dn->load(block_warehouse_.state_encryption_key_);
+
+        //cache it
+        cache_put(block_num, dn);
 
         if(pinned)
             cache_pin(block_num);
