@@ -26,17 +26,17 @@
 
 ;; -----------------------------------------------------------------
 ;; indexes for some keys
-(define blue-vetting  20)
-(define blue-issuer  21)
-(define red-vetting  25)
-(define red-issuer  26)
+(define blue-vetting 0)
+(define blue-issuer  1)
+(define red-vetting  2)
+(define red-issuer   3)
 
-(define alice  1)
+(define alice  11)
 
-(define bob    11)
-(define carl   12)
-(define debra  13)
-(define erin   14)
+(define bob    21)
+(define carl   22)
+(define debra  23)
+(define erin   24)
 
 ;; -----------------------------------------------------------------
 ;; set up the blue marble issuer
@@ -59,8 +59,8 @@
     (assert (send blue-issuer-pdo 'initialize blue-type-identifier blue-authority (use-person* blue-issuer)) "initialize failed")
 
     (result-print "---------- issue blue marble assets ----------")
-    (do ((pnumber 0 (+ pnumber 1)))
-        ((= pnumber 10))
+    (do ((pnumber person-first (+ pnumber 1)))
+        ((>= pnumber person-count))
       (assert (send blue-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* blue-issuer)) "issue failed")
       (assert (= (send blue-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 
@@ -87,8 +87,8 @@
     (assert (send red-issuer-pdo 'initialize red-type-identifier red-authority (use-person* red-issuer)) "initialize failed")
 
     (result-print "---------- issue red marble assets ----------")
-    (do ((pnumber 10 (+ pnumber 1)))
-        ((= pnumber 20))
+    (do ((pnumber person-first (+ pnumber 1)))
+        ((>= pnumber person-count))
       (assert (send red-issuer-pdo 'issue (person pnumber) (+ 10 pnumber) (use-person* red-issuer)) "issue failed")
       (assert (= (send red-issuer-pdo 'get-balance (use-person* pnumber)) (+ 10 pnumber)) "incorrect balance"))))
 

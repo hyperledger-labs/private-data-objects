@@ -24,7 +24,7 @@
 (require-when (member "debug" *args*) "debug.scm")
 (require "contract-base.scm")
 (require "escrow-counter.scm")
-(require "key-value-store.scm")
+(require "indexed-key-store.scm")
 
 ;; =================================================================
 ;; CLASS: integer-key
@@ -37,7 +37,7 @@
 
 (define-method integer-key (initialize-instance . args)
   (if (not state)
-      (instance-set! self 'state (make-instance key-value-store))))
+      (instance-set! self 'state (make-instance indexed-key-store))))
 
 ;; -----------------------------------------------------------------
 ;; Methods to interogate the counter store

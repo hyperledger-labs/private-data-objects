@@ -23,7 +23,9 @@
 (put ':contract 'id (random-identifier 32))
 (put ':contract 'state (random-identifier 32))
 
-(define person-key (key-list-generator 40))
+(define person-first 10)
+(define person-count 40)
+(define person-key (key-list-generator person-count))
 
 (define (person n) (send (person-key n) 'get-public-signing-key))
 (define (use-person n) (put ':message 'originator (person n)))
@@ -41,16 +43,28 @@
     (display "AUTHORITY: ") (write authority) (newline)))
 
 ;; -----------------------------------------------------------------
+(define (dump-ledger-entry entry)
+  (let* ((owner (cadr (assoc 'owner entry)))
+         (count (cadr (assoc 'count entry)))
+         (active (cadr (assoc 'active entry)))
+         (escrow (cadr (assoc 'escrow-key entry)))
+         (entry-key (compute-message-hash owner)))
+    (cond ((not active)
+           (result-print (string-append entry-key " --> " (number->string count) " <ESCROW>")))
+          ((string=? escrow "")
+           (result-print (string-append entry-key " --> " (number->string count)))))))
+
+;; -----------------------------------------------------------------
 (define (dump-ledger ledger-pdo . args)
   (result-print (string-append "---------- " (if (pair? args) (car args) "LEDGER") " STATE ---------- "))
-  (let loop ((ledger-state (send ledger-pdo 'dump-ledger)))
-    (if (pair? ledger-state)
-        (let* ((entry (car ledger-state))
-               (entry-key (car entry))
-               (entry-val (cadr (assoc 'count (cdr entry))))
-               (escrow (cadr (assoc 'escrow-key (cdr entry))))
-               (owner (cadr (assoc 'owner (cdr entry)))))
-          (if (string=? escrow "")
-              (result-print (string-append entry-key " --> " (number->string entry-val)))
-              (result-print (string-append entry-key " --> " (number->string entry-val) " <ESCROW>")))
-          (loop (cdr ledger-state))))))
+  (let loop ((person person-first))
+    (if (< person person-count)
+        (let ((entry (send ledger-pdo 'dump-entry (use-person* person))))
+          (if entry (dump-ledger-entry entry))
+          (loop (+ person 1))))))
+
+;; -----------------------------------------------------------------
+(define (active-entry? ledger-pdo identity)
+  (let ((entry (send ledger-pdo 'dump-entry (list ':message 'originator identity))))
+    (assert entry "unable to locate entry")
+    (cadr (assoc 'active entry))))

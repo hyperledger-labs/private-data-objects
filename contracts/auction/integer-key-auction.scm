@@ -23,13 +23,13 @@
 
 (require "contract-base.scm")
 (require "escrow-counter.scm")
-(require "key-value-store.scm")
+(require "indexed-key-store.scm")
 
 ;; ================================================================================
 ;; CLASS: bid-store
 ;; ================================================================================
 (define-class bid-store
-  (super-class key-value-store)
+  (super-class indexed-key-store)
   (instance-vars
    (minimum-bid 0)))
 

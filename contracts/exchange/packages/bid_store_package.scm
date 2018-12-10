@@ -12,7 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(require "key-value-store.scm")
+(require "indexed-key-store.scm")
 
 (define bid-store-package
   (package
@@ -61,7 +61,7 @@
    ;; minimum deactivate, is-active?, externalize, is-greater-than?.
    ;; ================================================================================
    (define-class bid-store-class
-     (super-class key-value-store)
+     (super-class indexed-key-store)
      (instance-vars))
 
    ;; -----------------------------------------------------------------

@@ -210,8 +210,7 @@
          ;; an active bid. once again this raises the question of whether we should create
          ;; an attestation. in this case, the owner of the bid could have checked to see
          ;; if they had already bid so we'll just chalk this up to operator error
-         (let ((key (make-key asset-owner (send self 'get-public-signing-key))))
-           (send bids 'submit-bid key object))))
+         (send bids 'submit-bid asset-owner object)))
      #t)
 
    ;; -----------------------------------------------------------------
@@ -223,16 +222,15 @@
    ;; escrow.
    ;; -----------------------------------------------------------------
    (define-method _auction (cancel-bid)
-     (let* ((identity (get ':message 'originator))
-            (key (make-key identity (send self 'get-public-signing-key))))
+     (let* ((identity (get ':message 'originator)))
 
        ;; just have to make sure that the auction winner is not backing out of
        ;; the commitment of resources
        (assert (not (and (member auction-state '(closed confirmed))
-                         (string=? key auction-winner-key)))
+                         (string=? identity auction-winner-key)))
                "auction winner may not cancel their bid")
 
-       (send bids 'cancel-bid key))
+       (send bids 'cancel-bid identity))
 
      #t)
 
@@ -249,8 +247,7 @@
    (define-method _auction (cancel-bid-attestation)
      (let* ((identity (get ':message 'originator)))
        (protect
-        (let* ((key (make-key identity (send self 'get-public-signing-key)))
-               (canceled-bid (send bids 'get-canceled-bid key))
+        (let* ((canceled-bid (send bids 'get-canceled-bid identity))
                (canceled-asset (send canceled-bid 'get-asset)))
           (create-cancellation canceled-asset identity contract-signing-keys))
         "no canceled bid")))
@@ -265,10 +262,9 @@
    ;; Serialized bid
    ;; ----------------------------------------------------------------
    (define-method _auction (check-bid)
-     (let* ((identity (get ':message 'originator))
-            (key (make-key identity (send self 'get-public-signing-key))))
+     (let ((identity (get ':message 'originator)))
        (protect
-        (send bids 'get-active-bid key 'externalize)
+        (send bids 'get-active-bid identity 'externalize)
         "no bid")))
 
    ;; ----------------------------------------------------------------
@@ -330,8 +326,7 @@
    (define-method _auction (claim-bid)
      (assert (eq? auction-state 'confirmed) "auction is not completed")
      (assert (equal? creator (get ':message 'originator)) "only creator may claim bids")
-     (let* ((winning-key (make-key auction-winner-key (send self 'get-public-signing-key)))
-            (winning-bid (send bids 'get-active-bid winning-key))
+     (let* ((winning-bid (send bids 'get-active-bid auction-winner-key))
             (winning-asset (send winning-bid 'get-asset)))
        (create-claim winning-asset auction-winner-key creator contract-signing-keys)))
 
