@@ -78,7 +78,7 @@
   (assert (equal? creator (get ':message 'originator)) "only creator may add keys")
   (assert initialized "object not initialized")
 
-  (let ((key (make-key _verifying-key (send self 'get-public-signing-key))))
+  (let ((key (make-key _verifying-key)))
     (if (not (send approved-keys 'exists? key))
         (send approved-keys 'set key _verifying-key)))
 
@@ -94,7 +94,7 @@
 (define-const-method vetting-organization-contract (get-authority issuer-verifying-key)
   (assert initialized "object not initialized")
 
-  (let ((key (make-key issuer-verifying-key (send self 'get-public-signing-key)))
+  (let ((key (make-key issuer-verifying-key))
         (dependencies (list (list (get ':contract 'id) (get ':contract 'state)))))
     (assert (send approved-keys 'exists? key) "not authorized")
     (let ((auth-object (create-root-authority asset-type-id issuer-verifying-key dependencies contract-signing-keys)))
