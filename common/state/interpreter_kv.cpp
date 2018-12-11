@@ -15,8 +15,8 @@
 
 #include "interpreter_kv.h"
 #include "crypto.h"
-#include "state.h"
 #include "log.h"
+#include "state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Local Functions
@@ -37,17 +37,21 @@ static ByteArray to_unprivileged_key(const ByteArray& key)
     return unprivileged_key;
 }
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Class: Interpreter_KV
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id) {}
+pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id)
+{
+}
 
 pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& id, const ByteArray& encryption_key)
-    : Basic_KV_Plus(id), kv_(id, encryption_key) {}
+    : Basic_KV_Plus(id), kv_(id, encryption_key)
+{
+}
 
 pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
-    : Basic_KV_Plus(), kv_(encryption_key) {
+    : Basic_KV_Plus(), kv_(encryption_key)
+{
 }
 
 pdo::state::Interpreter_KV::~Interpreter_KV()
@@ -76,7 +80,8 @@ void pdo::state::Interpreter_KV::Delete(const ByteArray& key)
     kv_.Delete(key);
 }
 
-//########## FUNCTION BELOW ARE BASED ON THE ONES ABOVE################################################################
+//########## FUNCTION BELOW ARE BASED ON THE ONES
+//ABOVE################################################################
 
 ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
 {

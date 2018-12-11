@@ -15,37 +15,37 @@
 
 #pragma once
 
-#include "types.h"
 #include "state.h"
+#include "types.h"
 
 namespace pdo
 {
-    namespace state
+namespace state
+{
+    class Interpreter_KV : public Basic_KV_Plus
     {
-        class Interpreter_KV : public Basic_KV_Plus
-        {
-        protected:
-            State_KV kv_;
+    protected:
+        State_KV kv_;
 
-            ByteArray Get(const ByteArray& key);
-            void Put(const ByteArray& key, const ByteArray& value);
-            void Delete(const ByteArray& key);
+        ByteArray Get(const ByteArray& key);
+        void Put(const ByteArray& key, const ByteArray& value);
+        void Delete(const ByteArray& key);
 
-        public:
-            Interpreter_KV(StateBlockId& id);
-            Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
-            Interpreter_KV(const ByteArray& encryption_key);
-            ~Interpreter_KV();
+    public:
+        Interpreter_KV(StateBlockId& id);
+        Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
+        Interpreter_KV(const ByteArray& encryption_key);
+        ~Interpreter_KV();
 
-            void Finalize(ByteArray& id);
+        void Finalize(ByteArray& id);
 
-            void PrivilegedPut(const ByteArray& key, const ByteArray& value);
-            ByteArray PrivilegedGet(const ByteArray& key);
-            void PrivilegedDelete(const ByteArray& key);
+        void PrivilegedPut(const ByteArray& key, const ByteArray& value);
+        ByteArray PrivilegedGet(const ByteArray& key);
+        void PrivilegedDelete(const ByteArray& key);
 
-            void UnprivilegedPut(const ByteArray& key, const ByteArray& value);
-            ByteArray UnprivilegedGet(const ByteArray& key);
-            void UnprivilegedDelete(const ByteArray& key);
-        };
-    }
+        void UnprivilegedPut(const ByteArray& key, const ByteArray& value);
+        ByteArray UnprivilegedGet(const ByteArray& key);
+        void UnprivilegedDelete(const ByteArray& key);
+    };
+}
 }
