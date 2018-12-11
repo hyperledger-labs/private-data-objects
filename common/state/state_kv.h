@@ -182,7 +182,7 @@ namespace pdo
             State_KV(const ByteArray& key);
             ~State_KV();
 
-            void Uninit(ByteArray& id);
+            void Finalize(ByteArray& id);
 
             ByteArray Get(ByteArray& key);
             void Put(ByteArray& key, ByteArray& value);

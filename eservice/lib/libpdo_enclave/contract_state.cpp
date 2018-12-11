@@ -77,7 +77,7 @@ ContractState::~ContractState(void)
 void ContractState::Finalize(void)
 {
     pdo::error::ThrowIfNull(state_, "attempt to finalize uninitialized state");
-    state_->Uninit(output_block_id_);
+    state_->Finalize(output_block_id_);
 
     delete state_;
     state_ = NULL;
@@ -142,7 +142,7 @@ void ContractState::Unpack(
         SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
         if (state_ != NULL)
         {
-            state_->Uninit(input_block_id_);
+            state_->Finalize(input_block_id_);
             state_ = NULL;
         }
 
@@ -154,7 +154,7 @@ void ContractState::Unpack(
 
         if (state_ != NULL)
         {
-            state_->Uninit(input_block_id_);
+            state_->Finalize(input_block_id_);
             state_ = NULL;
         }
 

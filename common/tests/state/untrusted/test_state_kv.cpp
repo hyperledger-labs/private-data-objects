@@ -54,7 +54,7 @@ void test_state_kv() {
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start Put generator\n");
         _test_kv_put();
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
@@ -92,7 +92,7 @@ void test_state_kv() {
             SAFE_LOG(PDO_LOG_ERROR, "exception not caught\n");
             throw;
         }
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
@@ -131,7 +131,7 @@ void test_state_kv() {
                 throw;
             }
         }
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
@@ -169,7 +169,7 @@ void test_state_kv() {
                 throw;
             }
         }
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
@@ -210,7 +210,7 @@ void test_state_kv() {
                 throw;
             }
         }
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
@@ -258,7 +258,7 @@ void test_state_kv() {
             }
         }
 
-        kv_->Uninit(id);
+        kv_->Finalize(id);
         kv_ = NULL;
         SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }

@@ -29,7 +29,7 @@ namespace pdo
             Basic_KV() {}
             Basic_KV(const ByteArray& id) {}
             virtual ~Basic_KV() {}
-            virtual void Uninit(ByteArray& id) = 0;
+            virtual void Finalize(ByteArray& id) = 0;
             virtual ByteArray Get(ByteArray& key) = 0;
             virtual void Put(ByteArray& key, ByteArray& value) = 0;
             virtual void Delete(ByteArray& key) = 0;

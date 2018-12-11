@@ -53,12 +53,12 @@ pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
 pdo::state::Interpreter_KV::~Interpreter_KV()
 {
     ByteArray id;
-    kv_.Uninit(id);
+    kv_.Finalize(id);
 }
 
-void pdo::state::Interpreter_KV::Uninit(ByteArray& id)
+void pdo::state::Interpreter_KV::Finalize(ByteArray& id)
 {
-    kv_.Uninit(id);
+    kv_.Finalize(id);
 }
 
 ByteArray pdo::state::Interpreter_KV::Get(ByteArray& key)

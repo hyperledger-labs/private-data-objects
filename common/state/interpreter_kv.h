@@ -37,7 +37,7 @@ namespace pdo
             Interpreter_KV(const ByteArray& encryption_key);
             ~Interpreter_KV();
 
-            void Uninit(ByteArray& id);
+            void Finalize(ByteArray& id);
 
             void PrivilegedPut(const ByteArray& key, ByteArray& value);
             ByteArray PrivilegedGet(const ByteArray& key);

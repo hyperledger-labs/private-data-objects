@@ -1038,10 +1038,10 @@ pdo::state::State_KV::State_KV(
 
 pdo::state::State_KV::~State_KV() {
     StateBlockId id;
-    Uninit(id);
+    Finalize(id);
 }
 
-void pdo::state::State_KV::Uninit(ByteArray& outId) {
+void pdo::state::State_KV::Finalize(ByteArray& outId) {
     //flush cache first
     dn_io_.cache_flush();
 
