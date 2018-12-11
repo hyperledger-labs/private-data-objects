@@ -24,27 +24,25 @@ namespace pdo
 {
     namespace state
     {
-        class StateKV_Key
-        {
-        protected:
-            ByteArray fixed_size_key_;
-        public:
-            StateKV_Key(ByteArray& key);
-            StateKV_Key(ByteArray& key, size_t wanted_key_size);
-            const ByteArray& Get_Key();
+        enum kv_operation_e {
+                GET_OP,
+                PUT_OP,
+                DEL_OP
         };
 
+        class block_offset;
         class kv_node;
         class data_node;
+        class data_node_io;
+        class block_warehouse;
 
         class State_KV : public Basic_KV
         {
         protected:
             pdo::state::StateNode* rootNode_;
-            pdo::state::StateBlockIdArray blockIds_ = {};
             ByteArray state_encryption_key_;
-            unsigned int last_appended_data_block_num_;
-            size_t fixed_key_size_ = 0;
+            data_node_io* dn_io_;
+            block_warehouse* block_warehouse_;
 
             void serialize_block_ids();
             void deserialize_block_ids();
@@ -57,12 +55,11 @@ namespace pdo
             void get_last_datablock_id(pdo::state::StateBlockId& outId);
 
             void error_on_wrong_key_size(size_t key_size);
-            void operate(kv_node& search_kv_node, unsigned int operation, const ByteArray& kvkey, ByteArray& value);
+            void operate(kv_node& search_kv_node, kv_operation_e operation, const ByteArray& kvkey, ByteArray& value);
 
         public:
             State_KV(ByteArray& id);
             State_KV(ByteArray& id, const ByteArray& key);
-            State_KV(ByteArray& id, const ByteArray& key, const size_t fixed_key_size);
             ~State_KV();
 
             void Uninit(ByteArray& id);
@@ -70,10 +67,6 @@ namespace pdo
             ByteArray Get(ByteArray& key);
             void Put(ByteArray& key, ByteArray& value);
             void Delete(ByteArray& key);
-
-            ByteArray Get(pdo::state::StateKV_Key& statekv_key);
-            void Put(pdo::state::StateKV_Key& key, ByteArray& value);
-            void Delete(pdo::state::StateKV_Key& key);
         };
     }
 }

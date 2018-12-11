@@ -34,7 +34,10 @@ namespace pstate = pdo::state;
 
 extern pdo::state::Basic_KV* kv_;
 
-#define MAX_BIG_VALUE_LOG2_SIZE 26
+#define MAX_BIG_VALUE_LOG2_SIZE 24
+
+#define MIN_KEY_LENGTH ((1<<14) - (1<<9))
+#define MAX_KEY_LENGTH (1<<14)
 
 void test_state_kv() {
     ByteArray emptyId;
@@ -43,16 +46,17 @@ void test_state_kv() {
     size_t test_key_length = TEST_KEY_STRING_LENGTH;
     ByteArray id;
 
+//################ TEST PUT ###########################################################################################
     try
     {
         SAFE_LOG(PDO_LOG_INFO, "create empty KV store\n");
-        pstate::State_KV skv(emptyId, state_encryption_key_, test_key_length);
+        pstate::State_KV skv(emptyId, state_encryption_key_);
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start Put generator\n");
         _test_kv_put();
         kv_->Uninit(id);
         kv_ = NULL;
-        SAFE_LOG(PDO_LOG_ERROR, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
     catch (...)
     {
@@ -60,17 +64,22 @@ void test_state_kv() {
         throw;
     }
 
+//############### TEST GET ############################################################################################
     try
     {
         SAFE_LOG(PDO_LOG_INFO, "reopen KV store, id: %s\n", ByteArrayToHexEncodedString(id).c_str());
-        pstate::State_KV skv(id, state_encryption_key_, test_key_length);
+        pstate::State_KV skv(id, state_encryption_key_);
         kv_ = &skv;
         SAFE_LOG(PDO_LOG_INFO, "start Get generator\n");
         _test_kv_get();
+        SAFE_LOG(PDO_LOG_INFO, "end Get generator\n");
+
+        //######### TEST MISSING KEY ##################################################################################
         bool exception_caught = false;
         try
         {
             //this should fail
+            SAFE_LOG(PDO_LOG_INFO, "Test missing key");
             std::string missing_key(test_key_length, 'z');
             _kv_get(missing_key, "this key does not exist");
         }
@@ -85,7 +94,7 @@ void test_state_kv() {
         }
         kv_->Uninit(id);
         kv_ = NULL;
-        SAFE_LOG(PDO_LOG_ERROR, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
     catch (...)
     {
@@ -93,56 +102,90 @@ void test_state_kv() {
         throw;
     }
 
+//############### TEST VARIABLE LENGTH KEYS ###########################################################################
     try
     {
-        SAFE_LOG(PDO_LOG_INFO, "reopen KV store, id: %s\n", ByteArrayToHexEncodedString(id).c_str());
-        pstate::State_KV skv(id, state_encryption_key_, test_key_length);
-        kv_ = &skv;
-        SAFE_LOG(PDO_LOG_INFO, "start big value test\n");
-        for(int i=1; i<MAX_BIG_VALUE_LOG2_SIZE; i++) {
-            size_t value_size = (1<<i);
-            std::string big_string(value_size, 'a');
-            std::string big_string_key = std::to_string(i);
-            int prefix_pad_length = TEST_KEY_STRING_LENGTH - big_string_key.length();
-            prefix_pad_length = (prefix_pad_length<0?0:prefix_pad_length);
-            big_string_key.insert(0, prefix_pad_length, '0');
-            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
-
-            try
-            {
-                _kv_put(big_string_key, big_string);
-            }
-            catch (...)
-            {
-                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on big value");
-                throw;
-            }
-            try
-            {
-                _kv_get(big_string_key, big_string);
-            }
-            catch (...)
-            {
-                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Get operation on big value");
-                throw;
-            }
-        }
-        kv_->Uninit(id);
-        kv_ = NULL;
-        SAFE_LOG(PDO_LOG_ERROR, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
-    }
-    catch (...)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on big value");
-        throw;
-    }
-
-    try
-    {
-        SAFE_LOG(PDO_LOG_INFO, "start big value test (default fixed kv keys)\n");
+        SAFE_LOG(PDO_LOG_INFO, "start variable key length test (increasing)\n");
         pstate::State_KV skv(emptyId, state_encryption_key_);
         kv_ = &skv;
-        for(int i=1; i<MAX_BIG_VALUE_LOG2_SIZE; i++) {
+        for(int i=MIN_KEY_LENGTH; i<=MAX_KEY_LENGTH; i++) {
+            size_t key_size = i;
+            std::string variable_key(key_size, 'a');
+            std::string value(10000, 'a');
+            try
+            {
+                _kv_put(variable_key, value);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on variable key len");
+                throw;
+            }
+            try
+            {
+                _kv_get(variable_key, value);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Get operation on variable key len");
+                throw;
+            }
+        }
+        kv_->Uninit(id);
+        kv_ = NULL;
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on variable key len");
+        throw;
+    }
+
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start variable key length test (decreasing)\n");
+        pstate::State_KV skv(emptyId, state_encryption_key_);
+        kv_ = &skv;
+        for(int i=MAX_KEY_LENGTH; i>=MIN_KEY_LENGTH; i--) {
+            size_t key_size = i;
+            std::string variable_key(key_size, 'a');
+            std::string value = std::to_string(i);
+            try
+            {
+                _kv_put(variable_key, value);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put operation on variable key len");
+                throw;
+            }
+            try
+            {
+                _kv_get(variable_key, value);
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Get operation on variable key len");
+                throw;
+            }
+        }
+        kv_->Uninit(id);
+        kv_ = NULL;
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on variable key len");
+        throw;
+    }
+
+//##################### TEST BIG VALUE ################################################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start big value test\n");
+        pstate::State_KV skv(emptyId, state_encryption_key_);
+        kv_ = &skv;
+        for(int i=1; i<=MAX_BIG_VALUE_LOG2_SIZE; i++) {
             size_t value_size = (1<<i);
             std::string big_string(value_size, 'a');
             std::string big_string_key = std::to_string(i);
@@ -169,11 +212,60 @@ void test_state_kv() {
         }
         kv_->Uninit(id);
         kv_ = NULL;
-        SAFE_LOG(PDO_LOG_ERROR, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
     }
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR, "error testing KV on big value");
         throw;
     }
+
+//################## TEST DELETE ######################################################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test delete -- errors expected\n");
+        pstate::State_KV skv(emptyId, state_encryption_key_);
+        kv_ = &skv;
+        for(int i=0; i<1000; i++) {
+            std::string val = std::to_string(i);
+            std::string key = std::to_string(i);
+            try
+            {
+                _kv_put(key, val);
+                _kv_get(key, val); //double check
+            }
+            catch (...)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error testing KV Put/Get operation for delete");
+                throw;
+            }
+            _kv_delete(key);
+            //######### TEST MISSING KEY ##################################################################################
+            bool exception_caught = false;
+            try
+            {
+                //this should fail
+                _kv_get(key, val);
+            }
+            catch(...)
+            {
+                exception_caught = true;
+                SAFE_LOG(PDO_LOG_INFO, "any error is expected!\n");
+            }
+            if(! exception_caught) {
+                SAFE_LOG(PDO_LOG_ERROR, "exception not caught -- key not deleted\n");
+                throw;
+            }
+        }
+
+        kv_->Uninit(id);
+        kv_ = NULL;
+        SAFE_LOG(PDO_LOG_INFO, "uninit, KV id: %s\n", ByteArrayToHexEncodedString(id).c_str());
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on delete\n");
+        throw;
+    }
+    SAFE_LOG(PDO_LOG_INFO, "Test success.\n");
 }

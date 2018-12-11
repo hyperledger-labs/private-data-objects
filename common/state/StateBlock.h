@@ -31,10 +31,15 @@ namespace pdo {
         typedef std::vector<StateBlockId> StateBlockIdArray;
         typedef std::vector<StateBlockIdRef> StateBlockIdRefArray;
 
+        typedef std::list<StateBlockId> StateBlockIdList;
+
         StateBlockIdArray StateBlockIdRefArray_To_StateBlockIdArray(StateBlockIdRefArray& refArray);
+        void StateBlockIdRefArray_To_StateBlockIdList(
+                StateBlockIdRefArray& refArray,
+                StateBlockIdList& outList);
         ByteArray StateBlockIdRefArray_To_ByteArray(StateBlockIdRefArray& refArray);
 
-        void StateBlockIdArray_To_ByteArray(pdo::state::StateBlockIdArray& array, ByteArray& outB);
-        void ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, pdo::state::StateBlockIdArray& outA);
+        void StateBlockIdArray_To_ByteArray(StateBlockIdArray& array, ByteArray& outB);
+        void ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, StateBlockIdArray& outA);
     }
 }

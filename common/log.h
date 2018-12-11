@@ -18,14 +18,14 @@
 #include "pdo_error.h"
 
 #ifdef DEBUG
-#define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
+    #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
 #else
-#define SAFE_LOG(LEVEL, FMT, ...)
+    #define SAFE_LOG(LEVEL, FMT, ...)
 #endif
 
 namespace pdo
 {
-    void Log(pdo_log_level_t logLevel, const char* message, ...);
+    extern void Log(pdo_log_level_t logLevel, const char* message, ...);
 }
 
 void Log(int level, const char* fmt, ...);

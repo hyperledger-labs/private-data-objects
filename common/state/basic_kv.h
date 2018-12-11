@@ -38,10 +38,10 @@ namespace pdo
         {
         public:
             Basic_KV_Plus(ByteArray& id) : Basic_KV(id) {}
-            virtual ByteArray PrivilegedGet(ByteArray& key) = 0;
-            virtual void PrivilegedPut(ByteArray& key, ByteArray& value) = 0;
-            virtual ByteArray UnprivilegedGet(ByteArray& key) = 0;
-            virtual void UnprivilegedPut(ByteArray& key, ByteArray& value) = 0;
+            virtual ByteArray PrivilegedGet(const ByteArray& key) = 0;
+            virtual void PrivilegedPut(const ByteArray& key, ByteArray& value) = 0;
+            virtual ByteArray UnprivilegedGet(const ByteArray& key) = 0;
+            virtual void UnprivilegedPut(const ByteArray& key, ByteArray& value) = 0;
         };
     }
 }
