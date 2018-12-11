@@ -13,15 +13,12 @@
  * limitations under the License.
  */
 
-#include "basic_kv.h"
 #include "state.h"
 #include "types.h"
 #include <string>
 #include "error.h"
-#include "StateUtils.h"
-#include "StateBlock.h"
-#include "state_kv.h"
 #include "_kv_gen.h"
+#include "StateUtils.h"
 
 #if _UNTRUSTED_ == 1
     #include <stdio.h>
@@ -267,5 +264,22 @@ void test_state_kv() {
         SAFE_LOG(PDO_LOG_ERROR, "error testing KV on delete\n");
         throw;
     }
+
+//################## TEST INEXISTENT STATE ############################################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test inexistent state -- errors expected\n");
+        StateBlockId badId(32, 2);
+        pstate::State_KV skv(badId, state_encryption_key_);
+        //should not get here
+        SAFE_LOG(PDO_LOG_ERROR, "error testing inexistent KV\n");
+        throw;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "success, exception caught for inexistent KV\n");
+        throw;
+    }
+
     SAFE_LOG(PDO_LOG_INFO, "Test success.\n");
 }
