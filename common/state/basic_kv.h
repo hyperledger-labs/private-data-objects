@@ -30,9 +30,9 @@ namespace pdo
             Basic_KV(const ByteArray& id) {}
             virtual ~Basic_KV() {}
             virtual void Finalize(ByteArray& id) = 0;
-            virtual ByteArray Get(ByteArray& key) = 0;
-            virtual void Put(ByteArray& key, ByteArray& value) = 0;
-            virtual void Delete(ByteArray& key) = 0;
+            virtual ByteArray Get(const ByteArray& key) = 0;
+            virtual void Put(const ByteArray& key, const ByteArray& value) = 0;
+            virtual void Delete(const ByteArray& key) = 0;
         };
 
         class Basic_KV_Plus : public Basic_KV
@@ -41,9 +41,9 @@ namespace pdo
             Basic_KV_Plus() : Basic_KV() {}
             Basic_KV_Plus(const ByteArray& id) : Basic_KV(id) {}
             virtual ByteArray PrivilegedGet(const ByteArray& key) = 0;
-            virtual void PrivilegedPut(const ByteArray& key, ByteArray& value) = 0;
+            virtual void PrivilegedPut(const ByteArray& key, const ByteArray& value) = 0;
             virtual ByteArray UnprivilegedGet(const ByteArray& key) = 0;
-            virtual void UnprivilegedPut(const ByteArray& key, ByteArray& value) = 0;
+            virtual void UnprivilegedPut(const ByteArray& key, const ByteArray& value) = 0;
         };
     }
 }

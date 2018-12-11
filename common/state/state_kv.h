@@ -184,9 +184,9 @@ namespace pdo
 
             void Finalize(ByteArray& id);
 
-            ByteArray Get(ByteArray& key);
-            void Put(ByteArray& key, ByteArray& value);
-            void Delete(ByteArray& key);
+            ByteArray Get(const ByteArray& key);
+            void Put(const ByteArray& key, const ByteArray& value);
+            void Delete(const ByteArray& key);
         };
     }
 }

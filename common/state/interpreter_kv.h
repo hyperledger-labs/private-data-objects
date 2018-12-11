@@ -27,9 +27,9 @@ namespace pdo
         protected:
             State_KV kv_;
 
-            ByteArray Get(ByteArray& key);
-            void Put(ByteArray& key, ByteArray& value);
-            void Delete(ByteArray& key);
+            ByteArray Get(const ByteArray& key);
+            void Put(const ByteArray& key, const ByteArray& value);
+            void Delete(const ByteArray& key);
 
         public:
             Interpreter_KV(StateBlockId& id);
@@ -39,11 +39,11 @@ namespace pdo
 
             void Finalize(ByteArray& id);
 
-            void PrivilegedPut(const ByteArray& key, ByteArray& value);
+            void PrivilegedPut(const ByteArray& key, const ByteArray& value);
             ByteArray PrivilegedGet(const ByteArray& key);
             void PrivilegedDelete(const ByteArray& key);
 
-            void UnprivilegedPut(const ByteArray& key, ByteArray& value);
+            void UnprivilegedPut(const ByteArray& key, const ByteArray& value);
             ByteArray UnprivilegedGet(const ByteArray& key);
             void UnprivilegedDelete(const ByteArray& key);
         };

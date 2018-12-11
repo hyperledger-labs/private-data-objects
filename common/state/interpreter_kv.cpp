@@ -61,17 +61,17 @@ void pdo::state::Interpreter_KV::Finalize(ByteArray& id)
     kv_.Finalize(id);
 }
 
-ByteArray pdo::state::Interpreter_KV::Get(ByteArray& key)
+ByteArray pdo::state::Interpreter_KV::Get(const ByteArray& key)
 {
     return kv_.Get(key);
 }
 
-void pdo::state::Interpreter_KV::Put(ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::Put(const ByteArray& key, const ByteArray& value)
 {
     kv_.Put(key, value);
 }
 
-void pdo::state::Interpreter_KV::Delete(ByteArray& key)
+void pdo::state::Interpreter_KV::Delete(const ByteArray& key)
 {
     kv_.Delete(key);
 }
@@ -84,7 +84,7 @@ ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
     return Get(privileged_key);
 }
 
-void pdo::state::Interpreter_KV::PrivilegedPut(const ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::PrivilegedPut(const ByteArray& key, const ByteArray& value)
 {
     ByteArray privileged_key = to_privileged_key(key);
     Put(privileged_key, value);
@@ -102,7 +102,7 @@ ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(const ByteArray& key)
     return Get(unprivileged_key);
 }
 
-void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, const ByteArray& value)
 {
     ByteArray unprivileged_key = to_unprivileged_key(key);
     Put(unprivileged_key, value);

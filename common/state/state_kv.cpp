@@ -308,7 +308,7 @@ namespace pdo
             static void do_write_value(
                             data_node_io& dn_io,
                             trie_node_header_t* header,
-                            ByteArray& value,
+                            const ByteArray& value,
                             block_offset& outBlockOffset) {
                 unsigned int bytes_written, total_bytes_written = 0;
                 ByteArray baOffset;
@@ -986,7 +986,7 @@ void pdo::state::block_warehouse::get_last_datablock_id(pdo::state::StateBlockId
     outId = blockIds_[blockIds_.size() - 1];
 }
 
-// #################### END OF INTERNAL TOOLS #################################
+// #################### END OF INTERNAL TOOLS #########################################################################
 
 pdo::state::State_KV::State_KV(ByteArray& id) : Basic_KV(id), dn_io_(data_node_io(empty_state_encryption_key_)) {
 }
@@ -1058,7 +1058,7 @@ void pdo::state::State_KV::Finalize(ByteArray& outId) {
     outId = rootNode_.GetBlockId();
 }
 
-ByteArray pstate::State_KV::Get(ByteArray& key) {
+ByteArray pstate::State_KV::Get(const ByteArray& key) {
     //perform operation
     ByteArray value;
     const ByteArray& kvkey = key;
@@ -1066,13 +1066,14 @@ ByteArray pstate::State_KV::Get(ByteArray& key) {
     return value;
 }
 
-void pstate::State_KV::Put(ByteArray& key, ByteArray& value) {
+void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value) {
     //perform operation
     const ByteArray& kvkey = key;
-    trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, value);
+    ByteArray v = value;
+    trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, v);
 }
 
-void pstate::State_KV::Delete(ByteArray& key) {
+void pstate::State_KV::Delete(const ByteArray& key) {
     //perform operation
     ByteArray value;
     const ByteArray& kvkey = key;
