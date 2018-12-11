@@ -26,7 +26,7 @@
 #include "log.h"
 
 #define FIXED_DATA_NODE_BYTE_SIZE (1<<13) // 8 KB
-#define CACHE_SIZE (1<<23) // 8 MB
+#define CACHE_SIZE (1<<22) // 4 MB
 #define BLOCK_CACHE_MAX_ITEMS (CACHE_SIZE / FIXED_DATA_NODE_BYTE_SIZE)
 
 namespace pstate = pdo::state;
@@ -581,7 +581,7 @@ ByteArray pstate::data_node::make_offset(unsigned int block_num, unsigned int by
     return ba_block_num;
 }
 
-pstate::data_node::data_node(unsigned int block_num) {
+pstate::data_node::data_node(unsigned int block_num) : data_(FIXED_DATA_NODE_BYTE_SIZE) {
     block_num_ = block_num;
     free_bytes_ = FIXED_DATA_NODE_BYTE_SIZE - sizeof(unsigned int) - sizeof(unsigned int);
     data_.resize(FIXED_DATA_NODE_BYTE_SIZE);
@@ -939,17 +939,17 @@ void pstate::data_node_io::cache_modified(unsigned int block_num) {
     bce.modified = true;
 }
 
-void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode* node) {
-    node->ClearChildren();
+void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode& node) {
+    node.ClearChildren();
     for(unsigned int i=0; i<blockIds_.size(); i++) {
-        node->AppendChildId(blockIds_[i]);
+        node.AppendChildId(blockIds_[i]);
     }
-    node->BlockifyChildren();
+    node.BlockifyChildren();
 }
 
-void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode* node) {
-    node->UnBlockifyChildren();
-    StateBlockIdRefArray refArray = node->GetChildrenBlocks();
+void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode& node) {
+    node.UnBlockifyChildren();
+    StateBlockIdRefArray refArray = node.GetChildrenBlocks();
     blockIds_ = StateBlockIdRefArray_To_StateBlockIdArray(refArray);
 }
 
@@ -992,45 +992,48 @@ pdo::state::State_KV::State_KV(ByteArray& id) : Basic_KV(id), dn_io_(data_node_i
 }
 
 pdo::state::State_KV::State_KV(
-        ByteArray& id,
+        const ByteArray& key) :
+            Basic_KV(),
+            state_encryption_key_(key),
+            dn_io_(data_node_io(key)) {
+    //initialize first data node
+    dn_io_.block_warehouse_.last_appended_data_block_num_ = dn_io_.block_warehouse_.get_root_block_num();
+    data_node dn(dn_io_.block_warehouse_.last_appended_data_block_num_);
+    StateBlockId dn_id;
+    dn.unload(state_encryption_key_, dn_id);
+    dn_io_.block_warehouse_.add_datablock_id(dn_id);
+
+    //cache and pin first data node
+    dn_io_.init_append_data_node();
+
+    //init trie root node in first data node
+    trie_node::init_trie_root(dn_io_);
+
+    //add new data node
+    dn_io_.add_and_init_append_data_node();
+    //pin in cache the first one
+    dn_io_.cache_pin(dn_io_.block_warehouse_.get_root_block_num());
+}
+
+pdo::state::State_KV::State_KV(
+        const StateBlockId& id,
         const ByteArray& key) :
             Basic_KV(id),
             state_encryption_key_(key),
             dn_io_(data_node_io(key)) {
-    if(id.empty()) { //no id, create root
-        //root node will contain the list of block/ids (first of list is root block, last one is last data node)
-        rootNode_ = new StateNode(*new StateBlockId(), *new StateBlock());
+    //retrieve main state block, root node and last data node
+    rootNode_.GetBlockId() = id;
+    state_status_t ret;
+    ret = sebio_fetch(id, SEBIO_NO_CRYPTO, rootNode_.GetBlock());
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
 
-        //initialize first data node
-        dn_io_.block_warehouse_.last_appended_data_block_num_ = dn_io_.block_warehouse_.get_root_block_num();
-        data_node dn(dn_io_.block_warehouse_.last_appended_data_block_num_);
-        StateBlockId dn_id;
-        dn.unload(state_encryption_key_, dn_id);
-        dn_io_.block_warehouse_.add_datablock_id(dn_id);
+    //deserialize blocks ids in root block
+    dn_io_.block_warehouse_.deserialize_block_ids(rootNode_);
 
-        //cache and pin first data node
-        dn_io_.init_append_data_node();
-
-        //init trie root node in first data node
-        trie_node::init_trie_root(dn_io_);
-
-        //add new data node
-        dn_io_.add_and_init_append_data_node();
-        //pin in cache the first one
-        dn_io_.cache_pin(dn_io_.block_warehouse_.get_root_block_num());
-    }
-    else { //retrieve main state block, root node and last data node
-        state_status_t ret;
-        StateBlock* p_block = new StateBlock();
-        ret = sebio_fetch(id, SEBIO_NO_CRYPTO, *p_block);
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
-        rootNode_ = new StateNode(*new StateBlockId(id), *p_block);
-        dn_io_.block_warehouse_.deserialize_block_ids(rootNode_);
-        //retrieve last data block num from last appended data block
-        dn_io_.block_warehouse_.last_appended_data_block_num_ = dn_io_.block_warehouse_.blockIds_.size()-1;
-        dn_io_.init_append_data_node();
-    }
+    //retrieve last data block num from last appended data block
+    dn_io_.block_warehouse_.last_appended_data_block_num_ = dn_io_.block_warehouse_.blockIds_.size()-1;
+    dn_io_.init_append_data_node();
 }
 
 pdo::state::State_KV::~State_KV() {
@@ -1039,24 +1042,20 @@ pdo::state::State_KV::~State_KV() {
 }
 
 void pdo::state::State_KV::Uninit(ByteArray& outId) {
-    StateBlockId retId;
-    if(rootNode_ != NULL) {
-        //flush cache first
-        dn_io_.cache_flush();
+    //flush cache first
+    dn_io_.cache_flush();
 
-        //serialize block ids
-        dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
-        //evict root block
-        ByteArray baBlock = rootNode_->GetBlock();
-        state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_->GetBlockId());
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
-        //output the root id
-        retId = rootNode_->GetBlockId();
-        outId = retId;
-        delete rootNode_;
-        rootNode_ = NULL;
-    }
+    //serialize block ids
+    dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
+
+    //evict root block
+    ByteArray baBlock = rootNode_.GetBlock();
+    state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_.GetBlockId());
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
+
+    //output the root id
+    outId = rootNode_.GetBlockId();
 }
 
 ByteArray pstate::State_KV::Get(ByteArray& key) {
@@ -1070,16 +1069,7 @@ ByteArray pstate::State_KV::Get(ByteArray& key) {
 void pstate::State_KV::Put(ByteArray& key, ByteArray& value) {
     //perform operation
     const ByteArray& kvkey = key;
-    try
-    {
-        trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, value);
-    }
-    catch(const std::exception& e) {
-        throw error::RuntimeError(e.what());
-    }
-    catch(...) {
-        throw error::RuntimeError("Put failed");
-    }
+    trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, value);
 }
 
 void pstate::State_KV::Delete(ByteArray& key) {

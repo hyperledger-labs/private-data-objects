@@ -43,8 +43,12 @@ static ByteArray to_unprivileged_key(const ByteArray& key)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id) {}
 
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id, const ByteArray& encryption_key)
+pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& id, const ByteArray& encryption_key)
     : Basic_KV_Plus(id), kv_(id, encryption_key) {}
+
+pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
+    : Basic_KV_Plus(), kv_(encryption_key) {
+}
 
 pdo::state::Interpreter_KV::~Interpreter_KV()
 {
@@ -94,7 +98,6 @@ void pdo::state::Interpreter_KV::PrivilegedDelete(const ByteArray& key)
 
 ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(const ByteArray& key)
 {
-    SAFE_LOG(PDO_LOG_DEBUG, "get unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
     ByteArray unprivileged_key = to_unprivileged_key(key);
     return Get(unprivileged_key);
 }
@@ -102,7 +105,6 @@ ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(const ByteArray& key)
 void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, ByteArray& value)
 {
     ByteArray unprivileged_key = to_unprivileged_key(key);
-    SAFE_LOG(PDO_LOG_DEBUG, "put unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
     Put(unprivileged_key, value);
 }
 

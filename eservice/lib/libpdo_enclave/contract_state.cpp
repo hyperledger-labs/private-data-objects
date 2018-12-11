@@ -119,8 +119,7 @@ void ContractState::Unpack(
         {
             SAFE_LOG(PDO_LOG_DEBUG, "No state to unpack");
             /* here the initial state is created */
-            ByteArray emptyId;
-            state_ = new pdo::state::Interpreter_KV(emptyId, state_encryption_key_);
+            state_ = new pdo::state::Interpreter_KV(state_encryption_key_);
 
             // add the contract identity and the code hash into the
             // newly created key value store
@@ -137,6 +136,17 @@ void ContractState::Unpack(
                 state_->PrivilegedPut(k, v);
             }
         }
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
+        if (state_ != NULL)
+        {
+            state_->Uninit(input_block_id_);
+            state_ = NULL;
+        }
+
+        throw;
     }
     catch (...)
     {

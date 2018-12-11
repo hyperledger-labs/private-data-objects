@@ -26,7 +26,8 @@ namespace pdo
         protected:
             void *handle;
         public:
-            Basic_KV(ByteArray& id) {}
+            Basic_KV() {}
+            Basic_KV(const ByteArray& id) {}
             virtual ~Basic_KV() {}
             virtual void Uninit(ByteArray& id) = 0;
             virtual ByteArray Get(ByteArray& key) = 0;
@@ -37,7 +38,8 @@ namespace pdo
         class Basic_KV_Plus : public Basic_KV
         {
         public:
-            Basic_KV_Plus(ByteArray& id) : Basic_KV(id) {}
+            Basic_KV_Plus() : Basic_KV() {}
+            Basic_KV_Plus(const ByteArray& id) : Basic_KV(id) {}
             virtual ByteArray PrivilegedGet(const ByteArray& key) = 0;
             virtual void PrivilegedPut(const ByteArray& key, ByteArray& value) = 0;
             virtual ByteArray UnprivilegedGet(const ByteArray& key) = 0;

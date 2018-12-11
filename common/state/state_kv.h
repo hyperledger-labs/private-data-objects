@@ -32,8 +32,8 @@ namespace pdo
 
             block_warehouse(const ByteArray& state_encryption_key) : state_encryption_key_(state_encryption_key) {}
 
-            void serialize_block_ids(pdo::state::StateNode* node);
-            void deserialize_block_ids(pdo::state::StateNode* node);
+            void serialize_block_ids(pdo::state::StateNode& node);
+            void deserialize_block_ids(pdo::state::StateNode& node);
             void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
             void update_datablock_id(unsigned int data_block_num, pdo::state::StateBlockId& newId);
             void add_block_id(pdo::state::StateBlockId& id);
@@ -172,13 +172,14 @@ namespace pdo
         class State_KV : public Basic_KV
         {
         protected:
-            pdo::state::StateNode* rootNode_;
+            pdo::state::StateNode rootNode_;
             const ByteArray state_encryption_key_;
             data_node_io dn_io_;
 
         public:
-            State_KV(ByteArray& id);
-            State_KV(ByteArray& id, const ByteArray& key);
+            State_KV(StateBlockId& id);
+            State_KV(const StateBlockId& id, const ByteArray& key);
+            State_KV(const ByteArray& key);
             ~State_KV();
 
             void Uninit(ByteArray& id);

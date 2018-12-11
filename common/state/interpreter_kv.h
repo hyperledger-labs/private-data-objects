@@ -32,8 +32,9 @@ namespace pdo
             void Delete(ByteArray& key);
 
         public:
-            Interpreter_KV(ByteArray& id);
-            Interpreter_KV(ByteArray& id, const ByteArray& encryption_key);
+            Interpreter_KV(StateBlockId& id);
+            Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
+            Interpreter_KV(const ByteArray& encryption_key);
             ~Interpreter_KV();
 
             void Uninit(ByteArray& id);
