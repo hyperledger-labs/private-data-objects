@@ -24,6 +24,32 @@ namespace pdo
 {
     namespace state
     {
+        struct __attribute__((packed)) block_offset_t {
+            unsigned int block_num;
+            unsigned int bytes; //usually treated as an offset within a block
+        };
+
+        bool operator==(const block_offset_t& lhs, const block_offset_t& rhs);
+        bool operator!=(const block_offset_t& lhs, const block_offset_t& rhs);
+
+        const block_offset_t empty_block_offset = {0, 0};
+
+        class block_offset {
+            public:
+            block_offset_t block_offset_ = empty_block_offset;
+
+            static unsigned int offset_size();
+            static unsigned int serialized_offset_to_block_num(const ByteArray& serialized_offset);
+            static unsigned int serialized_offset_to_bytes(const ByteArray& serialized_offset);
+            static ByteArray to_ByteArray(const block_offset_t bo);
+            void serialize_offset(ByteArray& outBuffer);
+            void deserialize_offset(const ByteArray& inBuffer);
+            void deserialize_offset(const block_offset_t bo);
+            void empty();
+            bool is_empty();
+            ByteArray to_ByteArray();
+        };
+
         class block_warehouse {
             public:
             pdo::state::StateBlockIdArray blockIds_ = {};
@@ -42,13 +68,6 @@ namespace pdo
             void get_last_datablock_id(pdo::state::StateBlockId& outId);
             unsigned int get_root_block_num();
         };
-
-        struct __attribute__((packed)) block_offset_t {
-            unsigned int block_num;
-            unsigned int bytes; //usually treated as an offset within a block
-        };
-
-        const block_offset_t empty_block_offset = {0, 0};
 
 // in a trie node, this is the max length of a piece of key that can be indexed
 // (SEE trie_node_header_t struct below)
@@ -83,6 +102,12 @@ namespace pdo
         const trie_node_h_with_n_t empty_trie_node_h_with_n   = {empty_trie_header_with_n, empty_block_offset};
         const trie_node_h_with_c_t empty_trie_node_h_with_c   = {empty_trie_header_with_c, empty_block_offset};
         const trie_node_h_with_nc_t empty_trie_node_h_with_nc = {empty_trie_header_with_nc, empty_block_offset};
+
+        enum kv_operation_e {
+                GET_OP,
+                PUT_OP,
+                DEL_OP
+        };
 
         class data_node {
             private:
@@ -169,14 +194,98 @@ namespace pdo
             void cache_modified(unsigned int block_num);
         };
 
+        class trie_node
+        {
+            public:
+            static block_offset_t* goto_next_offset(trie_node_header_t* header);
+            static block_offset_t* goto_child_offset(trie_node_header_t* header);
+            static uint8_t* goto_key_chunk(trie_node_header_t* header);
+
+            static void resize_key_chunk(trie_node_header_t* header, unsigned int new_size);
+            static void delete_child_offset(trie_node_header_t* header);
+            static void delete_next_offset(trie_node_header_t* header);
+
+            static unsigned int shared_prefix_length(
+                                    const uint8_t* stored_chunk,
+                                    size_t sc_length,
+                                    const uint8_t* key_chunk,
+                                    size_t kc_length);
+
+            static void delete_trie_node(trie_node_header_t* header);
+            static void delete_trie_node_childless(trie_node_header_t* header, block_offset& out_bo_new);
+            static void update_trie_node_next(
+                                trie_node_header_t* header,
+                                block_offset_t* bo_next,
+                                block_offset& out_bo_new);
+            static void update_trie_node_child(
+                                trie_node_header_t* header,
+                                block_offset_t* bo_child,
+                                block_offset& out_bo_new);
+
+            static void do_operate_trie_child(
+                            data_node_io& dn_io,
+                            trie_node_header_t* trie_node_header,
+                            const kv_operation_e operation,
+                            const unsigned int depth,
+                            const ByteArray& kvkey,
+                            ByteArray& value,
+                            block_offset& outBlockOffset);
+            static void do_operate_trie_next(
+                            data_node_io& dn_io,
+                            trie_node_header_t* trie_node_header,
+                            const kv_operation_e operation,
+                            const unsigned int depth,
+                            const ByteArray& kvkey,
+                            ByteArray& value,
+                            block_offset& outBlockOffset);
+
+            static void do_write_value(
+                            data_node_io& dn_io,
+                            trie_node_header_t* header,
+                            const ByteArray& value,
+                            block_offset& outBlockOffset);
+            static void do_read_value(data_node_io& dn_io, trie_node_header_t* trie_node_header, ByteArray& value);
+            static void do_delete(trie_node_header_t* header);
+
+            static void do_split_trie_node(
+                            data_node_io& dn_io,
+                            trie_node_header_t* header,
+                            unsigned int spl);
+            static size_t new_trie_node_size();
+
+            static trie_node_header_t* append_trie_node(
+                    data_node_io& dn_io,
+                    const ByteArray& kvkey,
+                    const unsigned int key_begin,
+                    const unsigned int key_end,
+                    block_offset& outBlockOffset);
+
+            static void operate_trie(
+                    data_node_io& dn_io,
+                    trie_node_header_t* trie_node_header,
+                    const kv_operation_e operation,
+                    const unsigned int depth,
+                    const ByteArray& kvkey,
+                    ByteArray& value,
+                    block_offset& outBlockOffset);
+            static void init_trie_root(data_node_io& dn_io);
+            static void operate_trie_root(
+                            data_node_io& dn_io,
+                            const kv_operation_e operation,
+                            const ByteArray& kvkey,
+                            ByteArray& value);
+        };
+
+        const ByteArray empty_state_encryption_key_ = ByteArray(16, 0);
+
         class State_KV : public Basic_KV
         {
-        protected:
+            protected:
             pdo::state::StateNode rootNode_;
             const ByteArray state_encryption_key_;
             data_node_io dn_io_;
 
-        public:
+            public:
             State_KV(StateBlockId& id);
             State_KV(const StateBlockId& id, const ByteArray& key);
             State_KV(const ByteArray& key);

@@ -150,14 +150,7 @@ void ContractState::Unpack(
     }
     catch (...)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "unable to unpack contract state");
-
-        if (state_ != NULL)
-        {
-            state_->Finalize(input_block_id_);
-            state_ = NULL;
-        }
-
+        SAFE_LOG(PDO_LOG_ERROR, "error, an unknown exception in contract state");
         throw;
     }
 }

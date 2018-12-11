@@ -22,8 +22,16 @@
 namespace pstate = pdo::state;
 
 pdo::state::StateNode::StateNode() {
-    blockId_ = new StateBlockId();
-    stateBlock_ = new StateBlock();
+    try
+    {
+        blockId_ = new StateBlockId();
+        stateBlock_ = new StateBlock();
+    }
+    catch(...)
+    {
+        std::string msg("error allicating state node");
+        throw pdo::error::RuntimeError(msg);
+    }
 }
 
 pdo::state::StateNode::StateNode(StateBlockId& blockId, StateBlock& stateBlock) {
@@ -142,8 +150,16 @@ void pdo::state::StateNode::UnBlockifyChildren() {
     pdo::error::ThrowIfNull(j_block_ids_array, "Failed to parse the block ids, expecting array");
     int block_ids_count = json_array_get_count(j_block_ids_array);
     for(int i=0; i<block_ids_count; i++) {
-        ChildrenArray_.push_back(new StateBlockId(Base64EncodedStringToByteArray(
-                                                    json_array_get_string(j_block_ids_array, i))));
+        try
+        {
+            ChildrenArray_.push_back(new StateBlockId(Base64EncodedStringToByteArray(
+                                                        json_array_get_string(j_block_ids_array, i))));
+        }
+        catch(...)
+        {
+            std::string msg("error allocating children in state node");
+            throw pdo::error::RuntimeError(msg);
+        }
     }
 }
 
