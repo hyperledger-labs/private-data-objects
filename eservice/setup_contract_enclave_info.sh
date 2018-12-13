@@ -14,31 +14,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
+if [[ $PY3_VERSION -lt 5 ]]; then
+    echo activate python3 first
+    exit
+fi
 
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/..)"
 
-eservice_enclave_info_file=$CONTRACTHOME"/data/EServiceEnclaveInfo.tmp"
-template_file="../pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template"
-actual_file="../pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp"
+function yell {
+    echo "$0: $*" >&2;
+}
+
+function die {
+    yell "$*"
+    exit 111
+}
+
+function try {
+    "$@" || die "operation failed: $*"
+}
+
+template_file="${SRCDIR}/pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template"
+actual_file="${SRCDIR}/pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp"
+eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+
+function cleanup {
+    yell "Clean up temporary files"
+    rm -f ${eservice_enclave_info_file}
+}
+
+trap cleanup EXIT
 
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
-Store(){
-    echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
-    python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file
-    ret=$?
-    if [[ $ret -ne 0 ]]; then
-        echo "Failed to run eservice to retrieve enclave information - is the virtual environment active?"
-        exit $ret
-    fi
+function Store {
+    yell "Compute the enclave information"
+    PYTHONPATH= try python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file --loglevel warn
 }
 
 # Load MR_ENCLAVE to be built into PService
-Load(){
-    echo "Load MR_ENCLAVE into PLACEMARK at "$actual_file
-    if [ ! -f $eservice_enclave_info_file ]; then
-        echo "Load failed! eservice_enclave_info_file not found!"
+function Load {
+    yell Load MR_ENCLAVE into PLACEMARK at $(basename ${actual_file})
+    if [ ! -f ${eservice_enclave_info_file} ]; then
+        yell Load failed! eservice_enclave_info_file not found!
     else
         cmd=`echo "sed 's/MR_ENCLAVE_PLACEMARK/\`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`/' < $template_file > $actual_file"`
-        eval $cmd
+        try eval $cmd
     fi
 }
 
@@ -46,5 +68,5 @@ if [ "$SGX_MODE" = "HW" ]; then
     Store
     Load
 else
-    echo "This script is only necessary when SGX_MODE is set to HW"
+    yell This script is only necessary when SGX_MODE is set to HW
 fi
