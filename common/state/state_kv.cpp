@@ -25,6 +25,24 @@
 #include "state.h"
 #include "types.h"
 
+#if _UNTRUSTED_
+#define THROW_EXCEPTION_ON_STACK_FULL(p)
+#else
+extern "C" {
+bool is_stack_addr(void* p, size_t size);
+}
+
+#define FAILURE_STACK_ZONE_BYTES 0x3000
+
+#define THROW_EXCEPTION_ON_STACK_FULL(p)                               \
+    {                                                                  \
+        if (!is_stack_addr((uint8_t*)p - FAILURE_STACK_ZONE_BYTES, 1)) \
+        {                                                              \
+            throw pdo::error::RuntimeError("stack full");              \
+        }                                                              \
+    }
+#endif
+
 #define FIXED_DATA_NODE_BYTE_SIZE (1 << 13)  // 8 KB
 #define CACHE_SIZE (1 << 22)                 // 4 MB
 #define BLOCK_CACHE_MAX_ITEMS (CACHE_SIZE / FIXED_DATA_NODE_BYTE_SIZE)
@@ -332,6 +350,9 @@ void pstate::trie_node::do_write_value(data_node_io& dn_io,
         !header->hasChild, "write value, header must have been created with child");
     update_trie_node_child(header, &child_bo.block_offset_, outBlockOffset);
 
+    // mark cache item as modified
+    dn_io.cache_modified(child_bo.block_offset_.block_num);
+
     // keep writing if necessary
     while (total_bytes_written < value.size())
     {
@@ -449,6 +470,10 @@ void pstate::trie_node::operate_trie(data_node_io& dn_io,
     trie_node_header_t* current_tnh;
     ByteArray returnOffset;
     unsigned int cur_thn_block_num;
+
+#if !_UNTRUSTED_
+    THROW_EXCEPTION_ON_STACK_FULL(&current_tnh)
+#endif
 
     // first, create the node if necessary, or fail
     if (trie_node_header == NULL)
@@ -584,6 +609,9 @@ void pstate::trie_node::operate_trie_root(
     bool current_tnh_modified = !(bo_next_prev == *goto_next_offset(trie_root));
     // release block in cache
     dn_io.cache_done(root_block_num, current_tnh_modified);
+
+    // operation succeeded: keep cache and sync modified items with block store
+    dn_io.cache_sync();
 }
 
 ByteArray pstate::data_node::make_offset(unsigned int block_num, unsigned int bytes_off)
@@ -847,6 +875,7 @@ void pstate::data_node_io::add_and_init_append_data_node()
 
     // allocate and initialized data node
     append_dn_ = cache_slots_.allocate();
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(!append_dn_, "slot allocate, null pointer");
     *append_dn_ = data_node(++block_warehouse_.last_appended_data_block_num_);
 
     // put and pin it in cache
@@ -891,26 +920,31 @@ void pstate::data_node_io::cache_replacement_policy()
     }
 }
 
-void pstate::data_node_io::cache_flush_entry(unsigned int block_num)
+void pstate::data_node_io::cache_drop_entry(unsigned int block_num)
 {
     std::map<unsigned int, block_cache_entry_t>::iterator it;
-
     it = block_cache_.find(block_num);
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        it == block_cache_.end(), "cache flush entry, entry not found");
-
     block_cache_entry_t& bce = it->second;
-
-    if (bce.modified)
-    {
-        StateBlockId new_data_node_id;
-        bce.dn->unload(block_warehouse_.state_encryption_key_, new_data_node_id);
-        block_warehouse_.update_datablock_id(block_num, new_data_node_id);
-    }
-
     cache_slots_.release(&(bce.dn));
-
     block_cache_.erase(it);
+}
+
+void pstate::data_node_io::cache_drop()
+{
+    std::map<unsigned int, block_cache_entry_t>::iterator it;
+    while (!block_cache_.empty())
+    {
+        it = block_cache_.begin();
+        cache_drop_entry(it->first);
+    }
+}
+
+void pstate::data_node_io::cache_flush_entry(unsigned int block_num)
+{
+    // sync
+    cache_sync_entry(block_num);
+    // drop
+    cache_drop_entry(block_num);
 }
 
 void pstate::data_node_io::cache_flush()
@@ -920,6 +954,36 @@ void pstate::data_node_io::cache_flush()
     {
         it = block_cache_.begin();
         cache_flush_entry(it->first);
+    }
+}
+
+void pstate::data_node_io::cache_sync_entry(unsigned int block_num)
+{
+    std::map<unsigned int, block_cache_entry_t>::iterator it;
+
+    it = block_cache_.find(block_num);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        it == block_cache_.end(), "cache sync entry, entry not found");
+
+    block_cache_entry_t& bce = it->second;
+
+    if (bce.modified)
+    {
+        StateBlockId new_data_node_id;
+        bce.dn->unload(block_warehouse_.state_encryption_key_, new_data_node_id);
+        block_warehouse_.update_datablock_id(block_num, new_data_node_id);
+
+        // sync done
+        bce.modified = false;
+    }
+}
+
+void pstate::data_node_io::cache_sync()
+{
+    std::map<unsigned int, block_cache_entry_t>::iterator it;
+    for (it = block_cache_.begin(); it != block_cache_.end(); ++it)
+    {
+        cache_sync_entry(it->first);
     }
 }
 
@@ -945,6 +1009,7 @@ pstate::data_node& pstate::data_node_io::cache_retrieve(unsigned int block_num, 
 
         // allocate data node and load block into it
         data_node* dn = cache_slots_.allocate();
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(!dn, "slot allocate, null pointer");
         dn->deserialize_original_encrypted_data_id(data_node_id);
         dn->load(block_warehouse_.state_encryption_key_);
 
@@ -1027,6 +1092,21 @@ void pdo::state::block_warehouse::update_datablock_id(
 void pdo::state::block_warehouse::add_block_id(pstate::StateBlockId& id)
 {
     blockIds_.push_back(id);
+}
+
+void pdo::state::block_warehouse::remove_empty_block_ids()
+{
+    StateBlockId emptyId(STATE_BLOCK_ID_LENGTH, 0);
+    unsigned int i = 0;
+    while (i < blockIds_.size())
+    {
+        if (blockIds_[i] == emptyId)
+        {
+            blockIds_.erase(blockIds_.begin() + i);
+        }
+        else
+            i++;
+    }
 }
 
 void pdo::state::block_warehouse::add_datablock_id(pstate::StateBlockId& id)
@@ -1140,7 +1220,40 @@ void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value)
     // perform operation
     const ByteArray& kvkey = key;
     ByteArray v = value;
-    trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, v);
+    try
+    {
+        trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, v);
+    }
+    catch (pdo::error::RuntimeError& e)
+    {
+        // remove any block that was appended for writing and has a (currently) empty id
+        dn_io_.block_warehouse_.remove_empty_block_ids();
+        // maybe something was accessed, written, appended. just drop all!
+        dn_io_.cache_drop();
+        // after delete and drop, we need to re-init the last append data node (ready for the next
+        // operation)
+        dn_io_.block_warehouse_.last_appended_data_block_num_ =
+            dn_io_.block_warehouse_.blockIds_.size() - 1;
+        dn_io_.init_append_data_node();
+
+        throw pdo::error::Error(
+            PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(e.what()));
+    }
+    catch (std::exception& e)
+    {
+        // remove any block that was appended for writing and has a (currently) empty id
+        dn_io_.block_warehouse_.remove_empty_block_ids();
+        // maybe something was accessed, written, appended. just drop all!
+        dn_io_.cache_drop();
+        // after delete and drop, we need to re-init the last append data node (ready for the next
+        // operation)
+        dn_io_.block_warehouse_.last_appended_data_block_num_ =
+            dn_io_.block_warehouse_.blockIds_.size() - 1;
+        dn_io_.init_append_data_node();
+
+        throw pdo::error::Error(
+            PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(e.what()));
+    }
 }
 
 void pstate::State_KV::Delete(const ByteArray& key)

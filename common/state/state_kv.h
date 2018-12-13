@@ -70,6 +70,7 @@ namespace state
         void update_datablock_id(unsigned int data_block_num, pdo::state::StateBlockId& newId);
         void add_block_id(pdo::state::StateBlockId& id);
         void add_datablock_id(pdo::state::StateBlockId& id);
+        void remove_empty_block_ids();
         void get_datablock_id_from_datablock_num(
             unsigned int data_block_num, pdo::state::StateBlockId& outId);
         void get_last_datablock_id(pdo::state::StateBlockId& outId);
@@ -204,8 +205,12 @@ namespace state
 
         void cache_replacement_policy();
         void cache_dump();
+        void cache_drop_entry(unsigned int block_num);
+        void cache_drop();
         void cache_flush_entry(unsigned int block_num);
         void cache_flush();
+        void cache_sync_entry(unsigned int block_num);
+        void cache_sync();
         void cache_put(unsigned int block_num, data_node* dn);
         data_node& cache_retrieve(unsigned int block_num, bool pinned);
         void cache_done(unsigned int block_num, bool modified);
