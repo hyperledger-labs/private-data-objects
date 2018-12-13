@@ -15,40 +15,65 @@
 # limitations under the License.
 
 
-eservice_enclave_info_file=$CONTRACTHOME"/data/EServiceEnclaveInfo.tmp"
-SPID=$PDO_SPID
+PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
+if [[ $PY3_VERSION -lt 5 ]]; then
+    echo activate python3 first
+    exit
+fi
+
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+
+function yell {
+    echo "$0: $*" >&2;
+}
+
+function die {
+    yell "$*"
+    exit 111
+}
+
+function try {
+    "$@" || die "operation failed: $*"
+}
+
+eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+
+function cleanup {
+    yell "Clean up temporary files"
+    rm -f ${eservice_enclave_info_file}
+}
+
+trap cleanup EXIT
 
 #Set SPID to parameter if passed
-if (( "$#" == 1 ))
-then
+SPID=$PDO_SPID
+if (( "$#" == 1 )) ; then
     SPID=$1
 fi
 
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
-Store(){
-    echo "PDO_SPID" "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
-    echo "Store eservice_enclave_info_file to "$eservice_enclave_info_file
-    python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --spid $SPID --save $eservice_enclave_info_file
-    ret=$?
-    if [[ $ret -ne 0 ]]; then
-        echo "Failed to run eservice to retrieve enclave information - is the virtual environment active?"
-        exit $ret
-    fi
+function Store {
+    : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
+    yell Compute the enclave information
+    PYTHONPATH= try python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --spid ${SPID} --save ${eservice_enclave_info_file} --loglevel warn
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
-Register(){
-    echo "Register with ledger"
+function Register {
     if [ ! -f $eservice_enclave_info_file ]; then
-        echo "Registration failed! eservice_enclave_info_file not found!"
+        yell Registration failed! eservice_enclave_info_file not found!
     else
-        echo "LEDGER_URL " "${LEDGER_URL:?Registration failed! LEDGER_URL environment variable not set}"
-        echo "PDO_LEDGER_KEY" "${PDO_LEDGER_KEY:?Registration failed! PDO_LEDGER_KEY environment variable not set}"
-        echo "PDO_IAS_KEY" "${PDO_IAS_KEY:?Registration failed! PDO_IAS_KEY environment variable not set}"
+        VAR_MRENCLAVE=$(grep -o 'MRENCLAVE:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
+        VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
 
-        eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.measurements \`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`"
-        eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.basenames \`cat $eservice_enclave_info_file | grep -o 'BASENAME:.*' | cut -f2- -d:\`"
-        eval "../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.public_key \"$(cat $PDO_IAS_KEY)\""
+        : "${LEDGER_URL:?Registration failed! LEDGER_URL environment variable not set}"
+        : "${PDO_LEDGER_KEY:?Registration failed! PDO_LEDGER_KEY environment variable not set}"
+        : "PDO_IAS_KEY" "${PDO_IAS_KEY:?Registration failed! PDO_IAS_KEY environment variable not set}"
+
+        try ../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.measurements ${VAR_MRENCLAVE}
+        try ../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.basenames ${VAR_BASENAME}
+        try ../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY --url $LEDGER_URL pdo.test.registry.public_key "$(cat $PDO_IAS_KEY)"
     fi
 }
 
@@ -56,5 +81,5 @@ if [ "$SGX_MODE" = "HW" ]; then
     Store
     Register
 else
-    echo "Registration failed! SGX_MODE not set to HW"
+    yell Registration failed! SGX_MODE not set to HW
 fi
