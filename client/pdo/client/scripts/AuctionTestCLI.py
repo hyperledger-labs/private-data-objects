@@ -24,6 +24,7 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 import pdo.common.crypto as pcrypto
+import pdo.common.utility as putils
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.common.keys import ServiceKeys
 from pdo.contract import ContractCode
@@ -416,7 +417,8 @@ def Main() :
     parser.add_argument('--auction-identity', help='Identity to use for the auction contract', default="auc-contract", type=str)
 
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
-    parser.add_argument('--contract-dir', help='Directories to search for contract files', nargs='+')
+    parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
+    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
     options = parser.parse_args()
 
@@ -432,6 +434,9 @@ def Main() :
     config_map['assetcontract'] = options.asset_contract
     config_map['auctionidentity'] = options.auction_identity
     config_map['auctioncontract'] = options.auction_contract
+
+    if options.data_dir :
+        config_map['data'] = options.data_dir
 
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
@@ -473,8 +478,13 @@ def Main() :
         config['Contract'] = {
             'SourceSearchPath' : [ '.', './contract', os.path.join(ContractHome, 'contracts') ]
         }
-    if options.contract_dir :
-        config['Contract']['SourceSearchPath'] = options.contract_dir
+
+    if options.data_dir :
+        config['Contract']['DataDirectory'] = options.data_dir
+    if options.source_dir :
+        config['Contract']['SourceSearchPath'] = options.source_dir
+
+    putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     # GO!
     LocalMain(config)

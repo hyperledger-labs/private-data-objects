@@ -21,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pdo.client.controller.contract_controller import ContractController
+import pdo.common.utility as putils
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -175,6 +176,8 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+
+    putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     if options.script :
         config["ScriptFile"] = options.script

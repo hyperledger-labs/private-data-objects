@@ -235,12 +235,13 @@ def Main(commands) :
     parser.add_argument('--loglevel', help='Logging level', type=str)
 
     parser.add_argument('--ledger', help='URL for the Sawtooth ledger', type=str)
-    parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
     parser.add_argument('--contract', help='Name of the contract', required = True, type = str)
     parser.add_argument('--source', help='Gipsy Scheme source for the contract', required=True, type=str)
     parser.add_argument('--save-file', help='Name of the file where contract data is stored', type=str)
 
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
+    parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
+    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
@@ -318,9 +319,16 @@ def Main(commands) :
             'SourceName' : options.contract,
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
+
     config['Contract']['SourceName'] = options.source
     if options.save_file :
         config['Contract']['SaveFile'] = options.save_file
+    if options.data_dir :
+        config['Contract']['DataDirectory'] = options.data_dir
+    if options.source_dir :
+        config['Contract']['SourceSearchPath'] = options.source_dir
+
+    putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     # GO!!!
     LocalMain(commands, config)

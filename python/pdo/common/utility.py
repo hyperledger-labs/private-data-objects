@@ -24,21 +24,56 @@ import errno
 import pdo.common.crypto as crypto
 
 __all__ = [
+    'set_default_data_directory',
+    'build_simple_file_name',
     'build_file_name',
     'find_file_in_path',
     'from_transaction_signature_to_id'
     ]
 
+__DefaultDataDirectory__ = './data'
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def build_file_name(basename, data_dir = '', extension = '') :
+def set_default_data_directory(data_dir) :
+    global __DefaultDataDirectory__
+    __DefaultDataDirectory__ = data_dir
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def build_simple_file_name(basename, extension='') :
+    """build a file name from the basename and extension; this is a
+    common operation for scripts that process a configuration file
+
+    :param str basename: base name of a file, may be a full path, may have an extension
+    :param str extension: the extension to add to the file if it doesnt have one
+    """
+
+    if os.path.split(basename)[0] :
+        return os.path.realpath(basename)
+
+    if basename[-len(extension):] == extension :
+        return basename
+
+    return basename + extension
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def build_file_name(basename, data_dir = None, data_sub = None, extension = '') :
     """build a file name from the basename and directory; this is a
     common operation for scripts that process a configuration file
 
     :param str basename: base name of a file, may be a full path, may have an extension
     :param str data_dir: directory where the file will be placed
+    :param str data_sub: subdirectory where the files of this type are stored
     :param str extension: the extension to add to the file if it doesnt have one
     """
+
+    if data_dir is None :
+        data_dir = __DefaultDataDirectory__
+
+    if data_sub is not None :
+        data_dir = os.path.join(data_dir, data_sub)
 
     # os.path.abspath only works for full paths, not relative paths
     # this check should catch './abc'
@@ -80,4 +115,3 @@ def from_transaction_signature_to_id(transaction_signature) :
     """
     id = crypto.byte_array_to_base64(crypto.compute_message_hash(crypto.hex_to_byte_array(transaction_signature)))
     return id
-

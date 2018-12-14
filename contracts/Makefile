@@ -22,7 +22,7 @@ PACKAGES := $(BASEPACKAGES) $(CONTRACTPACKAGES)
 PACKAGES := $(addprefix packages/, $(PACKAGES))
 
 TARGETS := all clean debug install
-CONTRACTS := auction exchange integer-key mock-contract
+CONTRACTS := auction exchange integer-key test-contracts
 
 $(TARGETS): $(CONTRACTS)
 

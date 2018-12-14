@@ -21,6 +21,7 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 
+import pdo.common.utility as putils
 from pdo.contract import Contract
 from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
@@ -208,10 +209,11 @@ def Main() :
     parser.add_argument('--loglevel', help='Logging level', type=str)
 
     parser.add_argument('--ledger', help='URL for the Sawtooth ledger', type=str)
-    parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
     parser.add_argument('--save-file', help='Name of the file where contract data is stored', type=str, required=True)
 
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
+    parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
+    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
     parser.add_argument('--enclave', help='URL of the enclave service to use', type=str)
 
@@ -282,7 +284,14 @@ def Main() :
             'DataDirectory' : ContractData,
             'SaveFile' : options.save_file
         }
+
     config['Contract']['SaveFile'] = options.save_file
+    if options.data_dir :
+        config['Contract']['DataDirectory'] = options.data_dir
+    if options.source_dir :
+        config['Contract']['SourceSearchPath'] = options.source_dir
+
+    putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     # GO!
     LocalMain(config, options.message)
