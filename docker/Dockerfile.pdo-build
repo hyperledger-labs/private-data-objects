@@ -48,7 +48,6 @@ RUN . /etc/environment && export $(grep -v "^. " /etc/environment| cut -d= -f1) 
  && export SGX_MODE=SIM && echo "export SGX_MODE=SIM" >> /root/.bashrc \
  && (cd src/common/crypto/verify_ias_report; ./build_ias_certificates_cpp.sh) \
  && make -C src/__tools__/build/ DSTDIR=/project/pdo/build \
- && rm src/common/build/tests/utest.mdb
 # TODO: 
 # - wecannot pass driver/daemon pipe to build. So detection logic from ~/.bashrc doesn't work for build.
 #   furthermore, common build (and others do automatically call test programs which fail when built in HW-mode

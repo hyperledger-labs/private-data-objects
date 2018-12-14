@@ -14,12 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit
-fi
-
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
@@ -50,9 +44,7 @@ trap cleanup EXIT
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 function Store {
     yell "Compute the enclave information"
-    # the python path variable is necessary to avoid having the script attempt
-    # to pull libraries from the build directory rather than the install directory
-    PYTHONPATH= try eservice-enclave-info --save $eservice_enclave_info_file --loglevel warn
+    perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $eh = $1; $eh=~s/0x| |\n//g; $eh=~tr/a-z/A-Z/; print "MRENCLAVE:${eh}\n"; }' ${SRCDIR}/eservice/build/lib/libpdo-enclave.signed.so.meta > $eservice_enclave_info_file || die "couldn't extract eserver enclave's MRENCLAVE"
 }
 
 # Load MR_ENCLAVE to be built into PService

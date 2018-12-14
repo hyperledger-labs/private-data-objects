@@ -66,6 +66,12 @@ if [ "$NUM_CORES " == " " ]; then
     NUM_CORES=4
 fi
 
+# allow opting out of running tests, primarily so we can skip 
+# sgx hw-mode based tests which fail in docker test 
+if [ ! -z "${NO_SGX_RUN_DURING_BUILD}" ]; then
+    CMAKE_ARGS="-D DISABLE_TESTS=true"
+fi
+
 # -----------------------------------------------------------------
 # BUILD
 # -----------------------------------------------------------------
@@ -83,7 +89,7 @@ cd $SRCDIR/common
 
 mkdir -p build
 cd build
-try cmake ..
+try cmake ${CMAKE_ARGS} ..
 try make "-j$NUM_CORES"
 
 yell --------------- PYTHON ---------------
