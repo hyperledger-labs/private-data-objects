@@ -19,7 +19,9 @@
 #  Configuration (build) paramaters
 #  - proxy configuration: 	https_proxy http_proxy ftp_proxy  (default: undefined)
 #  - ubuntu base image to use: 	UBUNTU_VERSION (default: bionic)
-#  - sgx sdk version: 		SGX_SDK (default: sgx_2.2)
+#  - sgx sdk version: 		SGX_SDK (default: v2.4.1)
+#  - openssl version: 		OPENSSL (default: 1.1.0j)
+#  - sgxssl version: 		SGXSSL  (default: v2.4.1)
 
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
@@ -28,8 +30,8 @@
 #   if you want to build with different version than 16.04/xenial, add a build arg UBUNTU_VERSION, e.g., for 18.04 do --build-arg UBUNTU_VERSION=bionic
 #
 # Run:
-#   $ cd PrivateDataObjects
-#   $ docker run -v $(pwd):/project/pdo/src -it pdo-dev /bin/bash
+#   $ cd ....../private-datdda-objects
+#   $ docker run -v $(pwd):/project/pdo/src -it pdo-dev
 #   - to run with SGX HW, add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
 #     then you can build system as "usual", e.g., to build it as
 #        (cd src/common/crypto/verify_ias_report; ./build_ias_certificates_cpp.sh);
@@ -50,7 +52,9 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG UBUNTU_VERSION=bionic
 # for bizare docker reason, we have to redefine it here ...
 
-ARG SGX_SDK=sgx_2.2
+ARG SGX_SDK=sgx_2.4
+ARG OPENSSL=1.1.0j
+ARG SGXSSL=v2.4.1
 
 # Add necessary packages
 # TODO(xenial): we need to namnually install protobuf 3 as xenial has v2
@@ -86,7 +90,7 @@ RUN apt-get update \
     virtualenv \
     wget \
  && if [ "$UBUNTU_VERSION" = "bionic" ] || [ "$UBUNTU_VERSION" = "artful" ]; then \
-        apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
+	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
     fi \
  && apt-get -y -q upgrade \
  && apt-get clean \
@@ -100,7 +104,7 @@ RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinysch
  && rm tinyscheme-1.41.zip  \
  && cd tinyscheme-1.41  \
  && make \
- && echo "TINY_SCHEME_SRC=$(pwd)" >> /etc/environment
+ && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/environment
 
 # Install SGX SDK
 # we install from source as with binary distribution it's difficult to get library dependencies correct
@@ -117,6 +121,7 @@ WORKDIR /opt/intel
 RUN git clone --branch ${SGX_SDK} https://github.com/01org/linux-sgx.git \
  && cd linux-sgx \
  && ./download_prebuilt.sh \
+# installer usually refuses to install PSW without kernel module, hence override it here so we still can install it as at runtime driver might be there, just not at build time!
  && sed -i '1,$s;grep intel_sgx /lib/modules/$(uname -r)/modules.builtin &> /dev/null;true # grep intel_sgx /lib/modules/$(uname -r)/modules.builtin &> /dev/null;' linux/installer/bin/install-sgx-psw.bin.tmpl \
  && sed -i '1,$s;${SGX_PACKAGES_PATH}/${PSW_PKG_NAME}/scripts/install.sh;# ${SGX_PACKAGES_PATH}/${PSW_PKG_NAME}/scripts/install.sh;' linux/installer/bin/install-sgx-psw.bin.tmpl \
  && make \
@@ -128,30 +133,21 @@ RUN git clone --branch ${SGX_SDK} https://github.com/01org/linux-sgx.git \
  && rm -rf linux-sgx \
  && echo ". /opt/intel/sgxsdk/environment" >> /etc/environment
 
-# TODO:
-# && wget https://download.01.org/intel-sgx/linux-2.2/ubuntu64-server/sgx_linux_x64_psw_2.2.100.45311.bin
-# - apt install kmodi
-# - run and ignore error
-# - has wrong libprotobuf?! and 10 is not backwards compatible to 9
-#   ./app: symbol lookup error: /usr/lib/libsgx_uae_service.so: undefined symbol: _ZN6google8protobuf2io16CodedInputStream20ReadVarint32FallbackEPj
-#  -> HAVE TO BUILD SDK FROM SOURCE?!
-
-
 # ("Untrusted") OpenSSL
 WORKDIR /tmp
-RUN wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz \
- && tar -zxvf openssl-1.1.0h.tar.gz \
- && cd openssl-1.1.0h/ \
- && ./config \
- && THREADS=8 \
- && make -j$THREADS \
- && make test \
- && make install -j$THREADS \
- && ldconfig \
- && ln -s /etc/ssl/certs/* /usr/local/ssl/certs/ \
- && cd .. \
- && rm -rf openssl-1.1.0h
-# Note: we do _not_ delete openssl-1.1.0h.tar.gz as we re-use it below ..
+RUN wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz #\
+# && tar -zxvf openssl-${OPENSSL}.tar.gz \
+# && cd openssl-${OPENSSL}/ \
+# && ./config \
+# && THREADS=8 \
+# && make -j$THREADS \
+# && make test \
+# && make install -j$THREADS \
+# && ldconfig \
+# && ln -s /etc/ssl/certs/* /usr/local/ssl/certs/ \
+# && cd .. \
+# && rm -rf openssl-${OPENSSL}
+# Note: we do _not_ delete openssl-${OPENSSL}.tar.gz as we re-use it below ..
 
 
 # ("trusted") SGX OpenSSL
@@ -162,13 +158,13 @@ RUN wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz \
 # artifact and so we build with the safe SGX_MODE=SIM.  (It also means the build tests are run only in
 # simulator but we count on the sgxssl team hopefully releasing only versions which work on both cases :-)
 WORKDIR /tmp
-RUN git clone https://github.com/intel/intel-sgx-ssl.git  \
+RUN git clone  --branch ${SGXSSL} https://github.com/intel/intel-sgx-ssl.git \
  && . /opt/intel/sgxsdk/environment \
- && (cd intel-sgx-ssl/openssl_source; mv /tmp/openssl-1.1.0h.tar.gz . ) \
+ && (cd intel-sgx-ssl/openssl_source; mv /tmp/openssl-${OPENSSL}.tar.gz . ) \
  && (cd intel-sgx-ssl/Linux; make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test ) \
  && (cd intel-sgx-ssl/Linux; make install ) \
  && rm -rf /tmp/intel-sgx-ssl \
- && echo "SGX_SSL=/opt/intel/sgxssl" >> /etc/environment
+ && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/environment
 
 # environment setup as required by PDO
 # Note
@@ -178,12 +174,13 @@ RUN git clone https://github.com/intel/intel-sgx-ssl.git  \
 # - make sure /etc/environment is always included for bash
 RUN \
     mkdir -p /project/pdo \
- && echo "PDO_HOME=/project/pdo/build/opt/pdo" >> /etc/environment \
- && echo "PDO_ENCLAVE_CODE_SIGN_PEM=/project/pdo/enclave.pem" >> /etc/environment \
+ && echo "export PDO_INSTALL_ROOT=/project/pdo/build" >> /etc/environment \
+ && echo "export PDO_HOME=/project/pdo/build/opt/pdo" >> /etc/environment \
+ && echo "export PDO_ENCLAVE_CODE_SIGN_PEM=/project/pdo/enclave.pem" >> /etc/environment \
  && openssl genrsa -3 3072 > /project/pdo/enclave.pem \
  && sed -i '1s;^;source /etc/environment\nexport $(grep -v "^. " /etc/environment| cut -d= -f1)\n;' /root/.bashrc \
  && echo "if ([ -c /dev/isgx ] && [ -S /var/run/aesmd/aesm.socket ]); then export SGX_MODE=HW; else export SGX_MODE=SIM; fi;" >> /root/.bashrc
 
 WORKDIR /project/pdo/
 
-#ENTRYPOINT ["make -C /project/pdo/src/__tools__/build/ DSTDIR=/project/pdo/build "]
+ENTRYPOINT ["/bin/bash"]

@@ -61,7 +61,7 @@ fi
 #    fi
 #    perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $eh = $1; $eh=~s/0x| |\n//g; $eh=~tr/a-z/A-Z/; $bn="'${SPID}'"; $bn .= "0" x (64 - length $bn); print "MRENCLAVE:${eh}\nBASENAME:${bn}\n"; }' ./build/lib/libpdo-enclave.signed.so.meta > $eservice_enclave_info_file
 #    # Note: group id is always zero, hence the zero-padding ...
-# 
+#
 # This would also allow removing in eservice/pservice the code related to CreateErsatzEnclaveReport and GetEnclave Characteristics
 # However, getting basename via enclave invocation & quote is somewhat cleaner than below ..
 function Store {

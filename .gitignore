@@ -1,1 +1,3 @@
 __pycache__
+docker/validator-keys
+docker/sgx

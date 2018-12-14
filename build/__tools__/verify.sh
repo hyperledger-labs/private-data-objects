@@ -71,9 +71,12 @@ yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 
 try command -v openssl
 OPENSSL_VERSION=$(openssl version -v | sed 's/.*OpenSSL \([^ ]*\) .*/\1/')
-if [ "$OPENSSL_VERSION " != '1.1.0h ' ]; then
-   warn "WARNING: Openssl version is $OPENSSL_VERSION expecting 1.1.0h"
-   warn "Note: openssl can be a different version as long as libssl and libssl-dev are 1.1.0h"
+OPENSSL_VERSION_MAJOR=$(echo ${OPENSSL_VERSION} | cut -d . -f 1)
+OPENSSL_VERSION_MINOR=$(echo ${OPENSSL_VERSION} | cut -d . -f 2)
+OPENSSL_VERSION_BUGFIX=$(echo ${OPENSSL_VERSION} | cut -d . -f 3)
+if [[ ${OPENSSL_VERSION_MAJOR} -lt 1 || ( ${OPENSSL_VERSION_MAJOR} -eq 1  &&  ${OPENSSL_VERSION_MINOR} -lt 1 ) ]]; then
+   warn "WARNING: Openssl version is $OPENSSL_VERSION, should be 1.1.0 or greater"
+   warn "Note: openssl can be a different version as long as libssl and libssl-dev are >= 1.1.0"
 fi
 
 try command -v protoc
@@ -108,11 +111,11 @@ fi
 
 if [ "${SGX_MODE}" = "HW" ]; then
     if [ ! -f "${PDO_IAS_KEY_PEM}" ]; then
-        warn "PDO_IAS_KEY_PEM file does not exist"
+        warn "PDO_IAS_KEY_PEM '${PDO_IAS_KEY_PEM}' file does not exist"
     fi
 
     if [ ! -f "${PDO_SPID_KEY_CERT_FILE_PEM}" ]; then
-        warn "PDO_SPID_KEY_CERT_FILE_PEM does not exist"
+        warn "PDO_SPID_KEY_CERT_FILE_PEM '${PDO_SPID_KEY_CERT_FILE_PEM}' does not exist"
     fi
 fi
 
