@@ -15,36 +15,37 @@
 
 #pragma once
 
+#include "state.h"
 #include "types.h"
-#include "basic_kv.h"
 
 namespace pdo
 {
-    namespace state
+namespace state
+{
+    class Interpreter_KV : public Basic_KV_Plus
     {
-        class Interpreter_KV : public Basic_KV_Plus
-        {
-        protected:
-            Basic_KV* kv_;
+    protected:
+        State_KV kv_;
 
-            ByteArray Get(ByteArray& key);
-            void Put(ByteArray& key, ByteArray& value);
-            void Delete(ByteArray& key);
+        ByteArray Get(const ByteArray& key);
+        void Put(const ByteArray& key, const ByteArray& value);
+        void Delete(const ByteArray& key);
 
-        public:
-            Interpreter_KV(ByteArray& id);
-            Interpreter_KV(ByteArray& id, const ByteArray& encryption_key);
-            ~Interpreter_KV();
+    public:
+        Interpreter_KV(StateBlockId& id);
+        Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
+        Interpreter_KV(const ByteArray& encryption_key);
+        ~Interpreter_KV();
 
-            void Uninit(ByteArray& id);
+        void Finalize(ByteArray& id);
 
-            void PrivilegedPut(const ByteArray& key, ByteArray& value);
-            ByteArray PrivilegedGet(const ByteArray& key);
-            void PrivilegedDelete(const ByteArray& key);
+        void PrivilegedPut(const ByteArray& key, const ByteArray& value);
+        ByteArray PrivilegedGet(const ByteArray& key);
+        void PrivilegedDelete(const ByteArray& key);
 
-            void UnprivilegedPut(const ByteArray& key, ByteArray& value);
-            ByteArray UnprivilegedGet(const ByteArray& key);
-            void UnprivilegedDelete(const ByteArray& key);
-        };
-    }
+        void UnprivilegedPut(const ByteArray& key, const ByteArray& value);
+        ByteArray UnprivilegedGet(const ByteArray& key);
+        void UnprivilegedDelete(const ByteArray& key);
+    };
+}
 }

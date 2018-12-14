@@ -21,29 +21,48 @@ import argparse
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
-import pdo.eservice.pdo_enclave as pdo_enclave
+
 import logging
 logger = logging.getLogger(__name__)
+
+import time
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 def LocalMain(spid, save_path) :
-    try :
-        logger.debug('initialize the enclave')
-        pdo_enclave_helper.get_enclave_service_info(spid)
 
-        logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
-        with open(save_path, "w") as file :
-            file.write("MRENCLAVE:" + pdo_enclave.get_enclave_measurement() +"\n")
-            file.write("BASENAME:" + pdo_enclave.get_enclave_basename() +"\n")
+    attempts = 0
+    while True :
+        try :
+            logger.debug('initialize the enclave')
+            info = pdo_enclave_helper.get_enclave_service_info(spid)
 
+            logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
+            with open(save_path, "w") as file :
+                file.write("MRENCLAVE:{0}\n".format(info[0]))
+                file.write("BASENAME:{0}\n".format(info[1]))
 
-    except Error as e :
-        logger.exception('failed to initialize enclave; %s', e)
-        sys.exit(-1)
+            sys.exit(0)
 
-    sys.exit(0)
+        except SystemError as se:
+            # SGX_ERROR_BUSY error is not necessarily fatal, the SGX documentation
+            # suggests restarting the request after a delay
+            if str(se).find("SGX_ERROR_BUSY") < 0 :
+                logger.critical('system error in enclave; %s', se)
+                sys.exit(-1)
+
+        except Exception as e :
+            logger.critical('failed to initialize enclave; %s', e)
+            sys.exit(-1)
+
+        attempts = attempts + 1
+        if 10 < attempts :
+            logger.critical('wait for enclave failed')
+            sys.exit(-1)
+
+        logger.info('SGX_BUSY, attempt %s', attempts)
+        time.sleep(10)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

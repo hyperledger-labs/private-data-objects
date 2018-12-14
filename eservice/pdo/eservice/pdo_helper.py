@@ -66,7 +66,7 @@ def shutdown() :
 def get_enclave_service_info(spid) :
     """get_enclave_service_info -- Retrieve enclave MRENCLAVE & BASENAME
     """
-    pdo_enclave.get_enclave_service_info(spid)
+    return pdo_enclave.get_enclave_service_info(spid)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

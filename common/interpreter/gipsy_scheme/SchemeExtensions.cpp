@@ -1012,7 +1012,7 @@ static pointer key_value_close(scheme *sc, pointer args)
     try {
         // push pending changes into the block store
         ByteArray block_id;
-        keystore->Uninit(block_id);
+        keystore->Finalize(block_id);
 
         // close the block store
         pdo::lmdb_block_store::BlockStoreClose();

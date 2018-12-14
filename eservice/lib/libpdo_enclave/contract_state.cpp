@@ -77,7 +77,7 @@ ContractState::~ContractState(void)
 void ContractState::Finalize(void)
 {
     pdo::error::ThrowIfNull(state_, "attempt to finalize uninitialized state");
-    state_->Uninit(output_block_id_);
+    state_->Finalize(output_block_id_);
 
     delete state_;
     state_ = NULL;
@@ -119,8 +119,7 @@ void ContractState::Unpack(
         {
             SAFE_LOG(PDO_LOG_DEBUG, "No state to unpack");
             /* here the initial state is created */
-            ByteArray emptyId;
-            state_ = new pdo::state::Interpreter_KV(emptyId, state_encryption_key_);
+            state_ = new pdo::state::Interpreter_KV(state_encryption_key_);
 
             // add the contract identity and the code hash into the
             // newly created key value store
@@ -138,16 +137,20 @@ void ContractState::Unpack(
             }
         }
     }
-    catch (...)
+    catch (std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "unable to unpack contract state");
-
+        SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
         if (state_ != NULL)
         {
-            state_->Uninit(input_block_id_);
+            state_->Finalize(input_block_id_);
             state_ = NULL;
         }
 
+        throw;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error, an unknown exception in contract state");
         throw;
     }
 }
