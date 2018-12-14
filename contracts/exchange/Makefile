@@ -19,30 +19,40 @@ ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(CONTRACTHOME)/contracts
 
-CONTRACT_SRC := asset_type.scm exchange.scm issuer.scm vetting_organization.scm
-CONTRACTS := _asset_type.scm _exchange.scm _issuer.scm _vetting_organization.scm
+CONTRACT_SRC := auction.scm asset_type.scm exchange.scm issuer.scm vetting_organization.scm
+CONTRACTS := _auction.scm _asset_type.scm _exchange.scm _issuer.scm _vetting_organization.scm
 
 PACKAGE_SRC := \
 	packages/asset_class.scm packages/asset_request_class.scm \
 	packages/authoritative_asset_class.scm packages/authority_class.scm \
-	packages/exchange_common.scm packages/ledger_entry.scm
+	packages/exchange_common.scm packages/ledger_entry.scm packages/bid_store_package.scm
 
 PLUGINS := asset_type.py exchange.py issuer.py vetting.py
 
-TESTS := _exchange_test.scm _issuer_test.scm
+TEST_PACKAGE_SRC := \
+	tests/test_common.scm
+
+TESTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
 
 all: $(CONTRACTS)
 
+debug : $(TESTS)
 test : $(TESTS)
 
-_exchange_test.scm : tests/exchange_test.bld tests/exchange_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC)
+_auction_test.scm : tests/auction_test.bld tests/auction_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/auction_test.bld debug
+
+_exchange_test.scm : tests/exchange_test.bld tests/exchange_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/exchange_test.bld debug
 
-_issuer_test.scm : tests/issuer_test.bld tests/issuer_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC)
+_issuer_test.scm : tests/issuer_test.bld tests/issuer_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/issuer_test.bld debug
 
 _asset_type.scm : asset_type.bld asset_type.scm $(PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 asset_type.bld
+
+_auction.scm : auction.bld auction.scm $(PACKAGE_SRC)
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 auction.bld
 
 _exchange.scm : exchange.bld exchange.scm $(PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 exchange.bld

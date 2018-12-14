@@ -18,8 +18,9 @@
 ;; DESCRIPTION: this is a utility function to create a shorter key
 ;; from an owner's identity (which is an ECDSA public key)
 ;; -----------------------------------------------------------------
-(define (make-key identity)
-  (compute-message-hash identity))
+(define (make-key identity . args)
+  (let ((value (string-append identity (if (pair? args) (car args) ""))))
+    (compute-message-hash value)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: nth
@@ -33,3 +34,33 @@
 ;; -----------------------------------------------------------------
 (define (null-string? s)
   (and (string? s) (zero? (string-length s))))
+
+;; -----------------------------------------------------------------
+;; -----------------------------------------------------------------
+(define (create-claim asset old-owner-identity new-owner-identity signing-key-object)
+  (let* ((dependencies (list (list (get ':contract 'id) (get ':contract 'state))))
+         (escrow-identifier (send asset 'get-escrow-identifier))
+         (expression (list "_claim_" escrow-identifier old-owner-identity new-owner-identity dependencies))
+         (signature (send signing-key-object 'sign-expression expression)))
+    (list old-owner-identity dependencies signature)))
+
+(define (verify-claim asset old-owner-identity new-owner-identity dependencies signature)
+  (let* ((escrow-identifier (send asset 'get-escrow-identifier))
+         (expression (list "_claim_" escrow-identifier old-owner-identity new-owner-identity dependencies))
+         (escrow-key (send asset 'get-escrow-key))
+         (agent-keys (make-instance signing-keys (public-key escrow-key) (private-key ""))))
+    (assert (send agent-keys 'verify-expression expression signature) "claim signature mismatch")))
+
+(define (create-cancellation asset identity signing-key-object)
+  (let* ((dependencies (list (list (get ':contract 'id) (get ':contract 'state))))
+         (escrow-identifier (send asset 'get-escrow-identifier))
+         (expression (list "_disburse_" escrow-identifier identity dependencies))
+         (signature (send signing-key-object 'sign-expression expression)))
+    (list dependencies signature)))
+
+(define (verify-cancellation asset identity dependencies signature)
+  (let* ((escrow-identifier (send asset 'get-escrow-identifier))
+         (expression (list "_disburse_" escrow-identifier identity dependencies))
+         (escrow-key (send asset 'get-escrow-key))
+         (agent-keys (make-instance signing-keys (public-key escrow-key) (private-key ""))))
+    (assert (send agent-keys 'verify-expression expression signature) "cancellation signature mismatch")))

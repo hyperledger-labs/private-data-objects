@@ -20,29 +20,30 @@
 ;;
 
 (require-when (member "debug" *args*) "debug.scm")
+
 (require "contract-base.scm")
 (require "escrow-counter.scm")
-(require "key-value-store.scm")
+(require "indexed-key-store.scm")
 
 ;; ================================================================================
 ;; CLASS: bid-store
 ;; ================================================================================
 (define-class bid-store
-  (super-class key-value-store)
+  (super-class indexed-key-store)
   (instance-vars
    (minimum-bid 0)))
 
 (define-method bid-store (set-bid identity new-bid)
   (assert (instance? new-bid) "bid must be an instance of bid class" new-bid)
-  (if (send self 'exists? identity)
-      (let ((current-bid (send self 'get identity)))
-        (assert (not (send current-bid 'is-active?)) "old bid must be cancelled before a new one is submitted" identity)
-        (send self 'set identity new-bid))
-      (send self 'set identity new-bid)))
+  (let ((current-bid (send self 'exists? identity)))
+    (assert (or (not current-bid)
+                (not (send (send self 'get identity) 'is-active?)))
+            "old bid must be cancelled before a new one is submitted" identity))
 
-(define-method bid-store (del-bid identity)
-  (let ((current-bid (send self 'get identity)))
-    (assert (instance? current-bid) "unknown identity" identity)
+  (send self 'set identity new-bid))
+
+(define-method bid-store (cancel-bid identity)
+  (let ((current-bid (send self 'get-active-bid identity)))
     (send current-bid 'deactivate)
     (send self 'set identity current-bid)))
 
@@ -76,7 +77,7 @@
 ;; =================================================================
 ;; CLASS: auction
 ;; =================================================================
-(define-class auction
+(define-class integer-key-auction
   (super-class base-contract)
   (class-vars
    (_bid-type_	escrow-counter))
@@ -89,7 +90,7 @@
    (asset-contract-public-key "")
    (state #f)))
 
-(define-method auction (initialize-instance . args)
+(define-method integer-key-auction (initialize-instance . args)
   (if (not state)
       (instance-set! self 'state (make-instance bid-store))))
 
@@ -102,7 +103,7 @@
 ;; PARAMETERS:
 ;;   asset-key -- the public key of the asset hosting contract
 ;; -----------------------------------------------------------------
-(define-method auction (initialize asset-key)
+(define-method integer-key-auction (initialize asset-key)
   (assert (not auction-inited) "can set the asset key only one time")
   (instance-set! self 'asset-contract-public-key asset-key)
   (instance-set! self 'auction-inited #t)
@@ -123,11 +124,11 @@
 ;;   dependencies -- association list mapping contract ids to corresponding state hash
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
-(define-method auction (prime-auction* bidinfo dependencies signature)
+(define-method integer-key-auction (prime-auction* bidinfo dependencies signature)
   (let ((initial-bid (make-instance* escrow-counter bidinfo)))
     (send self 'prime-auction initial-bid dependencies signature)))
 
-(define-method auction (prime-auction initial-bid dependencies signature)
+(define-method integer-key-auction (prime-auction initial-bid dependencies signature)
   "Prime the auction with the initial counter"
   (assert auction-inited "must initialize the auction before priming")
   (assert (not auction-primed) "cannot prime an auction that is already active")
@@ -146,7 +147,7 @@
             "Bid must be signed by the asset contract" expression))
 
   (instance-set! self 'offered-asset initial-bid)
-  (send state 'set creator initial-bid)
+  (send state 'set-bid creator initial-bid)
   (instance-set! self 'auction-primed #t)
 
   ;; this update cannot be committed unless the dependencies are committed
@@ -156,7 +157,7 @@
 ;; -----------------------------------------------------------------
 ;; NAME: get-offered-asset
 ;; -----------------------------------------------------------------
-(define-const-method auction (get-offered-asset)
+(define-const-method integer-key-auction (get-offered-asset)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (list (send offered-asset 'get-key) (send offered-asset 'get-value)))
@@ -174,11 +175,11 @@
 ;;   dependencies -- association list mapping contract ids to corresponding state hash
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
-(define-method auction (submit-bid* bidinfo dependencies signature)
+(define-method integer-key-auction (submit-bid* bidinfo dependencies signature)
   (let ((initial-bid (make-instance* escrow-counter bidinfo)))
     (send self 'submit-bid initial-bid dependencies signature)))
 
-(define-method auction (submit-bid bid dependencies signature)
+(define-method integer-key-auction (submit-bid bid dependencies signature)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (assert (instance? bid) "not an instance" bid)
@@ -208,11 +209,12 @@
 ;; escrow in the integer-key contract, we have to return cancelled
 ;; bids even when the auction is closed
 ;; -----------------------------------------------------------------
-(define-method auction (cancel-bid)
+(define-method integer-key-auction (cancel-bid)
   (assert auction-primed "bidding is not active")
-  (let* ((requestor (get ':message 'originator))
-         (bid (send state 'get-active-bid requestor)))
-    (send bid 'deactivate))
+  (let* ((requestor (get ':message 'originator)))
+    (if auction-closed
+        (assert (not (send maximum-bid 'is-owner? requestor)) "winning bidder may not cancel bid"))
+    (send state 'cancel-bid requestor))
   #t)
 
 ;; ----------------------------------------------------------------
@@ -222,7 +224,7 @@
 ;; this is distinct from the actual cancellation of the bid because we
 ;; need to record the state change first.
 ;; -----------------------------------------------------------------
-(define-const-method auction (cancel-attestation)
+(define-const-method integer-key-auction (cancel-attestation)
   (assert auction-primed "bidding is not active")
   (let* ((requestor (get ':message 'originator))
          (externalized (send state 'get-cancelled-bid requestor 'externalize))
@@ -234,7 +236,7 @@
 ;; ----------------------------------------------------------------
 ;; NAME: check-bid
 ;; ----------------------------------------------------------------
-(define-const-method auction (check-bid)
+(define-const-method integer-key-auction (check-bid)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (let* ((requestor (get ':message 'originator)))
@@ -243,7 +245,7 @@
 ;; ----------------------------------------------------------------
 ;; NAME: max-bid
 ;; ----------------------------------------------------------------
-(define-const-method auction (max-bid)
+(define-const-method integer-key-auction (max-bid)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (let ((maxbid (send state 'max-bid)))
@@ -256,7 +258,7 @@
 ;; exchange attestation must be generated separately to ensure that the
 ;; closed state is committed to the ledger.
 ;; -----------------------------------------------------------------
-(define-method auction (close-bidding)
+(define-method integer-key-auction (close-bidding)
   (assert auction-primed "cannot close auction that has not started")
   (assert (not auction-closed) "the auction has already completed")
   (let ((requestor (get ':message 'originator)))
@@ -279,7 +281,7 @@
 ;; DESCRIPTION: generate the attestation that handles the actual
 ;; exchange of asset ownership in the asset contract
 ;; -----------------------------------------------------------------
-(define-const-method auction (exchange-attestation)
+(define-const-method integer-key-auction (exchange-attestation)
   (let ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the auction creator may generate the exchange attestation" requestor))
 

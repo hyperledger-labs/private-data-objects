@@ -26,6 +26,7 @@ PLUGINS := integer-key.py
 all: $(CONTRACTS)
 
 debug : $(DEBUGCONTRACTS)
+test : $(DEBUGCONTRACTS)
 
 _integer-key.scm : integer-key.bld integer-key.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key.bld

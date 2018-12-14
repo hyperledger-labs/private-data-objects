@@ -19,21 +19,22 @@ ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(CONTRACTHOME)/contracts
 
-CONTRACTS := _auction.scm
+CONTRACTS := _integer-key-auction.scm
 DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS)) _aptest.scm
-PLUGINS := auction.py
+PLUGINS := integer-key-auction.py
 
 all: $(CONTRACTS)
 
 debug : $(DEBUGCONTRACTS)
+test : $(DEBUGCONTRACTS)
 
-_auction.scm : auction.bld auction.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 auction.bld
+_integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key-auction.bld
 
-_debug_auction.scm : auction.bld auction.scm auction-test.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 auction.bld debug test-auction
+_debug_integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm auction-test.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key-auction.bld debug test-auction
 
-_aptest.scm : aptest.bld auction-protocol-test.scm ../integer-key/integer-key.scm auction.scm
+_aptest.scm : aptest.bld auction-protocol-test.scm ../integer-key/integer-key.scm integer-key-auction.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 aptest.bld debug aptest
 
 install : $(CONTRACTS)

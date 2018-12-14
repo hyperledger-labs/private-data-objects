@@ -21,6 +21,8 @@
 ;; happens interactively though the results are recorded in the
 ;; contract object
 
+(require-when (member "debug" *args*) "debug.scm")
+
 (require "contract-base.scm")
 (require "key-store.scm")
 
@@ -78,7 +80,7 @@
 
   (let ((key (make-key _verifying-key)))
     (if (not (send approved-keys 'exists? key))
-        (send approved-keys 'create key _verifying-key)))
+        (send approved-keys 'set key _verifying-key)))
 
   #t)
 

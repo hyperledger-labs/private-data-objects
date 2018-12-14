@@ -267,22 +267,35 @@
    (define (_push-tags tags)
      (map (lambda (tspec) (apply _apply-tag tspec)) tags))
 
+   (define (_inherits-from? base-class test-class)
+     (and (oops::class? test-class)
+          (oops::class? base-class)
+          (or (eq? (oops::class-name base-class) (oops::class-name test-class))
+              (_inherits-from? base-class (eval (oops::class-super test-class))))))
+
+   (define (_send-to-class-instance class instance msg margs)
+     (if (not (_inherits-from? class (eval (oops::class-name instance))))
+         (error "not an instance of the class"))
+     (if (not (oops::_method-known? msg class))
+         (error "message not understood:" `(,msg ,@margs)))
+     (let* ((pargs (oops::_process-send-args margs))
+            (args (vector-ref pargs 1))
+            (tags (vector-ref pargs 0))
+            (method (oops::_lookup-method msg class))
+            (env (oops::_make-instance-env instance)))
+       (let* ((saved-tags (oops::_push-tags tags))
+              (result (apply (set-closure-environment! method env) args)))
+         (oops::_push-tags saved-tags)
+         result)))
+
    (define (send instance msg . margs)
-     (_check-instance 'send instance)
-     (let ((class (eval (class-name instance))))
-       (if (not (_method-known? msg class))
-           (error "message not understood:" `(,msg ,@margs))
-           (let* ((pargs (_process-send-args margs))
-                  (args (vector-ref pargs 1))
-                  (tags (vector-ref pargs 0))
-                  (method (_lookup-method msg class))
-                  (env (_make-instance-env instance)))
-             ;; there is a problem here if the method throws an error... tags may not be restored
-             ;; fix this by adding a catch/throw
-             (let* ((saved-tags (_push-tags tags))
-                    (result (apply (set-closure-environment! (_lookup-method msg class) env) args)))
-               (_push-tags saved-tags)
-               result)))))
+     (oops::_check-instance 'send instance)
+     (oops::_send-to-class-instance (eval (oops::class-name instance)) instance msg margs))
+
+   (define (send-to-class class instance msg . margs)
+     (oops::_check-instance 'send instance)
+       (oops::_send-to-class-instance class instance msg margs))
+
    ))
 
 ;; -----------------------------------------------------------------
@@ -296,12 +309,14 @@
 (define make-instance oops::make-instance)
 (define make-instance* oops::make-instance*)
 (define send oops::send)
+(define send-to-class oops::send-to-class)
 
 (define (create-object-instance object-type)
   (eval `(oops::make-instance ,object-type)))
 
 (map make-immutable
-     '(class? instance? instance-set! class-set! define-class define-method make-instance make-instance* send create-object-instance))
+     '(class? instance? instance-set! class-set! define-class define-method
+              make-instance make-instance* send create-object-instance send-to-class))
 
 (immutable-environment oops)
 

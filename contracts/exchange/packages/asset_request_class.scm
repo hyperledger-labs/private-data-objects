@@ -12,6 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
+(require "contract-base.scm")
 (require "exchange_common.scm")
 
 ;; =================================================================
@@ -75,5 +76,5 @@
 ;; -----------------------------------------------------------------
 (define (deserialize-asset-request serialized)
   (let ((object (make-instance asset-request-class)))
-    (send object 'deserialize serialized)
+    (protect (send object 'deserialize serialized) "failed to deserialize request asset")
     object))

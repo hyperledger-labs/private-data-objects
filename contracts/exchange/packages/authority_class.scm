@@ -130,7 +130,7 @@
 ;; -----------------------------------------------------------------
 (define (deserialize-authority-object serialized)
   (let ((object (make-instance authority-class)))
-    (send object 'deserialize serialized)
+    (protect (send object 'deserialize serialized) "failed to deserialize authority object")
     object))
 
 ;; -----------------------------------------------------------------

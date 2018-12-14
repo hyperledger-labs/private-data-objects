@@ -14,6 +14,8 @@
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------
+(key-value-open "auction-test.mdb")
+
 (put ':contract 'id "contract1")
 (put ':contract 'state "contract-state")
 
@@ -34,7 +36,7 @@
 
 ;; create the contract
 (put ':message 'originator (person creator))
-(define ac (make-instance auction))
+(define ac (make-instance integer-key-auction))
 (send ac 'initialize (send asset-contract-keys 'get-public-signing-key))
 
 (define (make-bid p v)

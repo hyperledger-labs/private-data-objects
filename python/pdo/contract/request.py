@@ -113,7 +113,7 @@ class ContractRequest(object) :
             response_string = crypto.byte_array_to_string(decrypted_response)
             response_parsed = json.loads(response_string[0:-1])
 
-            logger.info("parsed response: %s", response_parsed)
+            logger.debug("parsed response: %s", response_parsed)
 
             contract_response = ContractResponse(self, response_parsed)
         except Exception as e:
