@@ -15,43 +15,43 @@
 
 #pragma once
 
-#include "types.h"
 #include "StateBlock.h"
+#include "types.h"
 
 namespace pdo
 {
-    namespace state
+namespace state
+{
+    class StateNode
     {
-        class StateNode
-        {
-        protected:
-            pdo::state::StateBlockId* blockId_;
-            pdo::state::StateBlock* stateBlock_;
-            pdo::state::StateBlockIdRefArray ChildrenArray_ = {};
-            bool hasParent_ = false;
+    protected:
+        pdo::state::StateBlockId* blockId_;
+        pdo::state::StateBlock* stateBlock_;
+        pdo::state::StateBlockIdRefArray ChildrenArray_ = {};
+        bool hasParent_ = false;
 
-        public:
-            StateNode();
-            ~StateNode();
-            StateNode(pdo::state::StateBlockId& blockId, pdo::state::StateBlock& stateBlock);
-            bool Valid();
-            void ReIdentify();
-            pdo::state::StateBlockId& GetBlockId();
-            pdo::state::StateBlock& GetBlock();
+    public:
+        StateNode();
+        ~StateNode();
+        StateNode(pdo::state::StateBlockId& blockId, pdo::state::StateBlock& stateBlock);
+        bool Valid();
+        void ReIdentify();
+        pdo::state::StateBlockId& GetBlockId();
+        pdo::state::StateBlock& GetBlock();
 
-            void AppendChild(pdo::state::StateNode& childNode);
-            void AppendChildId(StateBlockId& childId);
-            void SetHasParent();
-            void BlockifyChildren();
-            void UnBlockifyChildren();
-            pdo::state::StateBlockIdRefArray GetChildrenBlocks();
-            pdo::state::StateBlockIdRef LookupChild(pdo::state::StateBlockId& childId);
-            pdo::state::StateBlockIdRef LookupChildiByIndex(unsigned int index);
-            void ClearChildren();
-        };
+        void AppendChild(pdo::state::StateNode& childNode);
+        void AppendChildId(StateBlockId& childId);
+        void SetHasParent();
+        void BlockifyChildren();
+        void UnBlockifyChildren();
+        pdo::state::StateBlockIdRefArray GetChildrenBlocks();
+        pdo::state::StateBlockIdRef LookupChild(pdo::state::StateBlockId& childId);
+        pdo::state::StateBlockIdRef LookupChildiByIndex(unsigned int index);
+        void ClearChildren();
+    };
 
-        typedef pdo::state::StateNode State;
-        typedef pdo::state::StateNode* StateNodeRef;
-        typedef std::vector<pdo::state::StateNode> StateNodeArray;
-    }
+    typedef pdo::state::StateNode State;
+    typedef pdo::state::StateNode* StateNodeRef;
+    typedef std::vector<pdo::state::StateNode> StateNodeArray;
+}
 }

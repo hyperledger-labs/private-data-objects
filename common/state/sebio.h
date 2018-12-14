@@ -15,39 +15,32 @@
 
 #pragma once
 
-#include "types.h"
 #include "state.h"
+#include "types.h"
 
-typedef enum {
-    SEBIO_NO_CRYPTO,
-    SEBIO_AES_GCM
-} sebio_crypto_algo_e;
+typedef enum { SEBIO_NO_CRYPTO, SEBIO_AES_GCM } sebio_crypto_algo_e;
 
-typedef struct {
+typedef struct
+{
     ByteArray key;
     sebio_crypto_algo_e crypto_algo;
     // The sebio context includes two function pointer that sebio will call
     // for fetching and evicting blocks.
     // This allows the caller to specify custom functions if necessary,
     // and default functions are provided below.
-    state_status_t (*f_sebio_fetch)(
-        const pdo::state::StateBlockId& block_id,
+    state_status_t (*f_sebio_fetch)(const pdo::state::StateBlockId& block_id,
         sebio_crypto_algo_e crypto_algo,
         pdo::state::StateBlock& block);
-    state_status_t (*f_sebio_evict)(
-        const pdo::state::StateBlockId& block_id,
+    state_status_t (*f_sebio_evict)(const pdo::state::StateBlockId& block_id,
         sebio_crypto_algo_e crypto_algo,
         ByteArray& idOnEviction);
 } sebio_ctx_t;
 
 state_status_t sebio_set(sebio_ctx_t ctx);
 
-state_status_t sebio_fetch(
-    const pdo::state::StateBlockId& block_id,
+state_status_t sebio_fetch(const pdo::state::StateBlockId& block_id,
     sebio_crypto_algo_e crypto_algo,
     pdo::state::StateBlock& block);
 
 state_status_t sebio_evict(
-    const pdo::state::StateBlock& block,
-    sebio_crypto_algo_e crypto_algo,
-    ByteArray& idOnEviction);
+    const pdo::state::StateBlock& block, sebio_crypto_algo_e crypto_algo, ByteArray& idOnEviction);

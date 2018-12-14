@@ -20,26 +20,27 @@
 
 #define STATE_BLOCK_ID_LENGTH SHA256_DIGEST_LENGTH
 
-namespace pdo {
-    namespace state {
-        typedef ByteArray StateBlock;
-        typedef ByteArray* StateBlockRef;
+namespace pdo
+{
+namespace state
+{
+    typedef ByteArray StateBlock;
+    typedef ByteArray* StateBlockRef;
 
-        typedef ByteArray StateBlockId;
-        typedef ByteArray* StateBlockIdRef;
+    typedef ByteArray StateBlockId;
+    typedef ByteArray* StateBlockIdRef;
 
-        typedef std::vector<StateBlockId> StateBlockIdArray;
-        typedef std::vector<StateBlockIdRef> StateBlockIdRefArray;
+    typedef std::vector<StateBlockId> StateBlockIdArray;
+    typedef std::vector<StateBlockIdRef> StateBlockIdRefArray;
 
-        typedef std::list<StateBlockId> StateBlockIdList;
+    typedef std::list<StateBlockId> StateBlockIdList;
 
-        StateBlockIdArray StateBlockIdRefArray_To_StateBlockIdArray(StateBlockIdRefArray& refArray);
-        void StateBlockIdRefArray_To_StateBlockIdList(
-                StateBlockIdRefArray& refArray,
-                StateBlockIdList& outList);
-        ByteArray StateBlockIdRefArray_To_ByteArray(StateBlockIdRefArray& refArray);
+    StateBlockIdArray StateBlockIdRefArray_To_StateBlockIdArray(StateBlockIdRefArray& refArray);
+    void StateBlockIdRefArray_To_StateBlockIdList(
+        StateBlockIdRefArray& refArray, StateBlockIdList& outList);
+    ByteArray StateBlockIdRefArray_To_ByteArray(StateBlockIdRefArray& refArray);
 
-        void StateBlockIdArray_To_ByteArray(StateBlockIdArray& array, ByteArray& outB);
-        void ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, StateBlockIdArray& outA);
-    }
+    void StateBlockIdArray_To_ByteArray(StateBlockIdArray& array, ByteArray& outB);
+    void ByteArrayToStateBlockIdArray(ByteArray& b, size_t idSize, StateBlockIdArray& outA);
+}
 }

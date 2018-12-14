@@ -15,8 +15,8 @@
 
 #include "interpreter_kv.h"
 #include "crypto.h"
-#include "state.h"
 #include "log.h"
+#include "state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Local Functions
@@ -37,53 +37,51 @@ static ByteArray to_unprivileged_key(const ByteArray& key)
     return unprivileged_key;
 }
 
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Class: Interpreter_KV
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id) {}
-
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id, const ByteArray& encryption_key)
-    : Interpreter_KV(id)
+pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id)
 {
-    ByteArray key = encryption_key;
-    State_KV* state_kv = new pdo::state::State_KV(id, key);
-    kv_ = state_kv;
+}
+
+pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& id, const ByteArray& encryption_key)
+    : Basic_KV_Plus(id), kv_(id, encryption_key)
+{
+}
+
+pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
+    : Basic_KV_Plus(), kv_(encryption_key)
+{
 }
 
 pdo::state::Interpreter_KV::~Interpreter_KV()
 {
-    if (kv_ != NULL)
-    {
-        ByteArray id;
-        kv_->Uninit(id);
-
-        delete kv_;
-        kv_ = NULL;
-    }
+    ByteArray id;
+    kv_.Finalize(id);
 }
 
-void pdo::state::Interpreter_KV::Uninit(ByteArray& id)
+void pdo::state::Interpreter_KV::Finalize(ByteArray& id)
 {
-    kv_->Uninit(id);
+    kv_.Finalize(id);
 }
 
-ByteArray pdo::state::Interpreter_KV::Get(ByteArray& key)
+ByteArray pdo::state::Interpreter_KV::Get(const ByteArray& key)
 {
-    return kv_->Get(key);
+    return kv_.Get(key);
 }
 
-void pdo::state::Interpreter_KV::Put(ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::Put(const ByteArray& key, const ByteArray& value)
 {
-    kv_->Put(key, value);
+    kv_.Put(key, value);
 }
 
-void pdo::state::Interpreter_KV::Delete(ByteArray& key)
+void pdo::state::Interpreter_KV::Delete(const ByteArray& key)
 {
-    kv_->Delete(key);
+    kv_.Delete(key);
 }
 
-//########## FUNCTION BELOW ARE BASED ON THE ONES ABOVE################################################################
+//########## FUNCTION BELOW ARE BASED ON THE ONES
+//ABOVE################################################################
 
 ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
 {
@@ -91,7 +89,7 @@ ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
     return Get(privileged_key);
 }
 
-void pdo::state::Interpreter_KV::PrivilegedPut(const ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::PrivilegedPut(const ByteArray& key, const ByteArray& value)
 {
     ByteArray privileged_key = to_privileged_key(key);
     Put(privileged_key, value);
@@ -105,15 +103,13 @@ void pdo::state::Interpreter_KV::PrivilegedDelete(const ByteArray& key)
 
 ByteArray pdo::state::Interpreter_KV::UnprivilegedGet(const ByteArray& key)
 {
-    SAFE_LOG(PDO_LOG_DEBUG, "get unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
     ByteArray unprivileged_key = to_unprivileged_key(key);
     return Get(unprivileged_key);
 }
 
-void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, ByteArray& value)
+void pdo::state::Interpreter_KV::UnprivilegedPut(const ByteArray& key, const ByteArray& value)
 {
     ByteArray unprivileged_key = to_unprivileged_key(key);
-    SAFE_LOG(PDO_LOG_DEBUG, "put unpriv key %s", ByteArrayToHexEncodedString(key).c_str());
     Put(unprivileged_key, value);
 }
 
