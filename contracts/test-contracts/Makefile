@@ -19,7 +19,7 @@ ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(CONTRACTHOME)/contracts
 
-CONTRACTS := _mock-contract.scm
+CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm
 DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS))
 
 all: $(CONTRACTS)
@@ -31,6 +31,18 @@ _mock-contract.scm : mock-contract.bld mock-contract.scm
 
 _debug_mock-contract.scm : mock-contract.bld mock-contract.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 mock-contract.bld debug
+
+_mock-contract-bad.scm : mock-contract-bad.bld mock-contract-bad.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 mock-contract-bad.bld
+
+_debug_mock-contract-bad.scm : mock-contract-bad.bld mock-contract-bad.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 mock-contract-bad.bld debug
+
+_key-value-test.scm : key-value-test.bld key-value-test.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 key-value-test.bld
+
+_debug_key-value-test.scm : key-value-test.bld key-value-test.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 key-value-test.bld debug
 
 install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)

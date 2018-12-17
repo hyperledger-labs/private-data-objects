@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class ContractCode(object) :
+    __extension__ = '.scm'
+
     # -------------------------------------------------------
     @classmethod
     def create_from_scheme_file(cls, name, source_name = None, search_path = ['.', '..', './contracts']) :
@@ -36,7 +38,7 @@ class ContractCode(object) :
         """
         if source_name is None :
             source_name = name
-        basename = putils.build_file_name(source_name, extension='.scm')
+        basename = putils.build_simple_file_name(source_name, extension=cls.__extension__)
         filename = putils.find_file_in_path(basename, search_path)
         with open(filename, "r") as cfile :
             code = cfile.read()

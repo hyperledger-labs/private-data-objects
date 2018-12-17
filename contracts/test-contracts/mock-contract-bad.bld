@@ -17,9 +17,9 @@
 (load "../packages/contract-builder.scm")
 
 (define package-directories
-  '("." "../integer-key" "../packages" "../../common/interpreter/gipsy_scheme/packages"))
+  '("." "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
-(define contract-input "mock-contract.scm")
+(define contract-input "mock-contract-bad.scm")
 (define contract-output (string-append "_" contract-input))
 
 (if (member "debug" *args*)

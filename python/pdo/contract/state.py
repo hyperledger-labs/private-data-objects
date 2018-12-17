@@ -55,7 +55,7 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def __cache_data_block__(cls, contract_id, raw_data, data_dir = "./data") :
+    def __cache_data_block__(cls, contract_id, raw_data, data_dir = None) :
         """
         save a data block into the local cache
 
@@ -67,8 +67,8 @@ class ContractState(object) :
         state_hash = ContractState.compute_hash(raw_data, encoding='b64')
         state_hash = ContractState.safe_filename(state_hash)
 
-        cache_dir = os.path.join(data_dir, cls.__path__, contract_id)
-        filename = putils.build_file_name(state_hash, cache_dir, '.ctx')
+        subdirectory = os.path.join(cls.__path__, contract_id, state_hash[0:2])
+        filename = putils.build_file_name(state_hash, data_dir, subdirectory, cls.__extension__)
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -83,7 +83,7 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def __read_data_block_from_cache__(cls, contract_id, state_hash, data_dir = "./data") :
+    def __read_data_block_from_cache__(cls, contract_id, state_hash, data_dir = None) :
         """
         read a data block from the local cache
 
@@ -94,8 +94,8 @@ class ContractState(object) :
         contract_id = ContractState.safe_filename(contract_id)
         state_hash = ContractState.safe_filename(state_hash)
 
-        cache_dir = os.path.join(data_dir, cls.__path__, contract_id)
-        filename = putils.build_file_name(state_hash, cache_dir, cls.__extension__)
+        subdirectory = os.path.join(cls.__path__, contract_id, state_hash[0:2])
+        filename = putils.build_file_name(state_hash, data_dir, subdirectory, cls.__extension__)
 
         try :
             logger.debug('read state block from file %s', filename)
@@ -112,7 +112,7 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @staticmethod
-    def __push_block_to_eservice__(eservice, contract_id, state_hash, data_dir = "./data") :
+    def __push_block_to_eservice__(eservice, contract_id, state_hash, data_dir = None) :
         """
         ensure that a particular block is stored in the eservice
 
@@ -138,7 +138,7 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def __cache_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = "./data") :
+    def __cache_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = None) :
         """
         ensure that a block is cached locally
 
@@ -154,8 +154,7 @@ class ContractState(object) :
         safe_contract_id = ContractState.safe_filename(contract_id)
         safe_state_hash = ContractState.safe_filename(state_hash)
 
-        cache_dir = os.path.join(data_dir, cls.__path__, safe_contract_id)
-        filename = putils.build_file_name(safe_state_hash, cache_dir, cls.__extension__)
+        filename = putils.build_file_name(safe_state_hash, data_dir, cls.__path__, cls.__extension__)
         if os.path.isfile(filename) :
             return
 
@@ -174,7 +173,7 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def read_from_cache(cls, contract_id, state_hash, data_dir = "./data") :
+    def read_from_cache(cls, contract_id, state_hash, data_dir = None) :
         """
         read a block from the local cache and create contract state for it
 
@@ -281,7 +280,7 @@ class ContractState(object) :
         return result
 
     # --------------------------------------------------
-    def push_state_to_eservice(self, eservice, data_dir = "./data") :
+    def push_state_to_eservice(self, eservice, data_dir = None) :
         """
         push the blocks associated with the state to the eservice
 
@@ -297,7 +296,7 @@ class ContractState(object) :
             ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
 
     # --------------------------------------------------
-    def pull_state_from_eservice(self, eservice, data_dir = "./data") :
+    def pull_state_from_eservice(self, eservice, data_dir = None) :
         """
         push the blocks associated with the state to the eservice
 
@@ -313,5 +312,5 @@ class ContractState(object) :
             ContractState.__cache_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
 
     # --------------------------------------------------
-    def save_to_cache(self, data_dir = "./data") :
+    def save_to_cache(self, data_dir = None) :
         ContractState.__cache_data_block__(self.contract_id, self.encrypted_state, data_dir)

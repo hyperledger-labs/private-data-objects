@@ -29,6 +29,7 @@ import pdo.contract as contract_helper
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.secrets as secrets
+import pdo.common.utility as putils
 
 import logging
 logger = logging.getLogger(__name__)
@@ -62,11 +63,17 @@ def CreateAndRegisterEnclave(config) :
     global enclave
     global txn_dependencies
 
+    # if we are using the eservice then there is nothing to register since
+    # the eservice has already registered the enclave
     if use_eservice :
-        eservice_url = config.get('eservice-url')
-        logger.info('use enclave service at %s', eservice_url)
-        enclave = eservice_helper.EnclaveServiceClient(eservice_url)
-        return enclave
+        try :
+            eservice_url = random.choice(config['Service']['EnclaveServiceURLs'])
+            logger.info('use enclave service at %s', eservice_url)
+            enclave = eservice_helper.EnclaveServiceClient(eservice_url)
+            return enclave
+        except Exception as e :
+            logger.error('failed to contact enclave service; %s', str(e))
+            sys.exit(-1)
 
     enclave_config = config.get('EnclaveModule')
     ledger_config = config.get('Sawtooth')
@@ -100,18 +107,27 @@ def CreateAndRegisterEnclave(config) :
 def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     global txn_dependencies
 
-    data_dir = config['PDO']['DataPath']
+    data_dir = config['Contract']['DataDirectory']
 
     ledger_config = config.get('Sawtooth')
     contract_creator_id = contract_creator_keys.identity
 
-    contract_name = 'mock-contract'
-    contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_name, search_path = [".", "..", "contracts"])
+    try :
+        contract_class = config['Contract']['Name']
+        contract_source = config['Contract']['SourceFile']
+        source_path = config['Contract']['SourceSearchPath']
+        contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_class, contract_source, source_path)
+    except Exception as e :
+        raise Exception('unable to load contract source; {0}'.format(str(e)))
 
     # create the provisioning servers
     if use_pservice :
-        pservice_urls = config.get("pservice-urls")
-        provisioning_services = list(map(lambda url : pservice_helper.ProvisioningServiceClient(url), pservice_urls))
+        try :
+            pservice_urls = config['Service']['ProvisioningServiceURLs']
+            provisioning_services = list(map(lambda url : pservice_helper.ProvisioningServiceClient(url), pservice_urls))
+        except Exception as e :
+            logger.error('failed to connect to provisioning service; %s', str(e))
+            ErrorShutdown()
     else :
         provisioning_services = secret_helper.create_provisioning_services(config['secrets'])
     provisioning_service_keys = list(map(lambda svc : svc.identity, provisioning_services))
@@ -201,7 +217,9 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         ErrorShutdown()
 
     contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
-    contract.save_to_file(contract_name, data_dir=data_dir)
+
+    contract_save_file = config['Contract']['SaveFile']
+    contract.save_to_file(contract_save_file, data_dir=data_dir)
 
     # --------------------------------------------------
     logger.info('create the initial contract state')
@@ -319,13 +337,13 @@ def LocalMain(config) :
     # --------------------------------------------------
     logger.info('invoke a few methods on the contract, load from file')
     # --------------------------------------------------
-    data_dir = config['PDO']['DataPath']
+    data_dir = config['Contract']['DataDirectory']
 
     try :
-        contract_name = 'mock-contract'
         if use_ledger :
             logger.info('reload the contract from local file')
-            contract = contract_helper.Contract.read_from_file(ledger_config, contract_name, data_dir=data_dir)
+            contract_save_file = config['Contract']['SaveFile']
+            contract = contract_helper.Contract.read_from_file(ledger_config, contract_save_file, data_dir=data_dir)
     except Exception as e :
         logger.error('failed to load the contract from a file; %s', str(e))
         ErrorShutdown()
@@ -368,26 +386,71 @@ config_map = {
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def ParseCommandLine(config, args) :
+def Main() :
     global use_ledger
     global use_eservice
     global use_pservice
 
+    import pdo.common.config as pconfig
+    import pdo.common.logger as plogger
+
+    # parse out the configuration file first
+    conffiles = [ 'pcontract.toml', 'eservice_tests.toml' ]
+    confpaths = [ ".", "./etc", ContractEtc ]
+
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--ledger', help='URL for the Sawtooth ledger', type=str)
-    parser.add_argument('--no-ledger', help='Do not attempt ledger registration', action="store_true")
-    parser.add_argument('--data', help='Path for storing generated files', type=str)
-    parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
-    parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
-    parser.add_argument('--eservice', help='URL of the enclave service to use', type=str)
-    parser.add_argument('--pservice', help='URLs for provisioning services to contact', type=str, nargs='+', default=[])
+    parser.add_argument('--config', help='configuration file', nargs = '+')
+    parser.add_argument('--config-dir', help='directories to search for the configuration file', nargs = '+')
+
+    parser.add_argument('-i', '--identity', help='Identity to use for the process', type=str)
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
 
-    options = parser.parse_args(args)
+    parser.add_argument('--ledger', help='URL for the Sawtooth ledger', type=str)
+    parser.add_argument('--no-ledger', help='Do not attempt ledger registration', action="store_true")
 
+    parser.add_argument('--data-dir', help='Directory for storing generated files', type=str)
+    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
+    parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
+
+    parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
+    parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
+
+    parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
+    parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
+
+    options = parser.parse_args()
+
+    # first process the options necessary to load the default configuration
+    if options.config :
+        conffiles = options.config
+
+    if options.config_dir :
+        confpaths = options.config_dir
+
+    # customize the configuration file for the current request
+    global config_map
+
+    config_map['identity'] = 'test-request'
+    if options.identity :
+        config_map['identity'] = options.identity
+
+    if options.data_dir :
+        config_map['data'] = options.data_dir
+
+    config_map['contract'] = 'mock-contract'
+
+
+    # parse the configuration file
+    try :
+        config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
+    except pconfig.ConfigurationException as e :
+        logger.error(str(e))
+        sys.exit(-1)
+
+    # set up the logging configuration
     if config.get('Logging') is None :
         config['Logging'] = {
             'LogFile' : '__screen__',
@@ -398,72 +461,60 @@ def ParseCommandLine(config, args) :
     if options.loglevel :
         config['Logging']['LogLevel'] = options.loglevel.upper()
 
-    if config.get('PDO') is None :
-        config['PDO'] = {
-            'DataPath' : 'mock_data',
-            'SchemeSearchPath' : ['contracts']
-        }
-    if options.data :
-        config['PDO']['DataPath'] = options.data
+    plogger.setup_loggers(config.get('Logging', {}))
+    sys.stdout = plogger.stream_to_logger(logging.getLogger('STDOUT'), logging.DEBUG)
+    sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
+    # set up the ledger configuration
     if config.get('Sawtooth') is None :
         config['Sawtooth'] = {
             'LedgerURL' : 'http://localhost:8008',
-            'Organization' : 'Organization'
         }
     if options.ledger :
         config['Sawtooth']['LedgerURL'] = options.ledger
+
+    # set up the key search paths
+    if config.get('Key') is None :
+        config['Key'] = {
+            'SearchPath' : ['.', './keys', ContractKeys],
+            'FileName' : options.identity + ".pem"
+        }
+    if options.key_dir :
+        config['Key']['SearchPath'] = options.key_dir
+
+    # set up the service configuration
+    if config.get('Service') is None :
+        config['Service'] = {
+            'EnclaveServiceURLs' : [],
+            'ProvisioningServiceURLs' : []
+        }
+    if options.eservice_url :
+        use_eservice = True
+        config['Service']['EnclaveServiceURLs'] = options.eservice_url
+    if options.pservice_url :
+        use_pservice = True
+        config['Service']['ProvisioningServiceURLs'] = options.pservice_url
+
+    # set up the data paths
+    if config.get('Contract') is None :
+        config['Contract'] = {
+            'DataDirectory' : ContractData,
+            'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
+        }
+
+    if options.data_dir :
+        config['Contract']['DataDirectory'] = options.data_dir
+    if options.source_dir :
+        config['Contract']['SourceSearchPath'] = options.source_dir
+
+    putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
         use_ledger = False
         config.pop('Sawtooth', None)
 
-    config['iterations'] = options.iterations
     config['secrets'] = options.secret_count
-
-    if options.eservice :
-        use_eservice = True
-        config['eservice-url'] = options.eservice
-
-    if options.pservice :
-        use_pservice = True
-        config['pservice-urls'] = options.pservice
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def Main() :
-    import pdo.common.config as pconfig
-    import pdo.common.logger as plogger
-
-    # parse out the configuration file first
-    conffiles = [ 'eservice_tests.toml' ]
-    confpaths = [ ".", "./etc", ContractEtc ]
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', help='configuration file', nargs = '+')
-    parser.add_argument('--config-dir', help='configuration file', nargs = '+')
-    (options, remainder) = parser.parse_known_args()
-
-    if options.config :
-        conffiles = options.config
-
-    if options.config_dir :
-        confpaths = options.config_dir
-
-    global config_map
-    config_map['identity'] = 'test-request'
-
-    try :
-        config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
-    except pconfig.ConfigurationException as e :
-        logger.error(str(e))
-        sys.exit(-1)
-
-    ParseCommandLine(config, remainder)
-
-    plogger.setup_loggers(config.get('Logging', {}))
-    sys.stdout = plogger.stream_to_logger(logging.getLogger('STDOUT'), logging.DEBUG)
-    sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
+    config['iterations'] = options.iterations
 
     LocalMain(config)
 

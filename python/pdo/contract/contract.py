@@ -32,10 +32,13 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class Contract(object) :
+    __path__ = '__contract_cache__'
+    __extension__ = '.pdo'
+
     # -------------------------------------------------------
     @classmethod
-    def read_from_file(cls, ledger_config, basename, data_dir = './data') :
-        filename = putils.build_file_name(basename, data_dir, '.pdo')
+    def read_from_file(cls, ledger_config, basename, data_dir = None) :
+        filename = putils.build_file_name(basename, data_dir, cls.__path__, cls.__extension__)
         logger.debug('load contract information from %s', filename)
         if os.path.exists(filename) is not True :
             raise FileNotFoundError(errno.ENOENT, "contract data file does not exist", filename)
@@ -142,7 +145,7 @@ class Contract(object) :
             expression = expression)
 
     # -------------------------------------------------------
-    def save_to_file(self, basename, data_dir = "./data") :
+    def save_to_file(self, basename, data_dir = None) :
         serialized = dict()
         serialized['contract_id'] = self.contract_id
         serialized['creator_id'] = self.creator_id
@@ -159,8 +162,12 @@ class Contract(object) :
 
         serialized['enclaves_info'] = enclaves_info
 
-        filename = putils.build_file_name(basename, data_dir, '.pdo')
+        filename = putils.build_file_name(basename, data_dir, self.__path__, self.__extension__)
+
         try :
+            if not os.path.exists(os.path.dirname(filename)):
+                os.makedirs(os.path.dirname(filename))
+
             with open(filename, "w") as contract_file :
                 json.dump(serialized, contract_file)
         except Exception as e :

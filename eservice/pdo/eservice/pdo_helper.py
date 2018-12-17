@@ -77,7 +77,7 @@ class Enclave(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def read_from_file(cls, basename, data_dir = './data', txn_keys = None) :
+    def read_from_file(cls, basename, data_dir = None, txn_keys = None) :
         """read_from_file -- read enclave data from a file and initialize a new
         Enclave object with the resulting data.
 
@@ -89,11 +89,11 @@ class Enclave(object) :
         if txn_keys is None :
             txn_keys = keys.TransactionKeys()
 
-        filename = os.path.realpath(os.path.join(data_dir, basename + ".enc"))
-        logger.debug('load enclave information from %s', filename)
+        filename = putils.build_file_name(basename, data_dir = data_dir, extension = '.enc')
         if os.path.exists(filename) is not True :
             raise FileNotFoundError(errno.ENOENT, "enclave information file does not exist", filename)
 
+        logger.debug('load enclave information from %s', filename)
         with open(filename, "r") as enclave_file :
             enclave_info = json.load(enclave_file)
 
@@ -235,7 +235,7 @@ class Enclave(object) :
         return pdo_enclave.block_store_put(key_b64, value_b64)
 
     # -------------------------------------------------------
-    def save_to_file(self, basename, data_dir = "./data") :
+    def save_to_file(self, basename, data_dir = None) :
         enclave_info = dict()
         enclave_info['nonce'] = self.nonce
         enclave_info['sealed_data'] = self.sealed_data
@@ -244,7 +244,7 @@ class Enclave(object) :
         enclave_info['proof_data'] = self.proof_data
         enclave_info['enclave_id'] = self.enclave_id
 
-        filename = os.path.realpath(os.path.join(data_dir, basename + ".enc"))
+        filename = putils.build_file_name(basename, data_dir=data_dir, extension='.enc')
         logger.debug('save enclave data to %s', filename)
         with open(filename, "w") as file :
             json.dump(enclave_info, file)

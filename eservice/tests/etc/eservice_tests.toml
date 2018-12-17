@@ -13,29 +13,6 @@
 # limitations under the License.
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
-# --------------------------------------------------
-[Sawtooth]
-# LedgerURL is used to submit the registration transaction should
-# the enclave require registration
-LedgerURL = "${ledger}"
-Organization = "Widgets R Us"
-
-# --------------------------------------------------
-# PDO -- configuration for contracts
-# --------------------------------------------------
-[PDO]
-DataPath = '${data}'
-SchemeSearchPath = [ '.', '..', 'contracts', '${data}' ]
-
-# --------------------------------------------------
-# Logging -- configuration of service logging
-# --------------------------------------------------
-[Logging]
-LogLevel = "INFO"
-LogFile  = "__screen__"
-
-# --------------------------------------------------
 # EnclaveModule -- configuration of the SGX contract enclave
 # --------------------------------------------------
 [EnclaveModule]
