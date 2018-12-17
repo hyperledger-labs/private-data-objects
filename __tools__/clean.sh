@@ -24,6 +24,9 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/..)"
 
 # --------------- COMMON ---------------
+cd $SRCDIR/common/crypto/verify_ias_report
+rm -f ias-certificates.cpp
+
 cd $SRCDIR/common
 rm -rf build
 
@@ -36,6 +39,9 @@ cd $SRCDIR/eservice
 make clean
 
 # --------------- PSERVICE ---------------
+cd $SRCDIR/pservice/lib/libpdo_enclave
+rm -f contract_enclave_mrenclave.cpp
+
 cd $SRCDIR/pservice
 make clean
 
