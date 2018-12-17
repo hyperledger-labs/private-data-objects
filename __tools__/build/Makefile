@@ -26,16 +26,10 @@ PKGGEN=$(abspath $(SRCDIR)/../rebuild.sh)
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
-IAS_CERTIFICATES=$(abspath $(ROOTDIR)/common/crypto/verify_ias_report/ias-certificates.cpp)
-
-all: environment template $(IAS_CERTIFICATES) packages keys conf
+all: environment template packages keys conf
 
 clean :
-	rm -f $(IAS_CERTIFICATES)
 	rm -rf $(DSTDIR)
-
-$(IAS_CERTIFICATES) :
-	cd $(abspath $(ROOTDIR)/common/crypto/verify_ias_report); ./build_ias_certificates_cpp.sh
 
 environment : $(PYTHON_DIR)
 

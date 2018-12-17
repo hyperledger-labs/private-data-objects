@@ -105,6 +105,13 @@ fi
 # BUILD
 # -----------------------------------------------------------------
 yell --------------- COMMON ---------------
+
+# create the ias-certificates.cpp from the templates
+cd $SRCDIR/common/crypto/verify_ias_report
+rm -f ias-certificates.cpp
+try ./build_ias_certificates_cpp.sh
+
+# now build the rest of common
 cd $SRCDIR/common
 
 rm -rf build
