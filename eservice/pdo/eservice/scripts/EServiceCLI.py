@@ -466,13 +466,13 @@ config_map = {
 # -----------------------------------------------------------------
 def Main() :
     # parse out the configuration file first
-    conffiles = [ 'eservice.toml' ]
+    conffiles = [ 'eservice.toml', 'enclave.toml' ]
     confpaths = [ ".", "./etc", ContractEtc ]
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', help='configuration file', nargs = '+')
-    parser.add_argument('--config-dir', help='configuration file', nargs = '+')
+    parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
     parser.add_argument('--identity', help='Identity to use for the process', required = True, type = str)
 

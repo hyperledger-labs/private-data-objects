@@ -75,7 +75,7 @@ for index in `seq 1 $F_COUNT` ; do
 
     sleep 5
 
-    eservice --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
+    eservice --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
              --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
 
 done

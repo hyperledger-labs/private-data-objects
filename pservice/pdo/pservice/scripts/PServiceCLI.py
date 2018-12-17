@@ -437,7 +437,7 @@ def Main() :
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', help='configuration file', nargs = '+')
-    parser.add_argument('--config-dir', help='configuration file', nargs = '+')
+    parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
     parser.add_argument('--identity', help='Identity to use for the process', required = True, type = str)
 
@@ -467,6 +467,10 @@ def Main() :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
     except pconfig.ConfigurationException as e :
         logger.error(str(e))
+        sys.exit(-1)
+
+    if config is None :
+        logger.error('failed to parse configuration file')
         sys.exit(-1)
 
     # set up the logging configuration

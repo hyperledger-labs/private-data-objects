@@ -75,7 +75,7 @@ for index in `seq 1 $F_COUNT` ; do
         rm -f $EFILE $OFILE
     fi
 
-    pservice --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
+    pservice --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
              --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
 
 done
