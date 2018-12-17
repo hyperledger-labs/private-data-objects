@@ -17,6 +17,7 @@
 # Both can be overridden with environment variables
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR?=$(abspath $(SRCDIR)/_dev)
+ROOTDIR=$(abspath $(SRCDIR)/../..)
 
 KEYGEN=$(abspath $(SRCDIR)/../make-keys)
 CNFGEN=$(abspath $(SRCDIR)/../make-config)
