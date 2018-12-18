@@ -22,7 +22,7 @@ PDO_SOURCE_ROOT="$(realpath ${SCRIPTDIR}/..)"
 # source in order to build the library used to debug and test
 # contracts outside of the contract enclave
 # -----------------------------------------------------------------
-export TINY_SCHEME_SRC="${TINY_SCHEME_SRC:=/}"
+export TINY_SCHEME_SRC="${TINY_SCHEME_SRC:-/}"
 
 # -----------------------------------------------------------------
 # SGX_MODE determines the SGX mode of operation. When the variable is
@@ -30,7 +30,7 @@ export TINY_SCHEME_SRC="${TINY_SCHEME_SRC:=/}"
 # mode. When the variable is set to "HW", the enclaves will be compiled
 # to run in a real SGX enclave.
 # -----------------------------------------------------------------
-export SGX_MODE="${SGX_MODE:=SIM}"
+export SGX_MODE="${SGX_MODE:-SIM}"
 
 # -----------------------------------------------------------------
 # SGX_DEBUG determines whether additional debugging functions
@@ -38,28 +38,28 @@ export SGX_MODE="${SGX_MODE:=SIM}"
 # exposes information about what is happening inside a contract, do
 # not use with confidential contracts.
 # -----------------------------------------------------------------
-export SGX_DEBUG="${SGX_DEBUG:=1}"
+export SGX_DEBUG="${SGX_DEBUG:-1}"
 
 # -----------------------------------------------------------------
 # PDO_INSTALL_ROOT is the root of the directory in which the virtual
 # enviroment will be built; this is equivalent to the old DSTDIR,
 # generally PDO_HOME will point to PDO_INSTALL_ROOT/opt/pdo
 # -----------------------------------------------------------------
-export PDO_INSTALL_ROOT="${PDO_INSTALL_ROOT:=${PDO_SOURCE_ROOT}/__tools__/build/_dev}"
+export PDO_INSTALL_ROOT="${PDO_INSTALL_ROOT:-${PDO_SOURCE_ROOT}/__tools__/build/_dev}"
 
 # -----------------------------------------------------------------
 # PDO_HOME is the directory where PDO-specific files
 # are stored include configuration files, data files, compiled
 # contracts, contract user keys and service scripts.
 # -----------------------------------------------------------------
-export PDO_HOME="${PDO_HOME:=${PDO_INSTALL_ROOT}/opt/pdo}"
+export PDO_HOME="${PDO_HOME:-${PDO_INSTALL_ROOT}/opt/pdo}"
 
 # -----------------------------------------------------------------
 # PDO_KEY_ROOT is the root directory where the keys are stored
 # for SGX, IAS, and Sawtooth integration; files in this directory
 # are not automatically generated.
 # -----------------------------------------------------------------
-export PDO_KEY_ROOT="${PDO_KEY_ROOT:=${PDO_INSTALL_ROOT}/opt/pdo/keys}"
+export PDO_KEY_ROOT="${PDO_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/keys}"
 
 # -----------------------------------------------------------------
 # PDO_ENCLAVE_PEM contains the name of the file containing the key
@@ -87,17 +87,17 @@ export PDO_LEDGER_KEY="${PDO_KEY_ROOT}/pdo_validator.priv"
 # PDO_PDO_LEDGER_URL is the URL is to submit transactions to the
 # Sawtooth ledger.
 # -----------------------------------------------------------------
-export PDO_LEDGER_URL="${PDO_LEDGER_URL:=http://127.0.0.1:8008}"
+export PDO_LEDGER_URL="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 
 # -----------------------------------------------------------------
 # PDO_SPID is the ID that accompanies the certificate registered
 # with the Intel Attestation Service.
 # -----------------------------------------------------------------
-export PDO_SPID="${PDO_SPID:=$(cat ${PDO_KEY_ROOT}/sgx_spid.txt)}"
+export PDO_SPID="${PDO_SPID:-$(cat ${PDO_KEY_ROOT}/sgx_spid.txt)}"
 
 # -----------------------------------------------------------------
 # PDO_SPID_CERT_FILE is the name of the file that contains the
 # PEM-encoded certificate that was submitted to Intel in order to
 # obtain the SPID
 # -----------------------------------------------------------------
-export PDO_SPID_CERT_FILE="${PDO_SPID_CERT_FILE:=${PDO_KEY_ROOT}/sgx_spid_cert.pem}"
+export PDO_SPID_CERT_FILE="${PDO_SPID_CERT_FILE:-${PDO_KEY_ROOT}/sgx_spid_cert.pem}"
