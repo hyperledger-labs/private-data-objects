@@ -43,7 +43,7 @@ export SGX_DEBUG="${SGX_DEBUG:=1}"
 # -----------------------------------------------------------------
 # PDO_INSTALL_ROOT is the root of the directory in which the virtual
 # enviroment will be built; this is equivalent to the old DSTDIR,
-# generally CONTRACTHOME will point to PDO_INSTALL_ROOT/opt/pdo
+# generally PDO_HOME will point to PDO_INSTALL_ROOT/opt/pdo
 # -----------------------------------------------------------------
 export PDO_INSTALL_ROOT="${PDO_INSTALL_ROOT:=${PDO_SOURCE_ROOT}/__tools__/build/_dev}"
 
@@ -101,8 +101,3 @@ export PDO_SPID="${PDO_SPID:=$(cat ${PDO_KEY_ROOT}/sgx_spid.txt)}"
 # obtain the SPID
 # -----------------------------------------------------------------
 export PDO_SPID_CERT_FILE="${PDO_SPID_CERT_FILE:=${PDO_KEY_ROOT}/sgx_spid_cert.pem}"
-
-# -----------------------------------------------------------------
-# OLD VARIABLES -- to be replace by the forms above
-# -----------------------------------------------------------------
-export CONTRACTHOME=${PDO_HOME}

@@ -33,17 +33,17 @@ where you can install the common Python modules. The rest of these
 instructions assume that you have set up a virtual environment for
 Python3 and have activated it.
 
-The environment variable ``CONTRACTHOME`` should be set to the directory
+The environment variable ``PDO_HOME`` should be set to the directory
 where you expect to configure and run the enclave service. Generally the
 variable is set to the path to your virtual environment root plus
 ``opt/pdo``.
 
 For example:
 ```bash
-prompt> export CONTRACTHOME=$VIRTUAL_ENV/opt/pdo
+prompt> export PDO_HOME=$VIRTUAL_ENV/opt/pdo
 ```
 
-For production deployment, ``CONTRACTHOME`` should be set to ``/opt/pdo``.
+For production deployment, ``PDO_HOME`` should be set to ``/opt/pdo``.
 
 Note: EService has to be compiled in SGX hardware-mode before compiling and running
 [PService](../../pservice/docs/BUILD.md) in hardware-mode. Any changes to the EService
@@ -123,11 +123,11 @@ enclave service will search the current directory for a subdirectory
 called ``etc`` in which you can place the configuration file
 ``eservice.toml``.  If the configuration file does not exist in the
 current directory tree, the script will attempt to load it from the
-installed home directory (i.e. the value of the ``CONTRACTHOME``
+installed home directory (i.e. the value of the ``PDO_HOME``
 environment variable).
 
 An example configuration file, ``sample_config.toml`` will be installed in
-``$CONTRACTHOME/etc``. That file should provide a starting point for creating your ``eservice.toml``
+``$PDO_HOME/etc``. That file should provide a starting point for creating your ``eservice.toml``
 file.
 
 Similarly, the enclave service requires a ``log`` and ``data``

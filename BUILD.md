@@ -59,11 +59,11 @@ First, make sure environment variables are set as described in the
 [prerequisites](#prerequisites) section.
 
 The quickstart build will set up a python virtual environment to install things
-into. Set `CONTRACTHOME` to point to the target install directory for PDO
+into. Set `PDO_HOME` to point to the target install directory for PDO
 components. You will need this environment variable set in every shell session
 where you interact with PDO.
 ```
-export CONTRACTHOME=`pwd`/__tools__/build/_dev/opt/pdo
+export PDO_HOME=`pwd`/__tools__/build/_dev/opt/pdo
 ```
 
 Change to the quickstart build directory:
@@ -134,11 +134,11 @@ pip install --upgrade pyparsing
 ```
 
 If you are using this recommended virtual environment setup, you will also need
-to export the environment variable `CONTRACTHOME`. This is used by PDO to find
+to export the environment variable `PDO_HOME`. This is used by PDO to find
 configuration files and encryption keys. Set this variable in your current
 shell session with:
 ```
-export CONTRACTHOME=`pwd`/venv/opt/pdo
+export PDO_HOME=`pwd`/venv/opt/pdo
 ```
 
 ## <a name="common"></a>Compiling the Common C++ Libraries

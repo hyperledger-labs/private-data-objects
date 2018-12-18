@@ -55,12 +55,12 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../../..)"
 KEYGEN=${SRCDIR}/__tools__/make-keys
 
-if [ ! -f ${CONTRACTHOME}/keys/red_type_private.pem ]; then
+if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
     yell create keys for the contracts
     for color in red green blue ; do
-        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_type --format pem
-        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_vetting --format pem
-        ${KEYGEN} --keyfile ${CONTRACTHOME}/keys/${color}_issuer --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
     done
 fi
 
