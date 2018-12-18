@@ -84,10 +84,10 @@ export PDO_IAS_KEY="${PDO_KEY_ROOT}/pdo_ias_key.pem"
 export PDO_LEDGER_KEY="${PDO_KEY_ROOT}/pdo_validator.priv"
 
 # -----------------------------------------------------------------
-# PDO_LEDGER_URL is the URL is to submit transactions to the
+# PDO_PDO_LEDGER_URL is the URL is to submit transactions to the
 # Sawtooth ledger.
 # -----------------------------------------------------------------
-export PDO_LEDGER_URL="${PDO_LEDGER_URL:http://127.0.0.1:8008}"
+export PDO_LEDGER_URL="${PDO_LEDGER_URL:=http://127.0.0.1:8008}"
 
 # -----------------------------------------------------------------
 # PDO_SPID is the ID that accompanies the certificate registered
@@ -106,4 +106,3 @@ export PDO_SPID_CERT_FILE="${PDO_SPID_CERT_FILE:=${PDO_KEY_ROOT}/sgx_spid_cert.p
 # OLD VARIABLES -- to be replace by the forms above
 # -----------------------------------------------------------------
 export CONTRACTHOME=${PDO_HOME}
-export LEDGER_URL=${PDO_LEDGER_URL}

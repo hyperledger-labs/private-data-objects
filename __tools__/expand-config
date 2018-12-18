@@ -32,7 +32,7 @@ ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "log
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
 HttpsProxy = os.environ.get("https_proxy", "")
 
-LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
+LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 SPID = os.environ.get("PDO_SPID",'DEADBEEF00000000DEADBEEF00000000')
 SPID_CERT_FILE = os.environ.get("PDO_SPID_CERT_FILE",'/etc/sawtooth/ias_rk_pub.pem')
 

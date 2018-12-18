@@ -91,7 +91,7 @@ Run the test suite to check that the installation is working correctly. Replace
 the URL with the URL for the REST API of your Sawtooth installation.
 ```
 cd ..
-LEDGER_URL=http://127.0.0.1:8008 ./run-tests.sh
+PDO_LEDGER_URL=http://127.0.0.1:8008 ./run-tests.sh
 ```
 
 # <a name="manual-install"></a>Building and installing PDO manually

@@ -66,15 +66,15 @@ fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-: "${LEDGER_URL?Missing environment variable LEDGER_URL}"
+: "${PDO_LEDGER_URL?Missing environment variable PDO_LEDGER_URL}"
 
-try pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color red
-try pdo-shell --ledger $LEDGER_URL -s scripts/create.psh -m color green
+try pdo-shell --ledger $PDO_LEDGER_URL -s scripts/create.psh -m color red
+try pdo-shell --ledger $PDO_LEDGER_URL -s scripts/create.psh -m color green
 
 for p in $(seq 1 5); do
-    pdo-shell --ledger $LEDGER_URL -s scripts/issue.psh -m color green -m issuee user$p -m count $(($p * 10))
+    pdo-shell --ledger $PDO_LEDGER_URL -s scripts/issue.psh -m color green -m issuee user$p -m count $(($p * 10))
 done
 
 for p in $(seq 6 10); do
-    pdo-shell --ledger $LEDGER_URL -s scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
+    pdo-shell --ledger $PDO_LEDGER_URL -s scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
 done
