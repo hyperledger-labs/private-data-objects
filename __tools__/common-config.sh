@@ -105,6 +105,5 @@ export PDO_SPID_CERT_FILE="${PDO_SPID_CERT_FILE:=${PDO_KEY_ROOT}/sgx_spid_cert.p
 # -----------------------------------------------------------------
 # OLD VARIABLES -- to be replace by the forms above
 # -----------------------------------------------------------------
-export DSTDIR=${PDO_INSTALL_ROOT}
 export CONTRACTHOME=${PDO_HOME}
 export LEDGER_URL=${PDO_LEDGER_URL}
