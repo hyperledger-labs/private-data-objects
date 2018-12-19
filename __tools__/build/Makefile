@@ -20,7 +20,7 @@ DSTDIR?=$(abspath $(SRCDIR)/_dev)
 ROOTDIR=$(abspath $(SRCDIR)/../..)
 
 KEYGEN=$(abspath $(SRCDIR)/../make-keys)
-CNFGEN=$(abspath $(SRCDIR)/../make-config)
+CNFGEN=$(abspath $(SRCDIR)/../expand-config)
 PKGGEN=$(abspath $(SRCDIR)/../rebuild.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
@@ -63,13 +63,19 @@ keys :
 		for i in 1 2 3 4 5 6 7 8 9 10 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/user$${i} --format pem; done
 
 conf :
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template eservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template \
-		--node-base eservice --http-base 7100 --output $(DSTDIR)/opt/pdo/etc --count 5
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template pservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template \
-		--node-base pservice --http-base 7000 --output $(DSTDIR)/opt/pdo/etc --count 5
-	cp $(SRCDIR)/opt/pdo/etc/template/pcontract.toml $(DSTDIR)/opt/pdo/etc
+	@ echo Create configuration files from templates
+	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+		$(CNFGEN) --template eservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		multiple --file-base eservice --http-base 7100 --count 5
+	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+		$(CNFGEN) --template pservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		multiple --file-base pservice --http-base 7000 --count 5
+	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+		$(CNFGEN) --template enclave.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		single --file enclave.toml
+	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+		$(CNFGEN) --template pcontract.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		single --file pcontract.toml
 
 template :
 	mkdir -p $(DSTDIR)/opt/pdo/data

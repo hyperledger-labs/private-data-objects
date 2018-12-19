@@ -57,8 +57,8 @@ config_map = {
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-conffiles = [ 'eservice_tests.toml' ]
-confpaths = [ ".", "./etc" ]
+conffiles = [ 'pcontract.toml', 'enclave.toml' ]
+confpaths = [ ".", "./etc", ContractEtc ]
 
 import argparse
 parser = argparse.ArgumentParser()

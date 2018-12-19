@@ -101,6 +101,6 @@ def parse_configuration_file(filename, variable_map) :
         text += re.sub(cpattern, '', line) + ' '
 
     if variable_map :
-        text = Template(text).substitute(variable_map)
+        text = Template(text).safe_substitute(variable_map)
 
     return toml.loads(text)

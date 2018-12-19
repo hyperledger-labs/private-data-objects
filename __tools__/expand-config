@@ -30,8 +30,11 @@ ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
 ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
 ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
-LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
 HttpsProxy = os.environ.get("https_proxy", "")
+
+LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
+SPID = os.environ.get("PDO_SPID",'DEADBEEF00000000DEADBEEF00000000')
+SPID_CERT_FILE = os.environ.get("PDO_SPID_CERT_FILE",'/etc/sawtooth/ias_rk_pub.pem')
 
 config_map = {
     'data' : ContractData,
@@ -41,7 +44,9 @@ config_map = {
     'keys' : ContractKeys,
     'logs' : ContractLogs,
     'ledger' : LedgerURL,
-    'proxy' : HttpsProxy
+    'proxy' : HttpsProxy,
+    'spid' : SPID,
+    'spid_cert_file' : SPID_CERT_FILE
 }
 
 # -----------------------------------------------------------------
@@ -65,14 +70,33 @@ def parse_configuration_file(filename, variable_map) :
     for line in lines :
         text += re.sub(cpattern, '', line) + ' '
 
+    # try :
+    #     if variable_map :
+    #         text = Template(text).safe_substitute(variable_map)
+    # except ValueError as ve :
+    #     print('VALUEERROR: %s', ve)
+
+    # except Exception as e :
+    #     print('EXCEPTION: %s', e)
+
     if variable_map :
-        text = Template(text).substitute(variable_map)
+        text = Template(text).safe_substitute(variable_map)
 
     return toml.loads(text)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def ConfigNode(options, node, httpport = 0) :
+def expand_single(options) :
+    filename = os.path.join(options.template_directory, options.template)
+    config = parse_configuration_file(filename, config_map)
+
+    filename = os.path.join(options.output_directory, options.file)
+    with open(filename, 'w') as outfile:
+        toml.dump(config, outfile)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def expand_multiple(options, node, httpport = 0) :
     node_map = config_map.copy()
     node_map['identity'] = node
     node_map['httpport'] = httpport
@@ -80,7 +104,7 @@ def ConfigNode(options, node, httpport = 0) :
     filename = os.path.join(options.template_directory, options.template)
     config = parse_configuration_file(filename, node_map)
 
-    filename = os.path.join(options.output, node + '.toml')
+    filename = os.path.join(options.output_directory, node + '.toml')
     with open(filename, 'w') as outfile:
         toml.dump(config, outfile)
 
@@ -92,14 +116,28 @@ parser = argparse.ArgumentParser(description='Script to generate sawtooth config
 
 parser.add_argument('--template', help='Name of the base configuration file to use', default='template.js')
 parser.add_argument('--template-directory', help='Directory in which the template configuration will be found', default='etc/templates')
-parser.add_argument('--node-base', help='Base for node names', default='node')
-parser.add_argument('--http-base', help='Base for http ports used for nodes', default=8800, type=int)
-parser.add_argument('--output', help='Name of the directory where generated configuration files are written', default='etc')
-parser.add_argument('--count', help='Number of validators to configure', default=9)
+parser.add_argument('--output-directory', help='Name of the directory where generated configuration files are written', default='etc')
+parser.add_argument('--set', help='Specify arbitrary configuration options', nargs=2, action='append')
+
+subparsers = parser.add_subparsers(dest='command')
+expand_parser = subparsers.add_parser('single', help='expand a template into a single file')
+expand_parser.add_argument('--file', help='Base for node names', required=True)
+
+multi_parser = subparsers.add_parser('multiple', help='expand a template into multiple files')
+multi_parser.add_argument('--file-base', help='Base for file names', required=True)
+multi_parser.add_argument('--http-base', help='Base for http ports used for nodes', default=8800, type=int)
+multi_parser.add_argument('--count', help='Number of validators to configure', default=9, type=int)
 
 options = parser.parse_args()
 
-for n in range(1, int(options.count)+1) :
-    node = options.node_base + str(n)
-    httpport = options.http_base + n
-    ConfigNode(options, node, httpport = httpport)
+if options.set :
+    for (k, v) in options.set : config_map[k] = v
+
+if options.command == 'multiple' :
+    for n in range(1, int(options.count)+1) :
+        node = options.file_base + str(n)
+        httpport = options.http_base + n
+        expand_multiple(options, node, httpport = httpport)
+
+elif options.command == 'single' :
+    expand_single(options)
