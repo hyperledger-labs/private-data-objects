@@ -173,12 +173,12 @@ RUN git clone https://github.com/intel/intel-sgx-ssl.git  \
 # environment setup as required by PDO
 # Note
 # - though this works though only for docker run, if you derive images from
-#   this one you might have to specify explicitly variables like CONTRACTHOME,
+#   this one you might have to specify explicitly variables like PDO_HOME,
 #   PDO_ENCLAVE & SGX_MODE!
 # - make sure /etc/environment is always included for bash
 RUN \
     mkdir -p /project/pdo \
- && echo "CONTRACTHOME=/project/pdo/build/opt/pdo" >> /etc/environment \
+ && echo "PDO_HOME=/project/pdo/build/opt/pdo" >> /etc/environment \
  && echo "PDO_ENCLAVE_PEM=/project/pdo/enclave.pem" >> /etc/environment \
  && openssl genrsa -3 3072 > /project/pdo/enclave.pem \
  && sed -i '1s;^;source /etc/environment\nexport $(grep -v "^. " /etc/environment| cut -d= -f1)\n;' /root/.bashrc \

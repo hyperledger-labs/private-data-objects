@@ -58,7 +58,7 @@ function try() {
 yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 
 : "${TINY_SCHEME_SRC?Missing environment variable TINY_SCHEME_SRC}"
-: "${CONTRACTHOME?Missing environment variable CONTRACTHOME}"
+: "${PDO_HOME?Missing environment variable PDO_HOME}"
 : "${PDO_ENCLAVE_PEM?Missing environment variable PDO_ENCLAVE_PEM}"
 : "${SGX_SSL?Missing environment variable SGX_SSL}"
 : "${SGX_SDK?Missing environment variable SGXSDKInstallPath}"
@@ -90,8 +90,8 @@ try command -v make
 try command -v g++
 try command -v tinyscheme
 
-if [ ! -d "${CONTRACTHOME}" ]; then
-    die CONTRACTHOME directory does not exist
+if [ ! -d "${PDO_HOME}" ]; then
+    die PDO_HOME directory does not exist
 fi
 
 # Automatically determine how many cores the host system has

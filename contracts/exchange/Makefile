@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONTRACTHOME ?= /opt/pdo
+PDO_HOME ?= /opt/pdo
 
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
-INSTALLDIR = $(CONTRACTHOME)/contracts
+INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACT_SRC := auction.scm asset_type.scm exchange.scm issuer.scm vetting_organization.scm
 CONTRACTS := _auction.scm _asset_type.scm _exchange.scm _issuer.scm _vetting_organization.scm

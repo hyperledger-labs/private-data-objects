@@ -49,12 +49,12 @@ def LocalMain(config) :
 
 ## -----------------------------------------------------------------
 ContractHost = os.environ.get("HOSTNAME", "localhost")
-ContractHome = os.environ.get("CONTRACTHOME") or os.path.realpath("/opt/pdo")
-ContractEtc = os.environ.get("CONTRACTETC") or os.path.join(ContractHome, "etc")
-ContractKeys = os.environ.get("CONTRACTKEYS") or os.path.join(ContractHome, "keys")
-ContractLogs = os.environ.get("CONTRACTLOGS") or os.path.join(ContractHome, "logs")
-ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
-LedgerURL = os.environ.get("LEDGER_URL", "http://127.0.0.1:8008/")
+ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
+ContractEtc = os.path.join(ContractHome, "etc")
+ContractKeys = os.path.join(ContractHome, "keys")
+ContractLogs = os.path.join(ContractHome, "logs")
+ContractData = os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {

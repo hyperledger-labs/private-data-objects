@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-: ${LEDGER_URL:=http://127.0.0.1:8008}
+: ${PDO_LEDGER_URL:=http://127.0.0.1:8008}
 
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
@@ -62,8 +62,8 @@ trap cleanup EXIT
 
 # start the provisioning and enclave services
 yell start enclave and provisioning services
-try ${VIRTUAL_ENV}/opt/pdo/bin/ps-start.sh --count 5 --ledger ${LEDGER_URL} --clean > /dev/null
-try ${VIRTUAL_ENV}/opt/pdo/bin/es-start.sh --count 5 --ledger ${LEDGER_URL} --clean > /dev/null
+try ${VIRTUAL_ENV}/opt/pdo/bin/ps-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${VIRTUAL_ENV}/opt/pdo/bin/es-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/eservice/tests
 yell start secrets test
@@ -100,19 +100,19 @@ try python test-contract.py --no-ledger --contract mock-contract \
     --logfile __screen__ --loglevel warn
 
 yell start request test with provisioning and enclave services
-try python test-request.py --ledger ${LEDGER_URL} \
+try python test-request.py --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice http://localhost:7101/ \
      --logfile __screen__ --loglevel warn
 
 yell start contract test with provisioning and enclave services
-try python test-contract.py --ledger ${LEDGER_URL} --contract integer-key \
+try python test-contract.py --ledger ${PDO_LEDGER_URL} --contract integer-key \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice http://localhost:7101/ \
      --logfile __screen__ --loglevel warn
 
 yell start mock contract test with ledger, this should fail dependency check
-python test-contract.py --ledger ${LEDGER_URL} --contract mock-contract \
+python test-contract.py --ledger ${PDO_LEDGER_URL} --contract mock-contract \
        --logfile __screen__ --loglevel warn
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
@@ -123,24 +123,24 @@ yell ---------- start pdo-create and pdo-update tests ----------
 ## -----------------------------------------------------------------
 
 # make sure we have the necessary files in place
-CONFIG_FILE=${CONTRACTHOME}/etc/pcontract.toml
+CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
 if [ ! -f ${CONFIG_FILE} ]; then
     die missing client configuration file, ${CONFIG_FILE}
 fi
 
-CONTRACT_FILE=${CONTRACTHOME}/contracts/_mock-contract.scm
+CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
 if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi
 
 yell create the contract
-try pdo-create --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
      --logfile __screen__ --loglevel warn \
     --identity user1 --save-file ${SAVE_FILE} \
     --contract mock-contract --source _mock-contract.scm
 
 yell increment the value with a simple expression
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "'(inc-value)")
@@ -149,7 +149,7 @@ if [ $value != "1" ]; then
 fi
 
 yell increment the value with a evaluated expression
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "(list 'inc-value)")
@@ -158,7 +158,7 @@ if [ $value != "2" ]; then
 fi
 
 yell get the value and check it
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "'(get-value)")
@@ -167,7 +167,7 @@ if [ $value != "2" ]; then
 fi
 
 yell invalid method, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user1 --save-file ${SAVE_FILE} \
            "'(no-such-method)"
@@ -176,7 +176,7 @@ if [ $? == 0 ]; then
 fi
 
 yell invalid expression, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user1 --save-file ${SAVE_FILE} \
            "'(no-such-method"
@@ -185,7 +185,7 @@ if [ $? == 0 ]; then
 fi
 
 yell policy violation with identity, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${LEDGER_URL} \
+pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user2 --save-file ${SAVE_FILE} \
            "'(get-value)"

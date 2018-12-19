@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONTRACTHOME ?= /opt/pdo
+PDO_HOME ?= /opt/pdo
 
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
-INSTALLDIR = $(CONTRACTHOME)/contracts
+INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm
 DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS))

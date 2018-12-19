@@ -68,7 +68,7 @@ def LocalMain(spid, save_path) :
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 ## -----------------------------------------------------------------
-ContractHome = os.environ.get("CONTRACTHOME") or os.path.realpath("/opt/pdo")
+ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
 
 # -----------------------------------------------------------------
