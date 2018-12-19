@@ -28,24 +28,15 @@ can be used for automated tests.
 
 The tests assume that the PDO package has been installed in a Python
 virtualenv pointed to be the environment variable
-``CONTRACTHOME``. Instructions for configuring and running enclave and
+``PDO_HOME``. Instructions for configuring and running enclave and
 provisioning services is provided seperately.
 
 ## Environment ##
 
-The expectation is that the environment variable ``CONTRACTHOME`` points
+The expectation is that the environment variable ``PDO_HOME`` points
 to the root of the pdo install in your virtualenv directory where the
-PDO packages have been installed. Typically, you would set ``CONTRACTHOME``
-to ``$VIRTUAL_ENV/opt/pdo``. Specific paths can be overridden with
-other environment variables:
-
-* ``CONTRACTETC`` -- path to search for configuration files, defaults to ``$CONTRACTHOME/etc``
-* ``CONTRACTKEYS`` -- path to search for key files used by the test
-  scripts, defaults to ``$CONTRACTHOME/keys``
-* ``CONTRACTLOGS`` -- path to a directory where log files will be
-  written, defaults to ``$CONTRACTHOME/logs``
-* ``CONTRACTDATA`` -- path to a directory where data files will be
-  written, defaults to ``$CONTRACTHOME/data``
+PDO packages have been installed. Typically, you would set ``PDO_HOME``
+to ``$VIRTUAL_ENV/opt/pdo``.
 
 ## Configuration File ##
 

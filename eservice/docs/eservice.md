@@ -11,18 +11,18 @@ enclave.
 
 See the [build documentation](BUILD.md) for information about installation of the contract enclave
 service. This document assumes that the enclave service will be run from a virtual environment
-rooted at the path pointed to by the environment variable ``CONTRACTHOME``.
+rooted at the path pointed to by the environment variable ``PDO_HOME``.
 
 ## Configuration ##
 
 The contract enclave service is configured through an Toml configuration file generally placed in
-the ``$CONTRACTHOME/etc/eservice.toml``.
+the ``$PDO_HOME/etc/eservice.toml``.
 
 ## Command Line Parameters ##
 
 * config -- name of the configuration file, default is ``eservice.toml``
 * config-dir -- one or more directories to search for the configuration file, default is
-``[".", "./etc", "$CONTRACTHOME/etc"]``.
+``[".", "./etc", "$PDO_HOME/etc"]``.
 * identity -- *REQUIRED*, a string used to identify log and data files for the enclave service
 * logfile -- name of the file for logging, use ``__screen__`` for logging to standard output
 * loglevel -- level of logging to use, can be one of ``DEBUG``, ``INFO``, ``WARN``, ``ERROR``

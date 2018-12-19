@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# SRCDIR defaults to the current directory
+# SCRIPTDIR defaults to the current directory
+# PDO_SOURCE_ROOT defaults to root of the parent directory
 # DSTDIR defaults to _dev under the current directory
 # Both can be overridden with environment variables
-SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-DSTDIR?=$(abspath $(SRCDIR)/_dev)
-ROOTDIR=$(abspath $(SRCDIR)/../..)
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-KEYGEN=$(abspath $(SRCDIR)/../make-keys)
-CNFGEN=$(abspath $(SRCDIR)/../expand-config)
-PKGGEN=$(abspath $(SRCDIR)/../rebuild.sh)
+DSTDIR ?= $(or $(PDO_INSTALL_ROOT),$(PDO_INSTALL_ROOT),$(SCRIPTDIR)/_dev)
+SRCDIR ?= $(SCRIPTDIR)/../..
+
+KEYGEN=$(abspath $(SCRIPTDIR)/../make-keys)
+CNFGEN=$(abspath $(SCRIPTDIR)/../expand-config)
+PKGGEN=$(abspath $(SCRIPTDIR)/../rebuild.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
@@ -65,16 +67,20 @@ keys :
 conf :
 	@ echo Create configuration files from templates
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template eservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		$(CNFGEN) --template eservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
+		--output-directory $(DSTDIR)/opt/pdo/etc \
 		multiple --file-base eservice --http-base 7100 --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template pservice.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		$(CNFGEN) --template pservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
+		--output-directory $(DSTDIR)/opt/pdo/etc \
 		multiple --file-base pservice --http-base 7000 --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template enclave.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		$(CNFGEN) --template enclave.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
+		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file enclave.toml
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template pcontract.toml --template-directory $(SRCDIR)/opt/pdo/etc/template  --output-directory $(DSTDIR)/opt/pdo/etc \
+		$(CNFGEN) --template pcontract.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
+		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file pcontract.toml
 
 template :

@@ -160,7 +160,7 @@ For information on how to create and register a certificate with IAS see [here](
 Ledger registration can be done after build through a script in the eservice directory,
 given the required environment variables are set. You will need:
 
-- `LEDGER_URL`
+- `PDO_LEDGER_URL`
 The URL of the ledger you wish to register with.
 
 - `PDO_LEDGER_KEY`

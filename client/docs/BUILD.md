@@ -32,16 +32,16 @@ where you can install the common Python modules. The rest of these
 instructions assume that you have set up a virtual environment for
 Python3 and have activated it.
 
-The environment variable ``CONTRACTHOME`` should be set to the directory where
+The environment variable ``PDO_HOME`` should be set to the directory where
 you expect to configure and run the client utilities. Generally the variable is
 set to the path to your virtual environment root plus ``opt/pdo``.
 
 For example:
 ```bash
-prompt> export CONTRACTHOME=$VIRTUAL_ENV/opt/pdo
+prompt> export PDO_HOME=$VIRTUAL_ENV/opt/pdo
 ```
 
-For production deployment, ``CONTRACTHOME`` should be set to ``/opt/pdo``.
+For production deployment, ``PDO_HOME`` should be set to ``/opt/pdo``.
 
 ## <a name="install">Build & Install the Modules
 

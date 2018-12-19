@@ -30,7 +30,7 @@ from setuptools import setup, find_packages, Extension
 script_dir = os.path.dirname(os.path.realpath(__file__))
 pdo_root_dir = os.path.abspath(os.path.join(script_dir, '..'))
 
-install_root_dir = os.environ.get('CONTRACTHOME', '/opt/pdo')
+install_root_dir = os.environ.get('PDO_HOME', '/opt/pdo')
 bin_dir = os.path.join(install_root_dir, "bin")
 dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
