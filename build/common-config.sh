@@ -14,8 +14,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# -----------------------------------------------------------------
+# This file can be used to set the environment variables that are
+# used in the build and installation process. While the build should
+# progress with only the default values specified, commonly four
+# variables are set and then this file is evaluated. These four
+# variables are: TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT,
+# and PDO_KEY_ROOT. For example, local configuration file may be
+# constructed as:
+#
+# export PDO_KEY_ROOT=${HOME}/keys
+# export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
+# export PDO_LEDGER_URL=http://127.0.0.1:8008
+# export TINY_SCHEME_SRC=${HOME}/tinyscheme-1.41
+#
+# source ${HOME}/pdo-source-git/__tools__/common-config.sh
+# -----------------------------------------------------------------
+
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 PDO_SOURCE_ROOT="$(realpath ${SCRIPTDIR}/..)"
+
+# -----------------------------------------------------------------
+# if you change the PDO_KEY_ROOT variable and re-source this file
+# you should unset all of the variables that depend on PDO_KEY_ROOT
+# -----------------------------------------------------------------
+if [ "$1" = "--reset-keys" ]; then
+    unset PDO_ENCLAVE_PEM
+    unset PDO_IAS_KEY
+    unset PDO_LEDGER_KEY
+    unset PDO_SPID
+    unset PDO_SPID_CERT_FILE
+fi
 
 # -----------------------------------------------------------------
 # TINY_SCHEME_SRC points to the installation of the tinyscheme
@@ -39,6 +68,12 @@ export SGX_MODE="${SGX_MODE:-SIM}"
 # not use with confidential contracts.
 # -----------------------------------------------------------------
 export SGX_DEBUG="${SGX_DEBUG:-1}"
+
+# -----------------------------------------------------------------
+# PDO_PDO_LEDGER_URL is the URL is to submit transactions to the
+# Sawtooth ledger.
+# -----------------------------------------------------------------
+export PDO_LEDGER_URL="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 
 # -----------------------------------------------------------------
 # PDO_INSTALL_ROOT is the root of the directory in which the virtual
@@ -82,12 +117,6 @@ export PDO_IAS_KEY="${PDO_IAS_KEY:-${PDO_KEY_ROOT}/pdo_ias_key.pem}"
 # Sawtooth installation directory hiearchy.
 # -----------------------------------------------------------------
 export PDO_LEDGER_KEY="${PDO_LEDGER_KEY:-${PDO_KEY_ROOT}/pdo_validator.priv}"
-
-# -----------------------------------------------------------------
-# PDO_PDO_LEDGER_URL is the URL is to submit transactions to the
-# Sawtooth ledger.
-# -----------------------------------------------------------------
-export PDO_LEDGER_URL="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 
 # -----------------------------------------------------------------
 # PDO_SPID is the ID that accompanies the certificate registered

@@ -64,6 +64,11 @@ build :
 clean-build :
 	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
+system-keys : $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
+
+$(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem :
+	openssl genrsa -3 -out $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem 3072
+
 keys :
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/eservice$${i} --format skf; done
@@ -91,10 +96,12 @@ conf :
 		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file pcontract.toml
 
-template :
+template : $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
 	mkdir -p $(DSTDIR)/opt/pdo/data
 	mkdir -p $(DSTDIR)/opt/pdo/etc
+	mkdir -p $(DSTDIR)/opt/pdo/etc/keys
 	mkdir -p $(DSTDIR)/opt/pdo/keys
 	mkdir -p $(DSTDIR)/opt/pdo/logs
+	cp $(SCRIPTDIR)/opt/pdo/etc/keys/* $(DSTDIR)/opt/pdo/etc/keys
 
 .PHONY : conf environment keys packages template
