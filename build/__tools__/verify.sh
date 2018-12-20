@@ -101,6 +101,11 @@ if [ ! -f "${PDO_ENCLAVE_PEM}" ]; then
     warn "PDO_ENCLAVE_PEM file does not exist"
 fi
 
+# the SPID should be a 32 byte hex string
+if [[ ! "${PDO_SPID}" =~ ^[A-Fa-f0-9]{32}$ ]]; then
+    warn "PDO_SPID is not defined correctly"
+fi
+
 if [ "${SGX_MODE}" = "HW" ]; then
     if [ ! -f "${PDO_IAS_KEY}" ]; then
         warn "PDO_IAS_KEY file does not exist"
