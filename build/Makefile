@@ -19,16 +19,18 @@
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 DSTDIR ?= $(or $(PDO_INSTALL_ROOT),$(PDO_INSTALL_ROOT),$(SCRIPTDIR)/_dev)
-SRCDIR ?= $(SCRIPTDIR)/../..
+SRCDIR ?= $(SCRIPTDIR)/..
 
-KEYGEN=$(abspath $(SCRIPTDIR)/../make-keys)
-CNFGEN=$(abspath $(SCRIPTDIR)/../expand-config)
-PKGGEN=$(abspath $(SCRIPTDIR)/../rebuild.sh)
+KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
+CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
+BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
+VERIFY=$(abspath $(SCRIPTDIR)/__tools__/verify.sh)
+CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
-all: environment template packages keys conf
+all: environment template verify build keys conf
 
 clean :
 	rm -rf $(DSTDIR)
@@ -53,8 +55,14 @@ $(PYTHON_DIR) : $(DSTDIR)
 $(DSTDIR) :
 	mkdir -p $(DSTDIR)
 
-packages :
-	. $(abspath $(DSTDIR)/bin/activate) ; $(PKGGEN)
+verify :
+	$(VERIFY)
+
+build :
+	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
+
+clean-build :
+	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
 keys :
 	. $(abspath $(DSTDIR)/bin/activate) ; \

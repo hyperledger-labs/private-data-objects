@@ -21,7 +21,7 @@ if [[ $PY3_VERSION -lt 5 ]]; then
 fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 # --------------- COMMON ---------------
 cd $SRCDIR/common/crypto/verify_ias_report
