@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 cred=`tput setaf 1`
@@ -53,46 +50,14 @@ function try() {
 }
 
 # -----------------------------------------------------------------
-# CHECK ENVIRONMENT
 # -----------------------------------------------------------------
-yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
-
-: "${TINY_SCHEME_SRC?Missing environment variable TINY_SCHEME_SRC}"
-: "${PDO_HOME?Missing environment variable PDO_HOME}"
-: "${PDO_ENCLAVE_PEM?Missing environment variable PDO_ENCLAVE_PEM}"
-: "${SGX_SSL?Missing environment variable SGX_SSL}"
-: "${SGX_SDK?Missing environment variable SGXSDKInstallPath}"
-: "${SGX_MODE:?Missing environment variable SGX_MODE, set it to HW or SIM}"
-: "${PKG_CONFIG_PATH?Missing environment variable PKG_CONFIG_PATH}"
-
-try command -v python
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ "$PY3_VERSION" -lt 5 ]]; then
-    die "must use python3, activate virtualenv first"
+if [[ $PY3_VERSION -lt 5 ]]; then
+    die activate python3 first
 fi
 
-try command -v openssl
-OPENSSL_VERSION=$(openssl version -v | sed 's/.*OpenSSL \([^ ]*\) .*/\1/')
-if [ "$OPENSSL_VERSION " != '1.1.0h ' ]; then
-   echo 'WARNING: Openssl version is $OPENSSL_VERSION expecting 1.1.0h' >&2
-   echo 'Note: openssl can be a different version as long as libssl and libssl-dev are 1.1.0h' >&2
-fi
-
-try command -v protoc
-PROTOC_VERSION=$(protoc --version | sed 's/libprotoc \([0-9]\).*/\1/')
-if [[ "$PROTOC_VERSION" -lt 3 ]]; then
-    echo "protoc must be version3 or higher" >&2
-fi
-
-try command -v cmake
-try command -v swig
-try command -v make
-try command -v g++
-try command -v tinyscheme
-
-if [ ! -d "${PDO_HOME}" ]; then
-    die PDO_HOME directory does not exist
-fi
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 # Automatically determine how many cores the host system has
 # (for use with multi-threaded make)
@@ -104,6 +69,7 @@ fi
 # -----------------------------------------------------------------
 # BUILD
 # -----------------------------------------------------------------
+
 yell --------------- COMMON ---------------
 
 # create the ias-certificates.cpp from the templates

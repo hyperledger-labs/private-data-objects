@@ -19,16 +19,18 @@
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 DSTDIR ?= $(or $(PDO_INSTALL_ROOT),$(PDO_INSTALL_ROOT),$(SCRIPTDIR)/_dev)
-SRCDIR ?= $(SCRIPTDIR)/../..
+SRCDIR ?= $(SCRIPTDIR)/..
 
-KEYGEN=$(abspath $(SCRIPTDIR)/../make-keys)
-CNFGEN=$(abspath $(SCRIPTDIR)/../expand-config)
-PKGGEN=$(abspath $(SCRIPTDIR)/../rebuild.sh)
+KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
+CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
+BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
+VERIFY=$(abspath $(SCRIPTDIR)/__tools__/verify.sh)
+CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
-all: environment template packages keys conf
+all: environment template verify build keys conf
 
 clean :
 	rm -rf $(DSTDIR)
@@ -53,10 +55,21 @@ $(PYTHON_DIR) : $(DSTDIR)
 $(DSTDIR) :
 	mkdir -p $(DSTDIR)
 
-packages :
-	. $(abspath $(DSTDIR)/bin/activate) ; $(PKGGEN)
+verify :
+	$(VERIFY)
 
-keys :
+build : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
+
+clean-build :
+	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
+
+system-keys : $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
+
+$(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem :
+	openssl genrsa -3 -out $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem 3072
+
+keys : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/eservice$${i} --format skf; done
 	. $(abspath $(DSTDIR)/bin/activate) ; \
@@ -64,7 +77,7 @@ keys :
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 6 7 8 9 10 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/user$${i} --format pem; done
 
-conf :
+conf : $(PYTHON_DIR)
 	@ echo Create configuration files from templates
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template eservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
@@ -83,10 +96,12 @@ conf :
 		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file pcontract.toml
 
-template :
+template : $(PYTHON_DIR) $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
 	mkdir -p $(DSTDIR)/opt/pdo/data
 	mkdir -p $(DSTDIR)/opt/pdo/etc
+	mkdir -p $(DSTDIR)/opt/pdo/etc/keys
 	mkdir -p $(DSTDIR)/opt/pdo/keys
 	mkdir -p $(DSTDIR)/opt/pdo/logs
+	cp $(SCRIPTDIR)/opt/pdo/etc/keys/* $(DSTDIR)/opt/pdo/etc/keys
 
-.PHONY : conf environment keys packages template
+.PHONY : build clean-build conf environment keys system-keys template
