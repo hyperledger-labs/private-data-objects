@@ -309,6 +309,8 @@ namespace state
         ByteArray Get(const ByteArray& key);
         void Put(const ByteArray& key, const ByteArray& value);
         void Delete(const ByteArray& key);
+
+        void __on_error__(const char* what);
     };
 }
 }
