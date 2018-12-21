@@ -54,7 +54,7 @@ can choose to transfer ownership of the contract to someone else. Integer key
 also supports escrow - the ability to transfer control of the value to another
 entity temporarily (such as when participating in an auction).
 
-- [auction](contracts/auction/auction.scm)
+- [auction](contracts/auction/integer-key-auction.scm)
 More sophisticated contract that implements a "silent" auction. Participants in
 the auction can "bid" integer-key values by placing them in escrow.
 Participants may only see the highest bid and their current bid - not even the

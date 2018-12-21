@@ -7,7 +7,7 @@ https://creativecommons.org/licenses/by/4.0/
 # Contract Enclave Service #
 
 The contract enclave service is an HTTP server that passes messages between a client and a contract
-enclave.
+enclave. In addition, the enclave service registers the enclave with the ledger on initialization.
 
 See the [build documentation](BUILD.md) for information about installation of the contract enclave
 service. This document assumes that the enclave service will be run from a virtual environment

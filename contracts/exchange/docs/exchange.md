@@ -42,7 +42,7 @@ marbles. We assume the following identities:
 
 * Blue Marbles Player Association (BMPA) -- an oversight organization that tracks blue marble banks
 * Blue Marble Chapter (BMC) -- a local chapter of the BMPA with a large store of blue marbles
-* Red Marbles Player Association (RMPA) -- an oversight organization that tracks blue marble banks
+* Red Marbles Player Association (RMPA) -- an oversight organization that tracks red marble banks
 * Red Marble Chapter (RMC) --a local chapter of the RMPA with a large store of red marbles
 * Alice -- owns a number of blue marbles in in BMC
 * Bob -- owners a number of red marbles in RMC
