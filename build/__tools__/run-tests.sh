@@ -14,29 +14,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-: ${PDO_LEDGER_URL:=http://127.0.0.1:8008}
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+cred=`tput setaf 1`
+cgrn=`tput setaf 2`
+cblu=`tput setaf 4`
+cmag=`tput setaf 5`
+cwht=`tput setaf 7`
+cbld=`tput bold`
+bred=`tput setab 1`
+bgrn=`tput setab 2`
+bblu=`tput setab 4`
+bwht=`tput setab 7`
+crst=`tput sgr0`
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit
-fi
-
-SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
-
-yell() {
-    echo "$0: $*" >&2;
+function recho () {
+    echo "${cbld}${cred}" $@ "${crst}" >&2
 }
 
-die() {
-    yell "$*"
+function becho () {
+    echo "${cbld}${cblu}" $@ "${crst}" >&2
+}
+
+function yell () {
+    becho "$0: $*" >&2;
+}
+
+function die() {
+    recho "$(basename $0): $*" >&2
     exit 111
 }
 
 try() {
     "$@" || die "test failed: $*"
 }
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
+if [[ $PY3_VERSION -lt 5 ]]; then
+    die activate python3 first
+fi
+
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
+
+: "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
+: "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
 
 # check for existing enclave and provisioning services
 pgrep eservice
@@ -53,17 +77,18 @@ SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 function cleanup {
     yell "shutdown services"
-    ${VIRTUAL_ENV}/opt/pdo/bin/ps-stop.sh --count 5 > /dev/null
-    ${VIRTUAL_ENV}/opt/pdo/bin/es-stop.sh --count 5 > /dev/null
+    ${PDO_HOME}/bin/ps-stop.sh --count 5 > /dev/null
+    ${PDO_HOME}/bin/es-stop.sh --count 5 > /dev/null
     rm -f ${SAVE_FILE}
 }
 
 trap cleanup EXIT
 
-# start the provisioning and enclave services
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 yell start enclave and provisioning services
-try ${VIRTUAL_ENV}/opt/pdo/bin/ps-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
-try ${VIRTUAL_ENV}/opt/pdo/bin/es-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/ps-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/es-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/eservice/tests
 yell start secrets test
