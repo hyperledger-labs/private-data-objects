@@ -30,6 +30,8 @@ CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
+ENCLAVE_CODE_SIGN_KEY=$(SCRIPTDIR)/keys/sgx_simulation/enclave_code_sign.pem
+
 all: environment template verify build keys conf
 
 clean :
@@ -64,10 +66,10 @@ build : $(PYTHON_DIR)
 clean-build :
 	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
-system-keys : $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
+system-keys : ${ENCLAVE_CODE_SIGN_KEY}
 
-$(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem :
-	openssl genrsa -3 -out $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem 3072
+${ENCLAVE_CODE_SIGN_KEY} :
+	openssl genrsa -3 -out ${ENCLAVE_CODE_SIGN_KEY} 3072
 
 keys : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; \
@@ -96,12 +98,12 @@ conf : $(PYTHON_DIR)
 		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file pcontract.toml
 
-template : $(PYTHON_DIR) $(SCRIPTDIR)/opt/pdo/etc/keys/pdo_enclave.pem
+template : $(PYTHON_DIR) ${ENCLAVE_CODE_SIGN_KEY}
 	mkdir -p $(DSTDIR)/opt/pdo/data
 	mkdir -p $(DSTDIR)/opt/pdo/etc
-	mkdir -p $(DSTDIR)/opt/pdo/etc/keys
+	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sgx
+	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sawtooth
 	mkdir -p $(DSTDIR)/opt/pdo/keys
 	mkdir -p $(DSTDIR)/opt/pdo/logs
-	cp $(SCRIPTDIR)/opt/pdo/etc/keys/* $(DSTDIR)/opt/pdo/etc/keys
 
 .PHONY : build clean-build conf environment keys system-keys template
