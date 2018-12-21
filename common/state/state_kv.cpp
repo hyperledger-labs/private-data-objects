@@ -1182,12 +1182,6 @@ pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
     dn_io_.init_append_data_node();
 }
 
-pdo::state::State_KV::~State_KV()
-{
-    StateBlockId id;
-    Finalize(id);
-}
-
 void pdo::state::State_KV::Finalize(ByteArray& outId)
 {
     // flush cache first
