@@ -25,7 +25,11 @@
 # sawtooth-pdo.proxy.yaml, respectively
 #
 # To use,
-# - start up enviroment  (with additional -f options as mentioned above)
+# - build base pdo-dev image (see docker/Dockerfile.pdo-dev for build-time options ..)
+#    docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
+# - build docker-composed images (here and below with additional -f options as mentioned above)
+#    docker-compose -f sawtooth-pdo.yaml build
+# - start up enviroment
 #    docker-compose -f sawtooth-pdo.yaml up
 # - insitialize the ledger
 #   docker-compose  -f docker/sawtooth-pdo.yaml exec validator sawset proposal create --url http://rest-api:8008 --key /root/.sawtooth/keys/my_key.priv sawtooth.validator.transaction_families='[{"family": "intkey", "version": "1.0"}, {"family":"sawtooth_settings", "version":"1.0"}, {"family": "pdo_contract_enclave_registry", "version": "1.0"}, {"family":  "pdo_contract_instance_registry", "version": "1.0"}, {"family": "ccl_contract", "version": "1.0"}]'
@@ -33,7 +37,7 @@
 #   docker-compose  -f docker/sawtooth-pdo.yaml exec pdo-build bash
 # - in that shell run tests (e.g., /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh )
 #   or start ehs/ps, run contracts and have fun ... :-)
-#   - for automated tests, you also just might call 'docker-compose  -f docker/sawtooth-pdo.yaml exec bash -i -c pdo-build /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh'
+#   - for automated tests, you also just might call 'docker-compose  -f docker/sawtooth-pdo.yaml exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh'
 # - ....
 
 version: "2.1"

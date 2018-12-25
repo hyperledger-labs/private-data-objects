@@ -46,7 +46,7 @@ services:
       args:
         SGX_MODE: HW
     volumes:
-      - ./sgx/:/project/pdo/build/opt/pdo/etc/keys/sgx/
+      - ${PDO_SGX_KEY_ROOT:-./sgx/}:/project/pdo/build/opt/pdo/etc/keys/sgx/
       - /var/run/aesmd:/var/run/aesmd
     devices:
       - /dev/isgx:/dev/isgx

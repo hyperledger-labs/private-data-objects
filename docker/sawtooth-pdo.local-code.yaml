@@ -37,6 +37,6 @@ services:
       dockerfile: docker/Dockerfile.pdo-build
       args:
         PDO_REPO_URL: file:///tmp/build-src/.git
-        PDO_REPO_BRANCH: docker-compose
+        PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
     volumes:
       - ./:/mnt/pdo

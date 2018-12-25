@@ -1,0 +1,24 @@
+This directory contains configurations to run PDO with docker and docker-compose.  This allows you to develop easily on non-ubuntu 18.04 machines and/or without "poluting" your install.
+It also enables easy end-to-end setups with a sawtooth ledger and automated build & tests (see test target in Makefile).
+
+More detailed information the various files can be found in the header of the Dockerfile* and *yaml files.
+
+As prerequisite, you will need docker and docker-compose installed.
+On Ubuntu 18.04, this simply means an "apt install docker-compose".
+
+If you are behind a proxy, there are a few more things to do to configure docker.
+Assumming you run Ubuntu 18.04 this means:
+
+  mkdir /etc/systemd/system/docker.service.d
+  cat /etc/systemd/system/docker.service.d/http-proxy.conf <<EOF
+[Service]
+Environment=Environment="HTTP_PROXY=http://proxy-chain.intel.com:912" "HTTPS_PROXY=http://proxy-chain.intel.com:912" "NO_PROXY=intel.com,.intel.com,localhost,127.0.0.1"
+EOF
+  # In above you obviously will have to replace the proxy address with your own if you are not inside Intel
+  systemctl daemon-reload ;
+  systemctl restart docker
+  ln -s ../run/systemd/resolve/resolv.conf /etc/resolv.conf # default was ../run/systemd/resolve/stub-resolv.conf
+  # Last step is necessary due to systemd.resolved only listening to loopback
+  # and docker limitations in not being able to configure custom DNS if
+  # localhost is not reachable. This should be fixed in docker 18.09+, see https://github.com/moby/moby/pull/37485
+  # and https://github.com/docker/libnetwork/issues/2068

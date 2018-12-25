@@ -17,7 +17,7 @@
 #   Builds the environment with all prerequistes needed to build Private Data Objects.
 #
 #  Configuration (build) paramaters
-#  - proxy configuration: 	https_proxy http_proxy ftp_proxy  (default: undefined)
+#  - proxy configuration: 	https_proxy http_proxy ftp_proxy, no_proxy  (default: undefined)
 #  - ubuntu base image to use: 	UBUNTU_VERSION (default: bionic)
 #  - sgx sdk version: 		SGX_SDK (default: v2.4.1)
 #  - openssl version: 		OPENSSL (default: 1.1.0j)
@@ -26,7 +26,7 @@
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
 #   if behind a proxy, you might want to add also below options
-#   --build-arg https_proxy=$https_proxy --build-arg http_proxy=$http_proxy --build-arg ftp_proxy=$ftp_proxy
+#   --build-arg https_proxy=$https_proxy --build-arg http_proxy=$http_proxy --build-arg ftp_proxy=$ftp_proxy --build-arg=$no_proxy
 #   if you want to build with different version than 16.04/xenial, add a build arg UBUNTU_VERSION, e.g., for 18.04 do --build-arg UBUNTU_VERSION=bionic
 #
 # Run:
@@ -40,7 +40,7 @@
 #     Note: your host SGX PSW runtime should be at a similar level than the one in the container
 #     or the PSW/aesmd might cause enclave launch problems
 #   - if behind a proxy, you might want to add also below options
-#     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy
+#     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy --env no_proxy=$no_proxy
 #
 
 ARG UBUNTU_VERSION=bionic
