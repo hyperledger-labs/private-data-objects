@@ -13,12 +13,20 @@
 # limitations under the License.
 
 # SCRIPTDIR defaults to the current directory
-# PDO_SOURCE_ROOT defaults to root of the parent directory
+# SRCDIR defaults to the parent directory
 # DSTDIR defaults to _dev under the current directory
 # Both can be overridden with environment variables
-SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-DSTDIR ?= $(or $(PDO_INSTALL_ROOT),$(PDO_INSTALL_ROOT),$(SCRIPTDIR)/_dev)
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
+endif
+
+ifndef PDO_ENCLAVE_CODE_SIGN_PEM
+$(error Incomplete configuration, PDO_ENCLAVE_CODE_SIGN_PEM is not defined)
+endif
+
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(SCRIPTDIR)/..
 
 KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
@@ -30,9 +38,7 @@ CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
-ENCLAVE_CODE_SIGN_KEY=$(SCRIPTDIR)/keys/sgx_simulation/enclave_code_sign.pem
-
-all: environment template verify build keys conf
+all: environment template system-keys verify build keys conf
 
 clean :
 	rm -rf $(DSTDIR)
@@ -66,10 +72,10 @@ build : $(PYTHON_DIR)
 clean-build :
 	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
-system-keys : ${ENCLAVE_CODE_SIGN_KEY}
+system-keys : ${PDO_ENCLAVE_CODE_SIGN_KEY}
 
-${ENCLAVE_CODE_SIGN_KEY} :
-	openssl genrsa -3 -out ${ENCLAVE_CODE_SIGN_KEY} 3072
+${PDO_ENCLAVE_CODE_SIGN_KEY} :
+	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_KEY} 3072
 
 keys : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; \
@@ -98,7 +104,7 @@ conf : $(PYTHON_DIR)
 		--output-directory $(DSTDIR)/opt/pdo/etc \
 		single --file pcontract.toml
 
-template : $(PYTHON_DIR) ${ENCLAVE_CODE_SIGN_KEY}
+template : $(PYTHON_DIR)
 	mkdir -p $(DSTDIR)/opt/pdo/data
 	mkdir -p $(DSTDIR)/opt/pdo/etc
 	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sgx
