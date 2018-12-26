@@ -21,7 +21,7 @@ if [[ $PY3_VERSION -lt 5 ]]; then
 fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 function yell {
     echo "$0: $*" >&2;
@@ -50,7 +50,9 @@ trap cleanup EXIT
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 function Store {
     yell "Compute the enclave information"
-    PYTHONPATH= try python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --save $eservice_enclave_info_file --loglevel warn
+    # the python path variable is necessary to avoid having the script attempt
+    # to pull libraries from the build directory rather than the install directory
+    PYTHONPATH= try eservice-enclave-info --save $eservice_enclave_info_file --loglevel warn
 }
 
 # Load MR_ENCLAVE to be built into PService
@@ -59,8 +61,10 @@ function Load {
     if [ ! -f ${eservice_enclave_info_file} ]; then
         yell Load failed! eservice_enclave_info_file not found!
     else
-        cmd=`echo "sed 's/MR_ENCLAVE_PLACEMARK/\`cat $eservice_enclave_info_file | grep -o 'MRENCLAVE:.*' | cut -f2- -d:\`/' < $template_file > $actual_file"`
-        try eval $cmd
+        VAR_MRENCLAVE=$(grep -o 'MRENCLAVE:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
+        VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
+
+        try sed "s/MR_ENCLAVE_PLACEMARK/${VAR_MRENCLAVE}/" < $template_file > $actual_file
     fi
 }
 
