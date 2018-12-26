@@ -35,7 +35,6 @@ namespace state
         Interpreter_KV(StateBlockId& id);
         Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
         Interpreter_KV(const ByteArray& encryption_key);
-        ~Interpreter_KV();
 
         void Finalize(ByteArray& id);
 

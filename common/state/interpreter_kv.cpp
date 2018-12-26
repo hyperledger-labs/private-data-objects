@@ -54,12 +54,6 @@ pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
 {
 }
 
-pdo::state::Interpreter_KV::~Interpreter_KV()
-{
-    ByteArray id;
-    kv_.Finalize(id);
-}
-
 void pdo::state::Interpreter_KV::Finalize(ByteArray& id)
 {
     kv_.Finalize(id);

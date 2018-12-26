@@ -1182,12 +1182,6 @@ pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
     dn_io_.init_append_data_node();
 }
 
-pdo::state::State_KV::~State_KV()
-{
-    StateBlockId id;
-    Finalize(id);
-}
-
 void pdo::state::State_KV::Finalize(ByteArray& outId)
 {
     // flush cache first
@@ -1215,6 +1209,22 @@ ByteArray pstate::State_KV::Get(const ByteArray& key)
     return value;
 }
 
+void pstate::State_KV::__on_error__(const char* what)
+{
+    // remove any block that was appended for writing and has a (currently) empty id
+    dn_io_.block_warehouse_.remove_empty_block_ids();
+    // maybe something was accessed, written, appended. just drop all!
+    dn_io_.cache_drop();
+    // after delete and drop, we need to re-init the last append data node (ready for the next
+    // operation)
+    dn_io_.block_warehouse_.last_appended_data_block_num_ =
+        dn_io_.block_warehouse_.blockIds_.size() - 1;
+    dn_io_.init_append_data_node();
+    SAFE_LOG(PDO_LOG_ERROR, "%s", what);
+    throw pdo::error::Error(
+        PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(what));
+}
+
 void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value)
 {
     // perform operation
@@ -1226,33 +1236,19 @@ void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value)
     }
     catch (pdo::error::RuntimeError& e)
     {
-        // remove any block that was appended for writing and has a (currently) empty id
-        dn_io_.block_warehouse_.remove_empty_block_ids();
-        // maybe something was accessed, written, appended. just drop all!
-        dn_io_.cache_drop();
-        // after delete and drop, we need to re-init the last append data node (ready for the next
-        // operation)
-        dn_io_.block_warehouse_.last_appended_data_block_num_ =
-            dn_io_.block_warehouse_.blockIds_.size() - 1;
-        dn_io_.init_append_data_node();
-
-        throw pdo::error::Error(
-            PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(e.what()));
+        __on_error__(e.what());
+    }
+    catch (pdo::error::ValueError& e)
+    {
+        __on_error__(e.what());
     }
     catch (std::exception& e)
     {
-        // remove any block that was appended for writing and has a (currently) empty id
-        dn_io_.block_warehouse_.remove_empty_block_ids();
-        // maybe something was accessed, written, appended. just drop all!
-        dn_io_.cache_drop();
-        // after delete and drop, we need to re-init the last append data node (ready for the next
-        // operation)
-        dn_io_.block_warehouse_.last_appended_data_block_num_ =
-            dn_io_.block_warehouse_.blockIds_.size() - 1;
-        dn_io_.init_append_data_node();
-
-        throw pdo::error::Error(
-            PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(e.what()));
+        __on_error__(e.what());
+    }
+    catch(...)
+    {
+        __on_error__("unknown exception in KV store");
     }
 }
 

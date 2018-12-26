@@ -303,13 +303,14 @@ namespace state
         State_KV(StateBlockId& id);
         State_KV(const StateBlockId& id, const ByteArray& key);
         State_KV(const ByteArray& key);
-        ~State_KV();
 
         void Finalize(ByteArray& id);
 
         ByteArray Get(const ByteArray& key);
         void Put(const ByteArray& key, const ByteArray& value);
         void Delete(const ByteArray& key);
+
+        void __on_error__(const char* what);
     };
 }
 }
