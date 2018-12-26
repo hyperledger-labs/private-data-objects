@@ -59,4 +59,4 @@ TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no
 TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--start-group -ltpdo-common -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
 
-SGX_SIGN_ENCLAVE(${ENCLAVE_NAME} ${PDO_ENCLAVE_PEM} ${ENCLAVE_CONFIG})
+SGX_SIGN_ENCLAVE(${ENCLAVE_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${ENCLAVE_CONFIG})
