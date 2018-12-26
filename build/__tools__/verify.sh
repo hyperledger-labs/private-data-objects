@@ -63,7 +63,7 @@ yell --------------- CONFIG AND ENVIRONMENT CHECK ---------------
 : "${TINY_SCHEME_SRC:-$(warn Missing environment variable TINY_SCHEME_SRC)}"
 : "${PDO_INSTALL_ROOT:-$(warn Missing environment variable PDO_INSTALL_ROOT)}"
 : "${PDO_HOME:-$(warn Missing environment variable PDO_HOME)}"
-: "${PDO_ENCLAVE_PEM:-$(warn Missing environment variable PDO_ENCLAVE_PEM)}"
+: "${PDO_ENCLAVE_CODE_SIGN_PEM:-$(warn Missing environment variable PDO_ENCLAVE_CODE_SIGN_PEM)}"
 : "${SGX_SSL:-$(warn Missing environment variable SGX_SSL)}"
 : "${SGX_SDK:-$(warn Missing environment variable SGXSDKInstallPath)}"
 : "${SGX_MODE:-$(warn Missing environment variable SGX_MODE, set it to HW or SIM)}"
@@ -97,8 +97,8 @@ if [ ! -d "${TINY_SCHEME_SRC}" ]; then
     warn "TINY_SCHEME_SRC directory does not exist"
 fi
 
-if [ ! -f "${PDO_ENCLAVE_PEM}" ]; then
-    warn "PDO_ENCLAVE_PEM file does not exist"
+if [ ! -f "${PDO_ENCLAVE_CODE_SIGN_PEM}" ]; then
+    warn "PDO_ENCLAVE_CODE_SIGN_PEM file does not exist"
 fi
 
 # the SPID should be a 32 byte hex string
@@ -107,16 +107,12 @@ if [[ ! "${PDO_SPID}" =~ ^[A-Fa-f0-9]{32}$ ]]; then
 fi
 
 if [ "${SGX_MODE}" = "HW" ]; then
-    if [ ! -f "${PDO_IAS_KEY}" ]; then
-        warn "PDO_IAS_KEY file does not exist"
+    if [ ! -f "${PDO_IAS_KEY_PEM}" ]; then
+        warn "PDO_IAS_KEY_PEM file does not exist"
     fi
 
-    if [ ! -f "${PDO_LEDGER_KEY}" ]; then
-        warn "PDO_LEDGER_KEY file does not exist"
-    fi
-
-    if [ ! -f "${PDO_SPID_CERT_FILE}" ]; then
-        warn "PDO_SPID_CERT_FILE does not exist"
+    if [ ! -f "${PDO_SPID_KEY_CERT_FILE_PEM}" ]; then
+        warn "PDO_SPID_KEY_CERT_FILE_PEM does not exist"
     fi
 fi
 

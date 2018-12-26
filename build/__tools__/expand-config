@@ -34,7 +34,7 @@ HttpsProxy = os.environ.get("https_proxy", "")
 
 LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 SPID = os.environ.get("PDO_SPID",'DEADBEEF00000000DEADBEEF00000000')
-SPID_CERT_FILE = os.environ.get("PDO_SPID_CERT_FILE",'/etc/sawtooth/ias_rk_pub.pem')
+SPID_CERT_FILE = os.environ.get("PDO_SPID_KEY_CERT_FILE_PEM",'/etc/sawtooth/ias_rk_pub.pem')
 
 config_map = {
     'data' : ContractData,

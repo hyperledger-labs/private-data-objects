@@ -106,7 +106,7 @@ SET(CMAKE_CXX_STANDARD_LIBRARIES "")
 SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
-SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_PEM} ${PROJECT_CONFIG})
+SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lgipsy -lpdo_contracts -ltinyscheme -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)

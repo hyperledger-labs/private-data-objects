@@ -59,12 +59,12 @@ run contracts.
 - `SGX_SSL`
 Used to locate an SGX-compatible version of OpenSSL
 
-- `PDO_ENCLAVE_PEM`
+- `PDO_ENCLAVE_CODE_SIGN_PEM`
 This needs to be set to a valid enclave signing key. You can generate one
 yourself using OpenSSL, then export the path to it:
 ```
 openssl genrsa -3 -out private_rsa_key.pem 3072
-export PDO_ENCLAVE_PEM=`pwd`/private_rsa_key.pem
+export PDO_ENCLAVE_CODE_SIGN_PEM=`pwd`/private_rsa_key.pem
 ```
 
 # <a name="packages"></a>Required Packages
@@ -163,10 +163,10 @@ given the required environment variables are set. You will need:
 - `PDO_LEDGER_URL`
 The URL of the ledger you wish to register with.
 
-- `PDO_LEDGER_KEY`
+- `PDO_LEDGER_KEY_SKF`
 The path of the file containing the private key for modifying ledger settings.
 
-- `PDO_IAS_KEY`
+- `PDO_IAS_KEY_PEM`
 The path of the PEM file containing the Intel Attestation Service (IAS) public key.
 
 - `PDO_SPID`

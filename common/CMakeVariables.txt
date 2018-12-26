@@ -33,9 +33,9 @@ if("${SGX_SDK} " STREQUAL " ")
 endif()
 
 if(NOT UNTRUSTED_ONLY)
-    SET(PDO_ENCLAVE_PEM "$ENV{PDO_ENCLAVE_PEM}")
-    if("${PDO_ENCLAVE_PEM} " STREQUAL " ")
-        message(FATAL_ERROR "PDO_ENCLAVE_PEM environment variable not defined!")
+    SET(PDO_ENCLAVE_CODE_SIGN_PEM "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
+    if("${PDO_ENCLAVE_CODE_SIGN_PEM} " STREQUAL " ")
+        message(FATAL_ERROR "PDO_ENCLAVE_CODE_SIGN_PEM environment variable not defined!")
     endif()
 
     SET(SGX_MODE "$ENV{SGX_MODE}")
