@@ -69,7 +69,7 @@ verify :
 build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
 
-clean-build :
+clean-build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
 system-keys : ${PDO_ENCLAVE_CODE_SIGN_KEY}
