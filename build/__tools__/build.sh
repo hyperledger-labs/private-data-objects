@@ -74,44 +74,39 @@ yell --------------- COMMON ---------------
 
 # create the ias-certificates.cpp from the templates
 cd $SRCDIR/common/crypto/verify_ias_report
-rm -f ias-certificates.cpp
-try ./build_ias_certificates_cpp.sh
+if [ ! -f ias-certificates.cpp ]; then
+    try ./build_ias_certificates_cpp.sh
+fi
 
 # now build the rest of common
 cd $SRCDIR/common
 
-rm -rf build
-mkdir build
+mkdir -p build
 cd build
 try cmake ..
 try make "-j$NUM_CORES"
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-make clean
 try make "-j$NUM_CORES"
 try make install
 
 yell --------------- ESERVICE ---------------
 cd $SRCDIR/eservice
-make clean
 try make "-j$NUM_CORES"
 try make install
 
 yell --------------- PSERVICE ---------------
 cd $SRCDIR/pservice
-make clean
 try make "-j$NUM_CORES"
 try make install
 
 yell --------------- CLIENT ---------------
 cd $SRCDIR/client
-make clean
 try make "-j$NUM_CORES"
 try make install
 
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
-make clean
 try make all "-j$NUM_CORES"
 try make install
