@@ -127,7 +127,7 @@ template : $(PYTHON_DIR)
 
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; cd $(SRCDIR)/eservice; ./register_with_ledger.sh
+	. $(abspath $(DSTDIR)/bin/activate) ; $(SRCDIR)/eservice/bin/register-with-ledger.sh
 
 .PHONY : register
 endif

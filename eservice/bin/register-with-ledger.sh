@@ -22,7 +22,7 @@ if [[ $PY3_VERSION -lt 5 ]]; then
 fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 function yell {
     echo "$0: $*" >&2;
@@ -56,7 +56,7 @@ fi
 function Store {
     : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
     yell Compute the enclave information
-    PYTHONPATH= try python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --spid ${SPID} --save ${eservice_enclave_info_file} --loglevel warn
+    try eservice-enclave-info --spid ${SPID} --save ${eservice_enclave_info_file} --loglevel warn
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
@@ -71,9 +71,12 @@ function Register {
         : "${PDO_LEDGER_KEY_SKF:?Registration failed! PDO_LEDGER_KEY_SKF environment variable not set}"
         : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.measurements ${VAR_MRENCLAVE}
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.basenames ${VAR_BASENAME}
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.public_key "$(cat $PDO_IAS_KEY_PEM)"
+        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
+            pdo.test.registry.measurements ${VAR_MRENCLAVE}
+        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
+            pdo.test.registry.basenames ${VAR_BASENAME}
+        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
+            pdo.test.registry.public_key "$(cat $PDO_IAS_KEY_PEM)"
     fi
 }
 
