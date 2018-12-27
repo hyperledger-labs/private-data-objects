@@ -55,6 +55,19 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
+    def __cache_filename__(cls, contract_id, state_hash, data_dir) :
+        """
+        state_hash = base64 encoded
+
+        """
+        contract_id = ContractState.safe_filename(contract_id)
+        state_hash = ContractState.safe_filename(state_hash)
+
+        subdirectory = os.path.join(cls.__path__, contract_id, state_hash[0:2])
+        return putils.build_file_name(state_hash, data_dir, subdirectory, cls.__extension__)
+
+    # --------------------------------------------------
+    @classmethod
     def __cache_data_block__(cls, contract_id, raw_data, data_dir = None) :
         """
         save a data block into the local cache
@@ -63,12 +76,8 @@ class ContractState(object) :
         :param raw_data str: base64 encoded string
         """
 
-        contract_id = ContractState.safe_filename(contract_id)
         state_hash = ContractState.compute_hash(raw_data, encoding='b64')
-        state_hash = ContractState.safe_filename(state_hash)
-
-        subdirectory = os.path.join(cls.__path__, contract_id, state_hash[0:2])
-        filename = putils.build_file_name(state_hash, data_dir, subdirectory, cls.__extension__)
+        filename = ContractState.__cache_filename__(contract_id, state_hash, data_dir)
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -91,11 +100,7 @@ class ContractState(object) :
         :param state_hash str: b64 encoded string
         """
 
-        contract_id = ContractState.safe_filename(contract_id)
-        state_hash = ContractState.safe_filename(state_hash)
-
-        subdirectory = os.path.join(cls.__path__, contract_id, state_hash[0:2])
-        filename = putils.build_file_name(state_hash, data_dir, subdirectory, cls.__extension__)
+        filename = ContractState.__cache_filename__(contract_id, state_hash, data_dir)
 
         try :
             logger.debug('read state block from file %s', filename)
@@ -125,7 +130,7 @@ class ContractState(object) :
 
         # check to see if the eservice already has the block
         if eservice.block_store_head(state_hash) > 0 :
-            return
+            return False
 
         raw_data = ContractState.__read_data_block_from_cache__(contract_id, state_hash, data_dir)
         if raw_data is None :
@@ -135,10 +140,11 @@ class ContractState(object) :
             raise Exception('failed to push block to eservice; {}'.format(state_hash))
 
         logger.debug('sent block %s to eservice', state_hash)
+        return True
 
     # --------------------------------------------------
     @classmethod
-    def __cache_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = None) :
+    def __pull_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = None) :
         """
         ensure that a block is cached locally
 
@@ -151,12 +157,9 @@ class ContractState(object) :
         logger.debug('ensure block %s is stored in the local cache', state_hash)
 
         # first see if the block is already in the cache
-        safe_contract_id = ContractState.safe_filename(contract_id)
-        safe_state_hash = ContractState.safe_filename(state_hash)
-
-        filename = putils.build_file_name(safe_state_hash, data_dir, cls.__path__, cls.__extension__)
+        filename = ContractState.__cache_filename__(contract_id, state_hash, data_dir)
         if os.path.isfile(filename) :
-            return
+            return False
 
         # it is not in the cache so grab it from the eservice
         raw_data = eservice.block_store_get(state_hash)
@@ -169,7 +172,7 @@ class ContractState(object) :
             ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
 
         logger.debug('sent block %s to eservice', state_hash)
-
+        return True
 
     # --------------------------------------------------
     @classmethod
@@ -287,13 +290,20 @@ class ContractState(object) :
         :param eservice EnclaveServiceClient object:
         """
 
-        if self.encrypted_state is '' :
+        if not self.encrypted_state :
             return
 
-        ContractState.__push_block_to_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
+        pushed_blocks = 0
+
+        b64_block_id = self.get_state_hash(encoding='b64')
+        if ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
+            pushed_blocks += 1
 
         for b64_block_id in self.component_block_ids :
-            ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
+            if ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
+                pushed_blocks += 1
+
+        logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 
     # --------------------------------------------------
     def pull_state_from_eservice(self, eservice, data_dir = None) :
@@ -303,13 +313,20 @@ class ContractState(object) :
         :param eservice EnclaveServiceClient object:
         """
 
-        if self.encrypted_state is '' :
+        if not self.encrypted_state :
             return
 
-        ContractState.__cache_block_from_eservice__(eservice, self.contract_id, self.get_state_hash(encoding='b64'), data_dir)
+        pulled_blocks = 0
+
+        b64_block_id = self.get_state_hash(encoding='b64')
+        if ContractState.__pull_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
+            pulled_blocks += 1
 
         for b64_block_id in self.component_block_ids :
-            ContractState.__cache_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir)
+            if ContractState.__pull_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
+                pulled_blocks += 1
+
+        logger.debug('state length is %d, pulled %d new blocks', len(self.component_block_ids), pulled_blocks)
 
     # --------------------------------------------------
     def save_to_cache(self, data_dir = None) :
