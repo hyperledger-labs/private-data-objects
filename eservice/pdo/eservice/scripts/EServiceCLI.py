@@ -170,11 +170,11 @@ class ContractEnclaveServer(resource.Resource):
                 request.finish()
 
             except Error as e :
-                logger.error('error occured; {0}'.format(e.message))
+                logger.error('error while processing request {0}; {1}'.format(request.path, e.message))
                 self.__safe_write__(request, self.ErrorResponse(request, int(e.status), e.message))
 
-            except :
-                logger.exception('unknown exception while processing request %s', request.path)
+            except Exception as e :
+                logger.error('unknown exception while processing request {0}; {1}/{2}'.format(request.path, type(e), str(e)))
                 msg = 'unknown exception processing http request {0}'.format(request.path)
                 self.__safe_write__(request, self.ErrorResponse(request, http.BAD_REQUEST, msg))
 
@@ -198,16 +198,17 @@ class ContractEnclaveServer(resource.Resource):
             logger.error('missing field in request: %s', ke)
             raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
 
-        try :
-            response = self.Enclave.send_to_contract(
-                encrypted_session_key,
-                encrypted_request)
+        except Exception as e :
+            logger.error('unknown exception unpacking request (UpdateContractRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'unknown exception unpacking request (UpdateContractRequest)')
 
+        try :
+            response = self.Enclave.send_to_contract(encrypted_session_key, encrypted_request)
             return {'result' : response}
 
-        except :
-            logger.exception('api_send_message')
-            raise Error(http.BAD_REQUEST, "api_send_message")
+        except Exception as e :
+            logger.error('unknown exception processing request (UpdateContractRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (UpdateContractRequest)')
 
 
     ## -----------------------------------------------------------------
@@ -236,17 +237,17 @@ class ContractEnclaveServer(resource.Resource):
             logger.error('missing field in request: %s', ke)
             raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
 
-        try :
-            verify_response = self.Enclave.verify_secrets(
-                contractid,
-                creatorid,
-                secrets)
+        except Exception as e :
+            logger.error('unknown excption unpacking request (VerifySecretRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (VerifySecretRequest)')
 
+        try :
+            verify_response = self.Enclave.verify_secrets(contractid, creatorid, secrets)
             return dict(verify_response)
 
-        except :
-            logger.exception('HandleVerifySecretsRequest')
-            raise Error(http.BAD_REQUEST, "HandleVerifySecrets")
+        except Exception as e :
+            logger.error('unknown exception processing request (VerifySecretRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (VerifySecretRequest)')
 
     ## -----------------------------------------------------------------
     def _HandleEnclaveDataRequest(self, minfo) :
@@ -272,13 +273,17 @@ class ContractEnclaveServer(resource.Resource):
             logger.error('missing field in request: %s', ke)
             raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
 
+        except Exception as e :
+            logger.error('unknown excption unpacking request (BlockStoreHeadRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStoreHeadRequest)')
+
         try :
             datalen = self.Enclave.block_store_head(key)
             return {'length' : str(datalen)}
 
-        except :
-            logger.exception('HandleBlockStoreHeadRequest')
-            raise Error(http.BAD_REQUEST, "HandleBlockStoreHeadRequest")
+        except Exception as e :
+            logger.error('unknown exception processing request (BlockStoreHeadRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStoreHeadRequest)')
 
     ## -----------------------------------------------------------------
     def _HandleBlockStoreGetRequest(self, minfo) :
@@ -296,14 +301,17 @@ class ContractEnclaveServer(resource.Resource):
             logger.error('missing field in request: %s', ke)
             raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
 
+        except Exception as e :
+            logger.error('unknown excption unpacking request (BlockStoreGetRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStoreGetRequest)')
+
         try :
             response = self.Enclave.block_store_get(key)
-
             return {'result' : response}
 
-        except :
-            logger.exception('HandleBlockStoreGetRequest')
-            raise Error(http.BAD_REQUEST, "HandleBlockStoreGetRequest")
+        except Exception as e :
+            logger.error('unknown exception processing request (BlockStoreGetRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStoreGetRequest)')
 
     ## -----------------------------------------------------------------
     def _HandleBlockStorePutRequest(self, minfo) :
@@ -323,14 +331,17 @@ class ContractEnclaveServer(resource.Resource):
             logger.error('missing field in request: %s', ke)
             raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
 
+        except Exception as e :
+            logger.error('unknown excption unpacking request (BlockStorePutRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStorePutRequest)')
+
         try :
             self.Enclave.block_store_put(key, value)
-
             return {'result' : "OK"}
 
-        except :
-            logger.exception('HandleBlockStorePutRequest')
-            raise Error(http.BAD_REQUEST, "HandleBlockStorePutRequest")
+        except Exception as e :
+            logger.error('unknown exception processing request (BlockStorePutRequest); {0}/{1}'.format(type(e), str(e)))
+            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStorePutRequest)')
 
 # -----------------------------------------------------------------
 # sealed_data is base64 encoded string
