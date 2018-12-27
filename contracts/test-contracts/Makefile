@@ -19,7 +19,7 @@ ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(PDO_HOME)/contracts
 
-CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm
+CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm _bad-contract.scm
 DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS))
 
 all: $(CONTRACTS)
@@ -43,6 +43,9 @@ _key-value-test.scm : key-value-test.bld key-value-test.scm
 
 _debug_key-value-test.scm : key-value-test.bld key-value-test.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 key-value-test.bld debug
+
+_bad-contract.scm : bad-contract.bld bad-contract.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 bad-contract.bld
 
 install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
