@@ -31,7 +31,7 @@ endif
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
-SRCDIR ?= $(SCRIPTDIR)/..
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
 KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
 CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
