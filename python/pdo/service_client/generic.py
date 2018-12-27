@@ -60,7 +60,7 @@ class GenericServiceClient(object) :
             raise MessageException('operation failed: {0}'.format(err.reason))
 
         except :
-            logger.exception('no response from server')
+            logger.warn('no response from server')
             raise MessageException('no response from server')
 
         content = response.read()

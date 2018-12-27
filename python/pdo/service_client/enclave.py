@@ -19,6 +19,16 @@ from pdo.service_client.generic import GenericServiceClient
 from pdo.service_client.generic import MessageException
 from pdo.common.keys import EnclaveKeys
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class EnclaveException(Exception) :
+    """
+    A class to capture invocation exceptions
+    """
+    pass
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 class EnclaveServiceClient(GenericServiceClient) :
 
     def __init__(self, url) :
@@ -52,12 +62,13 @@ class EnclaveServiceClient(GenericServiceClient) :
             return response['result']
 
         except MessageException as me :
-            logger.warn('unable to contact enclave service (update_contract); %s', me)
-            return None
+            logger.warn('unable to contact enclave service (send_to_contract); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (send_to_contract)') from me
 
-        except :
-            logger.exception('update_contract')
-            return None
+        except Exception as e :
+            logger.warn('unknown exception (send_to_contract); %s', str(e))
+            raise EnclaveException(str(e)) from e
+
 
     # -----------------------------------------------------------------
     # contract_id -- 16 character, hex encoded, sha256 hashed, registration transaction signature
@@ -73,17 +84,13 @@ class EnclaveServiceClient(GenericServiceClient) :
         try :
             return self._postmsg(request)
 
-        except KeyError as ke :
-            logger.error('response missing required field; %s', ke)
-            return None
-
         except MessageException as me :
-            logger.warn('unable to contact enclave service (verify_secrets); %s', me)
-            return None
+            logger.warn('unable to contact contract enclave service (verify_secrets); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (verify_secrets)') from me
 
-        except :
-            logger.exception('verify_secrets')
-            return None
+        except Exception as e :
+            logger.warn('unknown exception (verify_secrets); %s', str(e))
+            raise EnclaveException(str(e)) from e
 
     # -----------------------------------------------------------------
     def get_enclave_public_info(self) :
@@ -93,12 +100,12 @@ class EnclaveServiceClient(GenericServiceClient) :
             return self._postmsg(request)
 
         except MessageException as me :
-            logger.warn('unable to contact enclave service (get_enclave_info); %s', me)
-            return None
+            logger.warn('unable to contact contract enclave service (get_enclave_public_info); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (get_enclave_public_info)') from me
 
-        except :
-            logger.exception('get_enclave_info')
-            return None
+        except Exception as e :
+            logger.warn('unknown exception (verify_secrets); %s', str(e))
+            raise EnclaveException(str(e)) from me
 
     # -----------------------------------------------------------------
     def block_store_head(self, state_hash_b64) :
@@ -117,12 +124,12 @@ class EnclaveServiceClient(GenericServiceClient) :
             return int(response['length'])
 
         except MessageException as me :
-            logger.warn('unable to contact enclave service (block_store_head); %s', me)
-            return None
+            logger.warn('unable to contact contract enclave service (block_store_head); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (block_store_head)') from me
 
-        except :
-            logger.exception('block_store_head')
-            return None
+        except Exception as e :
+            logger.warn('unknown exception (block_store_head); %s', str(e))
+            raise EnclaveException(str(e)) from me
 
     # -----------------------------------------------------------------
     def block_store_get(self, state_hash_b64) :
@@ -140,12 +147,12 @@ class EnclaveServiceClient(GenericServiceClient) :
             return response['result']
 
         except MessageException as me :
-            logger.warn('unable to contact enclave service (block_store_get); %s', me)
-            return None
+            logger.warn('unable to contact contract enclave service (block_store_get); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (block_store_get)') from me
 
-        except :
-            logger.exception('block_store_get')
-            return None
+        except Exception as e :
+            logger.warn('unknown exception (block_store_get); %s', str(e))
+            raise EnclaveException(str(e)) from me
 
     # -----------------------------------------------------------------
     def block_store_put(self, state_hash_b64, state_b64) :
@@ -164,9 +171,9 @@ class EnclaveServiceClient(GenericServiceClient) :
             return True
 
         except MessageException as me :
-            logger.warn('unable to contact enclave service (block_store_put); %s', me)
-            return False
+            logger.warn('unable to contact contract enclave service (block_store_put); %s', str(me))
+            raise EnclaveException('unable to contact enclave service (block_store_put)') from me
 
-        except :
-            logger.exception('block_store_put')
-            return False
+        except Exception as e :
+            logger.warn('unknown exception (block_store_put); %s', str(e))
+            raise EnclaveException(str(e)) from me

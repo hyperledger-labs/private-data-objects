@@ -27,6 +27,14 @@ logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+class InvocationException(Exception) :
+    """
+    A class to capture invocation exceptions
+    """
+    pass
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 class ContractRequest(object) :
     __ops__ = { 'initialize' : True, 'update' : True }
 
@@ -99,14 +107,11 @@ class ContractRequest(object) :
             self.contract_state.push_state_to_eservice(self.enclave_service)
 
             encoded_encrypted_response = self.enclave_service.send_to_contract(encrypted_session_key, encrypted_request)
-            if encoded_encrypted_response == None:
-                logger.exception("send_to_contract failed but no exception was thrown")
-                raise
-
             logger.debug("raw response from enclave: %s", encoded_encrypted_response)
-        except :
-            logger.exception('contract invocation failed')
-            raise
+
+        except Exception as e:
+            logger.warn('contract invocation failed; %s', str(e))
+            raise InvocationException('contract invocation failed') from e
 
         try :
             decrypted_response = self.__decrypt_response(encoded_encrypted_response)
@@ -117,7 +122,7 @@ class ContractRequest(object) :
 
             contract_response = ContractResponse(self, response_parsed)
         except Exception as e:
-            logger.exception('contract response is invalid: ' + str(e))
-            raise
+            logger.warn('contract response is invalid; %s', str(e))
+            raise InvocationException('contract response is invalid') from e
 
         return contract_response
