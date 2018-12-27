@@ -244,7 +244,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     # --------------------------------------------------
     try :
         if use_ledger :
-            logger.info("sending to ledger")
+            logger.debug("sending to ledger")
             # note that we will wait for commit of the transaction before
             # continuing; this is not necessary in general (if there is
             # confidence the transaction will succeed) but is useful for
@@ -294,7 +294,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
 
         try :
             if use_ledger :
-                logger.info("sending to ledger")
+                logger.debug("sending to ledger")
                 # note that we will wait for commit of the transaction before
                 # continuing; this is not necessary in general (if there is
                 # confidence the transaction will succeed) but is useful for

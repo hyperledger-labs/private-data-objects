@@ -20,6 +20,7 @@ import sawtooth.helpers.pdo_connect
 
 import logging
 logger = logging.getLogger(__name__)
+stat_logger = logger.getChild('stats')
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -303,7 +304,7 @@ class ContractState(object) :
             if ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
                 pushed_blocks += 1
 
-        logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
+        stat_logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 
     # --------------------------------------------------
     def pull_state_from_eservice(self, eservice, data_dir = None) :
@@ -326,7 +327,7 @@ class ContractState(object) :
             if ContractState.__pull_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
                 pulled_blocks += 1
 
-        logger.debug('state length is %d, pulled %d new blocks', len(self.component_block_ids), pulled_blocks)
+        stat_logger.debug('state length is %d, pulled %d new blocks', len(self.component_block_ids), pulled_blocks)
 
     # --------------------------------------------------
     def save_to_cache(self, data_dir = None) :

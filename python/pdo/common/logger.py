@@ -51,7 +51,7 @@ class stream_to_logger(object):
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def setup_loggers(config) :
-    loglevel = getattr(logging, config.get('LogLevel', 'WARN'))
+    loglevel = config.get('LogLevel', 'WARN')
     logger = logging.getLogger()
     logger.setLevel(loglevel)
 
@@ -86,4 +86,4 @@ def setup_loggers(config) :
     logoverride = config.get("LogOverride", {})
     for modname, modlevel in logoverride.items() :
         modlogger = logging.getLogger(modname)
-        modlogger.setLevel(getattr(logging, modlevel))
+        modlogger.setLevel(modlevel)
