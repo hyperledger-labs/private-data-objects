@@ -185,7 +185,7 @@ class Enclave(object) :
                 encrypted_request)
 
         except Exception as e :
-            logger.error('send_to_contract failed; %s', str(e))
+            logger.error('send_to_contract failed; %s, %s', type(e), str(e.args))
             raise
 
     # -------------------------------------------------------

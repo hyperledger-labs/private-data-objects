@@ -151,7 +151,7 @@ def initialize_with_configuration(config) :
                 '{}'.format(
                     ', '.join(sorted(list(missing_keys)))))
 
-    num_of_enclaves = int(config['num_of_enclaves']) if 'num_of_enclaves' in config else 1
+    num_of_enclaves = int(config.get('num_of_enclaves',1))
 
     if not _ias:
         _ias = \
