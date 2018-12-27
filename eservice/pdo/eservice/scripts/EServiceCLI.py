@@ -68,6 +68,20 @@ class ContractEnclaveServer(resource.Resource):
         }
 
     ## -----------------------------------------------------------------
+    @staticmethod
+    def __safe_write__(request, message) :
+        """
+        This method writes an error message to a potentially broken
+        connection. At this point, writing the message is "best effort"
+        so we don't try to fix or catch errors
+        """
+        try:
+            request.write(message)
+            request.finish()
+        except :
+            pass
+
+    ## -----------------------------------------------------------------
     def ErrorResponse(self, request, response, msg) :
         """
         Generate a common error response for broken requests
@@ -156,14 +170,13 @@ class ContractEnclaveServer(resource.Resource):
                 request.finish()
 
             except Error as e :
-                request.write(self.ErrorResponse(request, int(e.status), e.message))
-                request.finish()
+                logger.error('error occured; {0}'.format(e.message))
+                self.__safe_write__(request, self.ErrorResponse(request, int(e.status), e.message))
 
             except :
                 logger.exception('unknown exception while processing request %s', request.path)
                 msg = 'unknown exception processing http request {0}'.format(request.path)
-                request.write(self.ErrorResponse(request, http.BAD_REQUEST, msg))
-                request.finish()
+                self.__safe_write__(request, self.ErrorResponse(request, http.BAD_REQUEST, msg))
 
         d = deferToThread(getResponse, operation, minfo)
         d.addCallback(isDone).addErrback(thereIsAnError)
@@ -261,7 +274,6 @@ class ContractEnclaveServer(resource.Resource):
 
         try :
             datalen = self.Enclave.block_store_head(key)
-
             return {'length' : str(datalen)}
 
         except :
