@@ -25,6 +25,10 @@ ifndef PDO_ENCLAVE_CODE_SIGN_PEM
 $(error Incomplete configuration, PDO_ENCLAVE_CODE_SIGN_PEM is not defined)
 endif
 
+ifndef SGX_MODE
+$(error Incomplete configuration, SGX_MODE is not defined)
+endif
+
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(SCRIPTDIR)/..
@@ -34,14 +38,24 @@ CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
 BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
 VERIFY=$(abspath $(SCRIPTDIR)/__tools__/verify.sh)
 CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
+TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
+ifeq ($(SGX_MODE),HW)
+all: environment template system-keys verify build keys conf register
+else
 all: environment template system-keys verify build keys conf
+endif
 
-clean :
+clean : clean-build clean-install
+
+clean-install :
 	rm -rf $(DSTDIR)
+
+clean-build : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
 environment : $(PYTHON_DIR)
 
@@ -69,8 +83,7 @@ verify :
 build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
 
-clean-build :
-	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
+rebuild : clean-build build
 
 system-keys : ${PDO_ENCLAVE_CODE_SIGN_KEY}
 
@@ -112,4 +125,14 @@ template : $(PYTHON_DIR)
 	mkdir -p $(DSTDIR)/opt/pdo/keys
 	mkdir -p $(DSTDIR)/opt/pdo/logs
 
-.PHONY : build clean-build conf environment keys system-keys template
+ifeq ($(SGX_MODE),HW)
+register : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(SRCDIR)/eservice/bin/register-with-ledger.sh
+
+.PHONY : register
+endif
+
+test : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTSCRIPT)
+
+.PHONY : build clean clean-build clean-install conf environment keys rebuild system-keys template test verify

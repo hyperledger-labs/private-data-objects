@@ -122,7 +122,7 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_SPID_KEY_CERT_FILE_PEM"; i=$i+1; export PDO_SPID_KEY_CERT_FILE_PEM=${env_val[PDO_SPID_KEY_CERT_FILE_PEM]}
 
-	env_val[PDO_STL_KEY_ROOT]="${PDO_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth}"
+	env_val[PDO_STL_KEY_ROOT]="${PDO_STL_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth}"
 	env_desc[PDO_STL_KEY_ROOT]="
 		PDO_STL_KEY_ROOT is the root directory where the system keys are stored
 		for Sawtooth integration; files in this directory
@@ -207,8 +207,9 @@ do
     case $opt in
         --reset-keys|-r)
 	    # -----------------------------------------------------------------
-	    # if you change the PDO_KEY_ROOT variable and re-source this file
-	    # you should unset all of the variables that depend on PDO_KEY_ROOT
+	    # if you change either PDO_SGX_KEY_ROOT or PDO_STL_KEY_ROOT variable
+            # and re-source this file you should unset all of the variables that
+            # depend on those variables
 	    # -----------------------------------------------------------------
 	    unset PDO_ENCLAVE_CODE_SIGN_PEM
 	    unset PDO_IAS_KEY_PEM
@@ -237,4 +238,3 @@ if [ $is_sourced == 1 ]; then
 else
     print_export
 fi
-

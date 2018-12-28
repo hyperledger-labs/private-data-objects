@@ -15,6 +15,10 @@
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
+ifndef SGX_MODE
+$(error Incomplete configuration, SGX_MODE is not defined)
+endif
+
 EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 
 ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
@@ -48,7 +52,7 @@ PYTHON_FILES = \
 
 ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl)
 
-all : $(ENCLAVE_LIB) $(EGG_FILE) info
+all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
 	@echo Build Distribution
@@ -67,6 +71,9 @@ build :
 
 install: $(EGG_FILE)
 	easy_install $<
+ifeq ($(SGX_MODE),HW)
+	bash -c "bin/setup-contract-enclave-info.sh"
+endif
 
 test: install
 	(cd tests; python test-secrets.py)
@@ -81,8 +88,6 @@ clean:
 print_enclave_files:
 	@echo $(ENCLAVE_FILES)
 
-info: install
-	bash -c "./setup_contract_enclave_info.sh"
 
 .phony : all
 .phony : clean

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     echo activate python3 first
@@ -22,7 +21,7 @@ if [[ $PY3_VERSION -lt 5 ]]; then
 fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/..)"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 function yell {
     echo "$0: $*" >&2;
@@ -37,6 +36,8 @@ function try {
     "$@" || die "operation failed: $*"
 }
 
+template_file="${SRCDIR}/pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template"
+actual_file="${SRCDIR}/pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp"
 eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 function cleanup {
@@ -46,40 +47,30 @@ function cleanup {
 
 trap cleanup EXIT
 
-#Set SPID to parameter if passed
-SPID=$PDO_SPID
-if (( "$#" == 1 )) ; then
-    SPID=$1
-fi
-
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 function Store {
-    : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
-    yell Compute the enclave information
-    PYTHONPATH= try python ./pdo/eservice/scripts/EServiceEnclaveInfoCLI.py --spid ${SPID} --save ${eservice_enclave_info_file} --loglevel warn
+    yell "Compute the enclave information"
+    # the python path variable is necessary to avoid having the script attempt
+    # to pull libraries from the build directory rather than the install directory
+    PYTHONPATH= try eservice-enclave-info --save $eservice_enclave_info_file --loglevel warn
 }
 
-# Registers MR_ENCLAVE & BASENAMES with Ledger
-function Register {
-    if [ ! -f $eservice_enclave_info_file ]; then
-        yell Registration failed! eservice_enclave_info_file not found!
+# Load MR_ENCLAVE to be built into PService
+function Load {
+    yell Load MR_ENCLAVE into PLACEMARK at $(basename ${actual_file})
+    if [ ! -f ${eservice_enclave_info_file} ]; then
+        yell Load failed! eservice_enclave_info_file not found!
     else
         VAR_MRENCLAVE=$(grep -o 'MRENCLAVE:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
         VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
 
-        : "${PDO_LEDGER_URL:?Registration failed! PDO_LEDGER_URL environment variable not set}"
-        : "${PDO_LEDGER_KEY_SKF:?Registration failed! PDO_LEDGER_KEY_SKF environment variable not set}"
-        : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
-
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.measurements ${VAR_MRENCLAVE}
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.basenames ${VAR_BASENAME}
-        try ${SCRIPTDIR}/../sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL pdo.test.registry.public_key "$(cat $PDO_IAS_KEY_PEM)"
+        try sed "s/MR_ENCLAVE_PLACEMARK/${VAR_MRENCLAVE}/" < $template_file > $actual_file
     fi
 }
 
 if [ "$SGX_MODE" = "HW" ]; then
     Store
-    Register
+    Load
 else
-    yell Registration failed! SGX_MODE not set to HW
+    yell This script is only necessary when SGX_MODE is set to HW
 fi
