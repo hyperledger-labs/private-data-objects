@@ -67,6 +67,42 @@ ContractResponse::ContractResponse(
 
     result_ = result;
 }
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// This constructor is used for failed operations
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractResponse::ContractResponse(
+    const ContractRequest& request,
+    const std::string& result)
+{
+
+    output_block_id_ = pdo::state::StateBlockId(STATE_BLOCK_ID_LENGTH, 0);
+
+    contract_id_ = request.contract_id_;
+    creator_id_ = request.creator_id_;
+    operation_succeeded_ = false;
+    state_changed_ = false;
+
+    contract_code_hash_ = request.contract_code_.ComputeHash();
+    contract_message_hash_ = request.contract_message_.ComputeHash();
+    channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
+    contract_initializing_ = request.is_initialize();
+
+    if (! contract_initializing_)
+    {
+        input_block_id_ = request.contract_state_.input_block_id_;
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "input state hash: %s",
+                 ByteArrayToHexEncodedString(input_block_id_).c_str());
+    }
+
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "output state hash: %s",
+             ByteArrayToHexEncodedString(output_block_id_).c_str());
+
+    result_ = result;
+}
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ByteArray ContractResponse::SerializeForSigning(void) const
 {

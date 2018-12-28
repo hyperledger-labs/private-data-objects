@@ -54,6 +54,10 @@ public:
         const std::string& result,
         const pdo::state::StateBlockId& output_state_hash);
 
+    ContractResponse(
+        const ContractRequest& request,
+        const std::string& result);
+
     ByteArray SerializeAndEncrypt(
         const ByteArray& session_key, const EnclaveData& enclave_data) const;
 };
