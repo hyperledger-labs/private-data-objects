@@ -19,9 +19,24 @@ DOCKER_COMPOSE_FILES=sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES:=$(DOCKER_COMPOSE_FILES) sawtooth-pdo.sgx.yaml
 endif
+ifdef http_proxy
+   DOCKER_OPTS += --build-arg http_proxy=${http_proxy}
+   DO_PROXY = 1
+endif
+ifdef https_proxy
+   DOCKER_OPTS += --build-arg https_proxy=${https_proxy}
+   DO_PROXY = 1
+endif
+ifdef ftp_proxy
+   DOCKER_OPTS += --build-arg ftp_proxy=${ftp_proxy}
+   DO_PROXY = 1
+endif
+ifdef no_proxy
+   DOCKER_OPTS += --build-arg no_proxy=${no_proxy}
+   DO_PROXY = 1
+endif
 ifdef DO_PROXY
-   DOCKER_COMPOSE_FILES:=$(DOCKER_COMPOSE_FILES) sawtooth-pdo.proxy.yaml
-   DOCKER_OPTS=--build-arg https_proxy=${https_proxy} --build-arg http_proxy=${http_proxy} --build-arg ftp_proxy=${ftp_proxy} --build-arg no_proxy=${no_proxy}
+   DOCKER_COMPOSE_FILES += sawtooth-pdo.proxy.yaml
 endif
 DOCKER_COMPOSE_OPTS=$(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
 
@@ -34,18 +49,25 @@ pdo-dev-image:
 pdo-composition: pdo-dev-image
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) build
 
-test: pdo-composition test-no-build
-test-no-build:
+test: pdo-composition test-with-no-build
+
+test-env-setup: pdo-composition test-env-setup-with-no-build
+
+test-env-setup-with-no-build:
+	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
+	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) down
 	# - start services
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) up -d
 	# MAYBE: test , e.g., with 'ps', whether all services are up properly
 	# - insitialize the ledger
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
 	   exec validator sawset proposal create --url http://rest-api:8008 --key /root/.sawtooth/keys/my_key.priv sawtooth.validator.transaction_families='[{"family": "intkey", "version": "1.0"}, {"family":"sawtooth_settings", "version":"1.0"}, {"family": "pdo_contract_enclave_registry", "version": "1.0"}, {"family":  "pdo_contract_instance_registry", "version": "1.0"}, {"family": "ccl_contract", "version": "1.0"}]'
-	if [ "$${SGX_MODE}" = 'HW' ]; then \
+	if [ "$(SGX_MODE)" = "HW" ]; then \
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
-	      exec pdo-build /project/pdo/src/private-data-objects/eservice/register_with_ledger.sh; \
+	      exec pdo-build bash -c 'source /etc/environment; export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/; unset PDO_SPID PDO_SPID_KEY_CERT_FILE_PEM PDO_IAS_KEY_PEM; source /project/pdo/src/private-data-objects/build/common-config.sh; make -C /project/pdo/src/private-data-objects/build conf register'; \
 	fi
+
+test-with-no-build: test-env-setup
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
 	   exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh

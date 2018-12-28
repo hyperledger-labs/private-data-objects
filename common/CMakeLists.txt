@@ -29,6 +29,18 @@ FILE(GLOB PROJECT_SOURCES *.cpp crypto/*.cpp crypto/verify_ias_report/*.cpp pack
 SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson" "state")
 SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} ${IAS_CA_CERT_REQUIRED_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
+################################################################################
+# Generated source
+################################################################################
+
+SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_ias_report/ias-certificates.cpp)
+set_source_files_properties(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
+add_custom_command(OUTPUT  ${PROJECT_GENERATED_IAS_SOURCES}
+                     COMMAND ./build_ias_certificates_cpp.sh
+                     DEPENDS crypto/verify_ias_report/ias-certificates-sim.template crypto/verify_ias_report/ias-certificates-hw.template crypto/verify_ias_report/build_ias_certificates_cpp.sh
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_ias_report
+)
+add_custom_target(generate-ias-files DEPENDS ${PROJECT_GENERATED_IAS_SOURCES})
 
 ################################################################################
 # Untrusted Common Library
@@ -39,7 +51,9 @@ PROJECT(${UNTRUSTED_LIB_NAME} CXX)
 
 pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
 
-ADD_LIBRARY(${UNTRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
+ADD_LIBRARY(${UNTRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_GENERATED_IAS_SOURCES} ${PROJECT_SOURCES})
+
+add_dependencies(${UNTRUSTED_LIB_NAME} generate-ias-files)
 
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
@@ -48,6 +62,7 @@ TARGET_COMPILE_OPTIONS(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS} ${OPENS
 
 TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_LIB_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
+# DEBUG:
 ################################################################################
 # Block Store Library
 ################################################################################
@@ -75,7 +90,9 @@ if(NOT UNTRUSTED_ONLY)
 	SET(TRUSTED_LIB_NAME tpdo-common)
 	PROJECT(${TRUSTED_LIB_NAME} CXX)
 
-	ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
+	ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_GENERATED_IAS_SOURCES} ${PROJECT_SOURCES})
+
+	add_dependencies(${TRUSTED_LIB_NAME} generate-ias-files)
 
 	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
 	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)

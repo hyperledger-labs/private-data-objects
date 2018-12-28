@@ -34,8 +34,8 @@
 #   $ docker run -v $(pwd):/project/pdo/src -it pdo-dev
 #   - to run with SGX HW, add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
 #     then you can build system as "usual", e.g., to build it as
-#        (cd src/common/crypto/verify_ias_report; ./build_ias_certificates_cpp.sh);
-#        make -C /project/pdo/src/__tools__/build/ DSTDIR=/project/pdo/build
+#        . /project/pdo/src/build/common-config.sh
+#        make -C /project/pdo/src/build/
 #     etc etc
 #     Note: your host SGX PSW runtime should be at a similar level than the one in the container
 #     or the PSW/aesmd might cause enclave launch problems

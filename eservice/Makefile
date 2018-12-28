@@ -71,9 +71,6 @@ build :
 
 install: $(EGG_FILE)
 	easy_install $<
-ifeq ($(SGX_MODE),HW)
-	bash -c "bin/setup-contract-enclave-info.sh"
-endif
 
 test: install
 	(cd tests; python test-secrets.py)

@@ -27,12 +27,10 @@
 # in the pdo-build shell (see sawtooth-pdo.yaml), before doing any operation
 # you also will have to register sgx-related information in the ledger with
 # following steps
-#    export PDO_LEDGER_KEY_SKF=/project/pdo/build/opt/pdo/etc/keys/sawtooth/my_key.priv
 #    export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/
 #    unset PDO_SPID PDO_SPID_KEY_CERT_FILE_PEM PDO_IAS_KEY_PEM
 #    source /project/pdo/src/private-data-objects/build/common-config.sh
-#    make -C /project/pdo/src/private-data-objects/build conf
-#    /project/pdo/src/private-data-objects/eservice/register_with_ledger.sh
+#    make -C /project/pdo/src/private-data-objects/build conf register
 
 version: "2.1"
 

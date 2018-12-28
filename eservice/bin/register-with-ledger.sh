@@ -18,7 +18,7 @@
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     echo activate python3 first
-    exit
+    exit 101
 fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"

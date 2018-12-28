@@ -103,6 +103,7 @@ services:
         sawadm keygen --force && \
         sawtooth keygen --force my_key && \
         sawset genesis -k /root/.sawtooth/keys/my_key.priv && \
+        ln -sf my_key.priv /root/.sawtooth/keys/pdo_validator.priv && \
 	chmod a+rw /root/.sawtooth/keys/* && \
         sawadm genesis config-genesis.batch && \
         sawtooth-validator -vv \
