@@ -61,6 +61,12 @@ std::map<uint64_t, size_t> safe_malloc_map;
 void *safe_malloc_for_scheme(size_t request)
 {
     void *ptr = malloc(request);
+    if (ptr == NULL)
+    {
+        SAFE_LOG(PDO_LOG_WARNING, "gipsy memory allocation failed");
+        return ptr;
+    }
+
     safe_malloc_map[(uint64_t)ptr] = request;
 
     return ptr;
