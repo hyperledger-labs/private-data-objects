@@ -175,7 +175,7 @@ Service provided ID that accompanies certificate registered with Intel Attestati
 Upon a successful EService build, the ledger registration script can be run by:
 ```
 cd eservice
-./register_with_ledger.sh
+./bin/register-with-ledger.sh
 ```
 
 ## SGX in Simulator-mode

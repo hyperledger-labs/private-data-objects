@@ -66,24 +66,24 @@ if [ "$NUM_CORES " == " " ]; then
     NUM_CORES=4
 fi
 
+# allow opting out of running tests, primarily so we can skip
+# sgx hw-mode based tests which fail in docker test
+if [ ! -z "${NO_SGX_RUN_DURING_BUILD}" ]; then
+    CMAKE_ARGS="-D DISABLE_TESTS=true"
+fi
+
 # -----------------------------------------------------------------
 # BUILD
 # -----------------------------------------------------------------
 
 yell --------------- COMMON ---------------
 
-# create the ias-certificates.cpp from the templates
-cd $SRCDIR/common/crypto/verify_ias_report
-if [ ! -f ias-certificates.cpp ]; then
-    try ./build_ias_certificates_cpp.sh
-fi
-
 # now build the rest of common
 cd $SRCDIR/common
 
 mkdir -p build
 cd build
-try cmake ..
+try cmake ${CMAKE_ARGS} ..
 try make "-j$NUM_CORES"
 
 yell --------------- PYTHON ---------------

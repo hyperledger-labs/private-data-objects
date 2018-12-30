@@ -43,11 +43,12 @@ TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
-ifeq ($(SGX_MODE),HW)
-all: environment template system-keys verify build keys conf register
-else
-all: environment template system-keys verify build keys conf
+ifndef NO_SGX_RUN_DURING_BUILD
+  ifeq ($(SGX_MODE),HW)
+     CONDITIONAL_REGISTER_TARGET=register
+  endif
 endif
+all: environment template system-keys verify build keys conf $(CONDITIONAL_REGISTER_TARGET)
 
 clean : clean-build clean-install
 
@@ -83,7 +84,7 @@ verify :
 build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
 
-rebuild : clean-build build
+rebuild : clean-build build $(CONDITIONAL_REGISTER_TARGET)
 
 system-keys : ${PDO_ENCLAVE_CODE_SIGN_KEY}
 

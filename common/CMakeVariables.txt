@@ -71,7 +71,10 @@ SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
 SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64" "../state")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 
-enable_testing()
+# allow opting out of running tests, primarily so we can skip sgx hw-mode based tests which fail in docker test
+if(NOT DISABLE_TESTS)
+    enable_testing()
+endif()
 
 ################################################################################
 # Functions
@@ -110,8 +113,9 @@ FUNCTION(SGX_SIGN_ENCLAVE TARGET KEY_FILE CONFIG)
 
     SET (SIGNED_ENCLAVE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${TARGET}.signed${CMAKE_SHARED_LIBRARY_SUFFIX})
     SET (SIGNED_ENCLAVE ${SIGNED_ENCLAVE} PARENT_SCOPE)
+    SET (SIGNED_ENCLAVE_METADATA ${SIGNED_ENCLAVE}".meta")
     ADD_CUSTOM_COMMAND( TARGET ${TARGET}
         POST_BUILD
-        COMMAND "${SGX_SIGN}" sign -key "${KEY_FILE}" -enclave "${ENCLAVE}" -out "${SIGNED_ENCLAVE}" -config "${CONFIG}" > /dev/null
+        COMMAND "${SGX_SIGN}" sign -key "${KEY_FILE}" -enclave "${ENCLAVE}" -out "${SIGNED_ENCLAVE}" -dumpfile ${SIGNED_ENCLAVE_METADATA} -config "${CONFIG}" > /dev/null
     )
 ENDFUNCTION()

@@ -43,13 +43,20 @@ PYTHON_FILES = \
 	pdo/pservice/utility/__init__.py \
 	pdo/__init__.py
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
+CONTRACT_ENCLAVE_MRENCLAVE_C_FILE = lib/libpdo_enclave/contract_enclave_mrenclave.cpp
+CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE = lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template
+CONTRACT_ENCLAVE_MRENCLAVE_META_FILE = ../eservice/build/lib/libpdo-enclave.signed.so.meta
+ENCLAVE_FILES = $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE) $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
 	@echo Build Distribution
 	python setup.py bdist_egg
+
+$(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE): $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE) $(CONTRACT_ENCLAVE_MRENCLAVE_META_FILE)
+	VAR_MRENCLAVE=$$(perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $$eh = $$1; $$eh=~s/0x| |\n//g; $$eh=~tr/a-z/A-Z/; print "$${eh}\n"; }' $(CONTRACT_ENCLAVE_MRENCLAVE_META_FILE)) && \
+	sed "s/MR_ENCLAVE_PLACEMARK/$${VAR_MRENCLAVE}/" $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE) > $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE)
 
 $(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
 	@echo Build Enclave
