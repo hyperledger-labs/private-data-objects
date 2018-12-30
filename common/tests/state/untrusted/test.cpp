@@ -12,15 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <stdio.h>
+#include <unistd.h>
 
 #include "packages/block_store/block_store.h"
 #include "packages/block_store/lmdb_block_store.h"
 #include "test_state_kv.h"
 #include "log.h"
 
-#define TEST_DATABASE_NAME ("utest.mdb")
+#define TEST_DATABASE_NAME "utest.mdb"
+#define LOCK_EXTENSION "-lock"
+#define TEST_DATABASE_LOCK_NAME TEST_DATABASE_NAME LOCK_EXTENSION
 
 /* Application entry */
 int main(int argc, char* argv[])
@@ -40,6 +42,10 @@ int main(int argc, char* argv[])
     pdo::Log(PDO_LOG_DEBUG, "Test State KV:end\n");
 
     pdo::lmdb_block_store::BlockStoreClose();
+
+    // Remove test db as docker builds will struggle with this huge sparse file ..
+    unlink(TEST_DATABASE_NAME);
+    unlink(TEST_DATABASE_LOCK_NAME);
 
     pdo::Log(PDO_LOG_DEBUG, "Test UNTRUSTED State API SUCCESSFUL!\n");
     return 0;

@@ -20,39 +20,124 @@
 #  - proxy configuration: 		https_proxy http_proxy ftp_proxy  (default: undefined)
 #  - base image with pdo dev environ: 	PDO_DEV_IMAGE (default: pdo-dev)
 #    (presumably built from Dockerfile.pde-dev)
+#  - sgx-mode:				SGX_MODE (default: SIM)
+#  - pdo repo to use:			PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
+#  - pdo repo branch to use:		PDO_REPO_BRANCH (default: master)
+#  - sawtooth core repo to use:		STC_REPO_URL (default: https://github.com/hyperledger/sawtooth-core.git)
+#  - sawtooth core repo branch to use:	STC_REPO_BRANCH (default: master)
 
 # Build:
-#   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-build
+#   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
 #   if behind a proxy, you might want to add also below options
 #   --build-arg https_proxy=$https_proxy --build-arg http_proxy=$http_proxy --build-arg ftp_proxy=$ftp_proxy
-#   if you want to build with different version than , add a build arg PDO_DEV_IMAGE e.g., --build-arg PDO_DEV_IMAGE=pdo-build-xenial
+#   if you want to build with different version than from pdo-dev, add a build arg PDO_DEV_IMAGE e.g., --build-arg PDO_DEV_IMAGE=pdo-build-xenial
+#   similarly, add --build-arg for any of the other above-listed configuration parameters
+#   if you want to build with the source locally commented, then use root-directory of
+#   source tree as context directory and add '--build-arg PDO_REPO_URL=file:///tmp/build-src/.git', e.g.,
+#      docker build -f docker/Dockerfile.pdo-dev -t pdo-build --build-arg PDO_REPO_URL=file:///tmp/build-src/.git .
 #
 # Run:
-#   $ cd PrivateDataObjects
-#   $ docker run -it pdo-build /bin/bash
-#   Notes: 
-#   - this is built intrinsically in simulator mode (see below), so no point in passing SGX device
-#     and daemon pipe (as possible in images built from base dev image Dockerfile.pdo-dev)
+#   $ cd ....../private-data-objects
+#   $ docker run -it pdo-build
+#   Notes:
+#   - if built with SGX_MODE=HW, then you will have to run image on hw with SGX support and
+#     add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
+#     Note: your host SGX PSW runtime should be at a similar level than the one in the container
+#     or the PSW/aesmd might cause enclave launch problems
 #   - if behind a proxy, you might want to add also below options
 #     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy
+#   - Regardless of SGX_MODE, we build with the default fake SGX values and some
+#     default PDO_LEDGER_URL (http://rest-api:8008). If these are different at runtime, e.g.,
+#     because the ledger changes and/or you run in SGX HW mode and your sgx keys are at a
+#     different place and not mapped via docker volumes to the default location
+#     '/project/pdo/src/private-data-objects/build/keys/sgx_simulation'
+#     you will have to
+#     - PDO_SGX_KEY_ROOT env var pointing to the directory with the actual files and/or
+#       PDO_LEDGER_URL properly configured ..
+#     - unset PDO_SPID PDO_SPID_KEY_CERT_FILE_PEM PDO_IAS_KEY_PEM
+#     - call 'source /project/pdo/src/private-data-objects/build/common-config.sh'
+#     - run 'make -C /project/pdo/src/private-data-objects/build conf'
 #
 
 ARG PDO_DEV_IMAGE=pdo-dev
 
-FROM ${PDO_DEV_IMAGE}
+# Get source of PDO and Sawtooth for the corresponding protobufs
+# to allow using local development branch we copy whatever docker directory is passed
+# (and so would contain .git if we call it as docker build . -f docker/.... which then
+# can be used via PDO_REPO_BRANCH build-arg) but also do that via multi-stage so we don't load
+# the whole stuff into the image itself.
+FROM ${PDO_DEV_IMAGE} as source-extractor
+
+ARG PDO_DEV_IMAGE=pdo-dev
+# for bizare docker reason, we have to redefine it here .#..
+
+ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
+ARG PDO_REPO_BRANCH=master
+ARG STC_REPO_URL=https://github.com/hyperledger/sawtooth-core.git
+ARG STC_REPO_BRANCH=master
+
+RUN mkdir /tmp/build-src
+COPY . /tmp/build-src
 
 WORKDIR /project/pdo/
-RUN git clone https://github.com/hyperledger-labs/private-data-objects.git src
 
-RUN . /etc/environment && export $(grep -v "^. " /etc/environment| cut -d= -f1) \
- && export SGX_MODE=SIM && echo "export SGX_MODE=SIM" >> /root/.bashrc \
- && (cd src/common/crypto/verify_ias_report; ./build_ias_certificates_cpp.sh) \
- && make -C src/__tools__/build/ DSTDIR=/project/pdo/build \
- && rm src/common/build/tests/utest.mdb
-# TODO: 
-# - wecannot pass driver/daemon pipe to build. So detection logic from ~/.bashrc doesn't work for build.
-#   furthermore, common build (and others do automatically call test programs which fail when built in HW-mode
-#   as no SGX support during build.  To handle that, not only would we have to pass a build parameter to define
-#   SGX_MODE but we also would have to refactor build process. For now hardcode SIM for build _and_ subsequent run ...
-# - tests create huge file which makes docker fail in building image. currently above manually
-#   cleans up the file but ideally make would do that itself (or at least offer make test-clean target or alike)
+RUN mkdir src && cd src \
+ && git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects \
+ && git clone --single-branch --branch ${STC_REPO_BRANCH} ${STC_REPO_URL} sawtooth-core
+
+
+# Build ..
+FROM ${PDO_DEV_IMAGE}
+
+COPY --from=source-extractor /project/pdo /project/pdo
+
+ARG SGX_MODE=SIM
+ENV SGX_MODE=${SGX_MODE}
+
+RUN \
+# read environment explicitly as build shell doesn't do automatically (aargh ..)
+     . /etc/environment \
+# .. and overwrite auto-detection of SGX_MODE with whatever we compile below ...
+ && echo "export SGX_MODE=${SGX_MODE}" >> /root/.bashrc \
+# finally set up other env variables via config script based on
+# previously defined PDO_HOME, PDO_INSTALL_ROOT, PDO_ENCLAVE_CODE_SIGN_PEM
+# and default ledger url ..
+ && export PDO_LEDGER_URL=http://rest-api:8008 \
+ && `/project/pdo/src/private-data-objects/build/common-config.sh -e`  \
+# configs are mostly stored in config file but also persist them as environment variables ...
+ && env | grep PDO | egrep -v 'PDO_ENCLAVE_CODE_SIGN_PEM|PDO_INSTALL_ROOT|PDO_HOME' | sed 's/^PDO/export PDO/g' >> /etc/environment \
+# Build PDO usuing the standard build scripts
+ && make -C /project/pdo/src/private-data-objects/build/ NO_SGX_RUN_DURING_BUILD=true \
+ && echo '. /project/pdo/build/bin/activate' >> /root/.bashrc \
+ && . /project/pdo/build/bin/activate \
+# - build script install in virtualenv. For docker this seems a bit overkill but easier than to
+#   duplicate all build instructions.
+ && cd /project/pdo/src/private-data-objects \
+ && sawtooth/bin/build_sawtooth_proto \
+ && cd python \
+ && python3 setup.py build_ext \
+ && python3 setup.py install \
+ && cd ../sawtooth \
+ && python3 setup.py install \
+#
+# Build sawtooth interface.
+# - note though due to sawtooth and pdo having incompatibl OS dependencies we have another docker images for TP
+ && cd /project/pdo/src/sawtooth-core \
+ && pip install grpcio grpcio-tools \
+ && bin/protogen \
+ && cd sdk/python/ \
+ && python3 setup.py install \
+ && cd ../../signing \
+ && python3 setup.py install \
+ #back to pdo source
+ && cd /project/pdo/src/private-data-objects/eservice/ \
+ && sed -i 's/python /python3 /g' Makefile \
+ && make \
+ && make install \
+ && python3 setup.py install \
+ && cd .. \
+ && sawtooth/bin/build_sawtooth_proto \
+ && cd python/ \
+ && python3 setup.py install
+
+# TODO (eventually): clean-up /project/pdo/src (but for now keep it as some tests are still there ...)
