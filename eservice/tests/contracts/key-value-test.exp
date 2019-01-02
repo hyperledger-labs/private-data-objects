@@ -1,21 +1,23 @@
-'(put-key "key0" "value0")
-'(put-key "key1" "value1")
-'(put-key "key2" "value2")
-'(put-key "key3" "value3")
-'(put-key "key4" "value4")
-'(put-key "key5" "value5")
-'(put-key "key6" "value6")
-'(put-key "key7" "value7")
-'(put-key "key8" "value8")
-'(put-key "key9" "value9")
-'(get-key "key0")
-'(get-key "key9")
-'(get-key "missing-key")
-'(del-key "key0")
-'(get-key "key0")
-'(put-key "key0" "value0")
-'(get-key "key0")
-'(put-key "key9" "duplicate")
-'(get-key "key9")
-'(put-big-key "a" 5000)
-'(put-big-key "a" 10000)
+'(put-key "key0" "value0"), #t
+'(put-key "key1" "value1"), #t
+'(put-key "key2" "value2"), #t
+'(put-key "key3" "value3"), #t
+'(put-key "key4" "value4"), #t
+'(put-key "key5" "value5"), #t
+'(put-key "key6" "value6"), #t
+'(put-key "key7" "value7"), #t
+'(put-key "key8" "value8"), #t
+'(put-key "key9" "value9"), #t
+'(get-key "key0"), "value0"
+'(get-key "key9"), "value9"
+'(get-key "missing-key"), ""
+'(del-key "key0"), #t
+'(get-key "key0"), ""
+'(put-key "key0" "value0"), #t
+'(get-key "key0"), "value0"
+'(put-key "key9" "duplicate"), #t
+'(get-key "key9"), "duplicate"
+# this returns the 5000 character key
+'(put-big-key "a" 5000), "a{5000}"
+# this returns the 10000 character key
+'(put-big-key "a" 10000), "a{10000}"

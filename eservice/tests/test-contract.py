@@ -19,6 +19,9 @@ import sys
 import time
 import argparse
 import random
+import csv
+import re
+
 import pdo.test.helpers.secrets as secret_helper
 
 import pdo.eservice.pdo_helper as enclave_helper
@@ -270,53 +273,68 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
 
-    with open(config['expressions'], "r") as efile :
-        expressions = efile.readlines()
-
     start_time = time.time()
-    for expression in expressions :
-        expression = expression.strip()
+    total_tests = 0
+    total_failed = 0
 
-        try :
-            update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
-            update_response = update_request.evaluate()
-            if update_response.status is False :
-                logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
+    with open(config['expressions'], "r") as efile :
+        fieldnames = ['expression', 'expected', 'invert']
+        reader = csv.DictReader(filter(lambda row: row[0] != '#', efile),
+                                fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', skipinitialspace=True)
+
+        for test in reader :
+            expression = test["expression"]
+
+            try :
+                total_tests += 1
+                update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
+                update_response = update_request.evaluate()
+                if update_response.status is False :
+                    if test['invert'] and test['invert'] != 'fail' :
+                        total_failed += 1
+                    logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
+                    continue
+
+                logger.info('{0} --> {1}'.format(expression, update_response.result))
+
+                if test['expected'] and not re.match(test['expected'], update_response.result) :
+                    total_failed += 1
+                    logger.warn('test failed [%s]; expected result; %s', test.get('message',''), test['expected'])
+
+            except Exception as e:
+                logger.error('enclave failed to evaluation expression; %s', str(e))
+                ErrorShutdown()
+
+            # if this operation did not change state then there is nothing
+            # to send to the ledger or to save
+            if not update_response.state_changed :
                 continue
 
-            logger.info('{0} --> {1}'.format(expression, update_response.result))
+            try :
+                if ledger_config is not None :
+                    logger.debug("sending to ledger")
+                    # note that we will wait for commit of the transaction before
+                    # continuing; this is not necessary in general (if there is
+                    # confidence the transaction will succeed) but is useful for
+                    # testing
+                    txnid = update_response.submit_update_transaction(
+                        ledger_config,
+                        wait=30,
+                        transaction_dependency_list = txn_dependencies)
+                    txn_dependencies = [ txnid ]
+                else :
+                    logger.debug('no ledger config; skipping state save')
+            except Exception as e :
+                logger.error('failed to save the new state; %s', str(e))
+                ErrorShutdown()
 
-        except Exception as e:
-            logger.error('enclave failed to evaluation expression; %s', str(e))
-            ErrorShutdown()
-
-        # if this operation did not change state then there is nothing
-        # to send to the ledger or to save
-        if not update_response.state_changed :
-            continue
-
-        try :
-            if ledger_config is not None :
-                logger.debug("sending to ledger")
-                # note that we will wait for commit of the transaction before
-                # continuing; this is not necessary in general (if there is
-                # confidence the transaction will succeed) but is useful for
-                # testing
-                txnid = update_response.submit_update_transaction(
-                    ledger_config,
-                    wait=30,
-                    transaction_dependency_list = txn_dependencies)
-                txn_dependencies = [ txnid ]
-            else :
-                logger.debug('no ledger config; skipping state save')
-        except Exception as e :
-            logger.error('failed to save the new state; %s', str(e))
-            ErrorShutdown()
-
-        logger.debug('update state')
-        contract.set_state(update_response.encrypted_state)
+            logger.debug('update state')
+            contract.set_state(update_response.encrypted_state)
 
     logger.info('completed in %s', time.time() - start_time)
+    logger.info('passed %d of %d tests', total_tests - total_failed, total_tests)
+    if total_failed > 0 :
+        ErrorShutdown()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
