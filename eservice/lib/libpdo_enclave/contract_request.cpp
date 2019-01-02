@@ -290,7 +290,7 @@ ContractResponse ContractRequest::process_update_request(void)
     catch (pdo::error::Error& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-                 "PDO exception while updting contract %s with message %s: %s",
+                 "PDO exception while updating contract %s with message %s: %s",
                  contract_code_.name_.c_str(),
                  contract_message_.expression_.c_str(),
                  e.what());
@@ -301,7 +301,7 @@ ContractResponse ContractRequest::process_update_request(void)
     catch(std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-                 "standard exception while updting contract %s with message %s: %s",
+                 "standard exception while updating contract %s with message %s: %s",
                  contract_code_.name_.c_str(),
                  contract_message_.expression_.c_str(),
                  e.what());
