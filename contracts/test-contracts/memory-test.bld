@@ -19,7 +19,7 @@
 (define package-directories
   '("." "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
-(define contract-input "bad-contract.scm")
+(define contract-input "memory-test.scm")
 (define contract-output (string-append "_" contract-input))
 
 (if (member "debug" *args*)
