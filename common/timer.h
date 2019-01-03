@@ -45,13 +45,13 @@ namespace pdo
 
             ~Timer(void)
             {
-                Log(PDO_LOG_INFO, "%s: %lu", key_.c_str(), GetTimer() - start_time_);
+                SAFE_LOG(PDO_LOG_INFO, "%s: %lu", key_.c_str(), GetTimer() - start_time_);
             };
         };
     }
 }
 
-#if DEBUG
+#ifdef DEBUG
 #define __TIMEIT__() pdo::utility::Timer __ignore__(__FUNCTION__)
 #else
 #define __TIMEIT__() {}

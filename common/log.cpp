@@ -13,28 +13,21 @@
  * limitations under the License.
  */
 
+#if _UNTRUSTED_
+
 #include <stdarg.h>
 #include <stdio.h>
+
 #include "log.h"
+#include "pdo_error.h"
+
 #include "c11_support.h"
 
 #define FIXED_BUFFER_SIZE (1<<14)
+#define LOG_LEVEL PDO_LOG_INFO
 
-void pdo::Log(
-        pdo_log_level_t logLevel,
-        const char* message,
-        ...)
+void Log(int level, const char* fmt, ...)
 {
-    const size_t BUFFER_SIZE = FIXED_BUFFER_SIZE;
-    char msg[BUFFER_SIZE] = { '\0' };
-    va_list ap;
-    va_start(ap, message);
-    vsnprintf_s(msg, BUFFER_SIZE, message, ap);
-    va_end(ap);
-    puts(msg);
-} // Log
-
-void Log(int level, const char* fmt, ...) {
     const size_t BUFFER_SIZE = FIXED_BUFFER_SIZE;
     char msg[BUFFER_SIZE] = { '\0' };
     va_list ap;
@@ -43,3 +36,5 @@ void Log(int level, const char* fmt, ...) {
     va_end(ap);
     puts(msg);
 }
+
+#endif

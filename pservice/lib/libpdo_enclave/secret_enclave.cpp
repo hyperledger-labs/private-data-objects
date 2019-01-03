@@ -355,7 +355,7 @@ pdo_err_t ecall_CreateSealedSecret(size_t secret_len,
         free(tmp);
         tmp = NULL;
     }catch (pdo::error::Error& e) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Error in pdo enclave(ecall_generate_key): %04X -- %s",
             e.error_code(),
@@ -363,7 +363,7 @@ pdo_err_t ecall_CreateSealedSecret(size_t secret_len,
         ocall_SetErrorMessage(e.what());
         result = e.error_code();
     } catch (...) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Unknown error in pdo enclave(ecall_generate_key)");
         result = PDO_ERR_UNKNOWN;
@@ -396,7 +396,7 @@ pdo_err_t ecall_UnsealSecret(const uint8_t* inSealedSecret,
         pdo::error::ThrowSgxError(status, "Failed to unseal secret");
 
     }catch (pdo::error::Error& e) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Error in pdo enclave(ecall_UnsealSecret): %04X -- %s",
             e.error_code(),
@@ -404,7 +404,7 @@ pdo_err_t ecall_UnsealSecret(const uint8_t* inSealedSecret,
         ocall_SetErrorMessage(e.what());
         result = e.error_code();
     } catch (...) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Unknown error in pdo enclave(ecall_UnsealSecret)");
         result = PDO_ERR_UNKNOWN;
@@ -510,7 +510,7 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
         memcpy_s(outSignedSecret, inAllocatedSignedSecretSize, esecret.data(), esecret.size());
 
     }catch (pdo::error::Error& e) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Error in pdo enclave(ecall_GenerateEnclaveSecret): %04X -- %s",
             e.error_code(),
@@ -518,7 +518,7 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
         ocall_SetErrorMessage(e.what());
         result = e.error_code();
     } catch (...) {
-        Log(
+        SAFE_LOG(
             PDO_LOG_ERROR,
             "Unknown error in pdo enclave(ecall_GenerateEnclaveSecret)");
         result = PDO_ERR_UNKNOWN;

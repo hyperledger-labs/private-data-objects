@@ -19,13 +19,14 @@
 
 SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
-if("$ENV{DEBUG} " STREQUAL " ")
-    SET(DEBUG_FLAGS "-O2")
-    message(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
-else()
+
+IF($ENV{DEBUG})
     SET(DEBUG_FLAGS "-Og" "-g" "-DDEBUG")
     message(STATUS "Compiling in debug mode without optimizations (-Og -g)")
-endif()
+ELSE()
+    SET(DEBUG_FLAGS "-O2")
+    message(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
+ENDIF()
 
 SET(SGX_SDK "$ENV{SGX_SDK}")
 if("${SGX_SDK} " STREQUAL " ")
