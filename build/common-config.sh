@@ -102,7 +102,7 @@ var_set() {
 		attestation verification reports from the Intel Attestation Service.
 		Note this is _not_ the IAS root CA's key but the key of the intermediary
 		certificate
-		<<HOW TO GET>>
+		You can get it from the sawtooth poet git repo as https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem
 	"
 	env_key_sort[$i]="PDO_IAS_KEY_PEM"; i=$i+1; export PDO_IAS_KEY_PEM=${env_val[PDO_IAS_KEY_PEM]}
 
