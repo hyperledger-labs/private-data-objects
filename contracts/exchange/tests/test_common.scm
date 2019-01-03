@@ -17,7 +17,21 @@
 (require "debug.scm")
 (require "contract-base.scm")
 
-(key-value-open "exchange-test.mdb")
+(require "safe-key-store.scm")
+
+(define *log-level* test-logger::DEBUG)
+(let ((loglevel (member "loglevel" *args*)))
+  (if loglevel (set! *log-level* (string->number (cadr loglevel)))))
+
+(test-logger::set-log-level *log-level*)
+
+(catch handle-failed-test
+       (let ((result (key-value-open "exchange-test.mdb")))
+         (if (eq? result '**pdo-error**) (throw **pdo-error**))))
+
+(let ((builtin_quit quit))
+  (define (quit status)
+    (begin (key-value-close) (builtin_quit status))))
 
 ;; -----------------------------------------------------------------
 (put ':contract 'id (random-identifier 32))
@@ -50,18 +64,28 @@
          (escrow (cadr (assoc 'escrow-key entry)))
          (entry-key (compute-message-hash owner)))
     (cond ((not active)
-           (result-print (string-append entry-key " --> " (number->string count) " <ESCROW>")))
+           (display (string-append entry-key " --> " (number->string count) " <ESCROW>\n")))
           ((string=? escrow "")
-           (result-print (string-append entry-key " --> " (number->string count)))))))
+           (display (string-append entry-key " --> " (number->string count) "\n"))))))
 
 ;; -----------------------------------------------------------------
 (define (dump-ledger ledger-pdo . args)
-  (result-print (string-append "---------- " (if (pair? args) (car args) "LEDGER") " STATE ---------- "))
+  (display (string-append "---------- " (if (pair? args) (car args) "LEDGER") " STATE ---------- \n"))
   (let loop ((person person-first))
     (if (< person person-count)
         (let ((entry (send ledger-pdo 'dump-entry (use-person* person))))
           (if entry (dump-ledger-entry entry))
           (loop (+ person 1))))))
+
+
+;; -----------------------------------------------------------------
+;; for batch execution of tests we don't want these dumping anything
+;; -----------------------------------------------------------------
+(if (<= test-logger::INFO *log-level*)
+    (begin
+      (define (dump-authoritative-asset _serialized))
+      (define (dump-ledger-entry entry))
+      (define (dump-ledger ledger-pdo . args))))
 
 ;; -----------------------------------------------------------------
 (define (active-entry? ledger-pdo identity)
