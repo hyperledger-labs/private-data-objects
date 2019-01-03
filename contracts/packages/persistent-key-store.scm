@@ -26,6 +26,8 @@
 ;; interpreter.
 
 
+(require "safe-key-store.scm")
+
 (define persistent-key-store-package
   (package
 
@@ -49,7 +51,7 @@
    ;; if the key does not exist in the store
    (define-method persistent-key-store (get key . args)
      (let* ((_key (persistent-key-store-package::make-key key _prefix))
-            (_val (key-value-get _key)))
+            (_val (safe-kv-get _key)))
        (cond (_val (eval (string->expression _val)))
              ((pair? args) (car args))
              ((throw "key does not exist" key)))))
@@ -59,17 +61,17 @@
      (let* ((serialized-list (serialize-instance value))
             (serialized-string (expression->string serialized-list))
             (_key (persistent-key-store-package::make-key key _prefix)))
-       (key-value-put _key serialized-string))
+       (safe-kv-put _key serialized-string))
      #t)
 
    (define-method persistent-key-store (del key)
      (let ((_key (persistent-key-store-package::make-key key _prefix)))
-       (key-value-delete _key))
+       (safe-kv-del _key))
      #t)
 
    (define-method persistent-key-store (exists? key)
      (let* ((_key (persistent-key-store-package::make-key key _prefix))
-            (_val (key-value-get _key)))
+            (_val (safe-kv-get _key)))
        (and (string? _val) (< 0 (string-length _val)))))
 
    ))

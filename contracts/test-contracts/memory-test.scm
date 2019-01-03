@@ -12,6 +12,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
+(require "safe-key-store.scm")
+
 (define-macro (assert pred . message)
   `(if (not ,pred) (throw ,@message)))
 
@@ -101,7 +103,7 @@
        (let loop ((i 0))
          (if (< i count)
              (let ((key (string-append key-base (number->string i))))
-               (key-value-put key "_")
+               (safe-kv-put key "_")
                (loop (+ i 1))))))
      #t)
 
@@ -122,8 +124,8 @@
            (value-base (memory-test-package::get-with-default 'value-base string? args memory-test-package::default-value)))
        (assert (= (string-length value-base) 1) "value base must be a one character string")
        (let ((big-string (make-string size (string-ref value-base 0))))
-         (key-value-put key big-string)
-         (key-value-get key))))
+         (safe-kv-put key big-string)
+         (safe-kv-get key))))
 
    ))
 
