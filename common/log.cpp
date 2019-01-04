@@ -17,24 +17,75 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "log.h"
-#include "pdo_error.h"
-
 #include "c11_support.h"
 
 #define FIXED_BUFFER_SIZE (1<<14)
-#define LOG_LEVEL PDO_LOG_INFO
 
-void Log(int level, const char* fmt, ...)
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XX Internal helper functions                              XX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static void LogStdOut(
+    pdo_log_level_t level,
+    const char* message
+    )
 {
-    const size_t BUFFER_SIZE = FIXED_BUFFER_SIZE;
-    char msg[BUFFER_SIZE] = { '\0' };
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(msg, BUFFER_SIZE, fmt, ap);
-    va_end(ap);
-    puts(msg);
-}
+    printf("[LOG %u] %s", level, message);
+} // LogStdOut
+
+static pdo_log_t g_LogFunction = LogStdOut;
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XX External interface                                     XX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pdo::logger::SetLogFunction(
+    pdo_log_t logFunction
+    )
+{
+    if (logFunction)
+    {
+        g_LogFunction = logFunction;
+    }
+} // SetLogFunction
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pdo::logger::Log(
+    pdo_log_level_t level,
+    const char* message
+    )
+{
+    if (g_LogFunction)
+    {
+        pthread_mutex_lock(&mutex);
+        g_LogFunction(level, message);
+        pthread_mutex_unlock(&mutex);
+    }
+} // Log
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pdo::logger::LogV(
+    pdo_log_level_t level,
+    const char* message,
+    ...)
+{
+    if (g_LogFunction)
+    {
+        char msg[FIXED_BUFFER_SIZE] = { '\0' };
+        va_list ap;
+        va_start(ap, message);
+        vsnprintf_s(msg, FIXED_BUFFER_SIZE, message, ap);
+        va_end(ap);
+
+        pdo::logger::Log(level, msg);
+    }
+} // Log
 
 #endif

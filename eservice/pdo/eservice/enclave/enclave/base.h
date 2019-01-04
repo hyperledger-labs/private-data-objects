@@ -56,18 +56,15 @@ namespace pdo
             /*
               Start the pdo services
 
-              inDataDirectory - A pointer to a string that contains the data
-              directory for the validator.
               inPathToEnclave - A pointer to a string that contains the path to the
               enclave DLL.
               inSpid - A pointer to a string that contains the hex encoded SPID.
-              logFunction - A pointer to the PDO log function.
+              numOfEnclave -- Number of worker enclaves to create
             */
             pdo_err_t Initialize(
                 const std::string& inPathToEnclave,
                 const HexEncodedString& inSpid,
-                const int numOfEnclaves,
-                pdo_log_t logFunction
+                const int numOfEnclaves
                 );
 
             /*

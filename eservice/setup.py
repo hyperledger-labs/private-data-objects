@@ -104,7 +104,6 @@ libraries.append('sgx_usgxssl')
 
 module_files = [
     os.path.join(module_src_path, 'pdo_enclave_internal.i'),
-    os.path.join(module_src_path, 'log.cpp'),
     os.path.join(module_src_path, 'swig_utils.cpp'),
     os.path.join(script_dir, 'build', module_path, 'enclave_u.c'),
     os.path.join(module_src_path, 'enclave/ocall.cpp'),
@@ -128,6 +127,7 @@ enclave_module = Extension(
     include_dirs = include_dirs,
     library_dirs = library_dirs,
     define_macros = [
+                        ('_UNTRUSTED_', 1),
                         ('DEBUG', None),
                         ('SGX_SIMULATOR', SGX_SIMULATOR_value)
                     ],

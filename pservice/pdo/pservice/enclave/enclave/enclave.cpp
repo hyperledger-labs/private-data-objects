@@ -70,12 +70,12 @@ namespace pdo {
             sgx_status_t ret = sgx_calc_quote_size(nullptr, 0, &size);
             pdo::error::ThrowSgxError(ret, "Failed to get SGX quote size.");
             this->quoteSize = size;
-            
+
             //initialize the targetinfo and epid variables
             ret = g_Enclave.CallSgx([this] () {
-                    return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
+                    return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId);
                 });
-            pdo::error::ThrowSgxError(ret, "Failed to initialized quote in enclave constructore"); 
+            pdo::error::ThrowSgxError(ret, "Failed to initialized quote in enclave constructore");
         } // Enclave::Enclave
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -84,13 +84,13 @@ namespace pdo {
             try {
                 this->Unload();
             } catch (error::Error& e) {
-                Log(
+                pdo::logger::LogV(
                     PDO_LOG_ERROR,
                     "Error unloading pdo enclave: %04X -- %s",
                     e.error_code(),
                     e.what());
             } catch (...) {
-                Log(
+                pdo::logger::Log(
                     PDO_LOG_ERROR,
                     "Unknown error unloading pdo enclave");
             }
@@ -130,10 +130,10 @@ namespace pdo {
             sgx_status_t ret;
             //retrieve epid by calling init quote
             ret = g_Enclave.CallSgx([this] () {
-                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId); 
-                    }); 
-            pdo::error::ThrowSgxError(ret, "Failed to get epid group id from init_quote"); 
-            
+                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId);
+                    });
+            pdo::error::ThrowSgxError(ret, "Failed to get epid group id from init_quote");
+
             //copy epid group into output parameter
             memcpy_s(
                 outEpidGroup,
@@ -372,7 +372,6 @@ namespace pdo {
 
                 // Initialize the enclave
                 pdo_err_t pdoError = PDO_SUCCESS;
-                Log(PDO_LOG_INFO, "ecall_Initialize");
                 ret = this->CallSgx([this, &pdoError] () {
                         sgx_status_t ret =
                         ecall_Initialize(

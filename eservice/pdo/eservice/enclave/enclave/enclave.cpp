@@ -26,9 +26,10 @@
 #include <sgx_uae_service.h>
 #include "sgx_support.h"
 
+#include "log.h"
+
 #include "error.h"
 #include "hex_string.h"
-#include "log.h"
 #include "pdo_error.h"
 #include "types.h"
 #include "zero.h"
@@ -84,13 +85,13 @@ namespace pdo {
             try {
                 this->Unload();
             } catch (error::Error& e) {
-                Log(
+                pdo::logger::LogV(
                     PDO_LOG_ERROR,
                     "Error unloading pdo enclave: %04X -- %s",
                     e.error_code(),
                     e.what());
             } catch (...) {
-                Log(
+                pdo::logger::Log(
                     PDO_LOG_ERROR,
                     "Unknown error unloading pdo enclave");
             }
@@ -127,7 +128,7 @@ namespace pdo {
         {
             Enclave* enc = static_cast<Enclave* >(arg);
 
-            Log(PDO_LOG_INFO, "Enclave::Worker - threadID = %ld  EnclaveID = %ld", enc->GetThreadId(), (long)enc->GetEnclaveId());
+            pdo::logger::LogV(PDO_LOG_INFO, "Enclave::Worker[%ld] %ld", (long)enc->GetEnclaveId(), enc->GetThreadId());
 
             sgx_status_t ret;
             pdo_err_t pdoError = PDO_SUCCESS;
@@ -161,22 +162,23 @@ namespace pdo {
                 this->threadId = (long)thread;
 
             } catch (error::Error& e) {
-                Log(
+                pdo::logger::LogV(
                     PDO_LOG_ERROR,
                     "Error starting pdo enclave worker thread: %04X -- %s",
                     e.error_code(),
                     e.what());
             } catch (...) {
-                Log(
+                pdo::logger::Log(
                     PDO_LOG_ERROR,
                     "Unknown error starting pdo enclave worker");
+                throw;
             }
         }// Enclave::StartWorker
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::ShutdownWorker()
         {
-            Log(PDO_LOG_INFO, "Enclave::ShutdownWorker - EnclaveID = %ld", (long)this->GetEnclaveId());
+            pdo::logger::LogV(PDO_LOG_INFO, "Enclave::ShutdownWorker[%ld]", (long)this->GetEnclaveId());
 
             sgx_status_t ret;
             pdo_err_t pdoError = PDO_SUCCESS;
@@ -447,7 +449,6 @@ namespace pdo {
 
                 // Initialize the enclave
                 pdo_err_t pdoError = PDO_SUCCESS;
-                Log(PDO_LOG_INFO, "ecall_Initialize");
                 ret = this->CallSgx([this, &pdoError] () {
                         sgx_status_t ret =
                         ecall_Initialize(
@@ -455,9 +456,7 @@ namespace pdo {
                             &pdoError);
                         return error::ConvertErrorStatus(ret, pdoError);
                     });
-                pdo::error::ThrowSgxError(
-                    ret,
-                    "Enclave call to ecall_Initialize failed");
+                pdo::error::ThrowSgxError(ret, "Enclave call to ecall_Initialize failed");
                 this->ThrowPDOError(pdoError);
 
                 // We need to figure out a priori the size of the sealed signup

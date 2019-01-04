@@ -25,7 +25,6 @@ ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
 
 SWIG_SOURCES = \
 	pdo_enclave_internal.i\
-	log.cpp \
 	swig_utils.cpp \
 	enclave/ocall.cpp \
 	enclave/base.cpp \
