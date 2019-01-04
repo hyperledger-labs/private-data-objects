@@ -37,7 +37,7 @@ function becho () {
 }
 
 function yell () {
-    becho "$0: $*" >&2;
+    becho "$(basename $0): $*" >&2;
 }
 
 function die() {

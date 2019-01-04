@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
-#include "pdo_error.h"
 #include "log.h"
+#include "pdo_error.h"
 
 extern uint64_t GetTimer(void);
 
@@ -51,8 +51,8 @@ namespace pdo
     }
 }
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
 #define __TIMEIT__() pdo::utility::Timer __ignore__(__FUNCTION__)
 #else
 #define __TIMEIT__() {}
-#endif
+#endif  /* PDO_DEBUG_BUILD */

@@ -128,7 +128,7 @@ enclave_module = Extension(
     library_dirs = library_dirs,
     define_macros = [
                         ('_UNTRUSTED_', 1),
-                        ('DEBUG', None),
+                        ('PDO_DEBUG_BUILD', os.environ.get('PDO_DEBUG_BUILD',0)),
                         ('SGX_SIMULATOR', SGX_SIMULATOR_value)
                     ],
     undef_macros = ['NDEBUG', 'EDEBUG']

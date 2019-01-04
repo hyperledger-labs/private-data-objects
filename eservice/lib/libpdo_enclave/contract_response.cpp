@@ -117,7 +117,7 @@ ByteArray ContractResponse::SerializeForSigning(void) const
     SAFE_LOG(PDO_LOG_DEBUG, "creator id: %s", creator_id_.c_str());
     std::copy(creator_id_.begin(), creator_id_.end(), std::back_inserter(serialized));
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     std::string debug_contract_hash = ByteArrayToBase64EncodedString(contract_code_hash_);
     SAFE_LOG(PDO_LOG_DEBUG, "contract_code_hash: %s", debug_contract_hash.c_str());
 #endif
@@ -127,7 +127,7 @@ ByteArray ContractResponse::SerializeForSigning(void) const
         contract_code_hash_.end(),
         std::back_inserter(serialized));
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     std::string debug_message_hash = ByteArrayToBase64EncodedString(contract_message_hash_);
     SAFE_LOG(PDO_LOG_DEBUG, "contract_message_hash: %s", debug_message_hash.c_str());
 #endif
@@ -137,7 +137,7 @@ ByteArray ContractResponse::SerializeForSigning(void) const
         contract_message_hash_.end(),
         std::back_inserter(serialized));
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     std::string debug_state_hash = ByteArrayToBase64EncodedString(output_block_id_);
     SAFE_LOG(PDO_LOG_DEBUG, "new state hash: %s", debug_state_hash.c_str());
 #endif
@@ -160,7 +160,7 @@ ByteArray ContractResponse::SerializeForSigning(void) const
         }
     }
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     std::string debug_mhash = ByteArrayToBase64EncodedString(pdo::crypto::ComputeMessageHash(serialized));
     SAFE_LOG(PDO_LOG_DEBUG, "serialized contract response message has length %d and hash %s",
         serialized.size(), debug_mhash.c_str());
