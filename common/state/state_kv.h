@@ -147,7 +147,7 @@ namespace state
         bool enough_space_for_value(bool continue_writing);
         unsigned int append_value(
             const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet);
-        unsigned int read(const ByteArray& offset,
+        unsigned int read_value(const ByteArray& offset,
             ByteArray& outBuffer,
             bool continue_reading,
             unsigned int continue_reading_bytes);
