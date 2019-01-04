@@ -145,7 +145,7 @@ namespace state
         void deserialize_original_encrypted_data_id(StateBlockId& id);
         unsigned int free_bytes();
         bool enough_space_for_value(bool continue_writing);
-        unsigned int write(
+        unsigned int append_value(
             const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet);
         unsigned int read(const ByteArray& offset,
             ByteArray& outBuffer,
