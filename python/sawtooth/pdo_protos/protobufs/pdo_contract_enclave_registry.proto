@@ -43,6 +43,10 @@ message PdoContractEnclaveInfo {
 
     // Information that can be used internally to verify the validity of
     // the registration information stored as an opaque buffer.
+    // This is a serialized json object containing three fields:
+    // - 'verification_report': the body of the IAS verification response
+    // -'certificates': a list with the certificate path (as PEM strings) of the IAS signing authority, with the signer first and the CA second. this corresponds to the x-iasreport-signing-certificate header of the IAS response
+    // - 'signature': the signature on the report. This is the x-iasreport-signature header of the IAS response
     string proof_data = 6;
 }
 
@@ -73,6 +77,7 @@ message PdoContractEnclaveRegister {
 
     // Information that can be used internally to verify the validity of
     // the registration information stored as an opaque buffer.
+    // See above for content encoding
     string proof_data = 3;
 
     // EPID pseudonym that identifies the host on which

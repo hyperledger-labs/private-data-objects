@@ -100,9 +100,11 @@ var_set() {
 	env_desc[PDO_IAS_KEY_PEM]="
 		The path of the PEM file containing the public key used to verify
 		attestation verification reports from the Intel Attestation Service.
-		Note this is _not_ the IAS root CA's key but the key of the intermediary
-		certificate
-		You can get it from the sawtooth poet git repo as https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem
+		Note this is _not_ the IAS root CA's key but directly the key of the
+		signing authority, i.e., the key contained in the first certificate
+		contained in the 'x-iasreport-signing-certificate' header of the
+		response from IAS.
+		Easiest way to get it is from the sawtooth poet git repo as https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem
 	"
 	env_key_sort[$i]="PDO_IAS_KEY_PEM"; i=$i+1; export PDO_IAS_KEY_PEM=${env_val[PDO_IAS_KEY_PEM]}
 

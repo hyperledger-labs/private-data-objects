@@ -99,11 +99,13 @@ services:
     ports:
       - "4004:4004"
     # start the validator with an empty genesis batch
+    # Note: by default we symlink but some filesystems, e.g., shared folders in VirtualBox, don't support it.
+    # Hence allow an override by defining environment variable LINK_CMD='cp'
     entrypoint: "bash -c \"\
         sawadm keygen --force && \
         sawtooth keygen --force my_key && \
         sawset genesis -k /root/.sawtooth/keys/my_key.priv && \
-        ln -sf my_key.priv /root/.sawtooth/keys/pdo_validator.priv && \
+        (cd /root/.sawtooth/keys/ && ${LINK_CMD:-ln -sf} my_key.priv pdo_validator.priv) && \
 	chmod a+rw /root/.sawtooth/keys/* && \
         sawadm genesis config-genesis.batch && \
         sawtooth-validator -vv \
