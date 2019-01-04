@@ -386,7 +386,7 @@ void pstate::trie_node::do_read_value(
     {
         data_node& dn = dn_io.cache_retrieve(next_block_num, false);
         bytes_to_read =
-            dn.read(current_child_bo.to_ByteArray(), value, first_read_done, bytes_to_read);
+            dn.read_value(current_child_bo.to_ByteArray(), value, first_read_done, bytes_to_read);
         dn_io.cache_done(next_block_num, false);
         first_read_done = true;
         next_block_num++;
@@ -726,7 +726,7 @@ unsigned int pstate::data_node::append_value(
     return bytes_to_write;
 }
 
-unsigned int pstate::data_node::read(const ByteArray& offset,
+unsigned int pstate::data_node::read_value(const ByteArray& offset,
     ByteArray& outBuffer,
     bool continue_reading,
     unsigned int continue_reading_bytes)
