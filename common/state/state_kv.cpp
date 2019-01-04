@@ -340,7 +340,7 @@ void pstate::trie_node::do_write_value(data_node_io& dn_io,
     dn_io.add_and_init_append_data_node_cond(!dn_io.append_dn_->enough_space_for_value(false));
 
     // start writing value
-    bytes_written = dn_io.append_dn_->write(value, total_bytes_written, baOffset);
+    bytes_written = dn_io.append_dn_->append_value(value, total_bytes_written, baOffset);
     total_bytes_written += bytes_written;
 
     // update child with offset of initial write
@@ -357,7 +357,7 @@ void pstate::trie_node::do_write_value(data_node_io& dn_io,
     while (total_bytes_written < value.size())
     {
         dn_io.add_and_init_append_data_node();
-        bytes_written = dn_io.append_dn_->write(value, total_bytes_written, baOffset);
+        bytes_written = dn_io.append_dn_->append_value(value, total_bytes_written, baOffset);
         total_bytes_written += bytes_written;
         pdo::error::ThrowIf<pdo::error::ValueError>(
             dn_io.append_dn_->enough_space_for_value(true) && total_bytes_written < value.size(),
@@ -683,7 +683,7 @@ bool pstate::data_node::enough_space_for_value(bool continue_writing)
     return free_bytes_ >= sizeof(trie_node_header_t) + sizeof(size_t) + 1;
 }
 
-unsigned int pstate::data_node::write(
+unsigned int pstate::data_node::append_value(
     const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet)
 {
     // check that there is enough space to write
