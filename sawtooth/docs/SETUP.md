@@ -82,13 +82,13 @@ sawset proposal create sawtooth.validator.transaction_families='[{"family": "int
 In the examples below measurements and basenames values provided inline and report public key is read from the PEM file.
 
 The last of these three commands requires a key file distributed with
-Hyperledger Private Data Objects (`sawtooth/bin/test_ias_pub_key.pem`) these
+Hyperledger Private Data Objects (https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem) these
 commands should be run from the top-level directory of the PDO repository.
 
 ```
 sawset proposal create pdo.test.registry.measurements='c99f21955e38dbb03d2ca838d3af6e43ef438926ed02db4cc729380c8c7a174e'
 sawset proposal create pdo.test.registry.basenames='b785c58b77152cbe7fd55ee3851c499000000000000000000000000000000000'
-sawset proposal create pdo.test.registry.public_key="$(cat sawtooth/bin/test_ias_pub_key.pem)"
+sawset proposal create pdo.test.registry.public_key="$(wget -q -O - https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem)"
 ```
 
 

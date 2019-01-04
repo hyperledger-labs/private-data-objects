@@ -67,7 +67,7 @@ test-env-setup-with-no-build:
 	      exec pdo-build bash -c 'source /etc/environment; export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/; unset PDO_SPID PDO_SPID_KEY_CERT_FILE_PEM PDO_IAS_KEY_PEM; source /project/pdo/src/private-data-objects/build/common-config.sh; make -C /project/pdo/src/private-data-objects/build conf register'; \
 	fi
 
-test-with-no-build: test-env-setup
+test-with-no-build: test-env-setup-with-no-build
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
 	   exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh
