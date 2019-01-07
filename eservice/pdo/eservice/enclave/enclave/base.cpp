@@ -75,8 +75,7 @@ std::string pdo::enclave_api::base::GetLastError(void)
 pdo_err_t pdo::enclave_api::base::Initialize(
     const std::string& inPathToEnclave,
     const HexEncodedString& inSpid,
-    const int numOfEnclaves,
-    pdo_log_t logFunction
+    const int numOfEnclaves
     )
 {
     pdo_err_t ret = PDO_SUCCESS;
@@ -94,7 +93,6 @@ pdo_err_t pdo::enclave_api::base::Initialize(
                 g_EnclaveReadyQueue->push(i);
             }
 
-            pdo::SetLogFunction(logFunction);
             for (pdo::enclave_api::Enclave& enc : g_Enclave)
             {
                 enc.SetSpid(inSpid);
@@ -280,4 +278,3 @@ pdo_err_t pdo::enclave_api::base::SetSignatureRevocationList(
 
     return ret;
 } // pdo::enclave_api::base::SetSignatureRevocationList
-

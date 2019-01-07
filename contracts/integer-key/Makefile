@@ -20,13 +20,15 @@ EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _integer-key.scm
-DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS))
+DEBUG_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
 PLUGINS := integer-key.py
 
 all: $(CONTRACTS)
 
-debug : $(DEBUGCONTRACTS)
-test : $(DEBUGCONTRACTS)
+debug : $(DEBUG_CONTRACTS)
+
+test :
+	@echo No automated tests defined
 
 _integer-key.scm : integer-key.bld integer-key.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key.bld
@@ -43,4 +45,4 @@ install : $(CONTRACTS)
 clean :
 	rm -f $(CONTRACTS) $(DEBUGCONTRACTS)
 
-.PHONY : all debug clean install
+.PHONY : all clean debug install test

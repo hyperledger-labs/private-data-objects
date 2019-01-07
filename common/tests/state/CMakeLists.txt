@@ -25,12 +25,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 SET(UNTRUSTED_TEST_NAME u_state_test)
 PROJECT(${UNTRUSTED_TEST_NAME} CXX)
 
-ADD_EXECUTABLE(${UNTRUSTED_TEST_NAME} untrusted/test.cpp untrusted/test_state_kv.cpp untrusted/log.cpp untrusted/_kv_gen.cpp)
+ADD_EXECUTABLE(${UNTRUSTED_TEST_NAME} ${PDO_TOP_DIR}/common/c11_support.cpp untrusted/test.cpp untrusted/test_state_kv.cpp untrusted/_kv_gen.cpp)
 
 # Same compile options as untrusted library
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PUBLIC ${SGX_SDK}/include)
-TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/eservice/pdo/eservice/enclave)
-TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/eservice/pdo/eservice/enclave/enclave/state)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/state)
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/tests)

@@ -25,19 +25,28 @@ CONTRACTS := _auction.scm _asset_type.scm _exchange.scm _issuer.scm _vetting_org
 PACKAGE_SRC := \
 	packages/asset_class.scm packages/asset_request_class.scm \
 	packages/authoritative_asset_class.scm packages/authority_class.scm \
-	packages/exchange_common.scm packages/ledger_entry.scm packages/bid_store_package.scm
+	packages/exchange_common.scm packages/ledger_entry.scm packages/bid_store_package.scm \
+	../packages/contract-base.scm ../packages/key-store.scm ../packages/persistent-key-store.scm \
+	../packages/safe-key-store.scm ../packages/hashtab.scm ../packages/alist.scm ../packages/hash.scm
 
 PLUGINS := asset_type.py exchange.py issuer.py vetting.py
 
 TEST_PACKAGE_SRC := \
-	tests/test_common.scm
+	tests/test_common.scm \
+	../packages/debug.scm
 
-TESTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
+TEST_CONTRACTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
 
 all: $(CONTRACTS)
 
-debug : $(TESTS)
-test : $(TESTS)
+debug :
+
+test : $(TEST_CONTRACTS)
+	@echo Run exchange contract tests
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _issuer_test.scm loglevel 2
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _exchange_test.scm loglevel 2
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _auction_test.scm loglevel 2
+	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
 _auction_test.scm : tests/auction_test.bld tests/auction_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/auction_test.bld debug
@@ -70,6 +79,7 @@ install : $(CONTRACTS) $(PLUGINS)
 	@cp $(PLUGINS) $(INSTALLDIR)
 
 clean :
-	rm -f $(CONTRACTS) $(TESTS)
+	@rm -f $(CONTRACTS) $(TESTS)
+	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
-.PHONY : all debug clean install
+.PHONY : all clean debug install test

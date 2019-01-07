@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include "packages/block_store/block_store.h"
 #include "packages/block_store/lmdb_block_store.h"
+#include "StateBlock.h"
 #endif
 
 #undef cons
@@ -947,7 +948,8 @@ static pointer key_value_open(scheme *sc, pointer args)
     std::string s_filename strvalue(sc, f);
 
     // --------------- block id ----------
-    ByteArray block_id;
+    bool use_block_id = false;
+    pdo::state::StateBlockId block_id;
     if (sc->vptr->is_pair(sc->vptr->pair_cdr(rest)))
     {
         rest = sc->vptr->pair_cdr(rest);
@@ -957,6 +959,7 @@ static pointer key_value_open(scheme *sc, pointer args)
 
         Base64EncodedString encoded_block_id = strvalue(sc, b);
         block_id = base64_decode(encoded_block_id);
+        use_block_id = true;
     }
 
     // --------------- end of arguments ----------
@@ -973,8 +976,17 @@ static pointer key_value_open(scheme *sc, pointer args)
         if (result !=  PDO_SUCCESS)
             return scheme_return_error_s(sc, "failed to create the blockstore");
 
-        ByteArray state_encryption_key(16, 0);
-        pdo::state::Interpreter_KV* keystore = new pdo::state::Interpreter_KV(block_id, state_encryption_key);
+        const ByteArray state_encryption_key(16, 0);
+        pdo::state::Interpreter_KV* keystore = NULL;
+
+        if (use_block_id)
+        {
+            keystore = new pdo::state::Interpreter_KV(block_id, state_encryption_key);
+        }
+        else
+        {
+            keystore = new pdo::state::Interpreter_KV(state_encryption_key);
+        }
 
         sc->ext_data = (void*)keystore;
 

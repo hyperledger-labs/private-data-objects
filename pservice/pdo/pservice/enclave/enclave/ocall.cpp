@@ -38,7 +38,7 @@ extern "C" {
         const char *str
         )
     {
-        pdo::Log((pdo_log_level_t)level, str);
+        pdo::logger::Log((pdo_log_level_t)level, str);
     } // ocall_Log
 
     void ocall_SetErrorMessage(

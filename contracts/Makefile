@@ -21,7 +21,7 @@ CONTRACTPACKAGES := contract-base.scm counter.scm escrow-counter.scm key-store.s
 PACKAGES := $(BASEPACKAGES) $(CONTRACTPACKAGES)
 PACKAGES := $(addprefix packages/, $(PACKAGES))
 
-TARGETS := all clean debug install
+TARGETS := all clean debug install test
 CONTRACTS := auction exchange integer-key test-contracts
 
 $(TARGETS): $(CONTRACTS)

@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <chrono>
+#include <pthread.h>
 
 #include <Python.h>
 
@@ -27,6 +29,10 @@
 #include "enclave/base.h"
 
 #include "swig_utils.h"
+
+#define FIXED_BUFFER_SIZE (1<<14)
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ThrowPDOError(
@@ -99,13 +105,16 @@ void PyLog(
     const char *msg
     )
 {
-    //Ensures GIL is available on current thread for python callbacks
-    gstate = PyGILState_Ensure();
-
-    if(!glogger) {
+    if (!glogger)
+    {
         printf("PyLog called before logger set, msg %s \n", msg);
         return;
     }
+
+    pthread_mutex_lock(&mutex);
+
+    //Ensures GIL is available on current thread for python callbacks
+    gstate = PyGILState_Ensure();
 
     // build msg-string
     PyObject *string = NULL;
@@ -137,6 +146,7 @@ void PyLog(
     PyGILState_Release(gstate);
     //Releases GIL for other threads
 
+    pthread_mutex_unlock(&mutex);
 } // PyLog
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -146,14 +156,24 @@ void PyLogV(
     ...
     )
 {
-    const int BUFFER_SIZE = 2048;
-    char msg[BUFFER_SIZE] = { '\0' };
+    char msg[FIXED_BUFFER_SIZE] = { '\0' };
     va_list ap;
     va_start(ap, message);
-    vsnprintf_s(msg, BUFFER_SIZE, BUFFER_SIZE-1, message, ap);
+    vsnprintf_s(msg, FIXED_BUFFER_SIZE, message, ap);
     va_end(ap);
+
     PyLog(type, msg);
 } // PyLogV
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+uint64_t GetTimer()
+{
+    uint64_t value;
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
+    value = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    return value;
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void InitializePDOEnclaveModule()

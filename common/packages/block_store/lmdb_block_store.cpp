@@ -52,21 +52,21 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
     ret = pthread_spin_init(&lock, PTHREAD_PROCESS_SHARED);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to init block store spinlock: %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to init block store spinlock: %d", ret);
         return PDO_ERR_SYSTEM;
     }
 
     ret = mdb_env_create(&env);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to create LMDB environment: %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to create LMDB environment: %d", ret);
         return PDO_ERR_SYSTEM;
     }
 
     ret = mdb_env_set_mapsize(env, DEFAULT_BLOCK_STORE_SIZE);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to set LMDB size to %zu : %d",
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to set LMDB size to %zu : %d",
             DEFAULT_BLOCK_STORE_SIZE, ret);
         mdb_env_close(env);
         return PDO_ERR_SYSTEM;
@@ -81,7 +81,7 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
     ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC, 0664);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
         mdb_env_close(env);
         return PDO_ERR_SYSTEM;
     }
@@ -112,7 +112,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        Log(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", idStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "BlockStoreHead: '%s'", idStr.c_str());
     }
 #endif
 
@@ -124,7 +124,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     ret = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
         result = PDO_ERR_SYSTEM;
         goto unlock;
     }
@@ -132,7 +132,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     ret = mdb_dbi_open(txn, NULL, 0, &dbi);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }
@@ -148,7 +148,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     }
     else if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }
@@ -160,7 +160,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
-        Log(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
     }
 #endif
 
@@ -196,7 +196,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        Log(PDO_LOG_DEBUG, "BlockStoreGet: '%s'", idStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "BlockStoreGet: '%s'", idStr.c_str());
     }
 #endif
 
@@ -208,7 +208,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     ret = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
         result = PDO_ERR_SYSTEM;
         goto unlock;
     }
@@ -216,7 +216,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     ret = mdb_dbi_open(txn, NULL, 0, &dbi);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }
@@ -227,19 +227,19 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     ret = mdb_get(txn, dbi, &lmdb_id, &lmdb_data);
     if (ret == MDB_NOTFOUND)
     {
-        Log(PDO_LOG_ERROR, "Failed to find id in block store");
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to find id in block store");
         result = PDO_ERR_VALUE;
         goto close;
     }
     else if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }
     else if (inValueSize != lmdb_data.mv_size)
     {
-        Log(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu", inValueSize,
+        SAFE_LOG(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu", inValueSize,
             lmdb_data.mv_size);
         result = PDO_ERR_VALUE;
         goto close;
@@ -251,7 +251,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
-        Log(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
     }
 #endif
 
@@ -289,7 +289,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
         std::string idStr = BinaryToHexString(inId, inIdSize);
         std::string valueStr = BinaryToHexString(inValue, inValueSize);
 
-        Log(PDO_LOG_DEBUG, "Block store Put: %zu bytes '%s' -> %zu bytes '%s'", inIdSize,
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store Put: %zu bytes '%s' -> %zu bytes '%s'", inIdSize,
             idStr.c_str(), inValueSize, valueStr.c_str());
     }
 #endif
@@ -302,7 +302,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     ret = mdb_txn_begin(env, NULL, 0, &txn);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
         result = PDO_ERR_SYSTEM;
         goto unlock;
     }
@@ -310,7 +310,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     ret = mdb_dbi_open(txn, NULL, 0, &dbi);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }
@@ -323,7 +323,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     ret = mdb_put(txn, dbi, &lmdb_id, &lmdb_data, 0);
     if (ret != 0)
     {
-        Log(PDO_LOG_ERROR, "Failed to put to LMDB database : %d", ret);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to put to LMDB database : %d", ret);
         result = PDO_ERR_SYSTEM;
         goto close;
     }

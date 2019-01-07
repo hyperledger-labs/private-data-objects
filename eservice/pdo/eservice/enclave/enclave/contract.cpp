@@ -57,7 +57,7 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
 
         /// get the enclave id for passing into the ecall
         sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
-        Log(PDO_LOG_DEBUG, "VerifySecrets - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
+        pdo::logger::LogV(PDO_LOG_DEBUG, "VerifySecrets[%ld] %u ", (long)enclaveid, enclaveIndex);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =
@@ -137,7 +137,7 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
 
         /// get the enclave id for passing into the ecall
         sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
-        Log(PDO_LOG_DEBUG, "HandleContractRequest - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
+        pdo::logger::LogV(PDO_LOG_DEBUG, "HandleContractRequest[%ld] %u ", (long)enclaveid, enclaveIndex);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =
@@ -210,7 +210,7 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
 
         /// get the enclave id for passing into the ecall
         sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
-        Log(PDO_LOG_DEBUG, "GetSerializedResponse - [%u]Enclave_ID:  %ld ", enclaveIndex, (long)enclaveid);
+        pdo::logger::LogV(PDO_LOG_DEBUG, "GetSerializedResponse[%ld] %u ", (long)enclaveid, enclaveIndex);
 
         pdo_err_t presult = PDO_SUCCESS;
         sgx_status_t sresult =

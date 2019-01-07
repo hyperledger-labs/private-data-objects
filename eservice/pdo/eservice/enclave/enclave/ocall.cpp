@@ -20,6 +20,7 @@
 
 #include "log.h"
 #include "packages/block_store/block_store.h"
+#include "timer.h"
 
 std::string g_enclaveError;
 
@@ -40,12 +41,12 @@ extern "C" {
         const char *str
         )
     {
-        pdo::Log((pdo_log_level_t)level, str);
+        pdo::logger::Log((pdo_log_level_t)level, str);
     } // ocall_Log
 
     void ocall_GetTimer(uint64_t* value)
     {
-        (*value) = pdo::GetTimer();
+        (*value) = GetTimer();
     }
 
     void ocall_SetErrorMessage(

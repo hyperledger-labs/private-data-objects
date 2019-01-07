@@ -20,13 +20,16 @@ EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _integer-key-auction.scm
-DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS)) _aptest.scm
+DEBUG_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
+TEST_CONTRACTS = _aptest.scm
 PLUGINS := integer-key-auction.py
 
 all: $(CONTRACTS)
 
-debug : $(DEBUGCONTRACTS)
-test : $(DEBUGCONTRACTS)
+debug : $(DEBUG_CONTRACTS)
+
+test : $(TESTS)
+	@echo No automated tests defined
 
 _integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key-auction.bld
@@ -46,4 +49,4 @@ install : $(CONTRACTS)
 clean :
 	rm -f $(CONTRACTS) $(DEBUGCONTRACTS)
 
-.PHONY : all debug clean install
+.PHONY : all clean debug install test

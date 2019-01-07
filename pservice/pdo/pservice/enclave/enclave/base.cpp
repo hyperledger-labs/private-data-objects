@@ -20,7 +20,6 @@
 #include "crypto.h"
 #include "error.h"
 #include "hex_string.h"
-#include "log.h"
 #include "pdo_error.h"
 #include "types.h"
 
@@ -65,8 +64,7 @@ std::string pdo::enclave_api::base::GetLastError(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::base::Initialize(
     const std::string& inPathToEnclave,
-    const HexEncodedString& inSpid,
-    pdo_log_t logFunction
+    const HexEncodedString& inSpid
     )
 {
     pdo_err_t ret = PDO_SUCCESS;
@@ -74,7 +72,6 @@ pdo_err_t pdo::enclave_api::base::Initialize(
     try {
         if (!g_IsInitialized)
         {
-            pdo::SetLogFunction(logFunction);
             g_Enclave.SetSpid(inSpid);
             g_Enclave.Load(inPathToEnclave);
             g_IsInitialized = true;

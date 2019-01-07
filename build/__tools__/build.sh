@@ -109,4 +109,5 @@ try make install
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
 try make all "-j$NUM_CORES"
+try make test
 try make install

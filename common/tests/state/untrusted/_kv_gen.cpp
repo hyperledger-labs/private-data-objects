@@ -15,16 +15,10 @@
 
 #include "_kv_gen.h"
 #include "types.h"
+#include "log.h"
 #include "pdo_error.h"
 #include "error.h"
 #include "basic_kv.h"
-
-#if _UNTRUSTED_ == 1
-    #include <stdio.h>
-    #define SAFE_LOG(LEVEL, FMT, ...) printf(FMT, ##__VA_ARGS__)
-#else // __UNTRUSTED__ == 0
-    #define SAFE_LOG(LEVEL, FMT, ...)
-#endif // __UNTRUSTED__
 
 pdo::state::Basic_KV* kv_;
 

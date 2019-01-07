@@ -12,6 +12,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
+(require "safe-key-store.scm")
+
 (define-macro (assert pred . message)
   `(if (not ,pred) (throw ,@message)))
 
@@ -21,22 +23,22 @@
 
 (define-const-method key-value-test (get-key key)
   (assert (string? key) "key must be a string" key)
-  (key-value-get key))
+  (safe-kv-get key))
 
 (define-method key-value-test (put-key key value)
   (assert (string? key) "key must be a string" key)
   (assert (string? value) "value must be a string" value)
-  (key-value-put key value)
+  (safe-kv-put key value)
   #t)
 
 (define-method key-value-test (del-key key)
   (assert (string? key) "key must be a string" key)
-  (key-value-delete key)
+  (safe-kv-del key)
   #t)
 
 (define-method key-value-test (put-big-key str count)
   (assert (and (string? str) (= (string-length str) 1)) "first parameter must be a one character string")
   (assert (and (integer? count) (< 0 count)) "second parameter must be a positive integer")
   (let ((big-string (make-string count (string-ref str 0))))
-    (key-value-put big-string big-string)
-    (key-value-get big-string)))
+    (safe-kv-put big-string big-string)
+    (safe-kv-get big-string)))
