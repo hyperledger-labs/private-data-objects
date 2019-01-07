@@ -57,17 +57,24 @@ ext_deps = [
 ## -----------------------------------------------------------------
 ## set up the contract enclave
 ## -----------------------------------------------------------------
+debug_flag = os.environ.get('PDO_DEBUG_BUILD',0)
+
 module_path = 'pdo/eservice/enclave'
 module_src_path = os.path.join(script_dir, module_path)
 
 compile_args = [
     '-std=c++11',
-    '-g',
     '-Wno-switch',
     '-Wno-unused-function',
     '-Wno-unused-variable',
     '-Wno-strict-prototypes',
 ]
+
+# by default the extension class adds '-O2' to the compile
+# flags, this lets us override since these are appended to
+# the compilation switches
+if debug_flag :
+    compile_args += ['-g']
 
 include_dirs = [
     module_src_path,
@@ -128,7 +135,7 @@ enclave_module = Extension(
     library_dirs = library_dirs,
     define_macros = [
                         ('_UNTRUSTED_', 1),
-                        ('PDO_DEBUG_BUILD', os.environ.get('PDO_DEBUG_BUILD',0)),
+                        ('PDO_DEBUG_BUILD', debug_flag),
                         ('SGX_SIMULATOR', SGX_SIMULATOR_value)
                     ],
     undef_macros = ['NDEBUG', 'EDEBUG']
