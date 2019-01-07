@@ -30,6 +30,8 @@
 
 #include "swig_utils.h"
 
+#define FIXED_BUFFER_SIZE (1<<14)
+
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -154,11 +156,10 @@ void PyLogV(
     ...
     )
 {
-    const int BUFFER_SIZE = 2048;
-    char msg[BUFFER_SIZE] = { '\0' };
+    char msg[FIXED_BUFFER_SIZE] = { '\0' };
     va_list ap;
     va_start(ap, message);
-    vsnprintf_s(msg, BUFFER_SIZE, BUFFER_SIZE-1, message, ap);
+    vsnprintf_s(msg, FIXED_BUFFER_SIZE, message, ap);
     va_end(ap);
 
     PyLog(type, msg);
