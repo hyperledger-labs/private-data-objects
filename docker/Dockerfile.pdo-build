@@ -25,6 +25,7 @@
 #  - pdo repo branch to use:		PDO_REPO_BRANCH (default: master)
 #  - sawtooth core repo to use:		STC_REPO_URL (default: https://github.com/hyperledger/sawtooth-core.git)
 #  - sawtooth core repo branch to use:	STC_REPO_BRANCH (default: master)
+#  - build in debug mode:		PDO_DEBUG_BUILD (default: 0)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -93,6 +94,9 @@ COPY --from=source-extractor /project/pdo /project/pdo
 
 ARG SGX_MODE=SIM
 ENV SGX_MODE=${SGX_MODE}
+
+ARG PDO_DEBUG_BUILD=0
+ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
 RUN \
 # read environment explicitly as build shell doesn't do automatically (aargh ..)

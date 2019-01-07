@@ -13,30 +13,38 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-DOCKER_OPTS=
+DOCKER_BUILD_OPTS=
 DOCKER_COMPOSE_COMMAND=docker-compose
-DOCKER_COMPOSE_FILES=sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
+DOCKER_COMPOSE_FILES=
+
+# optionally allow local overriding defaults
+-include make.loc
+
+DOCKER_COMPOSE_FILES += sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
 ifeq ($(SGX_MODE),HW)
-   DOCKER_COMPOSE_FILES:=$(DOCKER_COMPOSE_FILES) sawtooth-pdo.sgx.yaml
+   DOCKER_COMPOSE_FILES += sawtooth-pdo.sgx.yaml
 endif
 ifdef http_proxy
-   DOCKER_OPTS += --build-arg http_proxy=${http_proxy}
+   DOCKER_BUILD_OPTS += --build-arg http_proxy=${http_proxy}
    DO_PROXY = 1
 endif
 ifdef https_proxy
-   DOCKER_OPTS += --build-arg https_proxy=${https_proxy}
+   DOCKER_BUILD_OPTS += --build-arg https_proxy=${https_proxy}
    DO_PROXY = 1
 endif
 ifdef ftp_proxy
-   DOCKER_OPTS += --build-arg ftp_proxy=${ftp_proxy}
+   DOCKER_BUILD_OPTS += --build-arg ftp_proxy=${ftp_proxy}
    DO_PROXY = 1
 endif
 ifdef no_proxy
-   DOCKER_OPTS += --build-arg no_proxy=${no_proxy}
+   DOCKER_BUILD_OPTS += --build-arg no_proxy=${no_proxy}
    DO_PROXY = 1
 endif
 ifdef DO_PROXY
    DOCKER_COMPOSE_FILES += sawtooth-pdo.proxy.yaml
+endif
+ifdef PDO_DEBUG_BUILD
+   DOCKER_COMPOSE_FILES += sawtooth-pdo.debugging.yaml
 endif
 DOCKER_COMPOSE_OPTS=$(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
 
@@ -44,7 +52,7 @@ all:
 
 pdo-dev-image:
 	# unconditionally build, count on docker caching to not rebuild if not necessary
-	docker build $(DOCKER_OPTS) -f Dockerfile.pdo-dev -t pdo-dev .
+	docker build $(DOCKER_BUILD_OPTS) -f Dockerfile.pdo-dev -t pdo-dev .
 
 pdo-composition: pdo-dev-image
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) build
@@ -68,6 +76,11 @@ test-env-setup-with-no-build:
 	fi
 
 test-with-no-build: test-env-setup-with-no-build
+	# 'sawtooth-pdo.debugging.yaml' doesn't start pdo-tp, so we will have to manually start it
+	if [ ! -z "$(PDO_DEBUG_BUILD)" ]; then  \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
+	      exec -d pdo-tp bash -c "/project/pdo/src/private-data-objects/sawtooth/bin/pdo-tp -v -v --connect tcp://validator:4004 --debug-on"; \
+	fi
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
 	   exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh

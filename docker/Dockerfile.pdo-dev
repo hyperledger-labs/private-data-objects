@@ -22,6 +22,7 @@
 #  - sgx sdk version: 		SGX_SDK (default: v2.4.1)
 #  - openssl version: 		OPENSSL (default: 1.1.0j)
 #  - sgxssl version: 		SGXSSL  (default: v2.4.1)
+#  - additional apt packages:	ADD_APT_PKGS (default: )
 
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
@@ -56,6 +57,8 @@ ARG SGX_SDK=sgx_2.4
 ARG OPENSSL=1.1.0j
 ARG SGXSSL=v2.4.1
 
+ARG ADD_APT_PKGS=
+
 # Add necessary packages
 # TODO(xenial): we need to namnually install protobuf 3 as xenial has v2
 # Note: ocamlbuild is required by PREREQ but does not exist for xenial. However, the relevant componets are part of 'ocaml' package, later ubuntu split up that package ...
@@ -89,6 +92,7 @@ RUN apt-get update \
     unzip \
     virtualenv \
     wget \
+    $ADD_APT_PKGS \
  && if [ "$UBUNTU_VERSION" = "bionic" ] || [ "$UBUNTU_VERSION" = "artful" ]; then \
 	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
     fi \
