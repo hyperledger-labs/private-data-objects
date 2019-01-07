@@ -35,12 +35,18 @@ TEST_PACKAGE_SRC := \
 	tests/test_common.scm \
 	../packages/debug.scm
 
-TESTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
+TEST_CONTRACTS := _auction_test.scm _exchange_test.scm _issuer_test.scm
 
 all: $(CONTRACTS)
 
-debug : $(TESTS)
-test : $(TESTS)
+debug :
+
+test : $(TEST_CONTRACTS)
+	@echo Run exchange contract tests
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _issuer_test.scm loglevel 2
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _exchange_test.scm loglevel 2
+	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _auction_test.scm loglevel 2
+	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
 _auction_test.scm : tests/auction_test.bld tests/auction_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/auction_test.bld debug
@@ -66,14 +72,7 @@ _issuer.scm : issuer.bld issuer.scm $(PACKAGE_SRC)
 _vetting_organization.scm : vetting_organization.bld vetting_organization.scm $(PACKAGE_SRC)
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 vetting_organization.bld
 
-run-tests : $(TESTS)
-	@echo Run exchange contract tests
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _issuer_test.scm loglevel 2
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _exchange_test.scm loglevel 2
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _auction_test.scm loglevel 2
-	@rm -f exchange-test.mdb exchange-test.mdb-lock
-
-install : $(CONTRACTS) $(PLUGINS) run-tests
+install : $(CONTRACTS) $(PLUGINS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
 	@mkdir -p $(INSTALLDIR)
 	@cp $(CONTRACTS) $(INSTALLDIR)
@@ -83,4 +82,4 @@ clean :
 	@rm -f $(CONTRACTS) $(TESTS)
 	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
-.PHONY : all debug clean install
+.PHONY : all clean debug install test

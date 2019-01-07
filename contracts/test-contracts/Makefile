@@ -20,11 +20,14 @@ EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm _memory-test.scm
-DEBUGCONTRACTS := $(addprefix _debug, $(CONTRACTS))
+DEBUG_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
 
 all: $(CONTRACTS)
 
-debug : $(DEBUGCONTRACTS)
+debug: $(DEBUG_CONTRACTS)
+
+test:
+	@echo No automated tests defined
 
 _mock-contract.scm : mock-contract.bld mock-contract.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 mock-contract.bld
@@ -47,6 +50,9 @@ _debug_key-value-test.scm : key-value-test.bld key-value-test.scm
 _memory-test.scm : memory-test.bld memory-test.scm
 	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 memory-test.bld
 
+_debug_memory-test.scm : memory-test.bld memory-test.scm
+	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 memory-test.bld debug
+
 install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
 	@mkdir -p $(INSTALLDIR)
@@ -55,4 +61,4 @@ install : $(CONTRACTS)
 clean :
 	rm -f $(CONTRACTS) $(DEBUGCONTRACTS)
 
-.PHONY : all debug clean install
+.PHONY : all clean debug install test
