@@ -20,8 +20,8 @@
 SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 
-IF($ENV{DEBUG})
-    SET(DEBUG_FLAGS "-Og" "-g" "-DDEBUG")
+IF($ENV{PDO_DEBUG_BUILD})
+    SET(DEBUG_FLAGS "-Og" "-g" "-DPDO_DEBUG_BUILD=1")
     message(STATUS "Compiling in debug mode without optimizations (-Og -g)")
 ELSE()
     SET(DEBUG_FLAGS "-O2")

@@ -15,10 +15,8 @@
 
 #pragma once
 
-#ifndef DEBUG
 #define SAFE_LOG(LEVEL, FMT, ...)
 #define SAFE_LOGV(LEVEL, FMT, ...)
-#endif  /* DEBUG */
 
 #if _UNTRUSTED_
 #include "pdo_error.h"
@@ -40,19 +38,23 @@ namespace pdo
 // up in the enclave. With debugging off all logging messages will be
 // removed completely
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
+#undef SAFE_LOG
 #define SAFE_LOG(LEVEL, FMT, ...) pdo::logger::LogV(LEVEL, FMT, ##__VA_ARGS__)
+#undef SAFE_LOG1
 #define SAFE_LOG1(LEVEL, MSG) pdo::logger::Log(LEVEL, MSG)
-#endif  /* DEBUG */
+#endif  /* PDO_DEBUG_BUILD */
 
 #else  /* _UNTRUSTED_ */
 
 // this will be implemented by the enclave
 extern void Log(int level, const char* fmt, ...);
 
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
+#undef SAFE_LOG
 #define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
+#undef SAFE_LOG1
 #define SAFE_LOG1(LEVEL, MSG) Log(LEVEL, MSG)
-#endif  /* DEBUG */
+#endif  /* PDO_DEBUG_BUILD */
 
 #endif  /* _UNTRUSTED_ */

@@ -31,9 +31,9 @@ void printf(const char* fmt, ...)
     va_start(ap, fmt);
     vsnprintf_s(buf, BUFSIZ, fmt, ap);
     va_end(ap);
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     ocall_Print(buf);
-#endif
+#endif  // PDO_DEBUG_BUILD
 }  // printf
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -44,35 +44,18 @@ void Log(int level, const char* fmt, ...)
     va_start(ap, fmt);
     vsnprintf_s(buf, BUFSIZ, fmt, ap);
     va_end(ap);
-#ifdef DEBUG
+#if PDO_DEBUG_BUILD
     ocall_Log(level, buf);
-#endif
+#endif  // PDO_DEBUG_BUILD
 }  // Log
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 uint64_t GetTimer(void)
 {
     uint64_t value = 0;
-#ifdef ENCLAVE_DEBUG
+#if PDO_DEBUG_BUILD
     ocall_GetTimer(&value);
-#endif
+#endif  // PDO_DEBUG_BUILD
 
     return value;
 } // GetTimer
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-namespace pdo
-{
-    void Log(pdo_log_level_t level, const char* fmt, ...)
-    {
-        char buf[BUFSIZ] = {'\0'};
-        va_list ap;
-        va_start(ap, fmt);
-        vsnprintf_s(buf, BUFSIZ, fmt, ap);
-        va_end(ap);
-#ifdef DEBUG
-        ocall_Log(level, buf);
-#endif
-    }  // Log
-
-}
