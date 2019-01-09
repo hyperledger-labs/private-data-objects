@@ -582,6 +582,17 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIfNull(svalue, "Invalid proof_signature");
     const std::string proof_signature = svalue;
 
+    JSON_Array* proof_certs_object = json_object_dotget_array(proof_object, "certificates");
+    pdo::error::ThrowIfNull(proof_certs_object, "Invalid proof_certificates");
+
+    svalue = json_array_get_string(proof_certs_object, 0);
+    pdo::error::ThrowIfNull(svalue, "Invalid signing cert");
+    const std::string proof_signing_cert = svalue;
+
+    svalue = json_array_get_string(proof_certs_object, 1);
+    pdo::error::ThrowIfNull(svalue, "Invalid ca cert");
+    const std::string proof_ca_cert = svalue;
+
     //Parse verification report
     svalue = json_object_dotget_string(proof_object, "verification_report");
     pdo::error::ThrowIfNull(svalue, "Invalid proof_verification_report");
@@ -611,15 +622,16 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
         r!=VERIFY_SUCCESS, "Invalid Enclave Quote:  group-of-date NOT OKAY");
 
 
-    //verify chain of hard-coded certificates
-    r = verify_ias_certificate_chain(NULL, 0);
+    // verify CA as provided by root against our own.
+    // TODO: Could check for identity but should probably also work in usual check?
+    r = verify_ias_certificate_chain(proof_ca_cert.c_str());
     pdo::error::ThrowIf<pdo::error::ValueError>(
-        r!=VERIFY_SUCCESS, "Failed to verify hard-coded IAS chain");
+        r!=VERIFY_SUCCESS, "Failed to cross-verify passed IAS CA vs root-of-trust CA");
 
-    // //verify the passed certificate (though it's the one stored) against the hard-coded CA certificate
-    r = verify_ias_certificate_chain((char*)ias_report_signing_cert_der, ias_report_signing_cert_der_len);
+    // verify signing certificate
+    r = verify_ias_certificate_chain(proof_signing_cert.c_str());
     pdo::error::ThrowIf<pdo::error::ValueError>(
-        r!=VERIFY_SUCCESS, "Failed to verify IAS chain");
+        r!=VERIFY_SUCCESS, "Failed to verify IAS signing cert against CA");
 
     std::vector<char> verificationReportVec(verificationReport.begin(), verificationReport.end());
     verificationReportVec.push_back('\0');
@@ -630,8 +642,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     char *proof_signatureArr = &proof_signatureVec[0];
 
     //verify IAS signature
-    r = verify_ias_report_signature((char*)ias_report_signing_cert_der,
-                                        ias_report_signing_cert_der_len,
+    r = verify_ias_report_signature(proof_signing_cert.c_str(),
                                         verificationReportArr,
                                         strlen(verificationReportArr),
                                         proof_signatureArr,

@@ -22,6 +22,7 @@
 #  - sgx sdk version: 		SGX_SDK (default: v2.4.1)
 #  - openssl version: 		OPENSSL (default: 1.1.0j)
 #  - sgxssl version: 		SGXSSL  (default: v2.4.1)
+#  - additional apt packages:	ADD_APT_PKGS (default: )
 
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
@@ -30,8 +31,8 @@
 #   if you want to build with different version than 16.04/xenial, add a build arg UBUNTU_VERSION, e.g., for 18.04 do --build-arg UBUNTU_VERSION=bionic
 #
 # Run:
-#   $ cd ....../private-datdda-objects
-#   $ docker run -v $(pwd):/project/pdo/src -it pdo-dev
+#   $ cd <directory where you checked out private-data-objects>
+#   $ docker run -it pdo-dev
 #   - to run with SGX HW, add options '--device=/dev/isgx -v /var/run/aesmd:/var/run/aesmd ')
 #     then you can build system as "usual", e.g., to build it as
 #        . /project/pdo/src/build/common-config.sh
@@ -41,7 +42,8 @@
 #     or the PSW/aesmd might cause enclave launch problems
 #   - if behind a proxy, you might want to add also below options
 #     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy --env no_proxy=$no_proxy
-#
+#   - for develooping based on source in host you might map source into container with an option
+#     like -v $(pwd):/project/pdo/src/private-data-objects/
 
 ARG UBUNTU_VERSION=bionic
 # 16.04 -> xenial, 17.10 -> artful, 18.04 -> bionic
@@ -55,6 +57,8 @@ ARG UBUNTU_VERSION=bionic
 ARG SGX_SDK=sgx_2.4
 ARG OPENSSL=1.1.0j
 ARG SGXSSL=v2.4.1
+
+ARG ADD_APT_PKGS=
 
 # Add necessary packages
 # TODO(xenial): we need to namnually install protobuf 3 as xenial has v2
@@ -89,6 +93,7 @@ RUN apt-get update \
     unzip \
     virtualenv \
     wget \
+    $ADD_APT_PKGS \
  && if [ "$UBUNTU_VERSION" = "bionic" ] || [ "$UBUNTU_VERSION" = "artful" ]; then \
 	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
     fi \

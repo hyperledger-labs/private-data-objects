@@ -37,7 +37,7 @@ SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_i
 set_source_files_properties(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
 add_custom_command(OUTPUT  ${PROJECT_GENERATED_IAS_SOURCES}
                      COMMAND ./build_ias_certificates_cpp.sh
-                     DEPENDS crypto/verify_ias_report/ias-certificates-sim.template crypto/verify_ias_report/ias-certificates-hw.template crypto/verify_ias_report/build_ias_certificates_cpp.sh
+                     DEPENDS crypto/verify_ias_report/ias-certificates.template crypto/verify_ias_report/build_ias_certificates_cpp.sh
                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_ias_report
 )
 add_custom_target(generate-ias-files DEPENDS ${PROJECT_GENERATED_IAS_SOURCES})

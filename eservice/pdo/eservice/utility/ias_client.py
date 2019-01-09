@@ -21,6 +21,7 @@ import requests
 import sys
 import urllib
 import json
+import re
 
 import logging
 logger = logging.getLogger(__name__)
@@ -102,9 +103,12 @@ class IasClient(object):
         returnblob = {
             'verification_report': result.text,
             'ias_signature': result.headers.get('x-iasreport-signature'),
-            'ias_certificate': urllib.parse.unquote(result.headers.get('x-iasreport-signing-certificate'))
+            'ias_certificates':
+                list(filter(None, re.split(r'(?<=-----END CERTIFICATE-----)\n+',
+			urllib.parse.unquote(result.headers.get('x-iasreport-signing-certificate')),
+			re.MULTILINE)))
         }
-        logger.debug("received ias certificate: %s\n", returnblob['ias_certificate'])
+        logger.debug("received ias certificates: %s\n", returnblob['ias_certificates'])
         return returnblob
 
     def verify_report_fields(self, original_quote, received_report):

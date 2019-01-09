@@ -304,6 +304,7 @@ def create_signup_info(originator_public_key_hash, nonce):
         signup_info['proof_data'] = \
             json.dumps({
                 'verification_report': response['verification_report'],
+                'certificates': response['ias_certificates'], # Note: this is a list with certification path, signer first
                 'signature': response['ias_signature']
             })
 
