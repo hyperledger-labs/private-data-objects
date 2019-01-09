@@ -452,7 +452,7 @@ void GipsyInterpreter::create_initial_contract_state(
 
     StringArray intrinsic_state(0);
     this->save_contract_state(intrinsic_state);
-    SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
+    //SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
 
     // this should not be necessary, but lets make sure the interpreter
     // doesn't have any carry over
@@ -487,7 +487,7 @@ void GipsyInterpreter::send_message_to_contract(
     StringArray intrinsic_state = ByteArrayToStringArray(v);
     std::string state_hash(base64_encode(inContractStateHash));
 
-    SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state: %s", intrinsic_state.str().c_str());
+    //SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state: %s", intrinsic_state.str().c_str());
 
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
     this->load_message(inMessage);
@@ -532,7 +532,7 @@ void GipsyInterpreter::send_message_to_contract(
         // serialize
         intrinsic_state.resize(0);
         this->save_contract_state(intrinsic_state);
-        SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
+        // SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
 
         // this should not be necessary, but lets make sure the interpreter
         // doesn't have any carry over
@@ -544,32 +544,12 @@ void GipsyInterpreter::send_message_to_contract(
         ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
         ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
         inoutContractState->PrivilegedPut(k, v);
-
-#if PDO_DEBUG_BUILD
-        {
-            //double check intrinsic state
-            ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            ByteArray v = inoutContractState->PrivilegedGet(k);
-            StringArray isvs = ByteArrayToStringArray(v);
-
-            SAFE_LOG(PDO_LOG_DEBUG, "(double check) output intrinsic state: %s\n", isvs.str().c_str());
-            if (isvs != intrinsic_state)
-            {
-                SAFE_LOG(PDO_LOG_ERROR, "ERROR: double check output state failed");
-                pe::ThrowIf<pe::ValueError>(1, "Intrinsic state inside KV is wrong");
-            }
-            else
-            {
-                SAFE_LOG(PDO_LOG_DEBUG, "double check success");
-            }
-        }
-#endif  // PDO_DEBUG_BUILD
         outStateChangedFlag = true;
     }
     else
     {
         //leave the intrinsic state already in the kv
-        SAFE_LOG(PDO_LOG_DEBUG, "gipsy, state unchanged");
+        // SAFE_LOG(PDO_LOG_DEBUG, "gipsy, state unchanged");
         outStateChangedFlag = false;
     }
 }
