@@ -610,8 +610,9 @@ void pstate::trie_node::operate_trie_root(
     // release block in cache
     dn_io.cache_done(root_block_num, current_tnh_modified);
 
-    // operation succeeded: keep cache and sync modified items with block store
-    dn_io.cache_sync();
+    // NOTICE: we do NOT sync the cache here, so modifications are not reflected in the block store;
+    //         in the case of failure, any modification is discarded, the transaction in progress will not succeed,
+    //         no new state is generated, and the request processing can (and will) start over from the last state
 }
 
 ByteArray pstate::data_node::make_offset(unsigned int block_num, unsigned int bytes_off)
