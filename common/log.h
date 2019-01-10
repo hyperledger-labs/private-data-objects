@@ -58,3 +58,5 @@ extern void Log(int level, const char* fmt, ...);
 #endif  /* PDO_DEBUG_BUILD */
 
 #endif  /* _UNTRUSTED_ */
+
+#define SAFE_LOG_EXCEPTION(MSG) SAFE_LOG(PDO_LOG_ERROR, "EXCEPTION: %s; %s", MSG, e.what())
