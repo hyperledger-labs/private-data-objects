@@ -40,17 +40,13 @@ static ByteArray to_unprivileged_key(const ByteArray& key)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Class: Interpreter_KV
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo::state::Interpreter_KV::Interpreter_KV(ByteArray& id) : Basic_KV_Plus(id), kv_(id)
-{
-}
-
 pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& id, const ByteArray& encryption_key)
-    : Basic_KV_Plus(id), kv_(id, encryption_key)
+    : kv_(id, encryption_key)
 {
 }
 
 pdo::state::Interpreter_KV::Interpreter_KV(const ByteArray& encryption_key)
-    : Basic_KV_Plus(), kv_(encryption_key)
+    : kv_(encryption_key)
 {
 }
 
