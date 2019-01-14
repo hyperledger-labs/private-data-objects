@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#include <exception>
 #include <string>
 #include <map>
 
@@ -231,6 +232,8 @@ static void gipsy_write_to_buffer(
 GipsyInterpreter::~GipsyInterpreter(void)
 {
     scheme* sc = &this->interpreter_;
+
+    scheme_set_external_data(sc, NULL);
     scheme_deinit(sc);
 
     size_t total = 0;
@@ -242,6 +245,8 @@ GipsyInterpreter::~GipsyInterpreter(void)
         total += it->second;
         it++;
     }
+
+    SAFE_LOG(PDO_LOG_DEBUG, "interpreter deallocated; %zu", total);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -420,17 +425,17 @@ void GipsyInterpreter::create_initial_contract_state(
     // the message is not currently used though we should consider
     // how it can be implemented, throug the create-object-instance fn
     // this->load_message(inMessage);
-    this->load_contract_code(inContractCode);
+    try {
+        this->load_contract_code(inContractCode);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("load contract code");
+        throw;
+    }
 
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
     scheme_set_external_data(sc, inoutContractState);
-
-    /* --------------- Assign the symbol values --------------- */
-    gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
-    gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
-    gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
-    gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
 
     pointer _class = scheme_find_symbol(sc, inContractCode.Name.c_str());
     pe::ThrowIf<pe::ValueError>(
@@ -443,27 +448,57 @@ void GipsyInterpreter::create_initial_contract_state(
         "malformed contract; unable to locate create-object-instance function");
 
     pointer _function = scheme_find_symbol_value(sc, sc->envir, _funcsym);
-    pointer rexpr = scheme_call(sc, cdr(_function), cons(sc, _class, sc->NIL));
+    pe::ThrowIf<pe::ValueError>(
+        _funcsym == sc->NIL,
+        "malformed contract; create-object-instance function is nil");
+
+    /* --------------- Assign the symbol values --------------- */
+    pointer rexpr;
+    try  {
+        gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
+        gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
+        gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
+        gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
+
+        rexpr = scheme_call(sc, cdr(_function), cons(sc, _class, sc->NIL));
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("create initial contract instance");
+        throw;
+    }
+
     pe::ThrowIf<pe::ValueError>(
         sc->retcode != 0,
         report_interpreter_error(sc, "failed to create contract instance", error_msg_).c_str());
 
     scheme_define(sc, sc->global_env, mk_symbol(sc, "_instance"), rexpr);
 
-    StringArray intrinsic_state(0);
-    this->save_contract_state(intrinsic_state);
-    SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
-
     // this should not be necessary, but lets make sure the interpreter
     // doesn't have any carry over
     scheme_set_external_data(sc, NULL);
 
-    // there is a big copy happening here, might be able to remove the copy
-    // by making the byte array's constants, or possible make the intrinsic
-    // state a byte array rather than a string array
-    ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-    ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
-    inoutContractState->PrivilegedPut(k, v);
+    StringArray intrinsic_state(0);
+    try {
+        this->save_contract_state(intrinsic_state);
+        //SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("serialize initial contract state");
+        throw;
+    }
+
+    try {
+        // there is a big copy happening here, might be able to remove the copy
+        // by making the byte array's constants, or possible make the intrinsic
+        // state a byte array rather than a string array
+        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+        ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
+        inoutContractState->PrivilegedPut(k, v);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("save initial contract state");
+        throw;
+    }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -481,95 +516,131 @@ void GipsyInterpreter::send_message_to_contract(
 {
     scheme* sc = &this->interpreter_;
 
-    //Convention: we use the "IntrinsicState" key to store the value
-    ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-    ByteArray v(inoutContractState->PrivilegedGet(k));
-    StringArray intrinsic_state = ByteArrayToStringArray(v);
-    std::string state_hash(base64_encode(inContractStateHash));
-
-    SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state: %s", intrinsic_state.str().c_str());
-
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
-    this->load_message(inMessage);
-    this->load_contract_code(inContractCode);
+    const Base64EncodedString state_hash = ByteArrayToBase64EncodedString(inContractStateHash);
+
+    try {
+        this->load_message(inMessage);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("load message");
+        throw;
+    }
+
+    try {
+        this->load_contract_code(inContractCode);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("load contract code");
+        throw;
+    }
 
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
     scheme_set_external_data(sc, inoutContractState);
 
-    this->load_contract_state(intrinsic_state);
+    try {
+        StringArray intrinsic_state(0);
+        {
+            //Convention: we use the "IntrinsicState" key to store the value
+            ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+            ByteArray v(inoutContractState->PrivilegedGet(k));
+            ByteArrayToStringArray(v, intrinsic_state);
+        }
 
-    /* --------------- Assign the symbol values --------------- */
-    gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
-    gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
-    gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
-    gipsy_put_property(sc, ":contract", "state", state_hash.c_str());
-    gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
-    gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
+        SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state size: %zu", intrinsic_state.size());
+        this->load_contract_state(intrinsic_state);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("load intrinsic state");
+        throw;
+    }
 
     /* this might not be the most obvious way to invoke the send function
        but this method is used to ensure that the message is not evaluated
        again with the contract context active */
-    pointer _message = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_message"));
-    pointer _instance = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_instance"));
-    pointer sendfn = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "send"));
+    pointer rexpr;
 
-    pointer rexpr = scheme_call(sc, cdr(sendfn), cons(sc, cdr(_instance), cdr(_message)));
+    try {
+        /* --------------- Assign the symbol values --------------- */
+        gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
+        gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
+        gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
+        gipsy_put_property(sc, ":contract", "state", state_hash.c_str());
+        gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
+        gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
+
+        pointer _message = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_message"));
+        pointer _instance = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_instance"));
+        pointer sendfn = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "send"));
+
+        rexpr = scheme_call(sc, cdr(sendfn), cons(sc, cdr(_instance), cdr(_message)));
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("evaluate contract method");
+        throw;
+    }
+
     pe::ThrowIf<pe::ValueError>(
         sc->retcode < 0,
         report_interpreter_error(sc, "method evaluation failed", error_msg_).c_str());
 
-    this->save_dependencies(outDependencies);
+    try {
+        this->save_dependencies(outDependencies);
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("save dependencies");
+        throw;
+    }
 
     /* write the result into the result buffer */
-    StringArray result(0);
-    gipsy_write_to_buffer(sc, rexpr, result);
-    outMessageResult = result.str();
+    try {
+        StringArray result(0);
+        gipsy_write_to_buffer(sc, rexpr, result);
+        outMessageResult = result.str();
+    }
+    catch (std::exception& e) {
+        SAFE_LOG_EXCEPTION("save contract result");
+        throw;
+    }
+
+    // this should not be necessary, but lets make sure the interpreter
+    // doesn't have any carry over
+    scheme_set_external_data(sc, NULL);
 
     // save the state
     pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
     if (_immutable == sc->NIL) {
         // serialize
-        intrinsic_state.resize(0);
-        this->save_contract_state(intrinsic_state);
-        SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
-
-        // this should not be necessary, but lets make sure the interpreter
-        // doesn't have any carry over
-        scheme_set_external_data(sc, NULL);
+        StringArray intrinsic_state(0);
+        try {
+            this->save_contract_state(intrinsic_state);
+            SAFE_LOG(PDO_LOG_DEBUG, "outgoing intrinsic state size: %zu", intrinsic_state.size());
+        }
+        catch (std::exception& e) {
+            SAFE_LOG_EXCEPTION("serialize contract state");
+            throw;
+        }
 
         // there is a big copy happening here, might be able to remove the copy
         // by making the byte array's constants, or possible make the intrinsic
         // state a byte array rather than a string array
-        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
-        inoutContractState->PrivilegedPut(k, v);
-
-#if PDO_DEBUG_BUILD
-        {
-            //double check intrinsic state
+        try {
             ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            ByteArray v = inoutContractState->PrivilegedGet(k);
-            StringArray isvs = ByteArrayToStringArray(v);
-
-            SAFE_LOG(PDO_LOG_DEBUG, "(double check) output intrinsic state: %s\n", isvs.str().c_str());
-            if (isvs != intrinsic_state)
-            {
-                SAFE_LOG(PDO_LOG_ERROR, "ERROR: double check output state failed");
-                pe::ThrowIf<pe::ValueError>(1, "Intrinsic state inside KV is wrong");
-            }
-            else
-            {
-                SAFE_LOG(PDO_LOG_DEBUG, "double check success");
-            }
+            ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
+            intrinsic_state.resize(0);
+            inoutContractState->PrivilegedPut(k, v);
         }
-#endif  // PDO_DEBUG_BUILD
+        catch (std::exception& e) {
+            SAFE_LOG_EXCEPTION("save intrinsic state");
+            throw;
+        }
+
         outStateChangedFlag = true;
     }
     else
     {
         //leave the intrinsic state already in the kv
-        SAFE_LOG(PDO_LOG_DEBUG, "gipsy, state unchanged");
-        outStateChangedFlag = false;
+         outStateChangedFlag = false;
     }
 }

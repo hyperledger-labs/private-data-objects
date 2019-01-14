@@ -36,12 +36,18 @@ std::string ByteArrayToString(const ByteArray& inArray)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Conversion from byte array to string array
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-StringArray ByteArrayToStringArray(const ByteArray& inArray)
+void ByteArrayToStringArray(const ByteArray& inByteArray, StringArray& outStringArray)
 {
-    StringArray sarray(0);
-    std::transform(inArray.begin(), inArray.end(), std::back_inserter(sarray),
+    outStringArray.resize(0);
+    std::transform(inByteArray.begin(), inByteArray.end(), std::back_inserter(outStringArray),
                    [](unsigned char c) -> char { return (char)c; });
-    return sarray;
+}
+
+StringArray ByteArrayToStringArray(const ByteArray& inByteArray)
+{
+    StringArray outStringArray(0);
+    ByteArrayToStringArray(inByteArray, outStringArray);
+    return outStringArray;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

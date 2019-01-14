@@ -24,7 +24,7 @@ IF($ENV{PDO_DEBUG_BUILD})
     SET(DEBUG_FLAGS "-Og" "-g" "-DPDO_DEBUG_BUILD=1")
     message(STATUS "Compiling in debug mode without optimizations (-Og -g)")
 ELSE()
-    SET(DEBUG_FLAGS "-O2")
+    SET(DEBUG_FLAGS "-O2" "-DPDO_DEBUG_BUILD=0")
     message(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
 ENDIF()
 

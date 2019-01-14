@@ -161,14 +161,18 @@ ContractResponse ContractRequest::process_initialization_request(void)
 
         std::map<string, string> dependencies;
 
-        // this class ensures that the interpreter is released on exit
-        InitializedInterpreter interpreter(worker_);
+        // Push this into a block to ensure that the interpreter is deallocated
+        // and frees its memory before finalizing the state update
+        {
+            // this class ensures that the interpreter is released on exit
+            InitializedInterpreter interpreter(worker_);
 
-        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-            ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
+            SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+                     ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
 
-        interpreter.interpreter_->create_initial_contract_state(
-            contract_id_, creator_id_, code, msg, contract_state_.state_);
+            interpreter.interpreter_->create_initial_contract_state(
+                contract_id_, creator_id_, code, msg, contract_state_.state_);
+        }
 
         contract_state_.Finalize();
         ContractResponse response(*this, dependencies, "", contract_state_.output_block_id_);
@@ -236,22 +240,26 @@ ContractResponse ContractRequest::process_update_request(void)
         std::map<string, string> dependencies;
         std::string result;
 
-        // this class ensures that the interpreter is released on exit
-        InitializedInterpreter interpreter(worker_);
-
-        SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-            ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
-
         bool state_changed_flag;
-        interpreter.interpreter_->send_message_to_contract(
-            contract_id_,
-            creator_id_,
-            code, msg,
-            contract_state_.input_block_id_,
-            contract_state_.state_,
-            state_changed_flag,
-            dependencies,
-            result);
+
+        // Push this into a block to ensure that the interpreter is deallocated
+        // and frees its memory before finalizing the state update
+        {
+            InitializedInterpreter interpreter(worker_);
+
+            SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+                     ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
+
+            interpreter.interpreter_->send_message_to_contract(
+                contract_id_,
+                creator_id_,
+                code, msg,
+                contract_state_.input_block_id_,
+                contract_state_.state_,
+                state_changed_flag,
+                dependencies,
+                result);
+        }
 
         contract_state_.Finalize();
 

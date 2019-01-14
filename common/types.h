@@ -59,6 +59,7 @@ typedef std::string HexEncodedString;
 std::string ByteArrayToString(const ByteArray& inArray);
 
 // Conversion from byte array to string array
+void ByteArrayToStringArray(const ByteArray& inArray, StringArray& outStringArray);
 StringArray ByteArrayToStringArray(const ByteArray& inArray);
 
 // Simple conversion from ByteArray to Base64EncodedString
