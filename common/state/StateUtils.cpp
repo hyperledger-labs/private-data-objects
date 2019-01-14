@@ -18,6 +18,7 @@
 #include "jsonvalue.h"
 #include "parson.h"
 #include "state.h"
+#include "log.h"
 
 namespace pstate = pdo::state;
 
@@ -37,15 +38,10 @@ void pdo::state::StateNode::AppendChild(StateNode& childNode)
     {
         ChildrenArray_.push_back(childNode.GetBlockId());
     }
-    catch (const std::bad_alloc&)
+    catch (const std::exception& e)
     {
-        std::string msg("StateNode::AppendChild, push_back error, out of memory");
-        throw pdo::error::MemoryError(msg);
-    }
-    catch (...)
-    {
-        std::string msg("StateNode::AppendChild, push_back error");
-        throw pdo::error::RuntimeError(msg);
+        SAFE_LOG_EXCEPTION("StateNode::AppendChild, push_back error, out of memory");
+        throw;
     }
     childNode.SetHasParent();
 }
@@ -56,15 +52,10 @@ void pdo::state::StateNode::AppendChildId(StateBlockId& childId)
     {
         ChildrenArray_.push_back(childId);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::exception& e)
     {
-        std::string msg("StateNode::AppendChildId, push_back error, out of memory");
-        throw pdo::error::MemoryError(msg);
-    }
-    catch (...)
-    {
-        std::string msg("StateNode::AppendChildId, push_back error");
-        throw pdo::error::RuntimeError(msg);
+        SAFE_LOG_EXCEPTION("StateNode::AppendChildId, push_back error, out of memory");
+        throw;
     }
 }
 
@@ -75,33 +66,41 @@ void pdo::state::StateNode::SetHasParent()
 
 void pdo::state::StateNode::BlockifyChildren()
 {
-    // create the master block from scratch
-    stateBlock_.clear();
-    // insert a JSON blob containing the BlockIds array
-    JsonValue j_root_block_value(json_value_init_object());
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        !j_root_block_value.value, "Failed to create json root block value");
-    JSON_Object* j_root_block_object = json_value_get_object(j_root_block_value);
-    pdo::error::ThrowIfNull(
-        j_root_block_object, "Failed on retrieval of json root block object value");
-    JSON_Status jret;
-    jret = json_object_set_value(j_root_block_object, "BlockIds", json_value_init_array());
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize block ids");
-    JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
-    pdo::error::ThrowIfNull(j_block_ids_array, "failed to serialize the block id array");
-    // insert in the array the IDs of all blocks in the list
-    for (unsigned int i = 0; i < ChildrenArray_.size(); i++)
+    try
     {
-        jret = json_array_append_string(
-            j_block_ids_array, ByteArrayToBase64EncodedString(ChildrenArray_[i]).c_str());
+        // create the master block from scratch
+        stateBlock_.clear();
+        // insert a JSON blob containing the BlockIds array
+        JsonValue j_root_block_value(json_value_init_object());
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            !j_root_block_value.value, "Failed to create json root block value");
+        JSON_Object* j_root_block_object = json_value_get_object(j_root_block_value);
+        pdo::error::ThrowIfNull(
+            j_root_block_object, "Failed on retrieval of json root block object value");
+        JSON_Status jret;
+        jret = json_object_set_value(j_root_block_object, "BlockIds", json_value_init_array());
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            jret != JSONSuccess, "failed to serialize block ids");
+        JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
+        pdo::error::ThrowIfNull(j_block_ids_array, "failed to serialize the block id array");
+        // insert in the array the IDs of all blocks in the list
+        for (unsigned int i = 0; i < ChildrenArray_.size(); i++)
+        {
+            jret = json_array_append_string(
+                j_block_ids_array, ByteArrayToBase64EncodedString(ChildrenArray_[i]).c_str());
+        }
+        size_t serializedSize = json_serialization_size(j_root_block_value);
+        stateBlock_.resize(serializedSize);
+        jret = json_serialize_to_buffer(
+            j_root_block_value, reinterpret_cast<char*>(/*&stateBlock_[0]*/stateBlock_.data()), stateBlock_.size());
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            jret != JSONSuccess, "json root block serialization failed");
     }
-    size_t serializedSize = json_serialization_size(j_root_block_value);
-    stateBlock_.resize(serializedSize);
-    jret = json_serialize_to_buffer(
-        j_root_block_value, reinterpret_cast<char*>(/*&stateBlock_[0]*/stateBlock_.data()), stateBlock_.size());
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        jret != JSONSuccess, "json root block serialization failed");
+    catch (const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("BlockifyChildren");
+        throw;
+    }
 }
 
 void pdo::state::StateNode::UnBlockifyChildren()
@@ -127,10 +126,10 @@ void pdo::state::StateNode::UnBlockifyChildren()
             ChildrenArray_.push_back(StateBlockId(
                 Base64EncodedStringToByteArray(json_array_get_string(j_block_ids_array, i))));
         }
-        catch (...)
+        catch (const std::exception& e)
         {
-            std::string msg("error allocating children in state node");
-            throw pdo::error::RuntimeError(msg);
+            SAFE_LOG_EXCEPTION("error allocating children in state node");
+            throw;
         }
     }
 }
