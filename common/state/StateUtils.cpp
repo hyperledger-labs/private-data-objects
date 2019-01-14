@@ -21,76 +21,21 @@
 
 namespace pstate = pdo::state;
 
-pdo::state::StateNode::StateNode()
-{
-    try
-    {
-        blockId_ = new StateBlockId();
-        stateBlock_ = new StateBlock();
-    }
-    catch (...)
-    {
-        std::string msg("error allicating state node");
-        throw pdo::error::RuntimeError(msg);
-    }
-}
-
-pdo::state::StateNode::StateNode(StateBlockId& blockId, StateBlock& stateBlock)
-{
-    blockId_ = &blockId;
-    stateBlock_ = &stateBlock;
-}
-
-pdo::state::StateNode::~StateNode()
-{
-    delete stateBlock_;
-    if (!hasParent_)
-    {
-        delete blockId_;
-        hasParent_ = false;
-    }
-    else
-    {
-        // do not delete blockid, it is part of children of a node above in hierarchy
-    }
-    while (!ChildrenArray_.empty())
-    {
-        StateBlockIdRef childId = ChildrenArray_.back();
-        ChildrenArray_.pop_back();
-        delete childId;
-    }
-}
-
-bool pdo::state::StateNode::Valid()
-{
-    StateBlockId computedBlockId = pdo::crypto::ComputeMessageHash(*stateBlock_);
-    if (computedBlockId == *blockId_)
-    {
-        return true;
-    }
-    return false;
-}
-
-void pdo::state::StateNode::ReIdentify()
-{
-    *blockId_ = pdo::crypto::ComputeMessageHash(*stateBlock_);
-}
-
 pstate::StateBlockId& pdo::state::StateNode::GetBlockId()
 {
-    return *blockId_;
+    return blockId_;
 }
 
 pstate::StateBlock& pdo::state::StateNode::GetBlock()
 {
-    return *stateBlock_;
+    return stateBlock_;
 }
 
 void pdo::state::StateNode::AppendChild(StateNode& childNode)
 {
     try
     {
-        ChildrenArray_.push_back(&childNode.GetBlockId());
+        ChildrenArray_.push_back(childNode.GetBlockId());
     }
     catch (const std::bad_alloc&)
     {
@@ -109,7 +54,7 @@ void pdo::state::StateNode::AppendChildId(StateBlockId& childId)
 {
     try
     {
-        ChildrenArray_.push_back(new StateBlockId(childId));
+        ChildrenArray_.push_back(childId);
     }
     catch (const std::bad_alloc&)
     {
@@ -131,7 +76,7 @@ void pdo::state::StateNode::SetHasParent()
 void pdo::state::StateNode::BlockifyChildren()
 {
     // create the master block from scratch
-    stateBlock_->clear();
+    stateBlock_.clear();
     // insert a JSON blob containing the BlockIds array
     JsonValue j_root_block_value(json_value_init_object());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
@@ -149,24 +94,24 @@ void pdo::state::StateNode::BlockifyChildren()
     for (unsigned int i = 0; i < ChildrenArray_.size(); i++)
     {
         jret = json_array_append_string(
-            j_block_ids_array, ByteArrayToBase64EncodedString(*ChildrenArray_[i]).c_str());
+            j_block_ids_array, ByteArrayToBase64EncodedString(ChildrenArray_[i]).c_str());
     }
     size_t serializedSize = json_serialization_size(j_root_block_value);
-    stateBlock_->resize(serializedSize);
+    stateBlock_.resize(serializedSize);
     jret = json_serialize_to_buffer(
-        j_root_block_value, reinterpret_cast<char*>(&(*stateBlock_)[0]), stateBlock_->size());
+        j_root_block_value, reinterpret_cast<char*>(/*&stateBlock_[0]*/stateBlock_.data()), stateBlock_.size());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "json root block serialization failed");
 }
 
 void pdo::state::StateNode::UnBlockifyChildren()
 {
-    if (stateBlock_->empty())
+    if (stateBlock_.empty())
     {
         std::string msg("Can't unblockify state node, block is empty");
         throw pdo::error::ValueError(msg);
     }
-    JsonValue j_root_block_value(json_parse_string(ByteArrayToString(*stateBlock_).c_str()));
+    JsonValue j_root_block_value(json_parse_string(ByteArrayToString(stateBlock_).c_str()));
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         !j_root_block_value.value, "Failed to parse json root block value");
     JSON_Object* j_root_block_object = json_value_get_object(j_root_block_value);
@@ -179,7 +124,7 @@ void pdo::state::StateNode::UnBlockifyChildren()
     {
         try
         {
-            ChildrenArray_.push_back(new StateBlockId(
+            ChildrenArray_.push_back(StateBlockId(
                 Base64EncodedStringToByteArray(json_array_get_string(j_block_ids_array, i))));
         }
         catch (...)
@@ -190,29 +135,9 @@ void pdo::state::StateNode::UnBlockifyChildren()
     }
 }
 
-pstate::StateBlockIdRefArray pdo::state::StateNode::GetChildrenBlocks()
+pstate::StateBlockIdArray pdo::state::StateNode::GetChildrenBlocks()
 {
     return ChildrenArray_;
-}
-
-pstate::StateBlockIdRef pdo::state::StateNode::LookupChild(StateBlockId& childId)
-{
-    unsigned int i;
-    for (i = 0; i < ChildrenArray_.size(); i++)
-    {
-        if (*ChildrenArray_[i] == childId)
-        {
-            return ChildrenArray_[i];
-        }
-    }
-    return NULL;
-}
-
-pstate::StateBlockIdRef pdo::state::StateNode::LookupChildiByIndex(unsigned int index)
-{
-    if (index < ChildrenArray_.size())
-        return ChildrenArray_[index];
-    return NULL;
 }
 
 void pdo::state::StateNode::ClearChildren()
