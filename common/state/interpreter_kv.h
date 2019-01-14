@@ -32,7 +32,6 @@ namespace state
         void Delete(const ByteArray& key);
 
     public:
-        Interpreter_KV(StateBlockId& id);
         Interpreter_KV(const StateBlockId& id, const ByteArray& encryption_key);
         Interpreter_KV(const ByteArray& encryption_key);
 

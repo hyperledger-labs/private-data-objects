@@ -1197,69 +1197,88 @@ void pdo::state::block_warehouse::get_last_datablock_id(pdo::state::StateBlockId
     outId = blockIds_[blockIds_.size() - 1];
 }
 
-pdo::state::State_KV::State_KV(ByteArray& id)
-    : Basic_KV(id), dn_io_(data_node_io(empty_state_encryption_key_))
-{
-}
-
 pdo::state::State_KV::State_KV(const ByteArray& key)
-    : Basic_KV(), state_encryption_key_(key), dn_io_(data_node_io(key))
+    : state_encryption_key_(key), dn_io_(data_node_io(key))
 {
-    // initialize first data node
-    dn_io_.block_warehouse_.last_appended_data_block_num_ =
-        dn_io_.block_warehouse_.get_root_block_num();
-    data_node dn(dn_io_.block_warehouse_.last_appended_data_block_num_);
-    StateBlockId dn_id;
-    dn.unload(state_encryption_key_, dn_id);
-    dn_io_.block_warehouse_.add_datablock_id(dn_id);
+    try
+    {
+        // initialize first data node
+        dn_io_.block_warehouse_.last_appended_data_block_num_ =
+            dn_io_.block_warehouse_.get_root_block_num();
+        data_node dn(dn_io_.block_warehouse_.last_appended_data_block_num_);
+        StateBlockId dn_id;
+        dn.unload(state_encryption_key_, dn_id);
+        dn_io_.block_warehouse_.add_datablock_id(dn_id);
 
-    // cache and pin first data node
-    dn_io_.init_append_data_node();
+        // cache and pin first data node
+        dn_io_.init_append_data_node();
 
-    // init trie root node in first data node
-    trie_node::init_trie_root(dn_io_);
+        // init trie root node in first data node
+        trie_node::init_trie_root(dn_io_);
 
-    // add new data node
-    dn_io_.add_and_init_append_data_node();
-    // pin in cache the first one
-    dn_io_.cache_pin(dn_io_.block_warehouse_.get_root_block_num());
+        // add new data node
+        dn_io_.add_and_init_append_data_node();
+        // pin in cache the first one
+        dn_io_.cache_pin(dn_io_.block_warehouse_.get_root_block_num());
+    }
+    catch(const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("create new kv");
+        throw;
+    }
 }
 
 pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
-    : Basic_KV(id), state_encryption_key_(key), dn_io_(data_node_io(key))
+    : state_encryption_key_(key), dn_io_(data_node_io(key))
 {
-    // retrieve main state block, root node and last data node
-    rootNode_.GetBlockId() = id;
-    state_status_t ret;
-    ret = sebio_fetch(id, SEBIO_NO_CRYPTO, rootNode_.GetBlock());
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
+    try
+    {
+        // retrieve main state block, root node and last data node
+        rootNode_.GetBlockId() = id;
+        state_status_t ret;
+        ret = sebio_fetch(id, SEBIO_NO_CRYPTO, rootNode_.GetBlock());
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            ret != STATE_SUCCESS, "statekv::init, sebio returned an error");
 
-    // deserialize blocks ids in root block
-    dn_io_.block_warehouse_.deserialize_block_ids(rootNode_);
+        // deserialize blocks ids in root block
+        dn_io_.block_warehouse_.deserialize_block_ids(rootNode_);
 
-    // retrieve last data block num from last appended data block
-    dn_io_.block_warehouse_.last_appended_data_block_num_ =
-        dn_io_.block_warehouse_.blockIds_.size() - 1;
-    dn_io_.init_append_data_node();
+        // retrieve last data block num from last appended data block
+        dn_io_.block_warehouse_.last_appended_data_block_num_ =
+            dn_io_.block_warehouse_.blockIds_.size() - 1;
+        dn_io_.init_append_data_node();
+    }
+    catch(const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("open new kv");
+        throw;
+    }
 }
 
 void pdo::state::State_KV::Finalize(ByteArray& outId)
 {
-    // flush cache first
-    dn_io_.cache_flush();
+    try
+    {
+        // flush cache first
+        dn_io_.cache_flush();
 
-    // serialize block ids
-    dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
+        // serialize block ids
+        dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
 
-    // evict root block
-    ByteArray baBlock = rootNode_.GetBlock();
-    state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_.GetBlockId());
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
+        // evict root block
+        ByteArray baBlock = rootNode_.GetBlock();
+        state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_.GetBlockId());
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
 
-    // output the root id
-    outId = rootNode_.GetBlockId();
+        // output the root id
+        outId = rootNode_.GetBlockId();
+    }
+    catch(const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("finalize kv");
+        throw;
+    }
 }
 
 ByteArray pstate::State_KV::Get(const ByteArray& key)
@@ -1268,7 +1287,15 @@ ByteArray pstate::State_KV::Get(const ByteArray& key)
     const ByteArray& kvkey = key;
     const ByteArray in_value;
     ByteArray out_value;
-    trie_node::operate_trie_root(dn_io_, GET_OP, kvkey, in_value, out_value);
+    try
+    {
+        trie_node::operate_trie_root(dn_io_, GET_OP, kvkey, in_value, out_value);
+    }
+    catch(const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("kv get");
+        throw;
+    }
     return out_value;
 }
 
@@ -1285,7 +1312,7 @@ void pstate::State_KV::__on_error__(const char* what)
     dn_io_.init_append_data_node();
     SAFE_LOG(PDO_LOG_ERROR, "%s", what);
     throw pdo::error::Error(
-        PDO_ERR_RUNTIME, std::string("put failed, ") + std::string(what));
+        PDO_ERR_RUNTIME, std::string("kv failure, ") + std::string(what));
 }
 
 void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value)
@@ -1321,5 +1348,13 @@ void pstate::State_KV::Delete(const ByteArray& key)
     const ByteArray in_value;
     ByteArray value;
     const ByteArray& kvkey = key;
-    trie_node::operate_trie_root(dn_io_, DEL_OP, kvkey, in_value, value);
+    try
+    {
+        trie_node::operate_trie_root(dn_io_, DEL_OP, kvkey, in_value, value);
+    }
+    catch(const std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("kv delete");
+        throw;
+    }
 }
