@@ -123,7 +123,16 @@ pstate::cache_slots::cache_slots() : data_nodes_(BLOCK_CACHE_MAX_ITEMS, data_nod
 {
     for (unsigned int i = 0; i < data_nodes_.size(); i++)
     {
-        dn_queue_.push(&(data_nodes_[i]));
+        try
+        {
+            dn_queue_.push(&(data_nodes_[i]));
+        }
+        catch (std::exception& e)
+        {
+            SAFE_LOG_EXCEPTION("cache_slots() dn_queue_.push");
+            throw;
+        }
+
     }
 }
 
@@ -140,7 +149,15 @@ void pstate::cache_slots::release(data_node** dn)
 {
     pdo::error::ThrowIf<pdo::error::RuntimeError>(dn_queue_.size() >= data_nodes_.size(),
         "cache empty -- nothing to release, nothing to return to queue");
-    dn_queue_.push(*dn);
+    try
+    {
+        dn_queue_.push(*dn);
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("cache_slots() release");
+        throw;
+    }
     // delete original pointer
     *dn = NULL;
 }
@@ -617,11 +634,19 @@ void pstate::trie_node::operate_trie_root(
 
 ByteArray pstate::data_node::make_offset(unsigned int block_num, unsigned int bytes_off)
 {
-    ByteArray ba_block_num((uint8_t*)&block_num, (uint8_t*)&block_num + sizeof(block_num));
-    ByteArray ba_off_from_start((uint8_t*)&bytes_off, (uint8_t*)&bytes_off + sizeof(bytes_off));
-    // concatenate the two values
-    ba_block_num.insert(ba_block_num.end(), ba_off_from_start.begin(), ba_off_from_start.end());
-    return ba_block_num;
+    try
+    {
+        ByteArray ba_block_num((uint8_t*)&block_num, (uint8_t*)&block_num + sizeof(block_num));
+        ByteArray ba_off_from_start((uint8_t*)&bytes_off, (uint8_t*)&bytes_off + sizeof(bytes_off));
+        // concatenate the two values
+        ba_block_num.insert(ba_block_num.end(), ba_off_from_start.begin(), ba_off_from_start.end());
+        return ba_block_num;
+    }
+    catch(std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("make_offset");
+        throw;
+    }
 }
 
 pstate::data_node::data_node(unsigned int block_num) : data_(FIXED_DATA_NODE_BYTE_SIZE)
@@ -757,6 +782,16 @@ unsigned int pstate::data_node::read_value(const ByteArray& offset,
         size_t buffer_size = *((size_t*)ba_buffer_size.data());
         // update the byte to read
         total_bytes_to_read = buffer_size;
+
+        try
+        {
+            outBuffer.reserve(buffer_size);
+        }
+        catch(std::exception& e)
+        {
+            SAFE_LOG_EXCEPTION("reserve memory for reading value");
+            throw;
+        }
     }
 
     // read as much as possible in outbuffer
@@ -765,8 +800,16 @@ unsigned int pstate::data_node::read_value(const ByteArray& offset,
         (total_bytes_to_read < bytes_to_endof_data ? total_bytes_to_read : bytes_to_endof_data);
     pdo::error::ThrowIf<pdo::error::ValueError>(
         bytes_to_read + cursor > data_.size(), "data node, bytes_to_read overflows");
-    outBuffer.insert(
-        outBuffer.end(), data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
+    try
+    {
+        outBuffer.insert(
+            outBuffer.end(), data_.begin() + cursor, data_.begin() + cursor + bytes_to_read);
+    }
+    catch(std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("read value");
+        throw;
+    }
     // update to total bytes that are still left to read
     total_bytes_to_read -= bytes_to_read;
     return total_bytes_to_read;  // if 0, read is complete, otherwise it must continue with the next
@@ -1091,7 +1134,15 @@ void pdo::state::block_warehouse::update_datablock_id(
 
 void pdo::state::block_warehouse::add_block_id(pstate::StateBlockId& id)
 {
-    blockIds_.push_back(id);
+    try
+    {
+        blockIds_.push_back(id);
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("block_warehouse::add_block_id");
+        throw;
+    }
 }
 
 void pdo::state::block_warehouse::remove_empty_block_ids()
@@ -1111,7 +1162,15 @@ void pdo::state::block_warehouse::remove_empty_block_ids()
 
 void pdo::state::block_warehouse::add_datablock_id(pstate::StateBlockId& id)
 {
-    blockIds_.push_back(id);
+    try
+    {
+        blockIds_.push_back(id);
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG_EXCEPTION("block_warehouse::add_datablock_id");
+        throw;
+    }
 }
 
 void pdo::state::block_warehouse::get_datablock_id_from_datablock_num(
