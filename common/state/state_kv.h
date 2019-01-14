@@ -248,6 +248,7 @@ namespace state
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
+            const ByteArray& in_value,
             ByteArray& value,
             block_offset& outBlockOffset);
         static void do_operate_trie_next(data_node_io& dn_io,
@@ -255,6 +256,7 @@ namespace state
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
+            const ByteArray& in_value,
             ByteArray& value,
             block_offset& outBlockOffset);
 
@@ -281,12 +283,14 @@ namespace state
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
+            const ByteArray& in_value,
             ByteArray& value,
             block_offset& outBlockOffset);
         static void init_trie_root(data_node_io& dn_io);
         static void operate_trie_root(data_node_io& dn_io,
             const kv_operation_e operation,
             const ByteArray& kvkey,
+            const ByteArray& in_value,
             ByteArray& value);
     };
 
