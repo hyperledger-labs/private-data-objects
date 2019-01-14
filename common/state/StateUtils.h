@@ -25,17 +25,12 @@ namespace state
     class StateNode
     {
     protected:
-        pdo::state::StateBlockId* blockId_;
-        pdo::state::StateBlock* stateBlock_;
-        pdo::state::StateBlockIdRefArray ChildrenArray_ = {};
+        pdo::state::StateBlockId blockId_;
+        pdo::state::StateBlock stateBlock_;
+        pdo::state::StateBlockIdArray ChildrenArray_ = {};
         bool hasParent_ = false;
 
     public:
-        StateNode();
-        ~StateNode();
-        StateNode(pdo::state::StateBlockId& blockId, pdo::state::StateBlock& stateBlock);
-        bool Valid();
-        void ReIdentify();
         pdo::state::StateBlockId& GetBlockId();
         pdo::state::StateBlock& GetBlock();
 
@@ -44,9 +39,7 @@ namespace state
         void SetHasParent();
         void BlockifyChildren();
         void UnBlockifyChildren();
-        pdo::state::StateBlockIdRefArray GetChildrenBlocks();
-        pdo::state::StateBlockIdRef LookupChild(pdo::state::StateBlockId& childId);
-        pdo::state::StateBlockIdRef LookupChildiByIndex(unsigned int index);
+        pdo::state::StateBlockIdArray GetChildrenBlocks();
         void ClearChildren();
     };
 

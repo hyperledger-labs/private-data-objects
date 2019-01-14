@@ -1073,8 +1073,7 @@ void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode& nod
 void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode& node)
 {
     node.UnBlockifyChildren();
-    StateBlockIdRefArray refArray = node.GetChildrenBlocks();
-    blockIds_ = StateBlockIdRefArray_To_StateBlockIdArray(refArray);
+    blockIds_ = node.GetChildrenBlocks();
 }
 
 void pdo::state::block_warehouse::update_block_id(
