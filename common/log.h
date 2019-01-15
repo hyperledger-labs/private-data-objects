@@ -16,7 +16,7 @@
 #pragma once
 
 #define SAFE_LOG(LEVEL, FMT, ...)
-#define SAFE_LOGV(LEVEL, FMT, ...)
+#define SAFE_LOG1(LEVEL, MSG)
 
 #if _UNTRUSTED_
 #include "pdo_error.h"

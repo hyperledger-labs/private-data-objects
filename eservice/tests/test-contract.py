@@ -289,13 +289,15 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                 total_tests += 1
                 update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
                 update_response = update_request.evaluate()
+                result = update_response.result[:15] + (len(update_response.result) >= 15 and "..." or "")
+
                 if update_response.status is False :
-                    if test['invert'] and test['invert'] != 'fail' :
+                    if test['invert'] is None or test['invert'] != 'fail' :
                         total_failed += 1
-                    logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
+                    logger.info('failed: {0} --> {1}'.format(expression, result))
                     continue
 
-                logger.info('{0} --> {1}'.format(expression, update_response.result))
+                logger.info('{0} --> {1}'.format(expression, result))
 
                 if test['expected'] and not re.match(test['expected'], update_response.result) :
                     total_failed += 1

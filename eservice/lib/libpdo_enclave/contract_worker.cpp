@@ -35,11 +35,12 @@ void ContractWorker::InitializeInterpreter(void)
 
     if (current_state_ == INTERPRETER_DONE)
     {
-        if (interpreter_ != NULL) {
-            delete interpreter_;
+        if (interpreter_ == NULL) {
+            interpreter_ = new GipsyInterpreter();
+        } else {
+            interpreter_->Initialize();
         }
 
-        interpreter_ = new GipsyInterpreter();
         current_state_ = INTERPRETER_READY;
         sgx_thread_cond_signal(&ready_cond_);
     }
@@ -56,6 +57,11 @@ void ContractWorker::WaitForCompletion(void)
     {
         sgx_thread_cond_wait(&done_cond_, &mutex_);
     }
+
+    // doing this asynchronously might create some non-determinism around
+    // memory allocation... need to watch
+    if (interpreter_ != NULL)
+        interpreter_->Finalize();
 
     sgx_thread_mutex_unlock(&mutex_);
 }

@@ -25,15 +25,15 @@
 
 namespace pc = pdo::contracts;
 
-#define MAX_RESULT_SIZE 16000
-#define MAX_STATE_SIZE 64000
+#define MAX_RESULT_SIZE 1<<14
+#define MAX_STATE_SIZE 1<<17
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class GipsyInterpreter : public pc::ContractInterpreter
 {
 private:
     std::string error_msg_;
-    scheme interpreter_;
+    scheme *interpreter_ = NULL;
 
     //Convention: we use the key "IntrinsicState" key to store the value
     const std::string intrinsic_state_key_ = "IntrinsicState";
@@ -81,7 +81,9 @@ public:
         std::string& outMessageResult
         );
 
-    GipsyInterpreter(void);
+    void Finalize(void);
+    void Initialize(void);
 
+    GipsyInterpreter(void);
     ~GipsyInterpreter(void);
 };

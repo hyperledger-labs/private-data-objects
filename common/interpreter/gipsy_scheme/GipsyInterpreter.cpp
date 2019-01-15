@@ -32,6 +32,7 @@
 #include "GipsyInterpreter.h"
 #include "SchemeExtensions.h"
 
+#include "safe_malloc.h"
 #include "package.h"
 #include "timer.h"
 #include "zero.h"
@@ -55,37 +56,6 @@ namespace pstate = pdo::state;
 #define symprop(p)	cdr(p)
 
 #define strvalue(p)      ((p)->_object._string._svalue)
-
-std::map<uint64_t, size_t> safe_malloc_map;
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void *safe_malloc_for_scheme(size_t request)
-{
-    void *ptr = malloc(request);
-    if (ptr == NULL)
-    {
-        SAFE_LOG(PDO_LOG_WARNING, "gipsy memory allocation failed");
-        return ptr;
-    }
-
-    safe_malloc_map[(uint64_t)ptr] = request;
-
-    return ptr;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void safe_free_for_scheme(void* ptr)
-{
-    std::map<uint64_t, size_t>::iterator it = safe_malloc_map.find((uint64_t)ptr);
-    if (it == safe_malloc_map.end())
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "attempt to free memory not allocated");
-        return;
-    }
-
-    safe_malloc_map.erase(it);
-    free(ptr);
-}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static void clear_output_buffer(scheme *sc)
@@ -229,39 +199,38 @@ static void gipsy_write_to_buffer(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-GipsyInterpreter::~GipsyInterpreter(void)
+void GipsyInterpreter::Finalize(void)
 {
-    scheme* sc = &this->interpreter_;
+    if (interpreter_ == NULL)
+        return;
 
+    scheme* sc = interpreter_;
     scheme_set_external_data(sc, NULL);
     scheme_deinit(sc);
+    pc::safe_free_for_scheme(sc);
 
-    size_t total = 0;
+    pc::reset_safe_memory_allocator();
 
-    std::map<uint64_t, size_t>::iterator it  = safe_malloc_map.begin();
-    while (it != safe_malloc_map.end())
-    {
-        free((void*)it->first);
-        total += it->second;
-        it++;
-    }
-
-    SAFE_LOG(PDO_LOG_DEBUG, "interpreter deallocated; %zu", total);
+    interpreter_ = NULL;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-GipsyInterpreter::GipsyInterpreter(void)
+GipsyInterpreter::~GipsyInterpreter(void)
 {
-    safe_malloc_map.clear();
+    Finalize();
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void GipsyInterpreter::Initialize(void)
+{
+    if (interpreter_ != NULL)
+        return;
+
+    interpreter_ = scheme_init_new_custom_alloc(pc::safe_malloc_for_scheme, pc::safe_free_for_scheme);
+    pe::ThrowIfNull(interpreter_, "failed to create the gipsy scheme interpreter");
 
     /* ---------- Create the interpreter ---------- */
-    scheme* sc = &this->interpreter_;
-
-    //int status = scheme_init(sc);
-    int status = scheme_init_custom_alloc(sc, safe_malloc_for_scheme, safe_free_for_scheme);
-    pe::ThrowIf<pe::RuntimeError>(
-        status == 0,
-        "failed to create the gipsy scheme interpreter");
+    scheme* sc = interpreter_;
 
     /* ---------- Force all output to a string ---------- */
     // it would be nice to be able to prep the size of the
@@ -278,6 +247,22 @@ GipsyInterpreter::GipsyInterpreter(void)
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
         "failed to load the gipsy initialization package");
+
+    /* ---------- Run the garbage collector ---------- */
+    pointer gc_sym = scheme_find_symbol(sc, "gc");
+    pe::ThrowIf<pe::RuntimeError>(gc_sym == sc->NIL, "unable to find gc function symbol");
+
+    pointer gc_fn = cdr(scheme_find_symbol_value(sc, sc->envir, gc_sym));
+    pe::ThrowIf<pe::RuntimeError>(gc_fn == sc->NIL, "unable to find write function definition");
+
+    scheme_call(sc, gc_fn, sc->NIL);
+    pe::ThrowIf<pe::RuntimeError>(sc->retcode != 0, "garbage collection failed");
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+GipsyInterpreter::GipsyInterpreter(void)
+{
+    Initialize();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -285,7 +270,7 @@ void GipsyInterpreter::save_dependencies(
     map<string,string>& outDependencies
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
 
     pointer dlist = gipsy_get_property(sc, ":ledger", "dependencies");
     if (is_pair(dlist)) {
@@ -311,7 +296,7 @@ void GipsyInterpreter::load_contract_code(
     const pc::ContractCode& inContractCode
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
 
     /* ---------- Load contract code ---------- */
     scheme_load_string(sc, inContractCode.Code.c_str(), inContractCode.Code.size());
@@ -325,7 +310,7 @@ void GipsyInterpreter::load_message(
     const pc::ContractMessage& inMessage
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
 
     if (! inMessage.Message.empty())
     {
@@ -365,7 +350,7 @@ void GipsyInterpreter::load_contract_state(
     const StringArray& inIntrinsicState
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
 
     if (inIntrinsicState.size() > 0)
     {
@@ -387,7 +372,7 @@ void GipsyInterpreter::save_contract_state(
     StringArray& outIntrinsicState
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
 
     pointer instance = scheme_find_symbol(sc, "_instance");
     pe::ThrowIf<pe::RuntimeError>(instance == sc->NIL, "unable to find contract instance");
@@ -420,7 +405,8 @@ void GipsyInterpreter::create_initial_contract_state(
     pdo::state::Basic_KV_Plus* inoutContractState
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
+    pe::ThrowIfNull(sc, "interpreter has not been initialized");
 
     // the message is not currently used though we should consider
     // how it can be implemented, throug the create-object-instance fn
@@ -487,6 +473,8 @@ void GipsyInterpreter::create_initial_contract_state(
         throw;
     }
 
+    pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
+
     try {
         // there is a big copy happening here, might be able to remove the copy
         // by making the byte array's constants, or possible make the intrinsic
@@ -514,7 +502,8 @@ void GipsyInterpreter::send_message_to_contract(
     std::string& outMessageResult
     )
 {
-    scheme* sc = &this->interpreter_;
+    scheme* sc = interpreter_;
+    pe::ThrowIfNull(sc, "interpreter has not been initialized");
 
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
     const Base64EncodedString state_hash = ByteArrayToBase64EncodedString(inContractStateHash);
@@ -621,6 +610,8 @@ void GipsyInterpreter::send_message_to_contract(
             SAFE_LOG_EXCEPTION("serialize contract state");
             throw;
         }
+
+        pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
 
         // there is a big copy happening here, might be able to remove the copy
         // by making the byte array's constants, or possible make the intrinsic

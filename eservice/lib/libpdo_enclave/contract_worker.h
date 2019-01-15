@@ -45,6 +45,11 @@ public:
 
     long thread_id_;
     ContractWorker(long thread_id);
+    ~ContractWorker(void)
+    {
+        if (interpreter_ != NULL)
+            delete interpreter_;
+    }
 
     void InitializeInterpreter(void);
     void WaitForCompletion(void);
