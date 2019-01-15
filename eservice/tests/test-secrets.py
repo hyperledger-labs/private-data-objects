@@ -34,6 +34,18 @@ logger = logging.getLogger(__name__)
 
 import pdo.common.config as pconfig
 
+# -----------------------------------------------------------------
+def ErrorShutdown() :
+    """
+    Perform a clean shutdown after an error
+    """
+    try :
+        enclave_helper.shutdown()
+    except Exception as e :
+        logger.exception('shutdown failed')
+
+    sys.exit(-1)
+
 ## -----------------------------------------------------------------
 ContractHost = os.environ.get("HOSTNAME", "localhost")
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
@@ -74,7 +86,7 @@ try :
     config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
 except pconfig.ConfigurationException as e :
     logger.error(str(e))
-    sys.exit(-1)
+    ErrorShutdown()
 
 contract_creator_keys = keys.ServiceKeys.create_service_keys()
 contract_creator_id = contract_creator_keys.identity
@@ -112,7 +124,7 @@ def test_secrets(secret_count) :
 
     except :
         logger.exception('failed to create the state encryption key')
-        sys.exit(-1)
+        ErrorShutdown()
 
     try :
         if not secrets.verify_state_encryption_key_signature(
@@ -120,7 +132,7 @@ def test_secrets(secret_count) :
             raise RuntimeError('signature verification failed')
     except :
         logger.exception('failed to verify the state encryption key')
-        sys.exit(-1)
+        ErrorShutdown()
 
     logger.debug('encrypted state encryption key: %s', encrypted_state_encryption_key)
 
@@ -143,7 +155,7 @@ logger.info('expected error: there must be at least one secret provided')
 try:
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, [])
     logger.error('failed to catch empty secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -157,7 +169,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -171,7 +183,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -185,7 +197,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -199,7 +211,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -215,7 +227,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -229,7 +241,7 @@ try:
 
     secretinfo = enclave_client.verify_secrets(bad_contract_id, contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
 
@@ -246,6 +258,10 @@ try:
 
     secretinfo = enclave_client.verify_secrets(contract_id, bad_contract_creator_id, secret_list)
     logger.error('failed to catch invalid secret list')
-    sys.exit(-1)
+    ErrorShutdown()
 except :
     pass
+
+# this is necessary for a clean shutdown
+enclave_helper.shutdown()
+sys.exit(0)
