@@ -275,5 +275,113 @@ void test_state_kv() {
         SAFE_LOG(PDO_LOG_ERROR, "success, exception caught for inexistent KV\n");
     }
 
+//################## TEST PUT SAME KEYS INCREASING VALUES ########################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test one key increasing values\n");
+        pstate::State_KV skv(state_encryption_key_);
+        kv_ = &skv;
+        std::string string_key_a("a");
+        std::string string_key_b("b");
+        std::string string_key_c("c");
+        for(int i=1; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_a, big_string);
+        }
+        for(int i=1; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_b, big_string);
+        }
+        for(int i=1; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_c, big_string);
+        }
+        for(int i=10; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_a, big_string);
+        }
+        for(int i=10; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_b, big_string);
+        }
+        for(int i=10; i<=100; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            SAFE_LOG(PDO_LOG_INFO, "Testing put/get value size %lu, string size %lu\n", value_size, big_string.length());
+            _kv_put(string_key_c, big_string);
+        }
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
+        throw;
+    }
+
+//################## TEST DELETE MULTI NODE KEY #######################################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test delete multi node key\n");
+        pstate::State_KV skv(state_encryption_key_);
+        kv_ = &skv;
+        std::string string_key_a("12345678901234567890123456789012345678901234567890");
+        std::string string_value("ciao");
+        _kv_put(string_key_a, string_value);
+        _kv_delete(string_key_a);
+        _kv_put(string_key_a, string_value);
+        _kv_delete(string_key_a);
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
+        throw;
+    }
+
+//################## TEST PUT AND DELETE INCREASING KEY AND VALUES ####################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test put/delete increasing keys and values\n");
+        pstate::State_KV skv(state_encryption_key_);
+        kv_ = &skv;
+        for(int i=1; i<=1000; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            _kv_put(big_string, big_string);
+        }
+        kv_->Finalize(id);
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
+        throw;
+    }
+
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "reopen kv to delete keys and values\n");
+        pstate::State_KV skv(id, state_encryption_key_);
+        kv_ = &skv;
+        for(int i=1; i<=1000; i++) {
+            size_t value_size = i;
+            std::string big_string(value_size, 'a');
+            _kv_delete(big_string);
+        }
+        kv_->Finalize(id);
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
+        throw;
+    }
+
     SAFE_LOG(PDO_LOG_INFO, "Test success.\n");
 }
