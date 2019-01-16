@@ -25,7 +25,6 @@
 
 namespace pc = pdo::contracts;
 
-#define MAX_RESULT_SIZE 1<<14
 #define MAX_STATE_SIZE 1<<17
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -49,11 +48,11 @@ private:
         );
 
     void load_contract_state(
-        const StringArray& inIntrinsicState
+        const ByteArray& inIntrinsicState
         );
 
     void save_contract_state(
-        StringArray& outIntrinsicState
+        ByteArray& outIntrinsicState
         );
 
     void save_dependencies(

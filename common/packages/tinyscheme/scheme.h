@@ -119,8 +119,9 @@ extern "C" {
 typedef struct scheme scheme;
 typedef struct cell *pointer;
 
-typedef void * (*func_alloc)(size_t);
+typedef void* (*func_alloc)(size_t);
 typedef void (*func_dealloc)(void *);
+typedef void* (*func_realloc)(void *, size_t);
 
 /* num, for generic arithmetic */
 typedef struct num {
@@ -138,9 +139,9 @@ SCHEME_EXPORT int api_create_ledger(const char *cname, const char *contract,
                                     char *reusltbuf, char *statebuf, size_t bufsize);
 
 SCHEME_EXPORT scheme *scheme_init_new();
-SCHEME_EXPORT scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free);
+SCHEME_EXPORT scheme *scheme_init_new_custom_alloc(func_alloc, func_dealloc, func_realloc);
 SCHEME_EXPORT int scheme_init(scheme *sc);
-SCHEME_EXPORT int scheme_init_custom_alloc(scheme *sc, func_alloc, func_dealloc);
+SCHEME_EXPORT int scheme_init_custom_alloc(scheme *sc, func_alloc, func_dealloc, func_realloc);
 SCHEME_EXPORT void scheme_deinit(scheme *sc);
 //void scheme_set_input_port_file(scheme *sc, FILE *fin);
 void scheme_set_input_port_string(scheme *sc, char *start, char *past_the_end);

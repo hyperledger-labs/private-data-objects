@@ -1175,6 +1175,7 @@ static char *store_string(scheme * sc, int len_str, const char *str,
     }
     if (str != 0) {
 	snprintf(q, len_str + 1, "%s", str);
+        q[len_str] = 0;
     } else {
 	memset(q, fill, len_str);
 	q[len_str] = 0;
@@ -1791,17 +1792,17 @@ static int realloc_port_string(scheme * sc, port * p)
     char *start = p->rep.string.start;
     size_t old_size = p->rep.string.past_the_end - start;
     size_t new_size = old_size * 2;
-    char *str = (char *) sc->malloc(new_size);
+
+    /* realloc will handle copying the first part of the string */
+    char *str = (char *) sc->realloc(start, new_size);
     if (str) {
-	memset(str, 0, new_size);
-	strncpy(str, start, old_size);
+        memset(str + old_size, 0, new_size - old_size);
 	p->rep.string.start = str;
 	p->rep.string.past_the_end = str + new_size;
 	p->rep.string.curr = str + old_size;
-	sc->free(start);
-	return 1;
+        return 1;
     } else {
-	return 0;
+        return 0;
     }
 }
 
@@ -2666,8 +2667,7 @@ static void s_save(scheme * sc, enum scheme_opcodes op, pointer args,
     /* enough room for the next frame? */
     if (nframes >= sc->dump_size) {
 	sc->dump_size += STACK_GROWTH;
-	/* alas there is no sc->realloc */
-	sc->dump_base = realloc(sc->dump_base,
+	sc->dump_base = sc->realloc(sc->dump_base,
 				sizeof(struct dump_stack_frame) *
 				sc->dump_size);
     }
@@ -4280,24 +4280,15 @@ static pointer opexe_4(scheme * sc, enum scheme_opcodes op)
 
 	    if ((p = car(sc->args)->_object._port)->kind & port_string) {
 		off_t size;
-		char *str;
+                pointer s;
 
 		size = p->rep.string.curr - p->rep.string.start + 1;
-		str = (char *) sc->malloc(size);
-		if (str != NULL) {
-		    pointer s;
-
-		    memcpy(str, p->rep.string.start, size - 1);
-		    str[size - 1] = '\0';
-		    s = mk_string(sc, str);
-		    sc->free(str);
-		    s_return(sc, s);
-		}
+                s = mk_counted_string(sc, p->rep.string.start, size - 1);
+                s_return(sc, s);
 	    }
 	    s_return(sc, sc->F);
 	}
 #endif
-
     case OP_CLOSE_INPORT:	/* close-input-port */
 	port_close(sc, car(sc->args), port_input);
 	s_return(sc, sc->T);
@@ -4999,10 +4990,10 @@ scheme *scheme_init_new()
     }
 }
 
-scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free)
+scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free, func_realloc realloc)
 {
     scheme *sc = (scheme *) malloc(sizeof(scheme));
-    if (!scheme_init_custom_alloc(sc, malloc, free)) {
+    if (!scheme_init_custom_alloc(sc, malloc, free, realloc)) {
 	free(sc);
 	return 0;
     } else {
@@ -5013,11 +5004,10 @@ scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free)
 
 int scheme_init(scheme * sc)
 {
-    return scheme_init_custom_alloc(sc, malloc, free);
+    return scheme_init_custom_alloc(sc, malloc, free, realloc);
 }
 
-int scheme_init_custom_alloc(scheme * sc, func_alloc malloc,
-			     func_dealloc free)
+int scheme_init_custom_alloc(scheme * sc, func_alloc malloc, func_dealloc free, func_realloc realloc)
 {
     int i, n = sizeof(dispatch_table) / sizeof(dispatch_table[0]);
     pointer x;
@@ -5033,6 +5023,7 @@ int scheme_init_custom_alloc(scheme * sc, func_alloc malloc,
     sc->gensym_cnt = 0;
     sc->malloc = malloc;
     sc->free = free;
+    sc->realloc = realloc;
     sc->last_cell_seg = -1;
 
     sc->sink = &sc->_sink;

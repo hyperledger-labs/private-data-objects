@@ -25,6 +25,7 @@ namespace pdo
     namespace contracts
     {
         void *safe_malloc_for_scheme(size_t request);
+        void *safe_realloc_for_scheme(void* ptr, size_t request);
         void safe_free_for_scheme(void* ptr);
         void reset_safe_memory_allocator(void);
     };

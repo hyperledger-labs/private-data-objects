@@ -69,7 +69,7 @@ static void clear_output_buffer(scheme *sc)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static void copy_output_buffer(
     scheme *sc,
-    StringArray& output
+    ByteArray& output
     )
 {
     port *pt = sc->outport->_object._port;
@@ -179,7 +179,7 @@ static pointer gipsy_get_property(
 static void gipsy_write_to_buffer(
     scheme *sc,
     pointer value,
-    StringArray& output
+    ByteArray& output
     )
 {
     clear_output_buffer(sc);
@@ -226,7 +226,7 @@ void GipsyInterpreter::Initialize(void)
     if (interpreter_ != NULL)
         return;
 
-    interpreter_ = scheme_init_new_custom_alloc(pc::safe_malloc_for_scheme, pc::safe_free_for_scheme);
+    interpreter_ = scheme_init_new_custom_alloc(pc::safe_malloc_for_scheme, pc::safe_free_for_scheme, pc::safe_realloc_for_scheme);
     pe::ThrowIfNull(interpreter_, "failed to create the gipsy scheme interpreter");
 
     /* ---------- Create the interpreter ---------- */
@@ -347,7 +347,7 @@ void GipsyInterpreter::load_message(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::load_contract_state(
-    const StringArray& inIntrinsicState
+    const ByteArray& inIntrinsicState
     )
 {
     scheme* sc = interpreter_;
@@ -355,7 +355,7 @@ void GipsyInterpreter::load_contract_state(
     if (inIntrinsicState.size() > 0)
     {
         /* ---------- Load contract state ---------- */
-        scheme_load_string(sc, inIntrinsicState.data(), inIntrinsicState.size());
+        scheme_load_string(sc, reinterpret_cast<const char*>(inIntrinsicState.data()), inIntrinsicState.size());
         pe::ThrowIf<pe::RuntimeError>(
             sc->retcode != 0,
             "failed to load the contract state");
@@ -369,7 +369,7 @@ void GipsyInterpreter::load_contract_state(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::save_contract_state(
-    StringArray& outIntrinsicState
+    ByteArray& outIntrinsicState
     )
 {
     scheme* sc = interpreter_;
@@ -463,10 +463,9 @@ void GipsyInterpreter::create_initial_contract_state(
     // doesn't have any carry over
     scheme_set_external_data(sc, NULL);
 
-    StringArray intrinsic_state(0);
+    ByteArray intrinsic_state(0);
     try {
         this->save_contract_state(intrinsic_state);
-        //SAFE_LOG(PDO_LOG_DEBUG, "output intrinsic state: %s\n", intrinsic_state.str().c_str());
     }
     catch (std::exception& e) {
         SAFE_LOG_EXCEPTION("serialize initial contract state");
@@ -476,12 +475,8 @@ void GipsyInterpreter::create_initial_contract_state(
     pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
 
     try {
-        // there is a big copy happening here, might be able to remove the copy
-        // by making the byte array's constants, or possible make the intrinsic
-        // state a byte array rather than a string array
         ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
-        inoutContractState->PrivilegedPut(k, v);
+        inoutContractState->PrivilegedPut(k, intrinsic_state);
     }
     catch (std::exception& e) {
         SAFE_LOG_EXCEPTION("save initial contract state");
@@ -529,15 +524,10 @@ void GipsyInterpreter::send_message_to_contract(
     scheme_set_external_data(sc, inoutContractState);
 
     try {
-        StringArray intrinsic_state(0);
-        {
-            //Convention: we use the "IntrinsicState" key to store the value
-            ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            ByteArray v(inoutContractState->PrivilegedGet(k));
-            ByteArrayToStringArray(v, intrinsic_state);
-        }
+        //Convention: we use the "IntrinsicState" key to store the value
+        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
+        ByteArray intrinsic_state(inoutContractState->PrivilegedGet(k));
 
-        SAFE_LOG(PDO_LOG_DEBUG, "incoming intrinsic state size: %zu", intrinsic_state.size());
         this->load_contract_state(intrinsic_state);
     }
     catch (std::exception& e) {
@@ -584,9 +574,9 @@ void GipsyInterpreter::send_message_to_contract(
 
     /* write the result into the result buffer */
     try {
-        StringArray result(0);
+        ByteArray result(0);
         gipsy_write_to_buffer(sc, rexpr, result);
-        outMessageResult = result.str();
+        outMessageResult = ByteArrayToString(result);
     }
     catch (std::exception& e) {
         SAFE_LOG_EXCEPTION("save contract result");
@@ -601,10 +591,9 @@ void GipsyInterpreter::send_message_to_contract(
     pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
     if (_immutable == sc->NIL) {
         // serialize
-        StringArray intrinsic_state(0);
+        ByteArray intrinsic_state(0);
         try {
             this->save_contract_state(intrinsic_state);
-            SAFE_LOG(PDO_LOG_DEBUG, "outgoing intrinsic state size: %zu", intrinsic_state.size());
         }
         catch (std::exception& e) {
             SAFE_LOG_EXCEPTION("serialize contract state");
@@ -613,14 +602,9 @@ void GipsyInterpreter::send_message_to_contract(
 
         pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
 
-        // there is a big copy happening here, might be able to remove the copy
-        // by making the byte array's constants, or possible make the intrinsic
-        // state a byte array rather than a string array
         try {
             ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            ByteArray v(intrinsic_state.begin(), intrinsic_state.end());
-            intrinsic_state.resize(0);
-            inoutContractState->PrivilegedPut(k, v);
+            inoutContractState->PrivilegedPut(k, intrinsic_state);
         }
         catch (std::exception& e) {
             SAFE_LOG_EXCEPTION("save intrinsic state");

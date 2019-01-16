@@ -56,6 +56,37 @@ void *pdo::contracts::safe_malloc_for_scheme(size_t request)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void *pdo::contracts::safe_realloc_for_scheme(void* oldptr, size_t request)
+{
+    // find the old pointer in the memory map and remove it
+    std::map<uint64_t, size_t>::iterator it = safe_malloc_map.find((uint64_t)oldptr);
+    if (it == safe_malloc_map.end())
+    {
+        SAFE_LOG1(PDO_LOG_ERROR, "attempt to reallocate memory not allocated");
+        return NULL;
+    }
+
+    total_allocation -= it->second;
+    safe_malloc_map.erase(it);
+
+    // reallocate and update memory based on the new pointer
+    void *newptr = realloc(oldptr, request);
+    if (newptr == NULL)
+    {
+        SAFE_LOG1(PDO_LOG_WARNING, "gipsy memory allocation failed");
+        return newptr;
+    }
+
+    safe_malloc_map[(uint64_t)newptr] = request;
+    total_allocation += request;
+
+    if (high_water_mark < total_allocation)
+        high_water_mark = total_allocation;
+
+    return newptr;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void pdo::contracts::safe_free_for_scheme(void* ptr)
 {
     std::map<uint64_t, size_t>::iterator it = safe_malloc_map.find((uint64_t)ptr);

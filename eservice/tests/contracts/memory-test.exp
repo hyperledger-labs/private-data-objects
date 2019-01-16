@@ -13,20 +13,15 @@
 '(deep-recursion 1000),1000
 # deep recursion tests
 '(clear-state)
-'(deep-recursion 2000),2000
-'(deep-recursion 3000),3000
-'(deep-recursion 4000),4000
-'(deep-recursion 5000),5000
-'(deep-recursion 6000),6000
-'(deep-recursion 7000),7000
-'(deep-recursion 8000),8000
-'(deep-recursion 9000),9000
 '(deep-recursion 10000),10000
 '(deep-recursion 11000),11000
 '(deep-recursion 12000),12000
 '(deep-recursion 13000),13000
 '(deep-recursion 14000),14000
 '(deep-recursion 15000),excessive memory use,fail
+'(deep-recursion 16000),excessive memory use,fail
+'(deep-recursion 17000),excessive memory use,fail
+'(deep-recursion 18000),excessive memory use,fail
 # run one deep recursion test to make sure the enclave is not corrupted
 '(deep-recursion 1000),1000
 # the quotes around the string are part of the result
