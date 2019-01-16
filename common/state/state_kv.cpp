@@ -172,6 +172,32 @@ bool pstate::free_space_collector::are_adjacent(const block_offset_t& bo1, const
     return (bo == bo2);
 }
 
+void pstate::free_space_collector::insert_free_space_item(std::vector<free_space_item_t>::iterator& it, free_space_item_t& fsi)
+{
+    //first check if it can merge with previous
+    if(it != free_space_collection.begin())
+    {
+        auto prev_it = std::prev(it);
+        if(are_adjacent(prev_it->bo, prev_it->length, fsi.bo))
+        {
+            //update item to be inserted
+            fsi.bo = prev_it->bo;
+            fsi.length += prev_it->length;
+            //remove previous item
+            it = free_space_collection.erase(prev_it);
+        }
+    }
+    //also, check if it can merge with current
+    if(it != free_space_collection.end() && are_adjacent(fsi.bo, fsi.length, it->bo))
+    {
+        //item to be inserted is the same, just increase length
+        fsi.length += it->length;
+        it = free_space_collection.erase(it);
+    }
+    //any merge done, now insert
+    free_space_collection.insert(it, fsi);
+}
+
 void pstate::free_space_collector::collect(const block_offset_t& bo, const unsigned int& length)
 {
     if(length ==0) // nothing to collect
@@ -179,42 +205,23 @@ void pstate::free_space_collector::collect(const block_offset_t& bo, const unsig
         return;
     }
 
-    for(auto it = free_space_collection.begin(); ; it++)
-    {
-        if(it == free_space_collection.end() || //if end of vector is reached
-            (bo.block_num < it->bo.block_num || //or the item location preceeds the current one, insert!
-            (bo.block_num == it->bo.block_num && bo.bytes < it->bo.bytes)))
-        {
-            //the bo should be placed at this point
-            free_space_item_t fsi = {bo, length};
+    free_space_item_t fsi = {bo, length}; 
+    std::vector<free_space_item_t>::iterator it;
 
-            //first check if it can merge with previous
-            if(it != free_space_collection.begin())
-            {
-                auto prev_it = std::prev(it);
-                if(are_adjacent(prev_it->bo, prev_it->length, fsi.bo))
-                {
-                    //update item to be inserted
-                    fsi.bo = prev_it->bo;
-                    fsi.length += prev_it->length;
-                    //remove previous item
-                    it = free_space_collection.erase(prev_it);
-                }
-            }
-            //also, check if it can merge with current
-            if(it != free_space_collection.end() && are_adjacent(fsi.bo, fsi.length, it->bo))
-            {
-                //item to be inserted is the same, just increase length
-                fsi.length += it->length;
-                it = free_space_collection.erase(it);
-            }
-            //any merge done, now insert
-            free_space_collection.insert(it, fsi);
-            break;
+    for(it = free_space_collection.begin(); it != free_space_collection.end(); it++)
+    {
+        if(bo.block_num < it->bo.block_num || //if the item location preceeds the current one, insert!
+            (bo.block_num == it->bo.block_num && bo.bytes < it->bo.bytes))
+        {
+            insert_free_space_item(it, fsi);
+            return;
         }
 
         //no insert, go to next
     }
+
+    // no merge in loop, then insert/merge at end of vector
+    insert_free_space_item(it, fsi);
 }
 
 bool pstate::free_space_collector::allocate(const unsigned int& length, block_offset_t& out_bo)

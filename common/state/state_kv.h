@@ -202,6 +202,7 @@ namespace state
     private:
         std::vector<free_space_item_t> free_space_collection;
         bool are_adjacent(const block_offset_t& bo1, const unsigned& length1, const block_offset_t& bo2);
+        void insert_free_space_item(std::vector<free_space_item_t>::iterator& it, free_space_item_t& fsi);
     public:
         void collect(const block_offset_t& bo, const unsigned int& length);
         bool allocate(const unsigned int& length, block_offset_t& out_bo);
