@@ -526,7 +526,8 @@ void pstate::trie_node::operate_trie(data_node_io& dn_io,
 
     if (spl == 0)
     {  // no match, so either go next or EOS matched
-        if (depth < kvkey.size())
+        //if right depth has not been reached OR (it has been reached but) the current trie is not EOS, go next
+        if (depth < kvkey.size() || current_tnh->keyChunkSize > 0)
         {  // no match, go next
             do_operate_trie_next(
                 dn_io, current_tnh, operation, depth, kvkey, in_value, out_value, outBlockOffset);
