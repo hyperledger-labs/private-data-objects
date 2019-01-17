@@ -13,5 +13,7 @@
 # limitations under the License.
 
 __all__ = [
-    'helpers'
+    'helpers',
+    'contract',
+    'request',
 ]

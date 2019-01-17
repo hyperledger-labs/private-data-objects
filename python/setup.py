@@ -99,8 +99,14 @@ setup(name='pdo_common_library',
       data_files=data_files,
       namespace_packages=['pdo'],
       ext_modules=[cryptomod],
-      entry_points={}
-      )
+      entry_points = {
+          'console_scripts': [
+              'pdo-test-contract = pdo.test.contract:Main',
+              'pdo-test-request = pdo.test.request:Main',
+              'pdo-test-secrets = pdo.test.secrets:Main',
+          ]
+      }
+)
 
 if "clean" in sys.argv and "--all" in sys.argv:
     directory = os.path.dirname(os.path.realpath(__file__))

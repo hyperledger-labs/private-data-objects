@@ -1,6 +1,0 @@
-# malformed input
-'(inc-value, "", fail
-# unknown method
-'(get-unknown-value), "", fail
-# invalid types
-'(depends ((5 "9WCZbOvTilcCu97BdK9e3BrG1ElbK/ARXRpI9rKErQE="))), "", fail

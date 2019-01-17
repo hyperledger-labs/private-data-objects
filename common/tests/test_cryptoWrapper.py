@@ -16,13 +16,13 @@ import pdo.common.crypto as crypto
 import logging
 import sys
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARN)
 logger = logging.getLogger()
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARN)
 # TEST ECDSA
 try:
  esk = crypto.SIG_PrivateKey()
- esk.Generate()   
+ esk.Generate()
  epk = esk.GetPublicKey()
 except Exception as exc:
  logger.error("ERROR: Signature Private and Public keys generation test failed: ", exc)
@@ -37,7 +37,7 @@ try:
  eskString1 = esk1.Serialize()
  epkString1 = epk1.Serialize()
  esk2 = crypto.SIG_PrivateKey()
- esk2.Generate()   
+ esk2.Generate()
  epk2 = crypto.SIG_PublicKey(esk2)
  eskString = esk.Serialize()
  esk2.Deserialize(eskString1)
