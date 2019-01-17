@@ -67,9 +67,7 @@
 '(many-keys 8000 (key-base "d") (value "v")), #t
 '(many-keys 16000 (key-base "e") (value "v")), #t
 '(many-keys 32000 (key-base "f") (value "v")), #t
-# NOTE: the next two tests currently fail because the cache is not
-# really a cache, once that update is complete then reenable this test
-#'(many-keys 64000 (key-base "g") (value "v")), #t
-#'(many-keys 64000 (key-base "g") (value "n")), #t
+'(many-keys 64000 (key-base "g") (value "v")), #t
+'(many-keys 64000 (key-base "g") (value "n")), #t
 # run one deep recursion test to make sure the enclave is not corrupted
 '(deep-recursion 1000),1000
