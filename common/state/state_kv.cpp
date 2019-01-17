@@ -204,20 +204,14 @@ void pstate::free_space_collector::insert_free_space_item(std::vector<free_space
     free_space_collection.insert(it, fsi);
 }
 
-void pstate::free_space_collector::collect(const block_offset_t& bo, const unsigned int& length)
+void pstate::free_space_collector::do_collect(free_space_item_t& fsi)
 {
-    if(length ==0) // nothing to collect
-    {
-        return;
-    }
-
-    free_space_item_t fsi = {bo, length}; 
     std::vector<free_space_item_t>::iterator it;
 
     for(it = free_space_collection.begin(); it != free_space_collection.end(); it++)
     {
-        if(bo.block_num < it->bo.block_num || //if the item location preceeds the current one, insert!
-            (bo.block_num == it->bo.block_num && bo.bytes < it->bo.bytes))
+        if(fsi.bo.block_num < it->bo.block_num || //if the item location preceeds the current one, insert!
+            (fsi.bo.block_num == it->bo.block_num && fsi.bo.bytes < it->bo.bytes))
         {
             insert_free_space_item(it, fsi);
             return;
@@ -228,11 +222,44 @@ void pstate::free_space_collector::collect(const block_offset_t& bo, const unsig
 
     // no merge in loop, then insert/merge at end of vector
     insert_free_space_item(it, fsi);
+
+    is_collection_modified = true;
+}
+
+void pstate::free_space_collector::collect(const block_offset_t& bo, const unsigned int& length)
+{
+    if(length ==0) // nothing to collect
+    {
+        return;
+    }
+
+    if(is_fsi_deferred)
+    {
+        do_collect(deferred_fsi);
+        is_fsi_deferred = false;
+    }
+
+    deferred_fsi = {bo, length};
+    is_fsi_deferred= true;
 }
 
 bool pstate::free_space_collector::allocate(const unsigned int& length, block_offset_t& out_bo)
 {
     bool space_found = false;
+
+    if(is_fsi_deferred)
+    {
+        is_fsi_deferred=false;
+
+        if(deferred_fsi.length == length)
+        {
+            out_bo = deferred_fsi.bo;
+            return true;
+        }
+
+        //else, collect now and continue with allocation
+        do_collect(deferred_fsi);
+    }
 
     for(auto it = free_space_collection.begin(); it != free_space_collection.end(); it++)
     {
@@ -265,8 +292,19 @@ bool pstate::free_space_collector::allocate(const unsigned int& length, block_of
     return space_found;
 }
 
+bool pstate::free_space_collector::collection_modified()
+{
+    return is_collection_modified;
+}
+
 void pstate::free_space_collector::serialize_in_data_node(data_node &out_dn)
 {
+    if(is_fsi_deferred)
+    {
+        do_collect(deferred_fsi);
+        is_fsi_deferred = false;
+    }
+
     //out_dn must be a dedicated data node, so let us check it is completely free
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         out_dn.free_bytes() != data_node::data_end_index() - data_node::data_begin_index(),
@@ -1187,15 +1225,20 @@ void pstate::data_node_io::initialize(pdo::state::StateNode& node)
     block_warehouse_.deserialize_block_ids(node);
 
     //deserialize free space allocator, and remove last data node
-    block_warehouse_.last_appended_data_block_num_ =
-        block_warehouse_.blockIds_.size() - 1;
-    StateBlockId data_node_id;
-    block_warehouse_.get_datablock_id_from_datablock_num(
-        block_warehouse_.last_appended_data_block_num_, data_node_id);
-    data_node& fsc_dn = cache_retrieve(block_warehouse_.last_appended_data_block_num_, false);
-    free_space_collector_.deserialize_from_data_node(fsc_dn);
-    cache_done(block_warehouse_.last_appended_data_block_num_, false);
-    block_warehouse_.remove_block_id_from_datablock_num(block_warehouse_.last_appended_data_block_num_);
+    {
+        //get the data node of the free space collection
+        block_warehouse_.last_appended_data_block_num_ =
+            block_warehouse_.blockIds_.size() - 1;
+        data_node& fsc_dn = cache_retrieve(block_warehouse_.last_appended_data_block_num_, false);
+        //save the identity of the data node containing it
+        block_warehouse_.get_datablock_id_from_datablock_num(
+            block_warehouse_.last_appended_data_block_num_, free_space_collector_.original_block_id_of_collection);
+        //deserialize the collection
+        free_space_collector_.deserialize_from_data_node(fsc_dn);
+        //rmeove last data node
+        cache_done(block_warehouse_.last_appended_data_block_num_, false);
+        block_warehouse_.remove_block_id_from_datablock_num(block_warehouse_.last_appended_data_block_num_);
+    }
 
     // retrieve last data block num from last appended data block
     block_warehouse_.last_appended_data_block_num_ =
@@ -1505,18 +1548,27 @@ void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode& n
 void pdo::state::block_warehouse::update_block_id(
     pstate::StateBlockId& prevId, pstate::StateBlockId& newId)
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        newId.size() != STATE_BLOCK_ID_LENGTH, "bad block id");
+
     std::replace(blockIds_.begin(), blockIds_.end(), prevId, newId);
 }
 
 void pdo::state::block_warehouse::update_datablock_id(
     unsigned int data_block_num, pdo::state::StateBlockId& newId)
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        newId.size() != STATE_BLOCK_ID_LENGTH, "bad block id");
+
     unsigned int index = blockIds_.size() - 1 - last_appended_data_block_num_ + data_block_num;
     blockIds_[index] = newId;
 }
 
 void pdo::state::block_warehouse::add_block_id(pstate::StateBlockId& id)
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        id.size() != STATE_BLOCK_ID_LENGTH, "bad block id");
+
     try
     {
         blockIds_.push_back(id);
@@ -1551,6 +1603,8 @@ void pdo::state::block_warehouse::remove_block_id_from_datablock_num(unsigned in
 
 void pdo::state::block_warehouse::add_datablock_id(pstate::StateBlockId& id)
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        id.size() != STATE_BLOCK_ID_LENGTH, "bad block id");
     try
     {
         blockIds_.push_back(id);
@@ -1610,6 +1664,8 @@ pdo::state::State_KV::State_KV(const ByteArray& key)
         SAFE_LOG_EXCEPTION("create kv error");
         throw;
     }
+
+    kv_start_mode = KV_CREATE;
 }
 
 pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
@@ -1631,15 +1687,27 @@ pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
         SAFE_LOG_EXCEPTION("open kv error");
         throw;
     }
+
+    kv_start_mode = KV_OPEN;
 }
 
 void pdo::state::State_KV::Finalize(ByteArray& outId)
 {
     try
     {
-        //serialize free space collection table
-        dn_io_.add_and_init_append_data_node();
-        dn_io_.free_space_collector_.serialize_in_data_node(*dn_io_.append_dn_);
+        //store the free space collection table IF the kv has been create OR the table has been modified
+        if(kv_start_mode == KV_CREATE || dn_io_.free_space_collector_.collection_modified())
+        {
+            //serialize free space collection table and store it in one data node
+            dn_io_.add_and_init_append_data_node();
+            dn_io_.free_space_collector_.serialize_in_data_node(*dn_io_.append_dn_);
+        }
+        else
+        {
+            // collection table not modified, simply put its original block id in the list
+            dn_io_.block_warehouse_.add_datablock_id(dn_io_.free_space_collector_.original_block_id_of_collection);
+            dn_io_.block_warehouse_.last_appended_data_block_num_++;
+        }
 
         // flush cache first
         dn_io_.cache_flush();
