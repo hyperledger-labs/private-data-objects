@@ -142,6 +142,7 @@ pstate::data_node* pstate::cache_slots::allocate()
         dn_queue_.empty(), "cache full -- cannot allocate additional cache slots, queue empty");
     data_node* d = dn_queue_.front();
     dn_queue_.pop();
+
     return d;
 }
 
@@ -160,6 +161,11 @@ void pstate::cache_slots::release(data_node** dn)
     }
     // delete original pointer
     *dn = NULL;
+}
+
+unsigned int pstate::cache_slots::available_slots()
+{
+    return dn_queue_.size();
 }
 
 bool pstate::free_space_collector::are_adjacent(const block_offset_t& bo1, const unsigned& length1, const block_offset_t& bo2)
@@ -1197,7 +1203,6 @@ void pstate::data_node_io::initialize(pdo::state::StateNode& node)
     free_space_collector_.deserialize_from_data_node(fsc_dn);
     cache_done(block_warehouse_.last_appended_data_block_num_, false);
     block_warehouse_.remove_block_id_from_datablock_num(block_warehouse_.last_appended_data_block_num_);
-    block_warehouse_.last_appended_data_block_num_--;
 
     // retrieve last data block num from last appended data block
     block_warehouse_.last_appended_data_block_num_ =
@@ -1315,6 +1320,9 @@ void pstate::data_node_io::read_across_data_nodes(const block_offset_t& bo_at, u
 
 void pstate::data_node_io::cache_replacement_policy()
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            block_cache_.size() + cache_slots_.available_slots() != BLOCK_CACHE_MAX_ITEMS, "cache replacement, invariant not satisfied");
+
     while (block_cache_.size() >= BLOCK_CACHE_MAX_ITEMS)
     {
         int index_to_remove = -1;
@@ -1408,6 +1416,13 @@ void pstate::data_node_io::cache_sync()
 
 void pstate::data_node_io::cache_put(unsigned int block_num, data_node* dn)
 {
+    //drop the current cache entry (if present)
+    if (block_cache_.count(block_num) != 0)
+    {
+        cache_drop_entry(block_num);
+    }
+
+    //add new cache entry
     block_cache_entry_t bce;
     bce.dn = dn;
     bce.references = 0;

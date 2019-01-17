@@ -184,6 +184,7 @@ namespace state
         cache_slots();
         data_node* allocate();
         void release(data_node** dn);
+        unsigned int available_slots();
 
     private:
         // the data nodes constitute the cache slots
