@@ -762,14 +762,7 @@ void pstate::trie_node::init_trie_root(data_node_io& dn_io)
 {
     ByteArray retOffset;
     ByteArray emptyKey;
-    block_offset_t expected_block_offset = {
-        0, data_node::data_end_index() - dn_io.append_dn_->free_bytes()};
     dn_io.append_dn_->write_trie_node(false, true, true, emptyKey, 0, 0, retOffset);
-    // check
-    block_offset bo;
-    bo.deserialize_offset(retOffset);
-    pdo::error::ThrowIf<pdo::error::RuntimeError>(
-        !(expected_block_offset == bo.block_offset_), "unexpected block offset for trie root");
 }
 
 void pstate::trie_node::operate_trie_root(
@@ -1609,8 +1602,6 @@ pdo::state::State_KV::State_KV(const ByteArray& key)
         // init trie root node in first data node
         trie_node::init_trie_root(dn_io_);
 
-        // add new data node
-        dn_io_.consume_add_and_init_append_data_node();
         // pin in cache the first one
         dn_io_.cache_pin(dn_io_.block_warehouse_.get_root_block_num());
     }
