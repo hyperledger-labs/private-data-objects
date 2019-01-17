@@ -1,17 +1,75 @@
-'(big-state 100 (value "a")), #t
-'(big-state 100 (value "b")), #t
-'(big-state 100 (value "c")), #t
-'(big-state 100 (value "d")), #t
-'(big-state 100 (value "e")), #t
-'(big-state 100 (value "f")), #t
-'(big-state 100 (value "g")), #t
-'(big-state 100 (value "h")), #t
-'(big-state 100 (value "i")), #t
-'(big-state 100 (value "j")), #t
-'(big-state 100 (value "k")), #t
-# this is necessary to clear state or later calls fail
-'(clear-state), #t
-'(deep-recursion 10), 10
-# the quotes around the string are part of the result
-'(big-value 10 (key "big-value") (value-base "b")), "bbbbbbbbbb"
-'(many-keys 10 (key-base "many-keys") (value "m")), #t
+# Copyright 2019 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# -----------------------------------------------------------------
+# TEST: size of intrinsic state
+# -----------------------------------------------------------------
+'(big-state 100 (value "0"))
+'(big-state 110 (value "1"))
+'(big-state 120 (value "2"))
+'(big-state 130 (value "3"))
+'(big-state 140 (value "4"))
+'(big-state 150 (value "5"))
+'(big-state 160 (value "6"))
+'(big-state 170 (value "7"))
+'(big-state 180 (value "8")),intrinsic state size exceeds maximum,fail
+'(big-state 190 (value "9")),intrinsic state size exceeds maximum,fail
+# run one deep recursion test to make sure the enclave is not corrupted
+'(deep-recursion 1000),1000
+
+# -----------------------------------------------------------------
+# TEST: consume memory in the interpreter itself
+# -----------------------------------------------------------------
+'(clear-state)
+'(deep-recursion 10000),10000
+'(deep-recursion 11000),11000
+'(deep-recursion 12000),12000
+'(deep-recursion 13000),13000
+'(deep-recursion 14000),14000
+'(deep-recursion 15000),excessive memory use,fail
+'(deep-recursion 16000),excessive memory use,fail
+'(deep-recursion 17000),excessive memory use,fail
+'(deep-recursion 18000),excessive memory use,fail
+# run one deep recursion test to make sure the enclave is not corrupted
+'(deep-recursion 1000),1000
+
+# -----------------------------------------------------------------
+# TEST: test the key/value store with big values
+# -----------------------------------------------------------------
+# NOTE: the quotes around the string are part of the result
+'(big-value 1000 (key "big-value") (value-base "b")), "b{1000}"
+'(big-value 2000 (key "big-value") (value-base "b")), "b{2000}"
+'(big-value 4000 (key "big-value") (value-base "b")), "b{4000}"
+'(big-value 8000 (key "big-value") (value-base "b")), "b{8000}"
+'(big-value 16000 (key "big-value") (value-base "b")), "b{16000}"
+'(big-value 32000 (key "big-value") (value-base "b")), "b{32000}"
+'(big-value 64000 (key "big-value") (value-base "b")), "b{64000}"
+# run one deep recursion test to make sure the enclave is not corrupted
+'(deep-recursion 1000),1000
+
+# -----------------------------------------------------------------
+# TEST: test the key/value store with many keys
+# -----------------------------------------------------------------
+'(many-keys 1000 (key-base "a") (value "v")), #t
+'(many-keys 2000 (key-base "b") (value "v")), #t
+'(many-keys 4000 (key-base "c") (value "v")), #t
+'(many-keys 8000 (key-base "d") (value "v")), #t
+'(many-keys 16000 (key-base "e") (value "v")), #t
+'(many-keys 32000 (key-base "f") (value "v")), #t
+# NOTE: the next two tests currently fail because the cache is not
+# really a cache, once that update is complete then reenable this test
+#'(many-keys 64000 (key-base "g") (value "v")), #t
+#'(many-keys 64000 (key-base "g") (value "n")), #t
+# run one deep recursion test to make sure the enclave is not corrupted
+'(deep-recursion 1000),1000

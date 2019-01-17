@@ -111,6 +111,10 @@ yell start simple key value store test
 try python test-contract.py --no-ledger --contract key-value-test \
      --logfile __screen__ --loglevel warn
 
+yell start memory test
+try python test-contract.py --no-ledger --contract memory-test \
+     --logfile __screen__ --loglevel warn
+
 yell start broken contract test, this should fail
 python test-contract.py --no-ledger --contract mock-contract-bad \
        --expressions contracts/mock-contract.exp \
