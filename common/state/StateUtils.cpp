@@ -83,16 +83,31 @@ void pdo::state::StateNode::BlockifyChildren()
             jret != JSONSuccess, "failed to serialize block ids");
         JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
         pdo::error::ThrowIfNull(j_block_ids_array, "failed to serialize the block id array");
+
         // insert in the array the IDs of all blocks in the list
         for (unsigned int i = 0; i < ChildrenArray_.size(); i++)
         {
             jret = json_array_append_string(
                 j_block_ids_array, ByteArrayToBase64EncodedString(ChildrenArray_[i]).c_str());
         }
+
+        //remove children blocks (reduce memory consumption)
+        ChildrenArray_.resize(0);
+        ChildrenArray_.shrink_to_fit();
+
         size_t serializedSize = json_serialization_size(j_root_block_value);
-        stateBlock_.resize(serializedSize);
+
+        try
+        {
+            stateBlock_.resize(serializedSize);
+        }
+        catch (const std::exception& e)
+        {
+            SAFE_LOG_EXCEPTION("unable to resize root git statblock for json blob");
+            throw;
+        }
         jret = json_serialize_to_buffer(
-            j_root_block_value, reinterpret_cast<char*>(/*&stateBlock_[0]*/stateBlock_.data()), stateBlock_.size());
+            j_root_block_value, reinterpret_cast<char*>(stateBlock_.data()), stateBlock_.size());
         pdo::error::ThrowIf<pdo::error::RuntimeError>(
             jret != JSONSuccess, "json root block serialization failed");
     }
