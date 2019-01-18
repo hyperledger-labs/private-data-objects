@@ -92,7 +92,7 @@ endif()
 ################################################################################
 
 SET(TEST_TARGET TestAfterBuild)
-ADD_CUSTOM_TARGET(${TEST_TARGET} ALL COMMAND ctest --output-on-failure)
+ADD_CUSTOM_TARGET(${TEST_TARGET} COMMAND ctest --output-on-failure)
 ADD_DEPENDENCIES(${TEST_TARGET} ${UNTRUSTED_TEST_NAME})
 if(NOT UNTRUSTED_ONLY)
 	ADD_DEPENDENCIES(${TEST_TARGET} ${TRUSTED_TEST_NAME})
