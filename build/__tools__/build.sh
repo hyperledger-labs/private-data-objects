@@ -67,11 +67,6 @@ if [ "$NUM_CORES " == " " ]; then
 fi
 
 CMAKE_ARGS=
-# allow opting out of running tests, primarily so we can skip
-# sgx hw-mode based tests which fail in docker test
-if [ ! -z "${NO_SGX_RUN_DURING_BUILD}" ]; then
-    CMAKE_ARGS+=" -D DISABLE_TESTS=true"
-fi
 
 # -----------------------------------------------------------------
 # BUILD
