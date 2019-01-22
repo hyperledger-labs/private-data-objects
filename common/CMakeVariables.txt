@@ -72,10 +72,7 @@ SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
 SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64" "../state")
 SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
 
-# allow opting out of running tests, primarily so we can skip sgx hw-mode based tests which fail in docker test
-if(NOT DISABLE_TESTS)
-    enable_testing()
-endif()
+enable_testing()
 
 ################################################################################
 # Functions

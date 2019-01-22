@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
+PY_VERSION=${shell python --version | sed 's/Python \([0-9]\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
 ifndef SGX_MODE
 $(error Incomplete configuration, SGX_MODE is not defined)
+endif
+
+ifneq ($(basename ${PY_VERSION}),3)
+$(error must be run with python3)
 endif
 
 EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
@@ -71,9 +75,13 @@ build :
 install: $(EGG_FILE)
 	easy_install $<
 
-test: install
-	(cd tests; python test-secrets.py)
-	(cd tests; python test-request.py)
+# these cannot be run in the current directory because python tries to
+# pick up the local versions of the library which do not have the same
+# paths as the installed libraries
+test:
+	@echo run the local secrets and requests tests
+	cd tests; python test-secrets.py --logfile __screen__ --loglevel warn
+	cd tests; pdo-test-request --no-ledger --iterations 10 --logfile __screen__ --loglevel warn
 
 clean:
 	rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)

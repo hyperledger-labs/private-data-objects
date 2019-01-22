@@ -292,16 +292,17 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                 result = update_response.result[:15] + (len(update_response.result) >= 15 and "..." or "")
 
                 if update_response.status is False :
+                    logger.info('failed: {0} --> {1}'.format(expression, result))
                     if test['invert'] is None or test['invert'] != 'fail' :
                         total_failed += 1
-                    logger.info('failed: {0} --> {1}'.format(expression, result))
+                        logger.warn('inverted test failed: %s instead of %s', result, test['expected'])
                     continue
 
                 logger.info('{0} --> {1}'.format(expression, result))
 
                 if test['expected'] and not re.match(test['expected'], update_response.result) :
                     total_failed += 1
-                    logger.warn('test failed [%s]; expected result; %s', test.get('message',''), test['expected'])
+                    logger.warn('test failed: %s instead of %s', result, test['expected'])
 
             except Exception as e:
                 logger.error('enclave failed to evaluation expression; %s', str(e))
@@ -336,6 +337,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
     logger.info('completed in %s', time.time() - start_time)
     logger.info('passed %d of %d tests', total_tests - total_failed, total_tests)
     if total_failed > 0 :
+        logger.warn('failed %d of %d tests', total_failed, total_tests)
         ErrorShutdown()
 
 # -----------------------------------------------------------------
@@ -544,7 +546,11 @@ def Main() :
     else :
         expression_file = putils.build_simple_file_name(options.contract,'.exp')
 
-    config['expressions'] = putils.find_file_in_path(expression_file, ['.', '..', 'contracts'])
+    try :
+        config['expressions'] = putils.find_file_in_path(expression_file, ['.', '..', 'tests'])
+    except FileNotFoundError as fe :
+        logger.error('unable to locate expression file "%s"', expression_file)
+        sys.exit(-1)
 
     LocalMain(config)
 

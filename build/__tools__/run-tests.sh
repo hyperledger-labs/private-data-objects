@@ -36,6 +36,10 @@ function becho () {
     echo "${cbld}${cblu}" $@ "${crst}" >&2
 }
 
+function say () {
+    echo "$(basename $0): $*" >&2;
+}
+
 function yell () {
     becho "$(basename $0): $*" >&2;
 }
@@ -85,70 +89,84 @@ function cleanup {
 trap cleanup EXIT
 
 # -----------------------------------------------------------------
+yell run unit tests for python, common, contracts and eservice
+# -----------------------------------------------------------------
+say run unit tests for python package
+cd ${SRCDIR}/python
+try make test > /dev/null
+
+say run unit tests for common library
+cd ${SRCDIR}/common/build
+try make test > /dev/null
+
+say run unit tests for eservice
+cd ${SRCDIR}/eservice
+try make test > /dev/null
+
+say run unit tests for contracts
+cd ${SRCDIR}/contracts
+try make test > /dev/null
+
 # -----------------------------------------------------------------
 yell start enclave and provisioning services
+# -----------------------------------------------------------------
 try ${PDO_HOME}/bin/ps-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 try ${PDO_HOME}/bin/es-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
-cd ${SRCDIR}/eservice/tests
-yell start secrets test
-try python test-secrets.py \
-     --logfile __screen__ --loglevel warn
+cd ${SRCDIR}/build
 
-yell start simple request test
-try python test-request.py --no-ledger --iterations 100 \
-     --logfile __screen__ --loglevel warn
-
-yell start simple integer-key contract test
-try python test-contract.py --no-ledger --contract integer-key \
-     --logfile __screen__ --loglevel warn
-
-yell start simple mock-contract contract test
-try python test-contract.py --no-ledger --contract mock-contract \
-     --logfile __screen__ --loglevel warn
-
-yell start simple key value store test
-try python test-contract.py --no-ledger --contract key-value-test \
-     --logfile __screen__ --loglevel warn
-
-yell start memory test
-try python test-contract.py --no-ledger --contract memory-test \
-     --logfile __screen__ --loglevel warn
-
-yell start broken contract test, this should fail
-python test-contract.py --no-ledger --contract mock-contract-bad \
-       --expressions contracts/mock-contract.exp \
-       --logfile __screen__ --loglevel warn
-if [ $? == 0 ]; then
-    die mock contract test succeeded though it should have failed
-fi
-
-yell start mock-contract contract with bad input, this should succeed
-try python test-contract.py --no-ledger --contract mock-contract \
-    --expressions contracts/mock-contract-bad-expressions.exp \
+# -----------------------------------------------------------------
+yell start tests without provisioning or enclave services
+# -----------------------------------------------------------------
+say start request test
+try pdo-test-request --no-ledger --iterations 100 \
     --logfile __screen__ --loglevel warn
 
-yell start request test with provisioning and enclave services
-try python test-request.py --ledger ${PDO_LEDGER_URL} \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
-     --logfile __screen__ --loglevel warn
+say start integer-key contract test
+try pdo-test-contract --no-ledger --contract integer-key \
+    --logfile __screen__ --loglevel warn
 
-yell start contract test with provisioning and enclave services
-try python test-contract.py --ledger ${PDO_LEDGER_URL} --contract integer-key \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
-     --logfile __screen__ --loglevel warn
+say start mock-contract contract test
+try pdo-test-contract --no-ledger --contract mock-contract \
+    --logfile __screen__ --loglevel warn
 
-yell start mock contract test with ledger, this should fail dependency check
-python test-contract.py --ledger ${PDO_LEDGER_URL} --contract mock-contract \
-       --logfile __screen__ --loglevel warn
-if [ $? == 0 ]; then
-    die mock contract test succeeded though it should have failed
-fi
+say start key value store test
+try pdo-test-contract --no-ledger --contract key-value-test \
+    --logfile __screen__ --loglevel warn
+
+say start memory test
+try pdo-test-contract --no-ledger --contract memory-test \
+    --logfile __screen__ --loglevel warn
 
 ## -----------------------------------------------------------------
-yell ---------- start pdo-create and pdo-update tests ----------
+yell start tests with provisioning and enclave services
+## -----------------------------------------------------------------
+say start request test
+try pdo-test-request --ledger ${PDO_LEDGER_URL} \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice http://localhost:7101/ \
+    --logfile __screen__ --loglevel warn
+
+say start integer-key contract test
+try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice http://localhost:7101/ \
+    --logfile __screen__ --loglevel warn
+
+say start key value store test
+try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract key-value-test \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice http://localhost:7101/ \
+    --logfile __screen__ --loglevel warn
+
+say start memory test
+try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice http://localhost:7101/ \
+    --logfile __screen__ --loglevel warn
+
+## -----------------------------------------------------------------
+yell start pdo-create and pdo-update tests
 ## -----------------------------------------------------------------
 
 # make sure we have the necessary files in place
@@ -162,40 +180,66 @@ if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi
 
-yell create the contract
+say create the contract
 try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
      --logfile __screen__ --loglevel warn \
     --identity user1 --save-file ${SAVE_FILE} \
     --contract mock-contract --source _mock-contract.scm
 
-yell increment the value with a simple expression
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                   --logfile __screen__ --loglevel warn \
-                   --identity user1 --save-file ${SAVE_FILE} \
-                   "'(inc-value)")
-if [ $value != "1" ]; then
-    die contract has the wrong value
-fi
+# this will invoke the increment operation 50 times; the objective
+# of this test is to ensure that the client touches multiple, independent
+# enclave services and pushes missing state correctly
+say increment the value with a simple expression
+for v in $(seq 1 50) ; do
+    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                       --enclave random \
+                       --logfile __screen__ --loglevel warn \
+                       --identity user1 --save-file ${SAVE_FILE} \
+                       "'(inc-value)")
+    if [ $value != "$v" ]; then
+        die contract has the wrong value
+    fi
+done
 
-yell increment the value with a evaluated expression
+say increment the value with a evaluated expression
 value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                   --enclave random \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "(list 'inc-value)")
-if [ $value != "2" ]; then
+if [ $value != "51" ]; then
     die contract has the wrong value
 fi
 
-yell get the value and check it
+say get the value and check it
 value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                   --enclave random \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "'(get-value)")
-if [ $value != "2" ]; then
+if [ $value != "51" ]; then
     die contract has the wrong value
 fi
 
-yell invalid method, this should fail
+## -----------------------------------------------------------------
+yell test failure conditions to ensure they are caught
+## -----------------------------------------------------------------
+say start mock contract test with ledger, this should fail dependency check
+pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract mock-contract \
+    --logfile __screen__ --loglevel warn
+if [ $? == 0 ]; then
+    die mock contract test succeeded though it should have failed
+fi
+
+say start broken contract test, this should fail
+pdo-test-contract --no-ledger --contract mock-contract-bad \
+    --expressions mock-contract.exp \
+    --logfile __screen__ --loglevel warn
+if [ $? == 0 ]; then
+    die mock contract test succeeded though it should have failed
+fi
+
+say invalid method, this should fail
 pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user1 --save-file ${SAVE_FILE} \
@@ -204,7 +248,7 @@ if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
-yell invalid expression, this should fail
+say invalid expression, this should fail
 pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user1 --save-file ${SAVE_FILE} \
@@ -213,7 +257,7 @@ if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
-yell policy violation with identity, this should fail
+say policy violation with identity, this should fail
 pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
            --logfile __screen__ --loglevel warn \
            --identity user2 --save-file ${SAVE_FILE} \
