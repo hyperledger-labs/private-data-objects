@@ -79,7 +79,7 @@ install : $(CONTRACTS) $(PLUGINS)
 	@cp $(PLUGINS) $(INSTALLDIR)
 
 clean :
-	@rm -f $(CONTRACTS) $(TESTS)
+	@rm -f $(CONTRACTS) $(TEST_CONTRACTS)
 	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
 .PHONY : all clean debug install test
