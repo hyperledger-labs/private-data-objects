@@ -22,6 +22,7 @@
 ;;
 
 (require-when (member "debug" *args*) "debug.scm")
+(require "utility.scm")
 (require "contract-base.scm")
 (require "escrow-counter.scm")
 (require "indexed-key-store.scm")
@@ -56,7 +57,7 @@
 ;; Methods to modify the value of a counter
 ;; -----------------------------------------------------------------
 (define-method integer-key (create key . initial-value)
-  (let ((value (if (pair? initial-value) (coerce-number (car initial-value)) 0)))
+  (let ((value (if (pair? initial-value) (utility-package::coerce-number (car initial-value)) 0)))
     (assert (and (integer? value) (<= 0 value)) "initialization value must not be negative")
     (let* ((requestor (get ':message 'originator))
            (counter (make-instance escrow-counter (key key) (value value) (owner requestor))))
@@ -65,7 +66,7 @@
 
 ;; no owner check required for increment... any one can do it
 (define-method integer-key (inc key . oparam)
-  (let ((value (if (pair? oparam) (coerce-number (car oparam)) 1)))
+  (let ((value (if (pair? oparam) (utility-package::coerce-number (car oparam)) 1)))
     (assert (and (integer? value) (< 0 value)) "increment must be positive integer" value)
     (let* ((requestor (get ':message 'originator))
            (counter (send state 'get key)))
@@ -76,7 +77,7 @@
 
 (define-method integer-key (dec key . oparam)
   ;; only the owner may decrement a counter
-  (let ((value (if (pair? oparam) (coerce-number (car oparam)) 1)))
+  (let ((value (if (pair? oparam) (utility-package::coerce-number (car oparam)) 1)))
     (assert (and (integer? value) (< 0 value)) "decrement must be positive integer" value)
     (let* ((requestor (get ':message 'originator))
            (counter (send state 'get key)))
@@ -87,7 +88,7 @@
       #t)))
 
 (define-method integer-key (xfer src dst param)
-  (let ((value (coerce-number param)))
+  (let ((value (utility-package::coerce-number param)))
     (assert (and (integer? value) (< 0 value)) "amount must be positive integer" value)
     (assert (not (equal? src dst)) "source and destination must be different" src dst)
     (let* ((requestor (get ':message 'originator))

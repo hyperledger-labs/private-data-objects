@@ -25,6 +25,7 @@
 
 (require-when (member "debug" *args*) "debug.scm")
 
+(require "utility.scm")
 (require "contract-base.scm")
 (require "persistent-key-store.scm")
 
@@ -50,7 +51,7 @@
    (define-method _issuer (initialize-instance . args)
      (if (not ledger)
          (let* ((_prefix (send contract-signing-keys 'get-public-signing-key))
-                (_ledger (make-instance persistent-key-store _prefix)))
+                (_ledger (make-instance persistent-key-store `(prefix ,_prefix))))
            (instance-set! self 'ledger _ledger))))
 
    ;; -----------------------------------------------------------------
@@ -95,7 +96,7 @@
      (assert (or (null? creator) (equal? creator (get ':message 'originator))) "only creator may issue assets")
      (assert ledger-initialized "ledger has not been initialized")
 
-     (let* ((count (coerce-number _count)))
+     (let* ((count (utility-package::coerce-number _count)))
        (assert (and (integer? count) (<= 0 count)) "count must not be negative")
 
        ;; TODO: add type checking on the _owner-identity, must be an ecdsa verifying key
@@ -159,7 +160,7 @@
    (define-method _issuer (transfer _new-owner-identity _count)
      (assert ledger-initialized "ledger has not been initialized")
 
-     (let ((count (coerce-number _count)))
+     (let ((count (utility-package::coerce-number _count)))
 
        ;; decrement the current owner's balance
        (let* ((owner-identity (get ':message 'originator))

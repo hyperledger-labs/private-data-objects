@@ -12,6 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
+(require "utility.scm")
 (require "contract-base.scm")
 (require "exchange_common.scm")
 
@@ -64,7 +65,7 @@
 ;; -----------------------------------------------------------------
 (define-method asset-request-class (deserialize serialized)
   (instance-set! self 'asset-type-id (nth serialized 0))
-  (instance-set! self 'count (coerce-number (nth serialized 1)))
+  (instance-set! self 'count (utility-package::coerce-number (nth serialized 1)))
   (instance-set! self 'owner (nth serialized 2)))
 
 ;; -----------------------------------------------------------------
