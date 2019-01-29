@@ -15,6 +15,14 @@
 
 #pragma once
 
+#include "crypto.h"
+#include "error.h"
+#include "jsonvalue.h"
+#include "log.h"
+#include "packages/base64/base64.h"
+#include "pdo_error.h"
+#include "types.h"
+
 #include "state_status.h"
 #include "StateUtils.h"
 #include "StateBlock.h"
