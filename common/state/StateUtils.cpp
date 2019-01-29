@@ -13,12 +13,8 @@
  * limitations under the License.
  */
 
-#include "crypto.h"
-#include "error.h"
-#include "jsonvalue.h"
 #include "parson.h"
 #include "state.h"
-#include "log.h"
 
 namespace pstate = pdo::state;
 
