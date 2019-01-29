@@ -20,6 +20,9 @@
 #include "basic_kv.h"
 #include "types.h"
 
+#define FIXED_DATA_NODE_BYTE_SIZE (1 << 13)  // 8 KB
+#define CACHE_SIZE (1 << 22)                 // 4 MB
+
 namespace pdo
 {
 namespace state
@@ -40,6 +43,8 @@ namespace state
     public:
         block_offset_t block_offset_ = empty_block_offset;
 
+        block_offset(const block_offset_t& b) : block_offset_(b) {}
+
         static unsigned int offset_size();
         static unsigned int serialized_offset_to_block_num(const ByteArray& serialized_offset);
         static unsigned int serialized_offset_to_bytes(const ByteArray& serialized_offset);
@@ -54,9 +59,10 @@ namespace state
 
     class block_warehouse
     {
-    public:
+    private:
         pdo::state::StateBlockIdArray blockIds_ = {};
-        unsigned int last_appended_data_block_num_;
+
+    public:
         const ByteArray state_encryption_key_;
 
         block_warehouse(const ByteArray& state_encryption_key)
@@ -67,19 +73,17 @@ namespace state
         void serialize_block_ids(pdo::state::StateNode& node);
         void deserialize_block_ids(pdo::state::StateNode& node);
 
-        void update_block_id(pdo::state::StateBlockId& prevId, pdo::state::StateBlockId& newId);
         void update_datablock_id(unsigned int data_block_num, pdo::state::StateBlockId& newId);
 
         void add_block_id(pdo::state::StateBlockId& id);
-        void add_datablock_id(pdo::state::StateBlockId& id);
 
         void remove_empty_block_ids();
         void remove_block_id_from_datablock_num(unsigned int data_block_num);
 
         void get_datablock_id_from_datablock_num(
             unsigned int data_block_num, pdo::state::StateBlockId& outId);
-        void get_last_datablock_id(pdo::state::StateBlockId& outId);
         unsigned int get_root_block_num();
+        unsigned int get_last_block_num();
     };
 
 // in a trie node, this is the max length of a piece of key that can be indexed
@@ -94,32 +98,23 @@ namespace state
         uint8_t isValue : 1;
         uint8_t keyChunkSize : 4;
     };
-    struct __attribute__((packed)) trie_node_h_with_n_t
-    {
-        struct trie_node_header_t hdr;
-        struct block_offset_t next_offset;
-    };
-    struct __attribute__((packed)) trie_node_h_with_c_t
-    {
-        struct trie_node_header_t hdr;
-        struct block_offset_t child_offset;
-    };
     struct __attribute__((packed)) trie_node_h_with_nc_t
     {
         trie_node_header_t hdr;
         block_offset_t next_offset;
         block_offset_t child_offset;
     };
+    struct __attribute__((packed)) trie_node_h_with_ncc_t
+    {
+        trie_node_header_t hdr;
+        block_offset_t next_offset;
+        block_offset_t child_offset;
+        uint8_t key_chunk[MAX_KEY_CHUNK_BYTE_SIZE];
+    };
 
     const trie_node_header_t deleted_trie_header = {1, 0, 0, 0, 0};
     const trie_node_header_t empty_trie_header = {0, 0, 0, 0, 0};
-    const trie_node_header_t empty_trie_header_with_n = {0, 1, 0, 0, 0};
-    const trie_node_header_t empty_trie_header_with_c = {0, 0, 1, 0, 0};
     const trie_node_header_t empty_trie_header_with_nc = {0, 1, 1, 0, 0};
-    const trie_node_h_with_n_t empty_trie_node_h_with_n = {
-        empty_trie_header_with_n, empty_block_offset};
-    const trie_node_h_with_c_t empty_trie_node_h_with_c = {
-        empty_trie_header_with_c, empty_block_offset};
     const trie_node_h_with_nc_t empty_trie_node_h_with_nc = {
         empty_trie_header_with_nc, empty_block_offset};
 
@@ -138,6 +133,9 @@ namespace state
         unsigned block_num_;
         unsigned int free_bytes_;
 
+        void decrypt_and_deserialize_data(
+            const ByteArray& inEncryptedData, const ByteArray& state_encryption_key);
+
     public:
         ByteArray make_offset(unsigned int block_num, unsigned int bytes_off);
         data_node(unsigned int block_num);
@@ -145,37 +143,15 @@ namespace state
         static unsigned int data_end_index();
         unsigned int get_block_num();
         void cursor(block_offset_t& out_bo);
-
         void serialize_data_header();
-        void decrypt_and_deserialize_data(
-            const ByteArray& inEncryptedData, const ByteArray& state_encryption_key);
-        void deserialize_data(const ByteArray& inData);
-        void deserialize_block_num_from_offset(ByteArray& offset);
         void deserialize_original_encrypted_data_id(StateBlockId& id);
         unsigned int free_bytes();
         void consume_free_space(unsigned int length);
-        bool enough_space_for_value(bool continue_writing);
         static void advance_block_offset(block_offset_t& bo, unsigned int length);
         unsigned int write_at(const ByteArray& buffer, unsigned int write_from, const block_offset_t& bo_at);
         unsigned int read_at(const block_offset_t& bo_at, unsigned int bytes, ByteArray& outBuffer);
-        unsigned int append_value(
-            const ByteArray& buffer, unsigned int write_from, ByteArray& returnOffSet);
-        unsigned int read_value(const ByteArray& offset,
-            ByteArray& outBuffer,
-            bool continue_reading,
-            unsigned int continue_reading_bytes);
-        void delete_value(const ByteArray& offset, unsigned int& freed_bytes);
-        uint8_t* offset_to_pointer(const ByteArray& offset);
         void load(const ByteArray& state_encryption_key);
         void unload(const ByteArray& state_encryption_key, StateBlockId& outEncryptedDataNodeId);
-
-        trie_node_header_t* write_trie_node(bool isDeleted,
-           bool hasNext,
-            bool hasChild,
-            const ByteArray& key,
-            unsigned int keyChunkBegin,
-            unsigned int keyChunkEnd,
-            ByteArray& returnOffset);
     };
 
     class cache_slots
@@ -222,6 +198,42 @@ namespace state
         void deserialize_from_data_node(data_node &in_dn);
     };
 
+    class Cache
+    {
+    private:
+        // the block_warehouse_ reference is related to the block_warehouse member of dn_io
+        block_warehouse& block_warehouse_;
+    public:
+        struct block_cache_entry_t
+        {
+            bool pinned;
+            unsigned int references;
+            bool modified;
+            uint64_t clock;
+            data_node* dn;
+        };
+
+        Cache(block_warehouse& bw): block_warehouse_(bw) {}
+
+        std::map<unsigned int, block_cache_entry_t> block_cache_;
+        cache_slots slots_;
+        uint64_t cache_clock_ = 0;
+
+        void replacement_policy();
+        void drop_entry(unsigned int block_num);
+        void drop();
+        void flush_entry(unsigned int block_num);
+        void flush();
+        void sync_entry(unsigned int block_num);
+        void sync();
+        void put(unsigned int block_num, data_node* dn);
+        data_node& retrieve(unsigned int block_num, bool pinned);
+        void done(unsigned int block_num, bool modified);
+        void pin(unsigned int block_num);
+        void unpin(unsigned int block_num);
+        void modified(unsigned int block_num);
+    };
+
     class data_node_io
     {
     public:
@@ -229,8 +241,9 @@ namespace state
         free_space_collector free_space_collector_;
         // append_dn points to a data note pinned in cache
         data_node* append_dn_;
+        Cache cache_;
 
-        data_node_io(const ByteArray& key) : block_warehouse_(key) {}
+        data_node_io(const ByteArray& key) : block_warehouse_(key), cache_(block_warehouse_) {}
         void initialize(pdo::state::StateNode& node);
 
         void init_append_data_node();
@@ -242,102 +255,65 @@ namespace state
 
         void write_across_data_nodes(const ByteArray& buffer, unsigned int write_from, const block_offset_t& bo_at);
         void read_across_data_nodes(const block_offset_t& bo_at, unsigned int length, ByteArray& outBuffer);
-
-        struct block_cache_entry_t
-        {
-            bool pinned;
-            unsigned int references;
-            bool modified;
-            uint64_t clock;
-            data_node* dn;
-        };
-        std::map<unsigned int, block_cache_entry_t> block_cache_;
-        cache_slots cache_slots_;
-        uint64_t cache_clock_ = 0;
-
-        void cache_replacement_policy();
-        void cache_dump();
-        void cache_drop_entry(unsigned int block_num);
-        void cache_drop();
-        void cache_flush_entry(unsigned int block_num);
-        void cache_flush();
-        void cache_sync_entry(unsigned int block_num);
-        void cache_sync();
-        void cache_put(unsigned int block_num, data_node* dn);
-        data_node& cache_retrieve(unsigned int block_num, bool pinned);
-        void cache_done(unsigned int block_num, bool modified);
-        void cache_pin(unsigned int block_num);
-        void cache_unpin(unsigned int block_num);
-        void cache_modified(unsigned int block_num);
     };
 
     class trie_node
     {
     public:
-        static block_offset_t* goto_next_offset(trie_node_header_t* header);
-        static block_offset_t* goto_child_offset(trie_node_header_t* header);
-        static uint8_t* goto_key_chunk(trie_node_header_t* header);
+        trie_node_h_with_ncc_t node;
+        bool modified = false;
+        bool initialized = false;
+        block_offset location;
 
-        static void resize_key_chunk(trie_node_header_t* header, unsigned int new_size);
-        static void delete_child_offset(trie_node_header_t* header);
-        static void delete_next_offset(trie_node_header_t* header);
+        trie_node() : location(block_offset(empty_block_offset)) {}
 
         static unsigned int shared_prefix_length(const uint8_t* stored_chunk,
             size_t sc_length,
             const uint8_t* key_chunk,
             size_t kc_length);
 
-        static void delete_trie_node(trie_node_header_t* header);
         static void delete_trie_node_childless(data_node_io& dn_io,
-            trie_node_header_t* header, block_offset& out_bo_new);
-        static void update_trie_node_next(
-            trie_node_header_t* header, const block_offset_t* bo_next);
-        static void update_trie_node_child(
-            trie_node_header_t* header, const block_offset_t* bo_child);
+            trie_node& node);
 
         static void do_operate_trie_child(data_node_io& dn_io,
-            trie_node_header_t* trie_node_header,
+            trie_node& node,
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
             const ByteArray& in_value,
-            ByteArray& value,
-            block_offset& outBlockOffset);
+            ByteArray& value);
         static void do_operate_trie_next(data_node_io& dn_io,
-            trie_node_header_t* trie_node_header,
+            trie_node& node,
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
             const ByteArray& in_value,
-            ByteArray& value,
-            block_offset& outBlockOffset);
+            ByteArray& value);
 
         static void do_write_value(data_node_io& dn_io,
-            trie_node_header_t* header,
-            const ByteArray& value,
-            block_offset& outBlockOffset);
+            trie_node& node,
+            const ByteArray& value);
+        static void do_read_value_info(
+            data_node_io& dn_io, block_offset_t& bo_at, ByteArray& ba_header, size_t& value_size);
         static void do_read_value(
-            data_node_io& dn_io, trie_node_header_t* trie_node_header, ByteArray& value);
-        static void do_delete_value(data_node_io& dn_io, trie_node_header_t* header);
+            data_node_io& dn_io, const trie_node& node, ByteArray& value);
+        static void do_delete_value(data_node_io& dn_io, trie_node& node);
 
         static void do_split_trie_node(
-            data_node_io& dn_io, trie_node_header_t* header, unsigned int spl);
+            data_node_io& dn_io, trie_node& node, unsigned int spl);
         static size_t new_trie_node_size();
 
-        static trie_node_header_t* append_trie_node(data_node_io& dn_io,
-            const ByteArray& kvkey,
-            const unsigned int key_begin,
-            const unsigned int key_end,
-            block_offset& outBlockOffset);
+        static void create_node(const ByteArray& key, unsigned int keyChunkBegin, unsigned int keyChunkEnd, trie_node& out_node);
+        static void read_trie_node(data_node_io& dn_io, block_offset_t& in_block_offset, trie_node& out_trie_node);
+        static void write_trie_node(data_node_io& dn_io, trie_node& in_trie_node);
 
         static void operate_trie(data_node_io& dn_io,
-            trie_node_header_t* trie_node_header,
+            trie_node& node,
             const kv_operation_e operation,
             const unsigned int depth,
             const ByteArray& kvkey,
             const ByteArray& in_value,
-            ByteArray& value,
-            block_offset& outBlockOffset);
+            ByteArray& value);
         static void init_trie_root(data_node_io& dn_io);
         static void operate_trie_root(data_node_io& dn_io,
             const kv_operation_e operation,
