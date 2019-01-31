@@ -380,7 +380,7 @@ void test_state_kv() {
     }
 
 //################## TEST CACHE #######################################################################################
-    //test_cache();
+    test_cache();
 
     SAFE_LOG(PDO_LOG_INFO, "Test success.\n");
 }

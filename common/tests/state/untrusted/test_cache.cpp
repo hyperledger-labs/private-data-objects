@@ -79,12 +79,14 @@ void test_cache()
         SAFE_LOG(PDO_LOG_INFO, "start test cache exaustion\n");
         pstate::State_KV skv(state_encryption_key_);
         kv_ = &skv;
-        size_t value_size = (1<<10); //1KB value size
+        //this forces each key in a separate block, since the value size already takes 1 block
+        size_t value_size = FIXED_DATA_NODE_BYTE_SIZE;
         std::string value(value_size, 'a');
         std::string base_string("");
-        unsigned int max_key_length = 200;
+        unsigned int max_key_length = 15 + ((CACHE_SIZE / FIXED_DATA_NODE_BYTE_SIZE) / 20);
         while(base_string.length() < max_key_length)
         {
+            SAFE_LOG(PDO_LOG_INFO, "Testing key length %u out of %u\n", base_string.length() + 1, max_key_length);
             for(char c = 'a'; c <= 'z'; c++)
             {
                 std::string key = base_string + c;
