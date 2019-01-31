@@ -45,6 +45,9 @@ namespace state
     private:
         // the block_warehouse_ reference is related to the block_warehouse member of dn_io
         block_warehouse& block_warehouse_;
+
+        void replacement_policy_MRU();
+
     public:
         struct block_cache_entry_t
         {

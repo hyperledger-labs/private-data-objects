@@ -71,6 +71,28 @@ unsigned int pstate::cache_slots::available_slots()
     return dn_queue_.size();
 }
 
+void pstate::Cache::replacement_policy_MRU()
+{
+    int index_to_remove = -1;
+    uint64_t clock = 0;
+
+    for (auto it = block_cache_.begin(); it != block_cache_.end(); ++it)
+    {
+        block_cache_entry_t& bce = it->second;
+        if (!bce.pinned && bce.references == 0)
+        {  // candidate for replacement
+            if (index_to_remove == -1 || bce.clock > clock)
+            {
+                index_to_remove = it->first;
+                clock = bce.clock;
+            }
+        }
+    }
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        index_to_remove == -1, "cache replacement MRU, no item to replace");
+    flush_entry(index_to_remove);
+}
+
 void pstate::Cache::replacement_policy()
 {
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
@@ -78,24 +100,7 @@ void pstate::Cache::replacement_policy()
 
     while (block_cache_.size() >= BLOCK_CACHE_MAX_ITEMS)
     {
-        int index_to_remove = -1;
-        uint64_t clock = UINT64_MAX;
-
-        for (auto it = block_cache_.begin(); it != block_cache_.end(); ++it)
-        {
-            block_cache_entry_t& bce = it->second;
-            if (!bce.pinned && bce.references == 0)
-            {  // candidate for replacement
-                if (index_to_remove == -1 || bce.clock < clock)
-                {
-                    index_to_remove = it->first;
-                    clock = bce.clock;
-                }
-            }
-        }
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(
-            index_to_remove == -1, "cache replacement, no item to replace");
-        flush_entry(index_to_remove);
+        replacement_policy_MRU();
     }
 }
 
@@ -199,6 +204,7 @@ pstate::data_node& pstate::Cache::retrieve(unsigned int block_num, bool pinned)
         if (pinned)
             pin(block_num);
     }
+
     // now it is in cache, grab it
     block_cache_entry_t& bce = block_cache_[block_num];
     bce.references++;
