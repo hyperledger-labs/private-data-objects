@@ -27,11 +27,46 @@
 #include "enclave/contract.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-size_t pdo::enclave_api::contract::ContractKeySize(void)
+size_t pdo::enclave_api::contract::EncryptedContractKeySize(
+  size_t contractIdSize,
+  int enclaveIndex)
 {
-    // this is somewhat lucky because we currently fit precisely
-    // in the AES block; will need to pad if
-    return pdo::crypto::constants::IV_LEN + pdo::crypto::constants::SYM_KEY_LEN + pdo::crypto::constants::TAG_LEN;
+  size_t encryptedContractKeySize;
+
+  // the computation is a simple non-secret-data dependent computation
+  // 	sgx_calc_sealed_data_size(contractIdSize, pdo::crypto::constants::SYM_KEY_LEN)
+  // but alas there doesn't seem to be a way to call/link trusted function
+  // in untrusted space. Hence we have do on Ecall for that  :-(
+
+  // xxxxx call the enclave
+
+  /// get the enclave id for passing into the ecall
+  sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
+  pdo::logger::LogV(PDO_LOG_DEBUG, "ecall_CalculateSealedContractKeySize[%ld] %u ", (long)enclaveid, enclaveIndex);
+
+  pdo_err_t presult = PDO_SUCCESS;
+  sgx_status_t sresult =
+    g_Enclave[enclaveIndex].CallSgx(
+      [
+	enclaveid,
+	&presult,
+	contractIdSize,
+	&encryptedContractKeySize
+      ]
+      ()
+      {
+	sgx_status_t sresult_inner = ecall_CalculateSealedContractKeySize(
+	  enclaveid,
+	  &presult,
+	  contractIdSize,
+	  &encryptedContractKeySize);
+	return pdo::error::ConvertErrorStatus(sresult_inner, presult);
+      }
+      );
+  pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (ecall_CalculateSealedContractKeySize)");
+  g_Enclave[enclaveIndex].ThrowPDOError(presult);
+
+  return encryptedContractKeySize;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -50,7 +85,7 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
     try
     {
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
-        ByteArray encrypted_contract_key(pdo::enclave_api::contract::ContractKeySize());
+        ByteArray encrypted_contract_key(pdo::enclave_api::contract::EncryptedContractKeySize(inContractId.size(), enclaveIndex));
         ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureSize());
 
         // xxxxx call the enclave

@@ -27,6 +27,12 @@ enclave {
         //
         public pdo_err_t ecall_ShutdownContractWorker();
 
+	//
+        public pdo_err_t ecall_CalculateSealedContractKeySize(
+	    size_t contractIdSize,
+            [out] size_t* pSealedContractKeySize
+            );
+
         //
         public pdo_err_t ecall_VerifySecrets(
             [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
