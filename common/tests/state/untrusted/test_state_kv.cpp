@@ -14,13 +14,9 @@
  */
 
 #include <string>
-
-#include "log.h"
-#include "error.h"
-#include "state.h"
-#include "types.h"
-
+#include "test_state_kv.h"
 #include "_kv_gen.h"
+#include "test_cache.h"
 
 namespace pstate = pdo::state;
 
@@ -382,6 +378,9 @@ void test_state_kv() {
         SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
         throw;
     }
+
+//################## TEST CACHE #######################################################################################
+    //test_cache();
 
     SAFE_LOG(PDO_LOG_INFO, "Test success.\n");
 }
