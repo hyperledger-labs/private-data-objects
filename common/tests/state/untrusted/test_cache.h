@@ -15,9 +15,4 @@
 
 #pragma once
 
-#include "log.h"
-#include "error.h"
-#include "state.h"
-#include "types.h"
-
-void test_state_kv();
+void test_cache();
