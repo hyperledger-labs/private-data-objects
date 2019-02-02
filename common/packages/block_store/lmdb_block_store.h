@@ -34,7 +34,7 @@ namespace pdo
          *  Success (return PDO_SUCCESS) - Block store ready to use
          *  Failure (return nonzero) - Block store is unusable
          */
-        pdo_err_t BlockStoreInit(std::string db_path);
+        pdo_err_t BlockStoreInit(const std::string& db_path);
 
         /**
          * Close the block store and flush the data to disk
