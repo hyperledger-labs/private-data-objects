@@ -40,37 +40,70 @@
  */
 #define DEFAULT_BLOCK_STORE_SIZE (1ULL << 40)
 
-/* Lightning database environment used to store data */
-static MDB_env* env;
-/* Lock to protect access to the database */
-static pthread_spinlock_t lock;
+/* -----------------------------------------------------------------
+ * CLASS: SafeThreadLock
+ *
+ * This class initializes the lock for serializing  and wraps transactions to
+ * ensure that the resources are released when the object is deallocated.
+ * ----------------------------------------------------------------- */
 
-pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
+/* Lock to protect access to the database */
+static pthread_mutex_t lmdb_block_store_lock = PTHREAD_MUTEX_INITIALIZER;
+
+class SafeThreadLock
+{
+public:
+    SafeThreadLock(void)
+    {
+        pthread_mutex_lock(&lmdb_block_store_lock);
+    }
+
+    ~SafeThreadLock(void)
+    {
+        pthread_mutex_unlock(&lmdb_block_store_lock);
+    }
+};
+
+/* -----------------------------------------------------------------
+ * CLASS: SafeTransaction
+ *
+ * This class initializes the lmdb database and wraps transactions to
+ * ensure that the resources are released when the object is deallocated.
+ * ----------------------------------------------------------------- */
+
+/* Lightning database environment used to store data */
+static MDB_env* lmdb_block_store_env;
+
+class SafeTransaction
+{
+public:
+    MDB_txn* txn = NULL;
+
+    SafeTransaction(unsigned int flags) {
+        int ret = mdb_txn_begin(lmdb_block_store_env, NULL, flags, &txn);
+        if (ret != MDB_SUCCESS)
+        {
+            SAFE_LOG(PDO_LOG_ERROR, "Failed to initialize LMDB transaction; %d", ret);
+            txn = NULL;
+        }
+    }
+
+    ~SafeTransaction(void) {
+        if (txn != NULL)
+            mdb_txn_commit(txn);
+    }
+};
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::lmdb_block_store::BlockStoreInit(const std::string& db_path)
 {
     int ret;
 
-    ret = pthread_spin_init(&lock, PTHREAD_PROCESS_SHARED);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to init block store spinlock: %d", ret);
-        return PDO_ERR_SYSTEM;
-    }
+    ret = mdb_env_create(&lmdb_block_store_env);
+    pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to create LMDB environment");
 
-    ret = mdb_env_create(&env);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to create LMDB environment: %d", ret);
-        return PDO_ERR_SYSTEM;
-    }
-
-    ret = mdb_env_set_mapsize(env, DEFAULT_BLOCK_STORE_SIZE);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to set LMDB size to %zu : %d",
-            DEFAULT_BLOCK_STORE_SIZE, ret);
-        mdb_env_close(env);
-        return PDO_ERR_SYSTEM;
-    }
+    ret = mdb_env_set_mapsize(lmdb_block_store_env, DEFAULT_BLOCK_STORE_SIZE);
+    pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to set LMDB default size");
 
     /*
      * MDB_NOSUBDIR avoids creating an additional directory for the database
@@ -78,11 +111,10 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
      * This risks possibly losing at most the last transaction if the system crashes
      * before it is written to disk.
      */
-    ret = mdb_env_open(env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC, 0664);
+    ret = mdb_env_open(lmdb_block_store_env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC, 0664);
     if (ret != 0)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB database '%s': %d", db_path.c_str(), ret);
-        mdb_env_close(env);
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB database; %d", ret);
         return PDO_ERR_SYSTEM;
     }
 
@@ -91,7 +123,8 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(std::string db_path)
 
 void pdo::lmdb_block_store::BlockStoreClose()
 {
-    mdb_env_close(env);
+    if (lmdb_block_store_env != NULL)
+        mdb_env_close(lmdb_block_store_env);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -102,12 +135,10 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     size_t* outValueSize
 )
 {
-    MDB_txn* txn;
     MDB_dbi dbi;
     MDB_val lmdb_id;
     MDB_val lmdb_data;
     int ret;
-    pdo_err_t result = PDO_SUCCESS;
 
 #if BLOCK_STORE_DEBUG
     {
@@ -116,41 +147,34 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     }
 #endif
 
-    // **********
-    // LOCK
-    pthread_spin_lock(&lock);
+    SafeThreadLock slock;      // lock by construction
+    SafeTransaction stxn(MDB_RDONLY);
 
+    if (stxn.txn == NULL)
+        return PDO_ERR_SYSTEM;
 
-    ret = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto unlock;
-    }
-
-    ret = mdb_dbi_open(txn, NULL, 0, &dbi);
+    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
     if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        *outIsPresent = false;
+        return PDO_ERR_SYSTEM;
     }
 
     lmdb_id.mv_size = inIdSize;
     lmdb_id.mv_data = (void*)inId;
 
-    ret = mdb_get(txn, dbi, &lmdb_id, &lmdb_data);
+    ret = mdb_get(stxn.txn, dbi, &lmdb_id, &lmdb_data);
     if (ret == MDB_NOTFOUND)
     {
         *outIsPresent = false;
-        goto close;
+        return PDO_SUCCESS;
     }
     else if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        *outIsPresent = false;
+        return PDO_ERR_SYSTEM;
     }
 
     *outIsPresent = true;
@@ -164,18 +188,7 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     }
 #endif
 
-
-close:
-    /* Free's the handle but doesn't do anything else for read only */
-    mdb_txn_commit(txn);
-
-unlock:
-
-    pthread_spin_unlock(&lock);
-    // UNLOCK
-    // **********
-
-    return result;
+    return PDO_SUCCESS;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -186,12 +199,10 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     const size_t inValueSize
 )
 {
-    MDB_txn* txn;
     MDB_dbi dbi;
     MDB_val lmdb_id;
     MDB_val lmdb_data;
     int ret;
-    pdo_err_t result = PDO_SUCCESS;
 
 #if BLOCK_STORE_DEBUG
     {
@@ -200,49 +211,38 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     }
 #endif
 
-    // **********
-    // LOCK
-    pthread_spin_lock(&lock);
+    SafeThreadLock slock;
+    SafeTransaction stxn(MDB_RDONLY);
 
+    if (stxn.txn == NULL)
+        return PDO_ERR_SYSTEM;
 
-    ret = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto unlock;
-    }
-
-    ret = mdb_dbi_open(txn, NULL, 0, &dbi);
+    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
     if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        return PDO_ERR_SYSTEM;
     }
 
     lmdb_id.mv_size = inIdSize;
     lmdb_id.mv_data = (void*)inId;
 
-    ret = mdb_get(txn, dbi, &lmdb_id, &lmdb_data);
+    ret = mdb_get(stxn.txn, dbi, &lmdb_id, &lmdb_data);
     if (ret == MDB_NOTFOUND)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to find id in block store");
-        result = PDO_ERR_VALUE;
-        goto close;
+        return PDO_ERR_VALUE;
     }
     else if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        return PDO_ERR_SYSTEM;
     }
     else if (inValueSize != lmdb_data.mv_size)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu", inValueSize,
             lmdb_data.mv_size);
-        result = PDO_ERR_VALUE;
-        goto close;
+        return PDO_ERR_VALUE;
     }
 
     memcpy_s(outValue, inValueSize, lmdb_data.mv_data, lmdb_data.mv_size);
@@ -255,18 +255,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     }
 #endif
 
-
-close:
-    /* Free's the handle but doesn't do anything else for read only */
-    mdb_txn_commit(txn);
-
-unlock:
-
-    pthread_spin_unlock(&lock);
-    // UNLOCK
-    // **********
-
-    return result;
+    return PDO_SUCCESS;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -277,12 +266,10 @@ pdo_err_t pdo::block_store::BlockStorePut(
     const size_t inValueSize
 )
 {
-    MDB_txn* txn;
     MDB_dbi dbi;
     MDB_val lmdb_id;
     MDB_val lmdb_data;
     int ret;
-    pdo_err_t result = PDO_SUCCESS;
 
 #if BLOCK_STORE_DEBUG
     {
@@ -294,25 +281,17 @@ pdo_err_t pdo::block_store::BlockStorePut(
     }
 #endif
 
-    // **********
-    // LOCK
-    pthread_spin_lock(&lock);
+    SafeThreadLock slock;
+    SafeTransaction stxn(0);
 
+    if (stxn.txn == NULL)
+        return PDO_ERR_SYSTEM;
 
-    ret = mdb_txn_begin(env, NULL, 0, &txn);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to get LMDB transaction: %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto unlock;
-    }
-
-    ret = mdb_dbi_open(txn, NULL, 0, &dbi);
+    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
     if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        return PDO_ERR_SYSTEM;
     }
 
     lmdb_id.mv_size = inIdSize;
@@ -320,24 +299,14 @@ pdo_err_t pdo::block_store::BlockStorePut(
     lmdb_data.mv_size = inValueSize;
     lmdb_data.mv_data = (void*)inValue;
 
-    ret = mdb_put(txn, dbi, &lmdb_id, &lmdb_data, 0);
+    ret = mdb_put(stxn.txn, dbi, &lmdb_id, &lmdb_data, 0);
     if (ret != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Failed to put to LMDB database : %d", ret);
-        result = PDO_ERR_SYSTEM;
-        goto close;
+        return PDO_ERR_SYSTEM;
     }
 
-close:
-    mdb_txn_commit(txn);
-
-unlock:
-
-    pthread_spin_unlock(&lock);
-    // UNLOCK
-    // **********
-
-    return result;
+    return PDO_SUCCESS;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
