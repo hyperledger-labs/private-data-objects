@@ -78,11 +78,11 @@ if [ $? == 0 ] ; then
 fi
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
-
+declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
-    ${PDO_HOME}/bin/ps-stop.sh --count 5 > /dev/null
-    ${PDO_HOME}/bin/es-stop.sh --count 5 > /dev/null
+    ${PDO_HOME}/bin/ps-stop.sh --count ${NUM_SERVICES} > /dev/null
+    ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
     rm -f ${SAVE_FILE}
 }
 
@@ -110,8 +110,8 @@ try make test > /dev/null
 # -----------------------------------------------------------------
 yell start enclave and provisioning services
 # -----------------------------------------------------------------
-try ${PDO_HOME}/bin/ps-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
-try ${PDO_HOME}/bin/es-start.sh --count 5 --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/ps-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/build
 
@@ -186,39 +186,44 @@ try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
     --identity user1 --save-file ${SAVE_FILE} \
     --contract mock-contract --source _mock-contract.scm
 
-# this will invoke the increment operation 50 times; the objective
-# of this test is to ensure that the client touches multiple, independent
-# enclave services and pushes missing state correctly
-say increment the value with a simple expression
-for v in $(seq 1 50) ; do
+# this will invoke the increment operation 5 times on each enclave round robin
+# fashion; the objective of this test is to ensure that the client touches
+# multiple, independent enclave services and pushes missing state correctly
+declare -i pcontract_es=3 #.see ../opt/pdo/etc/template/pcontract.toml
+declare -i n=$((NUM_SERVICES*pcontract_es)) e v value
+say increment the value with a simple expression ${n} times, querying enclaves in round robin
+for v in $(seq 1 ${n}) ; do
+    e=$((v % pcontract_es + 1))
     value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                       --enclave random \
+                       --enclave "http://localhost:710${e}" \
                        --logfile __screen__ --loglevel warn \
                        --identity user1 --save-file ${SAVE_FILE} \
                        "'(inc-value)")
-    if [ $value != "$v" ]; then
-        die contract has the wrong value
+    if [ $value != $v ]; then
+        die "contract has the wrong value ($value instead of $v) for enclave $e"
     fi
 done
 
 say increment the value with a evaluated expression
+v=$((v+1)); e=$((v % pcontract_es + 1))
 value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                   --enclave random \
+                   --enclave "http://localhost:710${e}" \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "(list 'inc-value)")
-if [ $value != "51" ]; then
-    die contract has the wrong value
+if [ $value != $((n+1)) ]; then
+    die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
 fi
 
 say get the value and check it
+v=$((v+1)); e=$((v % pcontract_es + 1))
 value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                   --enclave random \
+                   --enclave "http://localhost:710${e}" \
                    --logfile __screen__ --loglevel warn \
                    --identity user1 --save-file ${SAVE_FILE} \
                    "'(get-value)")
-if [ $value != "51" ]; then
-    die contract has the wrong value
+if [ $value != $((n+1)) ]; then
+    die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
 fi
 
 ## -----------------------------------------------------------------
