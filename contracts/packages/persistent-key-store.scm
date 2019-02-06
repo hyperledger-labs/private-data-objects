@@ -27,6 +27,7 @@
 
 
 (require "safe-key-store.scm")
+(require "serialize.scm")
 
 (define persistent-key-store-package
   (package
@@ -34,13 +35,26 @@
    (define (make-key prefix key)
      (compute-message-hash (string-append prefix ":" key)))
 
+   ;; =================================================================
+   ;; CLASS: persistent-key-store
+   ;; =================================================================
    (define-class persistent-key-store
      (instance-vars
+      (_initialized #f)
+      (_deserialize #f)
+      (_serialize_ #f)
       (_prefix "")))
 
    (define-method persistent-key-store (initialize-instance . args)
-     (if (and (pair? args) (string? (car args)))
-         (instance-set! self '_prefix (compute-message-hash (car args)))))
+     (if (not _initialized)
+         (let ((prefix  (utility-package::get-with-default 'prefix string? args ""))
+               (deserialize (utility-package::get-with-default 'deserialize closure? args serialize-package::deserialize-object))
+               (serialize (utility-package::get-with-default 'serialize closure? args serialize-package::serialize-object)))
+           (if (not (string=? prefix ""))
+               (instance-set! self '_prefix (compute-message-hash prefix)))
+           (instance-set! self '_deserialize deserialize)
+           (instance-set! self '_serialize_ serialize)
+           (instance-set! self '_initialized #t))))
 
    ;; -----------------------------------------------------------------
    ;; Methods to update the value associated with a value, note that
@@ -50,26 +64,29 @@
    ;; get the value associated with a key, args can provide a default value
    ;; if the key does not exist in the store
    (define-method persistent-key-store (get key . args)
+     (assert (string? key) "key must be a string" key)
      (let* ((_key (persistent-key-store-package::make-key key _prefix))
             (_val (safe-kv-get _key)))
-       (cond (_val (eval (string->expression _val)))
+       (cond (_val (_deserialize _val))
              ((pair? args) (car args))
              ((throw "key does not exist" key)))))
 
    (define-method persistent-key-store (set key value)
+     (assert (string? key) "key must be a string" key)
      (assert (oops::instance? value) "value must be an object instance" value)
-     (let* ((serialized-list (serialize-instance value))
-            (serialized-string (expression->string serialized-list))
+     (let* ((serialized-string (_serialize_ value))
             (_key (persistent-key-store-package::make-key key _prefix)))
        (safe-kv-put _key serialized-string))
      #t)
 
    (define-method persistent-key-store (del key)
+     (assert (string? key) "key must be a string" key)
      (let ((_key (persistent-key-store-package::make-key key _prefix)))
        (safe-kv-del _key))
      #t)
 
    (define-method persistent-key-store (exists? key)
+     (assert (string? key) "key must be a string" key)
      (let* ((_key (persistent-key-store-package::make-key key _prefix))
             (_val (safe-kv-get _key)))
        (and (string? _val) (< 0 (string-length _val)))))
