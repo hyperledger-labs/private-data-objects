@@ -33,7 +33,9 @@
 
    (define-method memory-test (initialize-instance . args)
      (if (not _initialized)
-         (instance-set! self '_persistent_vector (make-instance persistent-vector '(prefix "memtest")))))
+         (let ((v (make-instance persistent-vector '(prefix "memtest") '(default 0))))
+           (instance-set! self '_persistent_vector v)
+           (instance-set! self '_initialized #t))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: big-state
@@ -55,31 +57,65 @@
      #t)
 
    ;; -----------------------------------------------------------------
-   ;; -----------------------------------------------------------------
-   (define-method memory-test (fill-vector count first)
-     (assert (and (integer? count) (< 0 count)) "parameter must be a positive integer")
-     (send _persistent_vector 'extend (+ first count))
-
-     (let loop ((i 0))
-       (if (< i count)
-           (begin (send _persistent_vector 'set (+ first i) 1) (loop (+ i 1)))))
-
-     (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0 `(first ,first))
-     )
-
-   ;; -----------------------------------------------------------------
    ;; NAME: clear-state
    ;;
    ;; DESCRIPTION:
    ;; Clear the value making the intrinsic state small again
    ;; -----------------------------------------------------------------
    (define-method memory-test (clear-state)
-     (let ((last (send _persistent_vector 'get-size)))
-       (let loop ((index 0))
-         (if (< index last)
-             (begin (send _persisten_vector del index) (loop (+ index 1))))))
      (instance-set! self '_value ())
      #t)
+
+   ;; -----------------------------------------------------------------
+   ;; -----------------------------------------------------------------
+   (define-method memory-test (fill-vector . args)
+     (let* ((vector-size (send _persistent_vector 'get-size))
+            (first (utility-package::get-with-default 'first integer? args 0))
+            (last (utility-package::get-with-default 'last integer? args (- vector-size 1)))
+            (value (utility-package::get-with-default 'value integer? args 1)))
+       (assert (and (<= 0 first) (<= first last)) "invalid positional parameters" first last)
+       (if (<= vector-size last)
+           (send _persistent_vector 'extend (+ last 1)))
+
+       (let loop ((index first))
+         (if (<= index last)
+             (begin
+               (send _persistent_vector 'set index value)
+               (loop (+ index 1)))))
+
+       ;; add up all of the values and return them
+       (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0)))
+
+   ;; -----------------------------------------------------------------
+   ;; -----------------------------------------------------------------
+   (define-method memory-test (dump-vector . args)
+     (let* ((vector-size (send _persistent_vector 'get-size))
+            (first (utility-package::get-with-default 'first integer? args 0))
+            (last (utility-package::get-with-default 'last integer? args (- vector-size 1))))
+       (assert (and (<= 0 first) (<= first last) (< last vector-size)) "invalid positional parameters" first last)
+
+       ;; dump the values in the vector
+       (send _persistent_vector 'map (lambda (v) v) `(first ,first) `(last ,last))))
+
+   ;; -----------------------------------------------------------------
+   ;; NAME: clear-vector
+   ;;
+   ;; DESCRIPTION:
+   ;; Clear some of the values in the vector
+   ;; -----------------------------------------------------------------
+   (define-method memory-test (clear-vector . args)
+     (let* ((vector-size (send _persistent_vector 'get-size))
+            (first (utility-package::get-with-default 'first integer? args 0))
+            (last (utility-package::get-with-default 'last integer? args (- vector-size 1)))
+            (skip (utility-package::get-with-default 'skip integer? args 4)))
+       (assert (and (<= 0 first) (<= first last) (< last vector-size)) "invalid positional parameters" first last)
+       (assert (< 0 skip) "skip must be positive integer" skip)
+       (let loop ((index first))
+         (if (<= index last)
+             (begin (send _persistent_vector 'del index) (loop (+ index skip)))))
+
+       ;; add up all of the values and return them
+       (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0 `(first ,first) `(last ,last))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: deep-recursion

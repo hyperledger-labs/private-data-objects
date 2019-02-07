@@ -61,28 +61,22 @@
 # -----------------------------------------------------------------
 # TEST: test the allocation and deallocation of slots using vectors
 # -----------------------------------------------------------------
-+'(fill-vector 1000 0),1000
-+'(clear-state)
-+'(fill-vector 1100 1000),1100
-+'(clear-state)
-+'(fill-vector 1200 2100),1200
-+'(clear-state)
-+'(fill-vector 1300 3300),1300
-+'(clear-state)
-+'(fill-vector 1400 4600),1400
-+'(clear-state)
-+'(fill-vector 1500 6100),1500
-+'(clear-state)
-+'(fill-vector 1600 7700),1600
-+'(clear-state)
-+'(fill-vector 1700 9400),1700
-+'(clear-state)
-+'(fill-vector 1800 10200),1800
-+'(clear-state)
-+'(fill-vector 1900 12100),1900
-+'(clear-state)
-+'(fill-vector 2000 14000),2000
-+'(clear-state)
+'(fill-vector (first 0) (last 99) (value 1)),100
+'(dump-vector (first 0) (last 3)),\\(1 1 1 1\\)
+'(fill-vector (first 0) (last 999) (value 1)),1000
+'(fill-vector (first 0) (last 1999) (value 1)),2000
+'(clear-vector (skip 4)),1500
+'(dump-vector (first 0) (last 3)),\\(0 1 1 1\\)
+'(fill-vector (first 0) (last 4999) (value 1)),5000
+'(clear-vector (skip 4)),3750
+'(clear-vector (skip 3)),2500
+'(dump-vector (first 0) (last 3)),\\(0 1 1 0\\)
+# need to avoid these for the moment... too slow for the
+# timeouts for the connections to the eservice
+#'(fill-vector (first 0) (last 9999) (value 1)),10000
+#'(fill-vector (first 0) (last 19999) (value 1)),20000
+#'(clear-vector (skip 4)),3750
+#'(clear-vector (skip 3)),2500
 
 # -----------------------------------------------------------------
 # TEST: test the key/value store with many keys
