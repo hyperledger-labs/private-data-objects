@@ -59,6 +59,32 @@
 '(deep-recursion 1000),1000
 
 # -----------------------------------------------------------------
+# TEST: test the allocation and deallocation of slots using vectors
+# -----------------------------------------------------------------
++'(fill-vector 1000 0),1000
++'(clear-state)
++'(fill-vector 1100 1000),1100
++'(clear-state)
++'(fill-vector 1200 2100),1200
++'(clear-state)
++'(fill-vector 1300 3300),1300
++'(clear-state)
++'(fill-vector 1400 4600),1400
++'(clear-state)
++'(fill-vector 1500 6100),1500
++'(clear-state)
++'(fill-vector 1600 7700),1600
++'(clear-state)
++'(fill-vector 1700 9400),1700
++'(clear-state)
++'(fill-vector 1800 10200),1800
++'(clear-state)
++'(fill-vector 1900 12100),1900
++'(clear-state)
++'(fill-vector 2000 14000),2000
++'(clear-state)
+
+# -----------------------------------------------------------------
 # TEST: test the key/value store with many keys
 # -----------------------------------------------------------------
 '(many-keys 1000 (key-base "a") (value "v")), #t

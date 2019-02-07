@@ -65,6 +65,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern void SchemeLog(int level, const char* msg);
+
 #ifdef __APPLE__
 static int stricmp(const char *s1, const char *s2)
 {
@@ -1539,6 +1541,9 @@ static void finalize_cell(scheme * sc, pointer a)
 	    && a->_object._port->rep.stdio.closeit) {
 	    port_close(sc, a, port_input | port_output);
 	}
+        if (a->_object._port->kind & port_srfi6) {
+            sc->free(a->_object._port->rep.string.start);
+        }
 	sc->free(a->_object._port);
     }
 }

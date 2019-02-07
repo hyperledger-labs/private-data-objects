@@ -12,10 +12,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
+(require "utility.scm")
 (require "safe-key-store.scm")
-
-(define-macro (assert pred . message)
-  `(if (not ,pred) (throw ,@message)))
+(require "persistent-vector.scm")
 
 (define memory-test-package
   (package
@@ -23,19 +22,18 @@
    (define default-value "_")
    (define default-key "key")
 
-   (define (get-with-default key pred args default)
-     (let* ((arg-value (if (pair? args) (assoc key args) #f))
-            (value (cond ((not arg-value) default)
-                         ((pair? (cdr arg-value)) (cadr arg-value))
-                         ((throw "invalid associative argument" key)))))
-       (assert (pred value) "wrong type of associative argument" key)
-       value))
-
    ;; =================================================================
    ;; CLASS: memory-test
    ;; =================================================================
    (define-class memory-test
-     (instance-vars (value 0)))
+     (instance-vars
+      (_initialized #f)
+      (_persistent_vector #f)
+      (_value 0)))
+
+   (define-method memory-test (initialize-instance . args)
+     (if (not _initialized)
+         (instance-set! self '_persistent_vector (make-instance persistent-vector '(prefix "memtest")))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: big-state
@@ -52,9 +50,22 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (big-state dimension . args)
      (assert (and (integer? dimension) (< 0 dimension)) "second parameter must be a positive integer")
-     (let ((value (memory-test-package::get-with-default 'value string? args memory-test-package::default-value)))
-       (instance-set! self 'value (make-vector dimension (make-vector dimension value))))
+     (let ((value (utility-package::get-with-default 'value string? args memory-test-package::default-value)))
+       (instance-set! self '_value (make-vector dimension (make-vector dimension value))))
      #t)
+
+   ;; -----------------------------------------------------------------
+   ;; -----------------------------------------------------------------
+   (define-method memory-test (fill-vector count first)
+     (assert (and (integer? count) (< 0 count)) "parameter must be a positive integer")
+     (send _persistent_vector 'extend (+ first count))
+
+     (let loop ((i 0))
+       (if (< i count)
+           (begin (send _persistent_vector 'set (+ first i) 1) (loop (+ i 1)))))
+
+     (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0 `(first ,first))
+     )
 
    ;; -----------------------------------------------------------------
    ;; NAME: clear-state
@@ -63,7 +74,11 @@
    ;; Clear the value making the intrinsic state small again
    ;; -----------------------------------------------------------------
    (define-method memory-test (clear-state)
-     (instance-set! self 'value ())
+     (let ((last (send _persistent_vector 'get-size)))
+       (let loop ((index 0))
+         (if (< index last)
+             (begin (send _persisten_vector del index) (loop (+ index 1))))))
+     (instance-set! self '_value ())
      #t)
 
    ;; -----------------------------------------------------------------
@@ -98,8 +113,8 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (many-keys count . args)
      (assert (and (integer? count) (< 0 count)) "second parameter must be a positive integer")
-     (let ((key-base (memory-test-package::get-with-default 'key-base string? args memory-test-package::default-key))
-           (value (memory-test-package::get-with-default 'value string? args memory-test-package::default-value)))
+     (let ((key-base (utility-package::get-with-default 'key-base string? args memory-test-package::default-key))
+           (value (utility-package::get-with-default 'value string? args memory-test-package::default-value)))
        (let loop ((i 0))
          (if (< i count)
              (let ((key (string-append key-base (number->string i))))
@@ -120,8 +135,8 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (big-value size . args)
      (assert (and (integer? size) (< 0 size)) "second parameter must be a positive integer")
-     (let ((key (memory-test-package::get-with-default 'key string? args memory-test-package::default-key))
-           (value-base (memory-test-package::get-with-default 'value-base string? args memory-test-package::default-value)))
+     (let ((key (utility-package::get-with-default 'key string? args memory-test-package::default-key))
+           (value-base (utility-package::get-with-default 'value-base string? args memory-test-package::default-value)))
        (assert (= (string-length value-base) 1) "value base must be a one character string")
        (let ((big-string (make-string size (string-ref value-base 0))))
          (safe-kv-put key big-string)
