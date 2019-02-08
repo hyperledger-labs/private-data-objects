@@ -345,6 +345,12 @@
            ((= i vlen) (cons 'vector (vector->list result)))
          (vector-set! result i (_serialize-item (vector-ref v i))))))
 
+   (define (_serialize-closure v)
+     (get-closure-code v))
+
+   (define (_serialize-procedure v)
+     (error "attempt to serialize procedure"))
+
    (define (_serialize-item i)
      (cond ((oops::instance? i) (serialize-instance i))
            ((null? i) i)
@@ -352,6 +358,8 @@
            ((pair? i) (_serialize-pair i))
            ((symbol? i) (_serialize-symbol i))
            ((vector? i) (_serialize-vector i))
+           ((closure? i) (_serialize-closure i))
+           ((procedure? i) (_serialize-procedure i))
            (else i)))
 
    (define (_serialize-instance-variable-pair p)
