@@ -222,6 +222,23 @@ int pcrypto::testCrypto()
     printf("testCrypto: ComputeMessageHash test passed!\n\n");
     // End Test ComputMessageHash
 
+    // Test ComputeMessageHMAC
+    ByteArray hmackey {4, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+    msg.clear();
+    msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
+    std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
+    ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+    std::string hmacStr_B64 = base64_encode(hmac);
+    if (hmacStr_B64.compare(msg_SHA256HMAC_B64) != 0)
+    {
+        printf(
+            "testCrypto: ComputeMessageHMAC test failed, SHA256 digest "
+            "mismatch.\n");
+        return -1;
+    }
+    printf("testCrypto: ComputeMessageHMAC test passed!\n\n");
+    // End Test ComputMessageHMAC
+
     // Tesf of SignMessage and VerifySignature
     ByteArray sig;
     try
