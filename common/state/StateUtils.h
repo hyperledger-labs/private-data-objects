@@ -37,8 +37,8 @@ namespace state
         void AppendChild(pdo::state::StateNode& childNode);
         void AppendChildId(StateBlockId& childId);
         void SetHasParent();
-        void BlockifyChildren();
-        void UnBlockifyChildren();
+        void BlockifyChildren(const ByteArray& state_encryption_key);
+        void UnBlockifyChildren(const ByteArray& state_encryption_key);
         pdo::state::StateBlockIdArray GetChildrenBlocks();
         void ClearChildren();
     };
