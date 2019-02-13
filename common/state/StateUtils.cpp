@@ -60,7 +60,7 @@ void pdo::state::StateNode::SetHasParent()
     hasParent_ = true;
 }
 
-void pdo::state::StateNode::BlockifyChildren()
+void pdo::state::StateNode::BlockifyChildren(const ByteArray& state_encryption_key)
 {
     try
     {
@@ -80,9 +80,15 @@ void pdo::state::StateNode::BlockifyChildren()
         JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
         pdo::error::ThrowIfNull(j_block_ids_array, "failed to serialize the block id array");
 
+        ByteArray cumulative_block_ids_hash;
+
         // insert in the array the IDs of all blocks in the list
         for (unsigned int i = 0; i < ChildrenArray_.size(); i++)
         {
+            cumulative_block_ids_hash.insert(cumulative_block_ids_hash.end(),
+                ChildrenArray_[i].begin(), ChildrenArray_[i].end());
+            cumulative_block_ids_hash = pdo::crypto::ComputeMessageHash(cumulative_block_ids_hash);
+
             jret = json_array_append_string(
                 j_block_ids_array, ByteArrayToBase64EncodedString(ChildrenArray_[i]).c_str());
         }
@@ -91,8 +97,15 @@ void pdo::state::StateNode::BlockifyChildren()
         ChildrenArray_.resize(0);
         ChildrenArray_.shrink_to_fit();
 
-        size_t serializedSize = json_serialization_size(j_root_block_value);
+        //serialize authenticator
+        ByteArray block_ids_hmac = pdo::crypto::ComputeMessageHMAC(state_encryption_key, cumulative_block_ids_hash);
+        jret = json_object_dotset_string(j_root_block_object,
+            "BlockIdsAuth", ByteArrayToBase64EncodedString(block_ids_hmac).c_str());
+        pdo::error::ThrowIf<pdo::error::RuntimeError>(
+            jret != JSONSuccess, "failed to serialize the block-ids authenticator");
 
+        //serialized json blob
+        size_t serializedSize = json_serialization_size(j_root_block_value);
         try
         {
             stateBlock_.resize(serializedSize);
@@ -114,7 +127,7 @@ void pdo::state::StateNode::BlockifyChildren()
     }
 }
 
-void pdo::state::StateNode::UnBlockifyChildren()
+void pdo::state::StateNode::UnBlockifyChildren(const ByteArray& state_encryption_key)
 {
     if (stateBlock_.empty())
     {
@@ -130,6 +143,9 @@ void pdo::state::StateNode::UnBlockifyChildren()
     JSON_Array* j_block_ids_array = json_object_get_array(j_root_block_object, "BlockIds");
     pdo::error::ThrowIfNull(j_block_ids_array, "Failed to parse the block ids, expecting array");
     int block_ids_count = json_array_get_count(j_block_ids_array);
+
+    ByteArray cumulative_block_ids_hash;
+
     for (int i = 0; i < block_ids_count; i++)
     {
         try
@@ -142,7 +158,20 @@ void pdo::state::StateNode::UnBlockifyChildren()
             SAFE_LOG_EXCEPTION("error allocating children in state node");
             throw;
         }
+
+        cumulative_block_ids_hash.insert(
+                    cumulative_block_ids_hash.end(), ChildrenArray_[i].begin(), ChildrenArray_[i].end());
+        cumulative_block_ids_hash = pdo::crypto::ComputeMessageHash(cumulative_block_ids_hash);
     }
+
+    //deserialize authenticator
+    const char *b64_auth = json_object_dotget_string(j_root_block_object, "BlockIdsAuth");
+    pdo::error::ThrowIfNull(b64_auth, "Failed to get BlockIdsAuth");
+    // verify authenticator
+    ByteArray expected_block_ids_hmac(Base64EncodedStringToByteArray(Base64EncodedString(b64_auth)));
+    ByteArray block_ids_hmac = pdo::crypto::ComputeMessageHMAC(state_encryption_key, cumulative_block_ids_hash);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        expected_block_ids_hmac != block_ids_hmac, "invalid block-ids authenticator");
 }
 
 pstate::StateBlockIdArray pdo::state::StateNode::GetChildrenBlocks()

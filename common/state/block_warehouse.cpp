@@ -24,12 +24,12 @@ void pdo::state::block_warehouse::serialize_block_ids(pdo::state::StateNode& nod
     {
         node.AppendChildId(blockIds_[i]);
     }
-    node.BlockifyChildren();
+    node.BlockifyChildren(state_encryption_key_);
 }
 
 void pdo::state::block_warehouse::deserialize_block_ids(pdo::state::StateNode& node)
 {
-    node.UnBlockifyChildren();
+    node.UnBlockifyChildren(state_encryption_key_);
     blockIds_ = node.GetChildrenBlocks();
 }
 
