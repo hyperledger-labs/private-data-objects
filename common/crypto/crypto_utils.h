@@ -25,6 +25,9 @@ namespace crypto
     // SHA256 hashing
     ByteArray ComputeMessageHash(const ByteArray& message);
 
+    // SHA256 HMAC
+    ByteArray ComputeMessageHMAC(const ByteArray& key, const ByteArray& message);
+
     // Generate cryptographically strong reandom bitstring
     // throws RuntimeError
     ByteArray RandomBitString(size_t length);
