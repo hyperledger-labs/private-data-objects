@@ -157,7 +157,7 @@ class EnclaveServiceClient(GenericServiceClient) :
     # -----------------------------------------------------------------
     def block_store_put(self, state_hash_b64, state_b64) :
         """
-        Retrieves a block from the enclave service's block store
+        Uploads a block to the enclave service's block store
         Returns:
             True - Success
             False - Failure
