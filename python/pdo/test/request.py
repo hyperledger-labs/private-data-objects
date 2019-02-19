@@ -20,6 +20,7 @@ import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
+import pdo.test.state as test_state
 
 import pdo.eservice.pdo_helper as enclave_helper
 import pdo.service_client.enclave as eservice_helper
@@ -60,6 +61,11 @@ def ErrorShutdown() :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def CreateAndRegisterEnclave(config) :
+    """
+    creates and registers an enclave
+    IMPORTANT: if an eservice is available it will be used,
+               otherwise, the code interfaces directly with the python/swig wrapper in the eservice code
+    """
     global enclave
     global txn_dependencies
 
@@ -274,15 +280,23 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
 
     start_time = time.time()
     for x in range(config['iterations']) :
+        if tamper_block_order :
+            # in this evaluation we tamper with the state, so it should fail with a bad authenticator error
+            logger.info('the following evaluation should fail with a bad authenticator error')
+            temp_saved_state_hash = contract.contract_state.get_state_hash(encoding='b64')
+            test_state.TamperWithStateBlockOrder(contract.contract_state)
+
         try :
             expression = "'(inc-value)"
             update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
             update_response = update_request.evaluate()
+
             if update_response.status is False :
                 logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
                 continue
 
             logger.info('{0} --> {1}'.format(expression, update_response.result))
+
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))
             ErrorShutdown()
@@ -390,6 +404,7 @@ def Main() :
     global use_ledger
     global use_eservice
     global use_pservice
+    global tamper_block_order
 
     import pdo.common.config as pconfig
     import pdo.common.logger as plogger
@@ -420,6 +435,9 @@ def Main() :
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
+
+    tamper_block_order = False
+    parser.add_argument('--tamper-block-order', help='Flag for tampering with the order of the state blocks', action='store_true')
 
     options = parser.parse_args()
 
@@ -515,6 +533,8 @@ def Main() :
 
     config['secrets'] = options.secret_count
     config['iterations'] = options.iterations
+
+    tamper_block_order = options.tamper_block_order
 
     LocalMain(config)
 
