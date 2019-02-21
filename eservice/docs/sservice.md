@@ -77,7 +77,7 @@ The ``store`` operation requests that the storage service manage a set of blocks
 
 ```JSON
 {
-    "interval" : "integer",
+    "expiration" : "integer",
     "block_ids" : [
         "base64 encoded block hash", ...
     ]

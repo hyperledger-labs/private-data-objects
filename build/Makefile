@@ -74,6 +74,7 @@ $(PYTHON_DIR) : $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade secp256k1
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade cryptography
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pyparsing
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade lmdb
 
 $(DSTDIR) :
 	mkdir -p $(DSTDIR)

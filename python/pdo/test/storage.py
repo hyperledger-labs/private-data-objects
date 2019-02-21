@@ -75,7 +75,7 @@ try :
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
-    block_ids = client.put_blocks(block_data)
+    block_ids = client.put_blocks(block_data, 30)
     assert block_ids and len(block_ids) == 3
 except Exception as e :
     logger.error('bulk upload test failed; %s', str(e))
@@ -98,6 +98,10 @@ logger.info('test bulk status')
 try :
     status = client.check_status(block_ids)
     assert status and len(status) == 3
+    for s in status :
+        assert s['size'] == 10
+        assert 0 < s['expiration'] and s['expiration'] <= 30
+
 except Exception as e :
     logger.error('bulk status failed; %s', str(e))
     sys.exit(-1)

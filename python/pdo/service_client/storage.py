@@ -36,6 +36,8 @@ class StorageException(Exception) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class StorageServiceClient(object) :
+    default_timeout = 1.0
+
     def __init__(self, url) :
         self.url_base = url
         self.service_info = self.get_service_info()
@@ -46,21 +48,21 @@ class StorageServiceClient(object) :
 
     def get_service_info(self) :
         url = "{0}/info".format(self.url_base)
-        response = requests.get(url)
+        response = requests.get(url, timeout=self.default_timeout)
         logger.info('get_service_info response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
 
     def get_block_list(self) :
         url = "{0}/block/list".format(self.url_base)
-        response = requests.get(url)
+        response = requests.get(url, timeout=self.default_timeout)
         logger.info('get_block_list response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
 
     def get_block(self, block_id) :
         url = "{0}/block/{1}".format(self.url_base, block_id)
-        response = requests.get(url)
+        response = requests.get(url, timeout=self.default_timeout)
         logger.info('get_block response code = %s', response.status_code)
         response.raise_for_status()
         return response.content
@@ -69,12 +71,12 @@ class StorageServiceClient(object) :
         block_hash = hashlib.sha256(block_data).digest()
         block_id = base64.urlsafe_b64encode(block_hash).decode()
         url = "{0}/block/{1}".format(self.url_base, block_id)
-        response = requests.put(url, data=block_data)
+        response = requests.put(url, data=block_data, timeout=self.default_timeout)
         logger.info('put_block response code = %s', response.status_code)
         response.raise_for_status()
         return block_id
 
-    def put_blocks(self, block_data_list) :
+    def put_blocks(self, block_data_list, expiration=60) :
         request_data = dict()
         block_ids = []
         for i in range(len(block_data_list)) :
@@ -82,16 +84,16 @@ class StorageServiceClient(object) :
             block_id = base64.urlsafe_b64encode(block_hash).decode()
             block_ids.append(block_id)
             request_data[block_id] = (block_id, block_data_list[i], 'application/octet-stream')
-        request_data['operation'] = json.dumps({'block_ids' : block_ids, 'interval' : 0})
+        request_data['operation'] = json.dumps({'block_ids' : block_ids, 'expiration' : expiration})
         url = "{0}/block/store".format(self.url_base)
-        response = requests.post(url, files=request_data)
+        response = requests.post(url, files=request_data, timeout=self.default_timeout)
         logger.info('put_blocks response code = %s', response.status_code)
         response.raise_for_status()
         return block_ids
 
     def check_status(self, block_ids) :
         url = "{0}/block/status".format(self.url_base)
-        response = requests.post(url, json=block_ids)
+        response = requests.post(url, json=block_ids, timeout=self.default_timeout)
         logger.info('put_blocks response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
