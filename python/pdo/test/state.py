@@ -41,10 +41,3 @@ def TamperWithStateBlockOrder(state_object) :
     new_main_state_block_byte_array = crypto.string_to_byte_array(new_main_state_block)
     state_object.update_state(crypto.byte_array_to_base64(new_main_state_block_byte_array))
     state_object.save_to_cache()
-
-def RestoreStateBlockOrder(state_object, state_hash) :
-    """
-    re-initializes the state object using the input state hash
-    """
-    so = state_object.read_from_cache(state_object.contract_id, state_hash)
-    state_object.update_state(so.encrypted_state)

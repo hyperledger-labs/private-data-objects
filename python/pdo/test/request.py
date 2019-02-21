@@ -436,7 +436,6 @@ def Main() :
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
 
-    tamper_block_order = False
     parser.add_argument('--tamper-block-order', help='Flag for tampering with the order of the state blocks', action='store_true')
 
     options = parser.parse_args()
@@ -535,6 +534,8 @@ def Main() :
     config['iterations'] = options.iterations
 
     tamper_block_order = options.tamper_block_order
+    if tamper_block_order :
+        config['iterations'] = 1
 
     LocalMain(config)
 
