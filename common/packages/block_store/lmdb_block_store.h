@@ -18,6 +18,11 @@
 #include "pdo_error.h"
 #include "types.h"
 
+// The default time in seconds that a new block will be held
+// in the storage service, one minute might be excessive but
+// is certainly reasonable
+#define MINIMUM_EXPIRATION_TIME 60
+
 namespace pdo
 {
     namespace lmdb_block_store
