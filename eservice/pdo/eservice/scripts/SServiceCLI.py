@@ -26,6 +26,8 @@ import base64
 import hashlib
 import json
 import lmdb
+import struct
+import time
 
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
@@ -67,6 +69,36 @@ def ErrorResponse(request, error_code, msg) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class BlockMetadata(object) :
+    """Class to capture metadata stored with a block
+    """
+
+    minimum_expiration_time = 60
+
+    @classmethod
+    def unpack(cls, value) :
+        metadata = struct.unpack('LLLL', value)
+
+        obj = cls()
+        obj.block_size = metadata[0]
+        obj.create_time = metadata[1]
+        obj.expiration_time = metadata[2]
+        obj.mark = metadata[3]
+
+        return obj
+
+    def __init__(self) :
+        self.block_size = 0
+        self.create_time = 0
+        self.expiration_time = 0
+        self.mark = 0
+
+    def pack(self) :
+        value = struct.pack('LLLL', self.block_size, self.create_time, self.expiration_time, self.mark)
+        return value
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class CommonResource(Resource) :
 
     ## -----------------------------------------------------------------
@@ -104,9 +136,11 @@ class BlockList(CommonResource) :
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
         try :
+            mdb = self.block_store_env.open_db(b'meta_data')
+
             block_ids = []
             with self.block_store_env.begin() as txn :
-                cursor = txn.cursor()
+                cursor = txn.cursor(db=mdb)
                 for key, value in cursor :
                     block_ids.append(base64.urlsafe_b64encode(key).decode())
 
@@ -144,7 +178,8 @@ class BlockData(CommonResource) :
                 return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(self.block_hash))
 
             with self.block_store_env.begin() as txn :
-                block_data = txn.get(block_hash)
+                bdb = self.block_store_env.open_db(b'block_data')
+                block_data = txn.get(block_hash, db=bdb)
                 if not block_data :
                     return ErrorResponse(request, http.NOT_FOUND, "no such block; {0}".format(self.block_hash))
 
@@ -171,9 +206,33 @@ class BlockData(CommonResource) :
             if requested_block_hash != block_hash :
                 return ErrorResponse(request, http.BAD_REQUEST, "mismatch block hash; {0}".format(self.block_hash))
 
+            current_time = int(time.time())
+            expiration_time = current_time + BlockMetadata.minimum_expiration_time
+
+            # note that these must be outside of the transaction
+            mdb = self.block_store_env.open_db(b'meta_data')
+            bdb = self.block_store_env.open_db(b'block_data')
+
             with self.block_store_env.begin(write=True) as txn :
-                if not txn.get(block_hash) :
-                    if not txn.put(block_hash, block_data) :
+                # if the metadata (and implicitly the data) already exists then just
+                # update the expiration time if it is older than the computed expiration
+                raw_metadata = txn.get(block_hash, db=mdb)
+                if raw_metadata :
+                    metadata = BlockMetadata.unpack(raw_metadata)
+                    if expiration_time > metadata.expiration_time :
+                        metadata.expiration_time = expiration_time
+                        if not txn.put(block_hash, metadata.pack(), db=mdb, overwrite=True) :
+                            return Error(request, http.BAD_REQUEST, "failed to save updated metadata")
+                else :
+                    metadata = BlockMetadata()
+                    metadata.block_size = len(block_data)
+                    metadata.create_time = current_time
+                    metadata.expiration_time = expiration_time
+                    metadata.mark = 0
+                    if not txn.put(block_hash, metadata.pack(), db=mdb) :
+                        return Error(request, http.BAD_REQUEST, "failed to save metadata")
+
+                    if not txn.put(block_hash, block_data, db=bdb) :
                         return ErrorResponse(request, http.BAD_REQUEST, "failed to save block data")
 
             request.setResponseCode(http.OK)
@@ -193,18 +252,21 @@ class BlockData(CommonResource) :
             except :
                 return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(self.block_hash))
 
+            mdb = self.block_store_env.open_db(b'meta_data')
+
             block_size = -1
             with self.block_store_env.begin() as txn :
-                block_data = txn.get(block_hash)
-                if block_data :
-                    block_size = len(block_data)
+                raw_metadata = txn.get(block_hash, db=mdb)
+                if raw_metadata :
+                    metadata = BlockMetadata.unpack(raw_metadata)
+                    block_size = metadata.block_size
 
             if block_size < 0 :
                 request.setResponseCode(http.NOT_FOUND)
                 request.setHeader('content-length', str(0))
                 request.write(b"")
             else :
-                request.setResponseCode(http.OK)
+                request.setResponseCode(http.FOUND)
                 request.setHeader('content-length', str(block_size))
                 request.write(b"")
 
@@ -260,8 +322,12 @@ class BlockStatus(CommonResource) :
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking block status request")
 
         try :
+            current_time = int(time.time())
+            mdb = self.block_store_env.open_db(b'meta_data')
+
             block_status_list = []
             with self.block_store_env.begin() as txn :
+
                 for block_id in block_ids :
                     try :
                         block_hash = base64.urlsafe_b64decode(block_id)
@@ -269,9 +335,14 @@ class BlockStatus(CommonResource) :
                         return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(block_id))
 
                     block_status = { 'block_id' : block_id, 'size' : 0, 'expiration' : 0 }
-                    block_data = txn.get(block_hash)
-                    if block_data :
-                        block_status['size'] = len(block_data)
+
+                    raw_metadata = txn.get(block_hash, db=mdb)
+                    if raw_metadata :
+                        metadata = BlockMetadata.unpack(raw_metadata)
+                        block_status['size'] = metadata.block_size
+                        block_status['expiration'] = metadata.expiration_time - current_time
+                        if block_status['expiration'] < 0 :
+                            block_status['expiration'] = 0
 
                     block_status_list.append(block_status)
 
@@ -312,18 +383,30 @@ class BlockStore(CommonResource) :
                 pass
             minfo = json.loads(data)
             block_ids = minfo['block_ids']
-            interval = minfo['interval']
+            expiration = minfo['expiration']
 
-            signing_hash_accumulator = interval.to_bytes(32, byteorder='big', signed=False)
+            signing_hash_accumulator = expiration.to_bytes(32, byteorder='big', signed=False)
 
         except Exception as e :
             logger.error("unknown exception unpacking request (BlockStore); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking block store request")
 
         try :
+            # expiration must be a positive number and less than one hour
+            if expiration <= 0 or expiration > 60*60 :
+                return ErrorResponse(request, http.BAD_REQUEST, "invalid expiration")
+
+            current_time = int(time.time())
+            expiration_time = current_time + expiration
+
+            mdb = self.block_store_env.open_db(b'meta_data')
+            bdb = self.block_store_env.open_db(b'block_data')
+
             # this might keep the database locked for too long for a write transaction
             # might want to flip the order, one transaction per update
             with self.block_store_env.begin(write=True) as txn :
+                metadata = BlockMetadata()
+
                 for block_id in block_ids :
                     block_id = block_id.encode()
                     try :
@@ -340,7 +423,15 @@ class BlockStore(CommonResource) :
                     if requested_block_hash != block_hash :
                         return ErrorResponse(request, http.BAD_REQUEST, "block hash mismatch; {0}".format(block_id))
 
-                    if not txn.put(block_hash, block_data) :
+                    metadata.block_size = len(block_data)
+                    metadata.create_time = current_time
+                    metadata.expiration_time = expiration_time
+                    metadata.mark = 0
+
+                    if not txn.put(block_hash, metadata.pack(), db=mdb) :
+                        return Error(request, http.BAD_REQUEST, "failed to save metadata")
+
+                    if not txn.put(block_hash, block_data, db=bdb) :
                         return ErrorResponse(request, http.BAD_REQUEST, "failed to save block data")
 
                     signing_hash_accumulator += block_hash
