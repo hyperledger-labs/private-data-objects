@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "lmdb.h"
 
@@ -27,6 +28,7 @@
 #include "pdo_error.h"
 #include "types.h"
 #include "log.h"
+#include "zero.h"
 
 /* Common API for all block stores */
 #include "block_store.h"
@@ -72,31 +74,165 @@ public:
  * ----------------------------------------------------------------- */
 
 /* Lightning database environment used to store data */
+#define BLOCK_DB_NAME "block_data"
+#define META_DB_NAME "meta_data"
+
 static MDB_env* lmdb_block_store_env;
 
 class SafeTransaction
 {
 public:
-    MDB_txn* txn = NULL;
+    MDB_dbi dbi_ = 0;
+    MDB_dbi meta_dbi_ = 0;
+    MDB_txn* txn_ = NULL;
 
-    SafeTransaction(unsigned int flags) {
-        int ret = mdb_txn_begin(lmdb_block_store_env, NULL, flags, &txn);
-        if (ret != MDB_SUCCESS)
+    SafeTransaction(unsigned int txn_flags = 0, unsigned int dbi_flags = 0) {
+        int ret;
+        ret = mdb_txn_begin(lmdb_block_store_env, NULL, txn_flags, &txn_);
+        if (ret == MDB_SUCCESS)
         {
-            SAFE_LOG(PDO_LOG_ERROR, "Failed to initialize LMDB transaction; %d", ret);
-            txn = NULL;
+            ret = mdb_dbi_open(txn_, BLOCK_DB_NAME, dbi_flags, &dbi_);
+            if (ret == MDB_SUCCESS)
+            {
+                ret = mdb_dbi_open(txn_, META_DB_NAME, dbi_flags, &meta_dbi_);
+                if (ret == MDB_SUCCESS)
+                    return;
+            }
         }
+
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
+        if (txn_ != NULL)
+        {
+            mdb_txn_abort(txn_);
+            txn_ = NULL;
+        }
+
+        throw pdo::error::SystemError("failed to open LMDB transaction");
     }
 
     ~SafeTransaction(void) {
-        if (txn != NULL)
-            mdb_txn_commit(txn);
+        if (txn_ != NULL)
+        {
+            SAFE_LOG(PDO_LOG_INFO, "abort transaction due to exception");
+            mdb_txn_abort(txn_);
+        }
+    }
+
+    void abort(void) {
+        pdo::error::ThrowIfNull(txn_, "duplicate abort of LMDB transaction");
+        mdb_txn_abort(txn_);
+        txn_ = NULL;
+    }
+
+    void commit(void) {
+        pdo::error::ThrowIfNull(txn_, "duplicate commit of LMDB transaction");
+        mdb_txn_commit(txn_);
+        txn_ = NULL;
     }
 };
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static pdo_err_t get_data(
+    MDB_dbi dbi,
+    MDB_txn* txn,
+    const uint8_t* inId,
+    const size_t inIdSize,
+    uint8_t* outValue,
+    const size_t inValueSize)
+{
+    MDB_val lmdb_id;
+    lmdb_id.mv_size = inIdSize;
+    lmdb_id.mv_data = (void*)inId;
+
+    MDB_val lmdb_data;
+    int ret = mdb_get(txn, dbi, &lmdb_id, &lmdb_data);
+    if (ret == MDB_NOTFOUND)
+    {
+        SAFE_LOG(PDO_LOG_DEBUG, "data not found");
+        return PDO_ERR_NOTFOUND;
+    }
+
+    if (ret != MDB_SUCCESS)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error reading data; %d", ret);
+        return PDO_ERR_SYSTEM;
+    }
+
+    if (inValueSize < lmdb_data.mv_size)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "insufficient space allocated for data block");
+        return PDO_ERR_SYSTEM;
+    }
+
+    memcpy_s(outValue, inValueSize, lmdb_data.mv_data, lmdb_data.mv_size);
+    return PDO_SUCCESS;
+}
+
+static pdo_err_t put_data(
+    MDB_dbi dbi,
+    MDB_txn* txn,
+    const uint8_t* inId,
+    const size_t inIdSize,
+    const uint8_t* inValue,
+    const size_t inValueSize)
+{
+    MDB_val lmdb_id;
+    lmdb_id.mv_size = inIdSize;
+    lmdb_id.mv_data = (void*)inId;
+
+    MDB_val lmdb_data;
+    lmdb_data.mv_size = inValueSize;
+    lmdb_data.mv_data = (void*)inValue;
+
+    int ret = mdb_put(txn, dbi, &lmdb_id, &lmdb_data, 0);
+    if (ret != MDB_SUCCESS)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Failed to put into LMDB database : %d", ret);
+        return PDO_ERR_SYSTEM;
+    }
+
+    return PDO_SUCCESS;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Block metadata contains the last write time and the last read time,
+// the size of the block, and an unsigned integer tag that can be used
+// for garbage collection.
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+typedef struct
+{
+    size_t block_size_;
+    uint64_t create_time_;      // seconds since epoch when block added to the store
+    uint64_t expiration_time_;  // seconds since epoch when block storage contract expires
+    uint64_t tag_;
+} BlockMetaData;
+
+static pdo_err_t get_metadata(
+    MDB_dbi dbi,
+    MDB_txn* txn,
+    const uint8_t* inId,
+    const size_t inIdSize,
+    BlockMetaData *metadata)
+{
+    Zero(metadata, sizeof(BlockMetaData));
+    return get_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(BlockMetaData));
+}
+
+static pdo_err_t put_metadata(
+    MDB_dbi dbi,
+    MDB_txn* txn,
+    const uint8_t* inId,
+    const size_t inIdSize,
+    const BlockMetaData *metadata)
+{
+    return put_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(BlockMetaData));
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::lmdb_block_store::BlockStoreInit(const std::string& db_path)
 {
+    SafeThreadLock slock;
+
     int ret;
 
     ret = mdb_env_create(&lmdb_block_store_env);
@@ -105,18 +241,23 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(const std::string& db_path)
     ret = mdb_env_set_mapsize(lmdb_block_store_env, DEFAULT_BLOCK_STORE_SIZE);
     pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to set LMDB default size");
 
+    ret = mdb_env_set_maxdbs(lmdb_block_store_env, 2);
+    pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to set LMDB database count");
+
     /*
      * MDB_NOSUBDIR avoids creating an additional directory for the database
      * MDB_WRITEMAP | MDB_NOMETASYNC should substantially improve LMDB's performance
      * This risks possibly losing at most the last transaction if the system crashes
      * before it is written to disk.
      */
-    ret = mdb_env_open(lmdb_block_store_env, db_path.c_str(), MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC, 0664);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB database; %d", ret);
-        return PDO_ERR_SYSTEM;
-    }
+    unsigned int flags = MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC;
+    //unsigned int flags = MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC;
+    ret = mdb_env_open(lmdb_block_store_env, db_path.c_str(), flags, 0664);
+    pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to open LMDB database");
+
+    // Ensure that the databases are created
+    SafeTransaction stxn(0, MDB_CREATE);
+    stxn.commit();
 
     return PDO_SUCCESS;
 }
@@ -135,11 +276,6 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     size_t* outValueSize
 )
 {
-    MDB_dbi dbi;
-    MDB_val lmdb_id;
-    MDB_val lmdb_data;
-    int ret;
-
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
@@ -147,47 +283,33 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     }
 #endif
 
-    SafeThreadLock slock;      // lock by construction
+    *outIsPresent = false;
+    *outValueSize = 0;
+
     SafeTransaction stxn(MDB_RDONLY);
 
-    if (stxn.txn == NULL)
+    if (stxn.txn_ == NULL)
         return PDO_ERR_SYSTEM;
 
-    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
-    if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        *outIsPresent = false;
-        return PDO_ERR_SYSTEM;
-    }
-
-    lmdb_id.mv_size = inIdSize;
-    lmdb_id.mv_data = (void*)inId;
-
-    ret = mdb_get(stxn.txn, dbi, &lmdb_id, &lmdb_data);
-    if (ret == MDB_NOTFOUND)
-    {
-        *outIsPresent = false;
+    BlockMetaData metadata;
+    pdo_err_t result = get_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, &metadata);
+    if (result == PDO_ERR_NOTFOUND)
         return PDO_SUCCESS;
-    }
-    else if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
-        *outIsPresent = false;
-        return PDO_ERR_SYSTEM;
-    }
+
+    if (result != PDO_SUCCESS)
+        return result;
 
     *outIsPresent = true;
-    *outValueSize = lmdb_data.mv_size;
+    *outValueSize = metadata.block_size_;
 
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
-        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%zu'", idStr.c_str(), *outValueSize);
     }
 #endif
 
+    stxn.commit();
     return PDO_SUCCESS;
 }
 
@@ -196,13 +318,9 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     const uint8_t* inId,
     const size_t inIdSize,
     uint8_t* outValue,
-    const size_t inValueSize
-)
+    const size_t inValueSize)
 {
-    MDB_dbi dbi;
-    MDB_val lmdb_id;
-    MDB_val lmdb_data;
-    int ret;
+    pdo_err_t result;
 
 #if BLOCK_STORE_DEBUG
     {
@@ -211,41 +329,33 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     }
 #endif
 
-    SafeThreadLock slock;
     SafeTransaction stxn(MDB_RDONLY);
 
-    if (stxn.txn == NULL)
+    if (stxn.txn_ == NULL)
         return PDO_ERR_SYSTEM;
 
-    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
-    if (ret != 0)
+    // Get the block metadata, we can check the size first and then will
+    // use it later to update the access time
+    BlockMetaData metadata;
+    result = get_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, &metadata);
+    if (result != PDO_SUCCESS)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        return PDO_ERR_SYSTEM;
+        SAFE_LOG(PDO_LOG_ERROR, "failed to retreive block metadata; %d", result);
+        return result;
     }
 
-    lmdb_id.mv_size = inIdSize;
-    lmdb_id.mv_data = (void*)inId;
-
-    ret = mdb_get(stxn.txn, dbi, &lmdb_id, &lmdb_data);
-    if (ret == MDB_NOTFOUND)
+    if (inValueSize < metadata.block_size_)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to find id in block store");
-        return PDO_ERR_VALUE;
-    }
-    else if (ret != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to get from LMDB database : %d", ret);
-        return PDO_ERR_SYSTEM;
-    }
-    else if (inValueSize != lmdb_data.mv_size)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Requested block of size %zu but buffer size is %zu", inValueSize,
-            lmdb_data.mv_size);
+        SAFE_LOG(PDO_LOG_ERROR, "insufficient space allocated for block data");
         return PDO_ERR_VALUE;
     }
 
-    memcpy_s(outValue, inValueSize, lmdb_data.mv_data, lmdb_data.mv_size);
+    result = get_data(stxn.dbi_, stxn.txn_, inId, inIdSize, outValue, inValueSize);
+    if (result != PDO_SUCCESS)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "failed to retreive block data; %d", result);
+        return result;
+    }
 
 #if BLOCK_STORE_DEBUG
     {
@@ -255,6 +365,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     }
 #endif
 
+    stxn.commit();
     return PDO_SUCCESS;
 }
 
@@ -266,46 +377,53 @@ pdo_err_t pdo::block_store::BlockStorePut(
     const size_t inValueSize
 )
 {
-    MDB_dbi dbi;
-    MDB_val lmdb_id;
-    MDB_val lmdb_data;
-    int ret;
+    pdo_err_t result;
 
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        std::string valueStr = BinaryToHexString(inValue, inValueSize);
-
-        SAFE_LOG(PDO_LOG_DEBUG, "Block store Put: %zu bytes '%s' -> %zu bytes '%s'", inIdSize,
-            idStr.c_str(), inValueSize, valueStr.c_str());
+        SAFE_LOG(PDO_LOG_DEBUG, "BlockStorePut: '%s'", idStr.c_str());
     }
 #endif
 
-    SafeThreadLock slock;
     SafeTransaction stxn(0);
 
-    if (stxn.txn == NULL)
+    if (stxn.txn_ == NULL)
         return PDO_ERR_SYSTEM;
 
-    ret = mdb_dbi_open(stxn.txn, NULL, 0, &dbi);
-    if (ret != 0)
+    result = put_data(stxn.dbi_, stxn.txn_, inId, inIdSize, inValue, inValueSize);
+    if (result != PDO_SUCCESS)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
-        return PDO_ERR_SYSTEM;
+        SAFE_LOG(PDO_LOG_ERROR, "failed to write block data; %d", result);
+        return result;
     }
 
-    lmdb_id.mv_size = inIdSize;
-    lmdb_id.mv_data = (void*)inId;
-    lmdb_data.mv_size = inValueSize;
-    lmdb_data.mv_data = (void*)inValue;
+    // update the last access time
+    struct timeval now;
+    gettimeofday(&now, NULL);
 
-    ret = mdb_put(stxn.txn, dbi, &lmdb_id, &lmdb_data, 0);
-    if (ret != 0)
+    BlockMetaData metadata;
+
+    metadata.block_size_ = inValueSize;
+    metadata.create_time_ = now.tv_sec;
+    metadata.expiration_time_ = now.tv_sec + MINIMUM_EXPIRATION_TIME;
+    metadata.tag_ = 0;
+    result = put_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, &metadata);
+    if (result != PDO_SUCCESS)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to put to LMDB database : %d", ret);
-        return PDO_ERR_SYSTEM;
+        SAFE_LOG(PDO_LOG_ERROR, "failed to save block meta data; %d", result);
+        return result;
     }
 
+#if BLOCK_STORE_DEBUG
+    {
+        std::string idStr = BinaryToHexString(inId, inIdSize);
+        std::string valueStr = BinaryToHexString((uint8_t*)inValue, inValueSize);
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store wrote id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
+    }
+#endif
+
+    stxn.commit();
     return PDO_SUCCESS;
 }
 
