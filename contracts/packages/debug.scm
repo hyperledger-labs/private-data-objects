@@ -122,5 +122,8 @@
 ;; -----------------------------------------------------------------
 (define-macro (catch-failed-test . expr)
   `(catch
-    (lambda (msg) (begin (test-logger::logger-error msg) (quit -1)))
+    (lambda args
+      (let ((msg (foldr (lambda (m e) (string-append m " " (expression->string e))) (car args) (cdr args))))
+        (test-logger::logger-error msg)
+        (quit -1)))
     (begin ,@expr)))

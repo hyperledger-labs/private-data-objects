@@ -57,6 +57,16 @@ namespace pstate = pdo::state;
 
 #define strvalue(p)      ((p)->_object._string._svalue)
 
+extern "C" {
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void SchemeLog(int level, const char *msg)
+{
+    SAFE_LOG1(level, msg);
+}
+
+}
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static void clear_output_buffer(scheme *sc)
 {

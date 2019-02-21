@@ -20,11 +20,11 @@ EXTENSIONPATH := $(ROOTDIR)/common/build
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm _memory-test.scm
-DEBUG_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
+TEST_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
 
 all: $(CONTRACTS)
 
-debug: $(DEBUG_CONTRACTS)
+debug: $(TEST_CONTRACTS)
 
 test:
 	@echo No automated tests defined
@@ -59,6 +59,6 @@ install : $(CONTRACTS)
 	@cp $(CONTRACTS) $(INSTALLDIR)
 
 clean :
-	rm -f $(CONTRACTS) $(DEBUGCONTRACTS)
+	rm -f $(CONTRACTS) $(TEST_CONTRACTS)
 
 .PHONY : all clean debug install test
