@@ -122,6 +122,14 @@ say start request test
 try pdo-test-request --no-ledger --iterations 100 \
     --logfile __screen__ --loglevel warn
 
+say start request test with tampered block order, this should fail
+pdo-test-request --no-ledger \
+    --tamper-block-order \
+    --logfile __screen__ --loglevel warn
+if [ $? == 0 ]; then
+    die request test with tampered block order succeeded though it should have failed
+fi
+
 say start integer-key contract test
 try pdo-test-contract --no-ledger --contract integer-key \
     --logfile __screen__ --loglevel warn
@@ -146,16 +154,6 @@ try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
-
-say start request test with tampered block order
-pdo-test-request --ledger ${PDO_LEDGER_URL} \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
-    --tamper-block-order \
-    --logfile __screen__ --loglevel warn
-if [ $? == 0 ]; then
-    die request test with tampered block order succeeded though it should have failed
-fi
 
 say start integer-key contract test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
