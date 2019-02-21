@@ -231,12 +231,11 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
         (*outSealedEnclaveDataSize) = enclaveData.get_sealed_data_size();;
 
         // Seal up the enclave data into the caller's buffer.
-        // NOTE - the attributes mask 0xfffffffffffffff3 seems rather
-        // arbitrary, but according to SGX SDK documentation, this is
-        // what sgx_seal_data uses, so it is good enough for us.
-        sgx_attributes_t attribute_mask = {0xfffffffffffffff3, 0};
-        sgx_status_t ret = sgx_seal_data_ex(SGX_KEYPOLICY_MRENCLAVE, attribute_mask,
-            0,        // misc_mask
+        // See comments on seal for ecall_CreateEnclaveData in
+        // eservice/lib/libpdo_enclave/signup_enclave.cpp
+	// for some important notes ...
+        sgx_status_t ret = sgx_seal_data_ex(
+	    PDO_SGX_KEYPOLICY, PDO_SGX_ATTRIBUTTE_MASK, PDO_SGX_MISCMASK,
             0,        // additional mac text length
             nullptr,  // additional mac text
             enclaveData.get_private_data_size(),
@@ -337,12 +336,11 @@ pdo_err_t ecall_CreateSealedSecret(size_t secret_len,
         pdo::error::ThrowSgxError(status, "Failed to generate random key");
 
         // Seal up the enclave data into the caller's buffer.
-        // NOTE - the attributes mask 0xfffffffffffffff3 seems rather
-        // arbitrary, but according to SGX SDK documentation, this is
-        // what sgx_seal_data uses, so it is good enough for us.
-        sgx_attributes_t attribute_mask = {0xfffffffffffffff3, 0};
-        status = sgx_seal_data_ex(SGX_KEYPOLICY_MRENCLAVE, attribute_mask,
-            0,        // misc_mask
+        // See comments on seal for ecall_CreateEnclaveData in
+        // eservice/lib/libpdo_enclave/signup_enclave.cpp
+	// for some important notes ...
+        status = sgx_seal_data_ex(
+	    PDO_SGX_KEYPOLICY, PDO_SGX_ATTRIBUTTE_MASK, PDO_SGX_MISCMASK,
             0,        // additional mac text length
             nullptr,  // additional mac text
             secret_len,
