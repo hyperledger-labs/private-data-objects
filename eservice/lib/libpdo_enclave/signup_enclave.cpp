@@ -162,12 +162,19 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
         pdo::error::ThrowSgxError(ret, "Failed to create enclave report");
 
         // Seal up the signup data into the caller's buffer.
-        // NOTE - the attributes mask 0xfffffffffffffff3 seems rather
-        // arbitrary, but according to SGX SDK documentation, this is
-        // what sgx_seal_data uses, so it is good enough for us.
-        sgx_attributes_t attribute_mask = {0xfffffffffffffff3, 0};
-        ret = sgx_seal_data_ex(SGX_KEYPOLICY_MRENCLAVE, attribute_mask,
-            0,        // misc_mask
+        // NOTE - Use params used by sgx_seal_data but use sgx_seal_data_ex
+        // so we can use MRENCLAVE instead of MRSIGNER.
+	// IMPORTANT - unseal works without complaint even if machine has been
+	// security patched to a new CPUSVN. Insofar it is paramount that seal is
+	// done in same ecall as (a) the key generation and (b) the generation of
+	// the report used in the attestation. In particular, if ever we would add an
+	// ledger registration renewal based on a new attestation, it would be crucial
+	// that that the re-registration attestation is structurally different such
+	// that that attestation cannot be used as the attestation for the initial
+	// attestation (and the attacker could generate keys in a weak configuration
+	// but then gets second attestation in a strong config ...)
+        ret = sgx_seal_data_ex(
+	    PDO_SGX_KEYPOLICY, PDO_SGX_ATTRIBUTTE_MASK, PDO_SGX_MISCMASK,
             0,        // additional mac text length
             nullptr,  // additional mac text
             enclaveData.get_private_data_size(),
