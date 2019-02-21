@@ -100,6 +100,38 @@ pdo_err_t ecall_ShutdownContractWorker(){
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t ecall_CalculateSealedContractKeySize(
+  size_t inContractIdSize,
+  size_t* outPSealedContractKeySize)
+{
+    pdo_err_t result = PDO_SUCCESS;
+
+    try
+    {
+        pdo::error::ThrowIfNull(outPSealedContractKeySize, "sealed contract key size pointer is NULL");
+
+	*outPSealedContractKeySize = sgx_calc_sealed_data_size(inContractIdSize, pdo::crypto::constants::SYM_KEY_LEN);
+	pdo::error::ThrowIf<pdo::error::RuntimeError>(
+	  (*outPSealedContractKeySize == 0xFFFFFFFF),
+	  "Failed to get valid size for sealed Blob of contract key encryption");
+    }
+    catch (pdo::error::Error& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Error in contract enclave (ecall_CalculateSealedContractKeySize): %04X -- %s",
+            e.error_code(), e.what());
+        ocall_SetErrorMessage(e.what());
+        result = e.error_code();
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Unknown error in contract enclave (ecall_CalculateSealedContractKeySize)");
+        result = PDO_ERR_UNKNOWN;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
     size_t inSealedSignupDataSize,
     const char* inContractId,

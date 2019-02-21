@@ -34,6 +34,7 @@
 #include "contract_secrets.h"
 #include "enclave_utils.h"
 
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static void VerifySecretSignature(const std::string& inEnclaveId,
     const std::string& inContractId,
@@ -138,45 +139,45 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
     return result;
 }
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static ByteArray CreateKeyEncryptionKey(const std::string& inContractId)
-{
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        inContractId.length() < SGX_KEYID_SIZE, "contract identifier is too small");
 
-    // Generate state key from KEY_ID
-    // Use static id for the moment
-    sgx_key_request_t key_request;
-    Zero(&key_request, sizeof(sgx_key_request_t));
-
-    key_request.key_policy = SGX_KEYPOLICY_MRENCLAVE;
-    key_request.key_name = SGX_KEYSELECT_SEAL;
-    memcpy_s(key_request.key_id.id, SGX_KEYID_SIZE, inContractId.c_str(), SGX_KEYID_SIZE);
-
-    sgx_key_128bit_t key;
-    sgx_status_t status = sgx_get_key(&key_request, &key);
-    pdo::error::ThrowSgxError(status, "failed to create key encryption key");
-
-    ByteArray outKeyEncryptionKey(key, key + SGX_AESGCM_KEY_SIZE);
-    return outKeyEncryptionKey;
-}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// returns base64 encoded, encrypted state encryption key
+// encrypt/decrypt state encryption key
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ByteArray EncryptStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inContractStateEncryptionKey)
 {
-    ByteArray key_encryption_key = CreateKeyEncryptionKey(inContractId);
 
-    ByteArray encrypted_state_encryption_key =
-        pdo::crypto::skenc::EncryptMessage(key_encryption_key, inContractStateEncryptionKey);
+  uint32_t aadSize = inContractId.size(); // Note: we exclude terminating NULL ..
+  uint32_t keySize = inContractStateEncryptionKey.size();
+  uint32_t sealedBlobSize = sgx_calc_sealed_data_size(aadSize, keySize);
+  pdo::error::ThrowIf<pdo::error::RuntimeError>(
+    (sealedBlobSize == 0xFFFFFFFF),
+    "Failed to get valid size for sealed Blob of state encryption key");
+  ByteArray sealedBlob(sealedBlobSize);
 
-    return encrypted_state_encryption_key;
+  // Seal up the state encryption key
+  // See comments on seal for ecall_CreateEnclaveData in
+  // eservice/lib/libpdo_enclave/signup_enclave.cpp
+  // for some important notes ...
+  // Note: AAD=ContractID is stored in visible form inside sealed blob ...
+
+  sgx_status_t ret = sgx_seal_data_ex(
+    PDO_SGX_KEYPOLICY, PDO_SGX_ATTRIBUTTE_MASK, PDO_SGX_MISCMASK,
+    aadSize, reinterpret_cast<const uint8_t*>(inContractId.c_str()),  // Additional Authentication Info
+    keySize, inContractStateEncryptionKey.data(), // encrypted payload
+    sealedBlob.size(), reinterpret_cast<sgx_sealed_data_t*>(sealedBlob.data()));
+  pdo::error::ThrowSgxError(ret, "Failed to seal contract state encryption key");
+
+  return sealedBlob;
 }
 
-Base64EncodedString EncodeAndEncryptStateEncryptionKey(
-    const std::string& inContractId, const ByteArray& inContractStateEncryptionKey)
+// Note: Below function is not used as asymmetrically we do the base64 encoding
+// outside of the enclave when we create the encrypted blob but do decode
+// it inside enclave (in ContractRequest::ContractRequest) when
+// we do transactions. Still kept implementation here for symmetry reasons ..
+Base64EncodedString EncryptAndEncodeStateEncryptionKey(
+  const std::string& inContractId, const ByteArray& inContractStateEncryptionKey)
 {
     ByteArray encrypted_state_encryption_key =
         EncryptStateEncryptionKey(inContractId, inContractStateEncryptionKey);
@@ -188,12 +189,26 @@ Base64EncodedString EncodeAndEncryptStateEncryptionKey(
 ByteArray DecryptStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inEncryptedStateEncryptionKey)
 {
-    ByteArray key_encryption_key = CreateKeyEncryptionKey(inContractId);
 
-    ByteArray decrypted_state_encryption_key =
-        pdo::crypto::skenc::DecryptMessage(key_encryption_key, inEncryptedStateEncryptionKey);
+  const sgx_sealed_data_t* sealedBlob = reinterpret_cast<const sgx_sealed_data_t*>(inEncryptedStateEncryptionKey.data());
 
-    return decrypted_state_encryption_key;
+  uint32_t aadLen = sgx_get_add_mac_txt_len(sealedBlob);
+  uint32_t keyLen = sgx_get_encrypt_txt_len(sealedBlob);
+
+  ByteArray aad(aadLen);
+  ByteArray decryptedStateEncryptionKey(keyLen);
+
+  sgx_status_t ret = sgx_unseal_data(
+    sealedBlob,
+    aad.data(), &aadLen,
+    decryptedStateEncryptionKey.data(), &keyLen);
+  pdo::error::ThrowSgxError(ret, "Failed to unseal contract state encryption key");
+
+  pdo::error::ThrowIf<pdo::error::ValueError>(
+    ( (aadLen != inContractId.size()) || (0 != memcmp(inContractId.c_str(), aad.data(), aadLen)) ),
+    "ContractID mismatch while decrypting contract state encryption key");
+
+  return decryptedStateEncryptionKey;
 }
 
 ByteArray DecodeAndDecryptStateEncryptionKey(const std::string& inContractId,

@@ -14,6 +14,7 @@
  */
 
 #pragma once
+#include "sgx_defaults.h"
 #include <openssl/sha.h>
 #include "crypto_shared.h"
 #include "crypto_utils.h"

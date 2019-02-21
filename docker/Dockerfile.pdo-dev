@@ -19,7 +19,7 @@
 #  Configuration (build) paramaters
 #  - proxy configuration: 	https_proxy http_proxy ftp_proxy, no_proxy  (default: undefined)
 #  - ubuntu base image to use: 	UBUNTU_VERSION (default: bionic)
-#  - sgx sdk version: 		SGX_SDK (default: v2.4.1)
+#  - sgx sdk version: 		SGX_SDK (default: sgx_2.4)
 #  - openssl version: 		OPENSSL (default: 1.1.0j)
 #  - sgxssl version: 		SGXSSL  (default: v2.4.1)
 #  - additional apt packages:	ADD_APT_PKGS (default: )
@@ -42,6 +42,8 @@
 #     or the PSW/aesmd might cause enclave launch problems
 #   - if behind a proxy, you might want to add also below options
 #     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy --env no_proxy=$no_proxy
+#   - if you want to debug with gdb and alike, you also might want to add options
+#     '--security-opt seccomp=unconfined --security-opt apparmor=unconfined --cap-add=SYS_PTRACE '
 #   - for develooping based on source in host you might map source into container with an option
 #     like -v $(pwd):/project/pdo/src/private-data-objects/
 

@@ -28,8 +28,11 @@ namespace pdo
         namespace contract
         {
 
-             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-            size_t ContractKeySize(void);
+            // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	    size_t EncryptedContractKeySize(
+	        size_t contractIdSize,
+	        int enclaveIndex
+	        );
 
             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             pdo_err_t VerifySecrets(

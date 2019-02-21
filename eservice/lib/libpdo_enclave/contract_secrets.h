@@ -41,7 +41,7 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
 ByteArray EncryptStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inContractStateEncryptionKey);
 
-Base64EncodedString EncodeAndEncryptStateEncryptionKey(
+Base64EncodedString EncryptAndEncodeStateEncryptionKey(
     const std::string& inContractId, const ByteArray& inContractStateEncryptionKey);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
