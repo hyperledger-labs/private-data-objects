@@ -42,13 +42,13 @@ logger = logging.getLogger(__name__)
 from twisted.web import http
 from twisted.web.server import Site
 from twisted.web.resource import Resource, NoResource
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, task
 from twisted.internet.threads import deferToThread
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.error import Error
 from twisted.python.threadpool import ThreadPool
 
-## -----------------------------------------------------------------
+## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
     """
     Generate a common error response for broken requests
@@ -550,7 +550,38 @@ class ContractStorageServer(Resource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def RunStorageService(http_host, http_port, service_keys, block_store_env) :
+def GarbageCollector(block_store_env) :
+    logger.debug('run the garbage collector')
+    try :
+        mdb = block_store_env.open_db(b'meta_data')
+        bdb = block_store_env.open_db(b'block_data')
+
+        current_time = int(time.time())
+
+        count = 0
+        with block_store_env.begin() as txn :
+            cursor = txn.cursor(db=mdb)
+            for key, value in cursor :
+                metadata = BlockMetadata.unpack(value)
+                if metadata.expiration_time < current_time :
+                    logger.debug('garbage collect block %s',base64.urlsafe_b64encode(key).decode())
+                    count += 1
+                    with block_store_env.begin(write=True) as dtxn :
+                        assert dtxn.delete(key, db=bdb)
+                        assert dtxn.delete(key, db=mdb)
+
+        logger.info('garbage collector deleted %d blocks', count)
+    except Exception as e :
+        logger.error('garbage collection failed; %s', str(e))
+        return
+
+def StartGarbageCollector(block_store_env, gcinterval) :
+    loop = task.LoopingCall(GarbageCollector, block_store_env)
+    loopDeferred = loop.start(10.0)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def StartStorageService(http_host, http_port, service_keys, block_store_env) :
     logger.info('service started on port %s', http_port)
 
     root = ContractStorageServer(service_keys, block_store_env)
@@ -562,6 +593,10 @@ def RunStorageService(http_host, http_port, service_keys, block_store_env) :
     logger.info('# of workers: %d', threadpool.workers)
 
     reactor.listenTCP(http_port, site, interface=http_host)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def RunService(block_store_env) :
 
     @defer.inlineCallbacks
     def shutdown_twisted():
@@ -603,6 +638,10 @@ def LocalMain(config) :
         service_config = config.get('StorageService', {})
 
         try :
+            gcinterval = service_config['GarbageCollectionInterval']
+            if gcinterval < 0 :
+                gcinterval = 0            # gcinterval 0 means don't run the garbage collector
+
             http_port = service_config['HttpPort']
             http_host = service_config['Host']
 
@@ -610,8 +649,7 @@ def LocalMain(config) :
             create = config.get('create', False)
             block_store = service_config['BlockStore']
             block_store_env = lmdb.open(block_store, create=create, max_dbs=2, subdir=False, sync=False, map_size=map_size)
-            #mdb = env.open_db('meta_data'.encode())
-            #bdb = env.open_db('block_data'.encode())
+
         except KeyError as ke :
             logger.error('missing configuration for StorageService.%s', str(ke))
             sys.exit(-1)
@@ -619,11 +657,18 @@ def LocalMain(config) :
             logger.error('unable to open the block store; %s', str(e))
             sys.exit(-1)
 
+        try :
+            StartGarbageCollector(block_store_env, gcinterval)
+            StartStorageService(http_host, http_port, service_keys, block_store_env)
+        except Exception as e :
+            logger.error('failed to start services; %s', str(e))
+            sys.exit(-1)
+
     except Error as e:
         logger.exception('failed to initialize the storage service; %s', e)
         sys.exit(-1)
 
-    RunStorageService(http_host, http_port, service_keys, block_store_env)
+    RunService(block_store_env)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -666,6 +711,7 @@ def Main() :
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
 
+    parser.add_argument('--gc-interval', help='Number of seconds between garbage collection', type=int)
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
     parser.add_argument('--create', help='Create the blockstore if it does not exist', action='store_true')
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
@@ -726,13 +772,17 @@ def Main() :
             'HttpPort' : 7101,
             'Host' : 'localhost',
             'Identity' : options.identity,
-            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb')
+            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),
+            'GarbageCollectionInterval' : 10
         }
     if options.http :
         config['StorageService']['HttpPort'] = options.http
 
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
+
+    if options.gc_interval :
+        config['StorageService']['GarbageCollectionInterval'] = options.gc_interval
 
     # GO!
     LocalMain(config)

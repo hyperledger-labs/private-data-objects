@@ -25,6 +25,7 @@ The storage service is configured through a Toml configuration file generally pl
 * key-dir -- one or more directories to search for the private key used by the storage service to sign storage contracts
 * data-dir -- path where data files are stored
 * block-store -- name of the file where blocks are stored, defaults to ``${data}/${identity}.mdb``
+* gc-interval -- the interval over which the garbage collector runs in seconds, defaults to 10
 
 ## Operations ##
 
@@ -45,7 +46,7 @@ Across operations, a block id (the sha256 hash of the block) will be represented
 
 ### Status ###
 
-The ``status`` operation returns the size and expiration time of any requested block that is currently maintained by the storage service. If a requested block is currently not managed by the storage service, length and expiration will be set to 0. Note that the expiration is the number of seconds in the future when the block will expire; it is not a wall clock time.
+The ``status`` operation returns the size and expiration time of any requested block that is currently maintained by the storage service. If a requested block is currently not managed by the storage service, length and expiration will be set to 0. Note that the expiration is the number of seconds in the future (not wall clock time) that the storage service agrees to persist the block.
 
 #### Input ####
 
@@ -70,7 +71,7 @@ The ``status`` operation returns the size and expiration time of any requested b
 ```
 ### Store Blocks ###
 
-The ``store`` operation requests that the storage service manage a set of blocks for at least a requested interval of time. If the storage service agrees to manage the blocks for the requested time, it will sign the hash of the hashes of the stored blocks (computed in the same order as the blocks were requested). The request will be encoded as ``multipart/form``. The first section of the form will contain a ``JSON`` request that includes requested interval and a list of block identifiers. Each specified block will be in its own section in the form.
+The ``store`` operation requests that the storage service manage a set of blocks for at least a requested interval of time. If the storage service agrees to manage the blocks for the requested time, it will sign the hash of the hashes of the stored blocks (computed in the same order as the blocks were requested). The request will be encoded as ``multipart/form``. The first section of the form will contain a ``JSON`` request that includes requested interval and a list of block identifiers. Each specified block will be in its own section in the form identified by the block identifier.
 
 #### Input ####
 

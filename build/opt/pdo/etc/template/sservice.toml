@@ -21,6 +21,7 @@ Identity = "${identity}"
 HttpPort = ${httpport}
 Host = "localhost"
 BlockStore = "${data}/eservice${_count_}.mdb"
+GarbageCollectionInterval = 10
 
 # --------------------------------------------------
 # Logging -- configuration of service logging
