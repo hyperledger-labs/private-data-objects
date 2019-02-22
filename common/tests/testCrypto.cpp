@@ -222,6 +222,100 @@ int pcrypto::testCrypto()
     printf("testCrypto: ComputeMessageHash test passed!\n\n");
     // End Test ComputMessageHash
 
+    // Test ComputeMessageHMAC
+
+    {//test expected hmac
+        ByteArray hmackey {4, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+        std::string msgStr("Proof of Elapsed Time");
+        ByteArray msg;
+        msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
+        std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
+        ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+        std::string hmacStr_B64 = base64_encode(hmac);
+        if (hmacStr_B64.compare(msg_SHA256HMAC_B64) != 0)
+        {
+            printf(
+                "testCrypto: ComputeMessageHMAC test failed, SHA256 digest "
+                "mismatch.\n");
+            return -1;
+        }
+    }
+
+    {//test unexpected hmac (due to wrong key)
+        ByteArray hmackey {0, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+        std::string msgStr("Proof of Elapsed Time");
+        ByteArray msg;
+        msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
+        std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
+        ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+        std::string hmacStr_B64 = base64_encode(hmac);
+        if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
+        {
+            printf("testCrypto: ComputeMessageHMAC, wrong key test shoud have failed.\n");
+            return -1;
+        }
+    }
+
+    {//test unexpected hmac (due to wrong message)
+        ByteArray hmackey {4, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+        std::string msgStr("proof of Elapsed Time");
+        ByteArray msg;
+        msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
+        std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
+        ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+        std::string hmacStr_B64 = base64_encode(hmac);
+        if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
+        {
+            printf("testCrypto: ComputeMessageHMAC, wrong message test should have failed.\n");
+            return -1;
+        }
+    }
+
+    {//test big key big data hmac
+        ByteArray hmackey(1<<18, 0);
+        ByteArray msg(1<<18, 1);
+        try
+        {
+            ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+        }
+        catch(...)
+        {
+            printf("testCrypto: ComputeMessageHMAC, test big key/data failed.\n");
+            return -1;
+        }
+    }
+
+    {//test zero key hmac
+        ByteArray hmackey;
+        ByteArray msg(1,0);
+        try
+        {
+            ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+            throw pdo::error::RuntimeError("testCrypto: ComputeMessageHMAC, test zero key should have failed.\n");
+        }
+        catch(...)
+        {
+            //test success, do nothing
+        }
+    }
+
+    {//test zero data hmac
+        ByteArray hmackey(1,0);
+        ByteArray msg;
+        try
+        {
+            ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
+            throw pdo::error::RuntimeError("testCrypto: ComputeMessageHMAC, test zero data should have failed.\n");
+        }
+        catch(...)
+        {
+            //test success, do nothing
+        }
+    }
+
+    printf("testCrypto: ComputeMessageHMAC test passed!\n\n");
+    // End Test ComputMessageHMAC
+
     // Tesf of SignMessage and VerifySignature
     ByteArray sig;
     try

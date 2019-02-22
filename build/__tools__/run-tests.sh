@@ -122,6 +122,14 @@ say start request test
 try pdo-test-request --no-ledger --iterations 100 \
     --logfile __screen__ --loglevel warn
 
+say start request test with tampered block order, this should fail
+pdo-test-request --no-ledger \
+    --tamper-block-order \
+    --logfile __screen__ --loglevel warn
+if [ $? == 0 ]; then
+    die request test with tampered block order succeeded though it should have failed
+fi
+
 say start integer-key contract test
 try pdo-test-contract --no-ledger --contract integer-key \
     --logfile __screen__ --loglevel warn

@@ -16,6 +16,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/hmac.h>
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -49,6 +50,39 @@ static void SHA256Hash(
     SHA256_Update(&sha256, buf, buf_size);
     SHA256_Final(hash, &sha256);
 }  // pcrypto::SHA256Hash
+
+// Compute SHA256 HMAC
+static void SHA256HMAC(
+    const unsigned char* buf, int buf_size, const unsigned char* key, unsigned int key_len,
+    unsigned char *hmac, unsigned int hmac_len)
+{
+    Error::ThrowIfNull(buf, "null buffer");
+    Error::ThrowIfNull(key, "null key");
+    Error::ThrowIfNull(hmac, "null hmac buffer");
+
+    HMAC_CTX* hmac_ctx = HMAC_CTX_new();
+    Error::ThrowIfNull(hmac_ctx, "invalid hmac context");
+
+    try
+    {
+        int ret;
+        ret = HMAC_Init_ex(hmac_ctx, key, key_len, EVP_sha256(), NULL);
+        Error::ThrowIf<Error::RuntimeError>(ret == 0, "hmac init failed");
+
+        ret = HMAC_Update(hmac_ctx, buf, buf_size);
+        Error::ThrowIf<Error::RuntimeError>(ret == 0, "hmac update failed");
+
+        ret = HMAC_Final(hmac_ctx, hmac, &hmac_len);
+        Error::ThrowIf<Error::RuntimeError>(ret == 0, "hmac final failed");
+    }
+    catch(...)
+    {
+        HMAC_CTX_free(hmac_ctx);
+        throw;
+    }
+
+    HMAC_CTX_free(hmac_ctx);
+}  // pcrypto::SHA256HMAC
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Generate cryptographically strong random bimsging
@@ -88,3 +122,13 @@ ByteArray pcrypto::ComputeMessageHash(const ByteArray& message)
     SHA256Hash((const unsigned char*)message.data(), message.size(), hash.data());
     return hash;
 }  // pcrypto::ComputeMessageHash
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Compute SHA256-based HMAC of message.data()
+// returns ByteArray containing raw binary data
+ByteArray pcrypto::ComputeMessageHMAC(const ByteArray& key, const ByteArray& message)
+{
+    ByteArray hmac(SHA256_DIGEST_LENGTH);
+    SHA256HMAC(message.data(), message.size(), key.data(), key.size(), hmac.data(), hmac.size());
+    return hmac;
+}  // pcrypto::ComputeMessageHMAC

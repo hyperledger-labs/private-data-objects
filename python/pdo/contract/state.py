@@ -137,8 +137,7 @@ class ContractState(object) :
         if raw_data is None :
             raise Exception('unable to locate required block; {}'.format(state_hash))
 
-        if not eservice.block_store_put(state_hash, raw_data) :
-            raise Exception('failed to push block to eservice; {}'.format(state_hash))
+        eservice.block_store_put(state_hash, raw_data)
 
         logger.debug('sent block %s to eservice', state_hash)
         return True
@@ -172,7 +171,7 @@ class ContractState(object) :
 
             ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
 
-        logger.debug('sent block %s to eservice', state_hash)
+        logger.debug('retrieved block %s from eservice', state_hash)
         return True
 
     # --------------------------------------------------
