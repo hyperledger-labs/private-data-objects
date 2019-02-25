@@ -25,6 +25,18 @@
 #include "TestEnclave_u.h"
 #include "sgx_urts.h"
 #include "c11_support.h"
+#include "log.h"
+#include "error.h"
+
+void Log(int level, const char* fmt, ...)
+{
+    char buf[BUFSIZ] = {'\0'};
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf_s(buf, BUFSIZ, fmt, ap);
+    va_end(ap);
+    ocall_Log(level, buf);
+}  // Log
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -68,14 +80,14 @@ void print_error_message(sgx_status_t ret)
         if (ret == sgx_errlist[idx].err)
         {
             if (NULL != sgx_errlist[idx].sug)
-                printf("Info: %s\n", sgx_errlist[idx].sug);
-            fprintf(stderr, "Error: %s\n", sgx_errlist[idx].msg);
+                SAFE_LOG(PDO_LOG_DEBUG, "Info: %s\n", sgx_errlist[idx].sug);
+            SAFE_LOG(PDO_LOG_ERROR, "Error: %s\n", sgx_errlist[idx].msg);
             break;
         }
     }
 
     if (idx == ttl)
-        fprintf(stderr,
+        SAFE_LOG(PDO_LOG_ERROR,
             "Error code is 0x%X. Please refer to the \"Intel SGX SDK Developer Reference\" for "
             "more details.\n",
             ret);
@@ -119,7 +131,7 @@ int initialize_enclave(void)
     FILE* fp = fopen(token_path, "rb");
     if (fp == NULL && (fp = fopen(token_path, "wb")) == NULL)
     {
-        fprintf(stderr, "Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
+        SAFE_LOG(PDO_LOG_ERROR, "Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
     }
 
     if (fp != NULL)
@@ -130,7 +142,7 @@ int initialize_enclave(void)
         {
             /* if token is invalid, clear the buffer */
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
-            fprintf(stderr, "Warning: Invalid launch token read from \"%s\".\n", token_path);
+            SAFE_LOG(PDO_LOG_ERROR, "Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
     }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
@@ -159,19 +171,16 @@ int initialize_enclave(void)
         return 0;
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
     if (write_num != sizeof(sgx_launch_token_t))
-        fprintf(stderr, "Warning: Failed to save launch token to \"%s\".\n", token_path);
+        SAFE_LOG(PDO_LOG_ERROR, "Warning: Failed to save launch token to \"%s\".\n", token_path);
     fclose(fp);
     return 0;
 }
 
 /* OCall functions */
-void ocall_print_string(const char* str)
+void ocall_Log(int level, const char *str)
 {
-    /* Proxy/Bridge will check the length and null-terminate
-     * the input string to prevent buffer overflow.
-     */
-    printf("%s", str);
-}
+    printf("[LOG %u] %s", level, str);
+} // ocall_Log
 
 /* Application entry */
 int SGX_CDECL main(int argc, char* argv[])
@@ -181,12 +190,12 @@ int SGX_CDECL main(int argc, char* argv[])
 
     int result;
 
-    printf("Test TRUSTED Common API.\n");
+    SAFE_LOG(PDO_LOG_DEBUG, "Test TRUSTED Common API.\n");
 
     /* Initialize the enclave */
     if (initialize_enclave() < 0)
     {
-        fprintf(stderr, "Error: could not initialize SGX Enclave\n");
+        SAFE_LOG(PDO_LOG_ERROR, "Error: could not initialize SGX Enclave\n");
         return -1;
     }
 
@@ -194,13 +203,14 @@ int SGX_CDECL main(int argc, char* argv[])
     /* Destroy the enclave */
     sgx_destroy_enclave(global_eid);
 
+
     if (result != 0)
     {
-        fprintf(stderr, "ERROR: TRUSTED Common API test FAILED.\n");
+        SAFE_LOG(PDO_LOG_ERROR, "ERROR: TRUSTED Common API test FAILED.\n");
         return -1;
     }
 
-    printf("Test TRUSTED Common API SUCCESSFUL!\n");
+    SAFE_LOG(PDO_LOG_DEBUG, "Test TRUSTED Common API SUCCESSFUL!\n");
 
     return 0;
 }

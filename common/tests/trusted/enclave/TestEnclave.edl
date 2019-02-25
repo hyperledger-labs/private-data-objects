@@ -29,12 +29,10 @@ enclave {
         public int test();
     };
     /*
-     * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
-     *  [in]: copy the string buffer to App outside.
-     *  [string]: specifies 'str' is a NULL terminated buffer.
+     * ocall_log - invokes OCALL to display string buffer inside the enclave.
      */
     untrusted {
-        void ocall_print_string([in, string] const char *str);
+        void ocall_Log(int level, [in, string] const char *str);
     };
 
 };
