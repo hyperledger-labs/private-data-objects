@@ -95,6 +95,8 @@ keys : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/eservice$${i} --format skf; done
 	. $(abspath $(DSTDIR)/bin/activate) ; \
+		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/sservice$${i} --format pem; done
+	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/pservice$${i} --format pem; done
 	. $(abspath $(DSTDIR)/bin/activate) ; \
 		for i in 1 2 3 4 5 6 7 8 9 10 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/user$${i} --format pem; done
@@ -105,6 +107,10 @@ conf : $(PYTHON_DIR)
 		$(CNFGEN) --template eservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \
 		multiple --file-base eservice --http-base 7100 --count 5
+	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+		$(CNFGEN) --template sservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
+		--output-directory $(DSTDIR)/opt/pdo/etc \
+		multiple --file-base sservice --http-base 7200 --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template pservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \

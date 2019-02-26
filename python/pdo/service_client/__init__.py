@@ -13,7 +13,8 @@
 # limitations under the License.
 
 all = [
-    'enclave'
-    'provisioning'
-    'generic'
+    'enclave',
+    'generic',
+    'provisioning',
+    'storage'
 ]

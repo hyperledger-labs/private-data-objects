@@ -140,6 +140,9 @@ if options.set :
 
 if options.command == 'multiple' :
     for n in range(1, int(options.count)+1) :
+        # this provides a means to pair storage & enclave services
+        config_map['_count_'] = str(n)
+
         node = options.file_base + str(n)
         httpport = options.http_base + n
         expand_multiple(options, node, httpport = httpport)

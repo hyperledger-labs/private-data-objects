@@ -46,6 +46,7 @@ PYTHON_FILES = \
 	pdo/eservice/enclave/__init__.py \
 	pdo/eservice/pdo_helper.py \
 	pdo/eservice/scripts/EServiceCLI.py \
+	pdo/eservice/scripts/SServiceCLI.py \
 	pdo/eservice/scripts/__init__.py \
 	pdo/eservice/pdo_enclave.py \
 	pdo/eservice/__init__.py \
