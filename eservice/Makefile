@@ -46,12 +46,13 @@ PYTHON_FILES = \
 	pdo/eservice/enclave/__init__.py \
 	pdo/eservice/pdo_helper.py \
 	pdo/eservice/scripts/EServiceCLI.py \
-	pdo/eservice/scripts/SServiceCLI.py \
 	pdo/eservice/scripts/__init__.py \
 	pdo/eservice/pdo_enclave.py \
 	pdo/eservice/__init__.py \
 	pdo/eservice/utility/ias_client.py \
 	pdo/eservice/utility/__init__.py \
+	pdo/sservice/scripts/SServiceCLI.py \
+	pdo/sservice/block_store_manager.py \
 	pdo/__init__.py
 
 ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl)

@@ -14,59 +14,15 @@
  */
 
 #include <string>
-#include <map>
 
 /**
  * Initialize the block store - must be called before performing gets/puts
  *
  * @param db_path       path to the persistent block store database
  */
-void block_store_init(const std::string& db_path);
+void block_store_open(const std::string& db_path);
 
 /**
  * Close the block store - must be called when exiting
- *
- * @param db_path       path to the persistent block store database
  */
 void block_store_close();
-
-/**
- * Gets the size of a block in the block store
- *
- * @param key_b64       base64 encoded key string
- *
- * @return
- *  Success: length of value corresponding to key
- *  Failure: -1
- */
-int block_store_head(
-    const std::string& key_b64
-    );
-
-/**
- * Gets the value corresponding to a key from the block store
- *
- * @param key_b64       base64 encoded key string
- *
- * @return
- *  Success: base64 encoded value corresponding to key
- *  Failure: throws exception
- */
-std::string block_store_get(
-    const std::string& key_b64
-    );
-
-/**
- * Puts a key->value pair into the block store
- *
- * @param key_b64       base64 encoded key string
- * @param value_b64     base64 encoded value string
- *
- * @return
- *  Success: void/no return
- *  Failure: throws exception
- */
-void block_store_put(
-    const std::string& key_b64,
-    const std::string& value_b64
-    );

@@ -229,7 +229,7 @@ static pdo_err_t put_metadata(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t pdo::lmdb_block_store::BlockStoreInit(const std::string& db_path)
+void pdo::lmdb_block_store::BlockStoreOpen(const std::string& db_path)
 {
     SafeThreadLock slock;
 
@@ -251,17 +251,15 @@ pdo_err_t pdo::lmdb_block_store::BlockStoreInit(const std::string& db_path)
      * before it is written to disk.
      */
     unsigned int flags = MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC;
-    //unsigned int flags = MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC;
     ret = mdb_env_open(lmdb_block_store_env, db_path.c_str(), flags, 0664);
     pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to open LMDB database");
 
     // Ensure that the databases are created
     SafeTransaction stxn(0, MDB_CREATE);
     stxn.commit();
-
-    return PDO_SUCCESS;
 }
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void pdo::lmdb_block_store::BlockStoreClose()
 {
     if (lmdb_block_store_env != NULL)

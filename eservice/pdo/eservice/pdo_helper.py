@@ -212,28 +212,6 @@ class Enclave(object) :
         """
         return pdo_enclave.get_enclave_public_info(self.sealed_data)
 
-    # -----------------------------------------------------------------
-    def block_store_head(self, key_b64) :
-        """
-        get the number of bytes stored in the block store for the given key
-        or -1 if no corresponding block matches
-        """
-        return pdo_enclave.block_store_head(key_b64)
-
-    # -----------------------------------------------------------------
-    def block_store_get(self, key_b64) :
-        """
-        request the block corresponding to the specified key
-        """
-        return pdo_enclave.block_store_get(key_b64)
-
-    # -----------------------------------------------------------------
-    def block_store_put(self, key_b64, value_b64) :
-        """
-        store the given value into the eservice's block store
-        """
-        return pdo_enclave.block_store_put(key_b64, value_b64)
-
     # -------------------------------------------------------
     def save_to_file(self, basename, data_dir = None) :
         enclave_info = dict()

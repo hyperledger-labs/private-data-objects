@@ -62,9 +62,6 @@ class ContractEnclaveServer(resource.Resource):
             'UpdateContractRequest' : self._HandleUpdateContractRequest,
             'EnclaveDataRequest' : self._HandleEnclaveDataRequest,
             'VerifySecretRequest' : self._HandleVerifySecretRequest,
-            'BlockStoreHeadRequest' : self._HandleBlockStoreHeadRequest,
-            'BlockStoreGetRequest' : self._HandleBlockStoreGetRequest,
-            'BlockStorePutRequest' : self._HandleBlockStorePutRequest,
         }
 
     ## -----------------------------------------------------------------
@@ -256,92 +253,6 @@ class ContractEnclaveServer(resource.Resource):
         response['encryption_key'] = self.EncryptionKey
         response['enclave_id'] = self.EnclaveID
         return response
-
-    ## -----------------------------------------------------------------
-    def _HandleBlockStoreHeadRequest(self, minfo) :
-        """
-        Test if a key is in the untrusted block store / cache
-            {
-                "key" : <>,
-            }
-        """
-
-        try :
-            key = minfo['key']
-
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
-
-        except Exception as e :
-            logger.error('unknown excption unpacking request (BlockStoreHeadRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStoreHeadRequest)')
-
-        try :
-            datalen = self.Enclave.block_store_head(key)
-            return {'length' : str(datalen)}
-
-        except Exception as e :
-            logger.error('unknown exception processing request (BlockStoreHeadRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStoreHeadRequest)')
-
-    ## -----------------------------------------------------------------
-    def _HandleBlockStoreGetRequest(self, minfo) :
-        """
-        Get a value from the untrusted block store / cache
-            {
-                "key" : <>,
-            }
-        """
-
-        try :
-            key = minfo['key']
-
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
-
-        except Exception as e :
-            logger.error('unknown excption unpacking request (BlockStoreGetRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStoreGetRequest)')
-
-        try :
-            response = self.Enclave.block_store_get(key)
-            return {'result' : response}
-
-        except Exception as e :
-            logger.error('unknown exception processing request (BlockStoreGetRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStoreGetRequest)')
-
-    ## -----------------------------------------------------------------
-    def _HandleBlockStorePutRequest(self, minfo) :
-        """
-        Store a value into the untrusted block store / cache
-            {
-                "key" : <>,
-                "value" : <>,
-            }
-        """
-
-        try :
-            key = minfo['key']
-            value = minfo['value']
-
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
-
-        except Exception as e :
-            logger.error('unknown excption unpacking request (BlockStorePutRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (BlockStorePutRequest)')
-
-        try :
-            self.Enclave.block_store_put(key, value)
-            return {'result' : "OK"}
-
-        except Exception as e :
-            logger.error('unknown exception processing request (BlockStorePutRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (BlockStorePutRequest)')
 
 # -----------------------------------------------------------------
 # sealed_data is base64 encoded string

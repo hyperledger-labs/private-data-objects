@@ -41,6 +41,8 @@ __all__ = [
     'block_store_head',
     'block_store_get',
     'block_store_put',
+    'block_store_init',
+    'block_store_close',
     'verify_secrets',
     'send_to_contract',
     'shutdown'
@@ -140,7 +142,7 @@ def initialize_with_configuration(config) :
     enclave._SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
-    valid_keys = set(['spid', 'ias_url', 'spid_cert_file', 'block_store_file_name'])
+    valid_keys = set(['spid', 'ias_url', 'spid_cert_file'])
     found_keys = set(config.keys())
 
     missing_keys = valid_keys.difference(found_keys)
@@ -178,8 +180,6 @@ def initialize_with_configuration(config) :
             logger.warning("Retrying in 60 sec")
             time.sleep(60)
 
-    enclave.block_store_init(config['block_store_file_name'])
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def shutdown():
@@ -189,7 +189,6 @@ def shutdown():
     global _epid_group
 
     logger.info('shutdown enclave')
-    enclave.block_store_close()
 
     _pdo = None
     _ias = None
@@ -248,15 +247,11 @@ def get_enclave_epid_group():
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def block_store_head(key): return enclave.block_store_head(key)
+def block_store_open(filename): return enclave.block_store_open(filename)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def block_store_get(key): return enclave.block_store_get(key)
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def block_store_put(key, value): return enclave.block_store_put(key, value)
+def block_store_close(filename): return enclave.block_store_close()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

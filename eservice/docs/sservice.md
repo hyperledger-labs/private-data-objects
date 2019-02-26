@@ -31,16 +31,14 @@ The storage service is configured through a Toml configuration file generally pl
 
 The storage service supports several operations for interacting with the block store.
 
-| URL           | Method | Request Body     | Response Body            | Description                                    |
-|:--------------|:-------|:-----------------|:-------------------------|------------------------------------------------|
-| /block/<id>   | GET    | None             | application/octet-string | Return the requested block                     |
-| /block/<id>   | PUT    | None             | None                     | Store the requested block                      |
-| /block/<id>   | HEAD   | None             | None                     | Return size of block or NOT_FOUND              |
-| /block/list   | GET    | None             | application/json         | List of all known blocks                       |
-| /block/status | POST   | application/json | application/json         | Size and expiration of requested blocks        |
-| /block/store  | POST   | multipart/form   | application/json         | Store multiple blocks, return proof of storage |
-| /info         | GET    | None             | application/json         | Request information about the service          |
-| /shutdown     | GET    | None             | None                     | Request to shutdown the service                |
+| URL          | Method | Request Body     | Response Body            | Description                                    |
+|:-------------|:-------|:-----------------|:-------------------------|------------------------------------------------|
+| /block/<id>  | GET    | None             | application/octet-string | Return the requested block                     |
+| /block/list  | GET    | None             | application/json         | List of all known blocks                       |
+| /block/check | POST   | application/json | application/json         | Size and expiration of requested blocks        |
+| /block/store | POST   | multipart/form   | application/json         | Store multiple blocks, return proof of storage |
+| /info        | GET    | None             | application/json         | Request information about the service          |
+| /shutdown    | GET    | None             | None                     | Request to shutdown the service                |
 
 Across operations, a block id (the sha256 hash of the block) will be represented as a url-encoded, base64 string. Block data is always binary and identified as ``application/octet-string``.
 
@@ -89,7 +87,9 @@ The ``store`` operation requests that the storage service manage a set of blocks
 
 ```JSON
 {
-    "public-key" : "PEM encoded ECDSA verifying key",
     "signature" : "base64 encoded signature"
+    "block_ids" : [
+        "base64 encoded block hash", ...
+    ]
 }
 ```

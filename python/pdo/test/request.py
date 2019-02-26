@@ -81,6 +81,7 @@ def CreateAndRegisterEnclave(config) :
             logger.error('failed to contact enclave service; %s', str(e))
             sys.exit(-1)
 
+    # not using an eservice so build the local enclave
     enclave_config = config.get('EnclaveModule')
     ledger_config = config.get('Sawtooth')
 
