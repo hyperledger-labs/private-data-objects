@@ -142,6 +142,42 @@ class ContractState(object) :
         logger.debug('sent block %s to eservice', state_hash)
         return True
 
+    @staticmethod
+    def __push_blocks_to_eservice__(eservice, contract_id, block_ids, data_dir = None) :
+        """
+        ensure that required blocks are stored in the storage service
+
+        :param eservice EnclaveServiceClient object:
+        :param contract_id str: contract identifier
+        :param block_ids list of strings: base64 encoded hash of the block
+        """
+        # check to see which blocks need to be pushed
+        blocks_to_push = []
+        blocks_to_extend = []
+        block_status_list = eservice.check_blocks(block_ids, encoding='b64')
+        for block_status in block_status_list :
+            # if the size is 0 then the block is unknown to the storage service
+            if block_status['size'] == 0 :
+                blocks_to_push.append(block_status['block_id'])
+            # if the expiration is nearing, then add to the list to extend, the
+            # policy here is to extend if the block is within 5 seconds of expiring
+            elif block_status['expiration'] < 5 :
+                blocks_to_extend.append(block_status['block_id'])
+
+        def block_data_generator(contract_id, block_ids, data_dir) :
+            for block_id in block_ids :
+                raw_data = ContractState.__read_data_block_from_cache__(contract_id, block_id, data_dir)
+                if raw_data is None :
+                    raise Exception('unable to locate required block; {}'.format(block_id))
+                yield raw_data
+
+        block_data_list = block_data_generator(contract_id, blocks_to_push, data_dir)
+        block_store_list = eservice.store_blocks(block_data_list, expiration=60, encoding='b64')
+        if block_store_list is None :
+            raise Exception('failed to push blocks to eservice')
+
+        return len(blocks_to_push)
+
     # --------------------------------------------------
     @classmethod
     def __pull_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = None) :
@@ -293,16 +329,10 @@ class ContractState(object) :
         if not self.encrypted_state :
             return
 
-        pushed_blocks = 0
+        block_ids = [ self.get_state_hash(encoding='b64') ]
+        block_ids.extend(self.component_block_ids)
 
-        b64_block_id = self.get_state_hash(encoding='b64')
-        if ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
-            pushed_blocks += 1
-
-        for b64_block_id in self.component_block_ids :
-            if ContractState.__push_block_to_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
-                pushed_blocks += 1
-
+        pushed_blocks = ContractState.__push_blocks_to_eservice__(eservice, block_ids, data_dir)
         stat_logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 
     # --------------------------------------------------

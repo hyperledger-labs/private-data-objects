@@ -41,25 +41,43 @@ import sawtooth.helpers.pdo_connect
 import logging
 logger = logging.getLogger(__name__)
 
-__all__ = [ "Enclave", "initialize_enclave" ]
-
+__all__ = [ "Enclave", "initialize_enclave", "shutdown_enclave" ]
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def initialize_enclave(enclave_config) :
+def initialize_enclave(config) :
     """initialize_enclave -- call the initialization function on the
     enclave module
     """
-    pdo_enclave.initialize_with_configuration(enclave_config)
+    try :
+        block_store_file = config['StorageService']['BlockStore']
+        if not os.path.isfile(block_store_file) :
+            raise Exception('missing block store file {0}'.format(block_store_file))
 
+        pdo_enclave.block_store_open(block_store_file)
+    except KeyError as ke :
+        raise Exception('missing block store configuration key {0}'.format(str(ke)))
+
+    try :
+        enclave_config = config['EnclaveModule']
+        pdo_enclave.initialize_with_configuration(enclave_config)
+    except KeyError as ke :
+        raise Exception('missing enclave module configuration')
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def shutdown() :
+def shutdown_enclave() :
     """
     """
-    pdo_enclave.shutdown()
+    try :
+        pdo_enclave.shutdown()
+    except Exception as e :
+        logger.error('enclave shutdown failed; %s', str(e))
 
+    try :
+        pdo_enclave.block_store_close()
+    except Exception as e :
+        logger.error('block store shutdown failed; %s', str(e))
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -77,7 +95,7 @@ class Enclave(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def read_from_file(cls, basename, data_dir = None, txn_keys = None) :
+    def read_from_file(cls, basename, data_dir = None, txn_keys = None, block_store = None) :
         """read_from_file -- read enclave data from a file and initialize a new
         Enclave object with the resulting data.
 
@@ -117,11 +135,11 @@ class Enclave(object) :
         except :
             raise Exception('sealed storage does not match enclave data file; {}'.format(filename))
 
-        return cls(enclave_info, txn_keys)
+        return cls(enclave_info, txn_keys, block_store)
 
     # -------------------------------------------------------
     @classmethod
-    def create_new_enclave(cls, txn_keys = None) :
+    def create_new_enclave(cls, txn_keys = None, block_store = None) :
         """create_new_enclave -- create a new enclave
 
         :param txn_keys: object of type TransactionKeys
@@ -148,15 +166,14 @@ class Enclave(object) :
         if not pdo_enclave.enclave.is_sgx_simulator() :
             enclave_info['proof_data'] = enclave_data.proof_data
 
-        return cls(enclave_info, txn_keys)
+        return cls(enclave_info, txn_keys, block_store)
 
     # -------------------------------------------------------
-    def __init__(self, enclave_info, txn_keys) :
+    def __init__(self, enclave_info, txn_keys, block_store = None) :
 
         # initialize the keys that can be used later to
         # register the enclave with the ledger
         self.txn_keys = txn_keys
-
         try :
             self.nonce = enclave_info['nonce']
             self.sealed_data = enclave_info['sealed_data']
@@ -168,6 +185,18 @@ class Enclave(object) :
             raise Exception("missing enclave initialization parameter; {}".format(str(ke)))
 
         self.enclave_keys = keys.EnclaveKeys(self.verifying_key, self.encryption_key)
+
+        if block_store :
+            self.attach_block_store(block_store)
+
+    # -------------------------------------------------------
+    def attach_block_store(self, block_store) :
+        self.get_block = block_store.get_block
+        self.get_blocks = block_store.get_blocks
+        self.store_block = block_store.store_block
+        self.store_blocks = block_store.store_blocks
+        self.check_block = block_store.check_block
+        self.check_blocks = block_store.check_blocks
 
     # -------------------------------------------------------
     def send_to_contract(self, encrypted_session_key, encrypted_request) :

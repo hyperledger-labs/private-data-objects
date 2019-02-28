@@ -74,7 +74,7 @@ class BlockStoreManager(object) :
         """
         self.service_keys = service_keys
         if self.service_keys is None :
-            self.service_keys = ServiceKeys.create_service_keys()
+            self.service_keys = keys.ServiceKeys.create_service_keys()
 
         self.block_store_env = lmdb.open(
             block_store_file,
@@ -218,6 +218,9 @@ class BlockStoreManager(object) :
         result['signature'] = signature
         result['block_ids'] = list(map(encoding_fn, block_hashes))
         return result
+
+    def check_block(self, block_id, encoding='raw') :
+        pass
 
     def check_blocks(self, block_ids, encoding='raw') :
         """Check status of a list of block

@@ -38,10 +38,7 @@ __all__ = [
     'get_enclave_measurement',
     'get_enclave_basename',
     'get_enclave_epid_group',
-    'block_store_head',
-    'block_store_get',
-    'block_store_put',
-    'block_store_init',
+    'block_store_open',
     'block_store_close',
     'verify_secrets',
     'send_to_contract',
@@ -51,6 +48,8 @@ __all__ = [
 verify_secrets = enclave.contract_verify_secrets
 send_to_contract = enclave.contract_handle_contract_request
 get_enclave_public_info = enclave.unseal_enclave_data
+block_store_open = enclave.block_store_open
+block_store_close = enclave.block_store_close
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -244,14 +243,6 @@ def get_enclave_epid_group():
          _epid_group = _pdo.get_epid_group()
 
      return _epid_group
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def block_store_open(filename): return enclave.block_store_open(filename)
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def block_store_close(filename): return enclave.block_store_close()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

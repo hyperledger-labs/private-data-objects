@@ -439,7 +439,6 @@ def LocalMain(config) :
             http_port = service_config['HttpPort']
             http_host = service_config['Host']
 
-            map_size = 1024 * 1024 * 1024
             create = config.get('create', False)
             block_store_file = service_config['BlockStore']
             block_store = BlockStoreManager(block_store_file, service_keys=service_keys, create_block_store=create)
@@ -564,7 +563,7 @@ def Main() :
     # set up the enclave service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
-            'HttpPort' : 7101,
+            'HttpPort' : 7201,
             'Host' : 'localhost',
             'Identity' : options.identity,
             'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),

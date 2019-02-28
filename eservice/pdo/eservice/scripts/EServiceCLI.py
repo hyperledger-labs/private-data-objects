@@ -28,7 +28,6 @@ import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
-import pdo.eservice.pdo_enclave as pdo_enclave
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,6 +56,7 @@ class ContractEnclaveServer(resource.Resource):
         self.VerifyingKey = enclave.verifying_key
         self.EncryptionKey = enclave.encryption_key
         self.EnclaveID = enclave.enclave_id
+        self.StorageURL = config['StorageService']['URL']
 
         self.RequestMap = {
             'UpdateContractRequest' : self._HandleUpdateContractRequest,
@@ -252,6 +252,8 @@ class ContractEnclaveServer(resource.Resource):
         response['verifying_key'] = self.VerifyingKey
         response['encryption_key'] = self.EncryptionKey
         response['enclave_id'] = self.EnclaveID
+        resposne['storage_service_url'] = self.StorageURL
+
         return response
 
 # -----------------------------------------------------------------
@@ -332,7 +334,7 @@ def RunEnclaveService(config, enclave) :
     except :
         logger.warn('shutdown')
 
-    pdo_enclave_helper.shutdown()
+    pdo_enclave_helper.shutdown_enclave()
     sys.exit(0)
 
 # -----------------------------------------------------------------
@@ -341,8 +343,8 @@ def LocalMain(config) :
     # enclave configuration is in the 'EnclaveConfig' table
     try :
         logger.debug('initialize the enclave')
-        pdo_enclave_helper.initialize_enclave(config.get('EnclaveModule'))
-    except Error as e :
+        pdo_enclave_helper.initialize_enclave(config)
+    except Exception as e :
         logger.exception('failed to initialize enclave; %s', e)
         sys.exit(-1)
 
@@ -365,7 +367,7 @@ def LocalMain(config) :
         assert enclave
 
         enclave.verify_registration(ledger_config)
-    except Error as e:
+    except Exception as e:
         logger.exception('failed to initialize enclave; %s', e)
         sys.exit(-1)
 
@@ -415,6 +417,9 @@ def Main() :
 
     parser.add_argument('--http', help='Port on which to run the http server', type=int)
     parser.add_argument('--ledger', help='Default url for connection to the ledger', type=str)
+
+    parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
+    parser.add_argument('--sservice-url', help='URL for the associated storage service', type=str)
 
     parser.add_argument('--enclave-data', help='Name of the file containing enclave sealed storage', type=str)
     parser.add_argument('--enclave-save', help='Name of the directory where enclave data will be save', type=str)
@@ -483,6 +488,22 @@ def Main() :
         config['EnclaveData']['SavePath'] = options.enclave_save
     if options.enclave_path :
         config['EnclaveData']['SearchPath'] = options.enclave_path
+
+    # set up the enclave service configuration
+    if config.get('StorageService') is None :
+        config['StorageService'] = {
+            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),
+            'URL' : 'http://localhost:7201'
+        }
+    if options.block_store :
+        config['StorageService']['BlockStore'] = options.block_store
+    if options.sservice_url :
+        config['StorageService']['URL'] = options.sservice_url
+
+    if config['StorageService'].get('URL') is None :
+        host = config['StorageService'].get('Host','localhost')
+        port = config['StorageService'].get('HttpPort',7201)
+        config['StorageService']['URL'] = "http://{0}:{1}".format(host, port)
 
     # GO!
     LocalMain(config)
