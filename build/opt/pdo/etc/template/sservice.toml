@@ -18,9 +18,9 @@
 [StorageService]
 # Identity is a string used to identify the service in log files
 Identity = "${identity}"
-HttpPort = ${httpport}
+HttpPort = ${{7200+_count_}}
 Host = "localhost"
-BlockStore = "${data}/eservice${_count_}.mdb"
+BlockStore = "${data}/${identity}.mdb"
 GarbageCollectionInterval = 10
 
 # --------------------------------------------------

@@ -107,15 +107,15 @@ conf : $(PYTHON_DIR)
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template eservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base eservice --http-base 7100 --count 5
+		multiple --file-base eservice --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template sservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base sservice --http-base 7200 --count 5
+		multiple --file-base sservice --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template pservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base pservice --http-base 7000 --count 5
+		multiple --file-base pservice --count 5
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template enclave.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
 		--output-directory $(DSTDIR)/opt/pdo/etc \

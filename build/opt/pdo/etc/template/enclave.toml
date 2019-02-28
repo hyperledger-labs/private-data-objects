@@ -20,10 +20,6 @@
 # Number of available enclave workers to service requests
 num_of_enclaves = '7'
 
-# block_store_file_name is the path where persistent state data is stored
-# This is safe to share between eservice's
-block_store_file_name = "${data}/${identity}.mdb"
-
 # spid is a 32-digit hex string tied to the enclave implementation
 spid = '${spid}'
 
