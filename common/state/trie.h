@@ -121,6 +121,12 @@ namespace state
             const ByteArray& kvkey,
             const ByteArray& in_value,
             ByteArray& value);
+        static void operate_trie_non_recursive(
+            data_node_io& dn_io,
+            const kv_operation_e operation,
+            const ByteArray& kvkey,
+            const ByteArray& in_value,
+            ByteArray& out_value);
     };
 }
 }
