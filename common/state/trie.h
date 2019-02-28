@@ -76,21 +76,6 @@ namespace state
         static void delete_trie_node_childless(data_node_io& dn_io,
             trie_node& node);
 
-        static void do_operate_trie_child(data_node_io& dn_io,
-            trie_node& node,
-            const kv_operation_e operation,
-            const unsigned int depth,
-            const ByteArray& kvkey,
-            const ByteArray& in_value,
-            ByteArray& value);
-        static void do_operate_trie_next(data_node_io& dn_io,
-            trie_node& node,
-            const kv_operation_e operation,
-            const unsigned int depth,
-            const ByteArray& kvkey,
-            const ByteArray& in_value,
-            ByteArray& value);
-
         static void do_write_value(data_node_io& dn_io,
             trie_node& node,
             const ByteArray& value);
@@ -108,19 +93,7 @@ namespace state
         static void read_trie_node(data_node_io& dn_io, block_offset_t& in_block_offset, trie_node& out_trie_node);
         static void write_trie_node(data_node_io& dn_io, trie_node& in_trie_node);
 
-        static void operate_trie(data_node_io& dn_io,
-            trie_node& node,
-            const kv_operation_e operation,
-            const unsigned int depth,
-            const ByteArray& kvkey,
-            const ByteArray& in_value,
-            ByteArray& value);
         static void init_trie_root(data_node_io& dn_io);
-        static void operate_trie_root(data_node_io& dn_io,
-            const kv_operation_e operation,
-            const ByteArray& kvkey,
-            const ByteArray& in_value,
-            ByteArray& value);
         static void operate_trie_non_recursive(
             data_node_io& dn_io,
             const kv_operation_e operation,
