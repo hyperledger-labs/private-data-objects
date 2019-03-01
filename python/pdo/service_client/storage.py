@@ -51,26 +51,30 @@ class StorageServiceClient(object) :
     def get_service_info(self) :
         url = "{0}/info".format(self.url_base)
         response = requests.get(url, timeout=self.default_timeout)
-        logger.info('get_service_info response code = %s', response.status_code)
+        logger.debug('get_service_info response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
 
     def list_blocks(self) :
         url = "{0}/block/list".format(self.url_base)
         response = requests.get(url, timeout=self.default_timeout)
-        logger.info('get_block_list response code = %s', response.status_code)
+        logger.debug('get_block_list response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
 
     def get_block(self, block_id) :
+        # we need to make sure this function uses urlsafe b64 encoding
+        block_id = block_id.replace('+','-')
+        block_id = block_id.replace('/','_')
+
         url = "{0}/block/{1}".format(self.url_base, block_id)
         response = requests.get(url, timeout=self.default_timeout)
-        logger.info('get_block response code = %s', response.status_code)
+        logger.debug('get_block response code = %s', response.status_code)
         response.raise_for_status()
         return response.content
 
     def get_blocks(self, block_ids) :
-        pass
+        raise NotImplementedError
 
     def store_block(self, block_data, expiration=60) :
         return self.store_blocks([block_data], expiration)
@@ -78,21 +82,30 @@ class StorageServiceClient(object) :
     def store_blocks(self, block_data_list, expiration=60) :
         request_data = dict()
         block_ids = []
-        for i in range(len(block_data_list)) :
-            block_hash = hashlib.sha256(block_data_list[i]).digest()
+        for block_data in block_data_list :
+            block_hash = hashlib.sha256(block_data).digest()
             block_id = base64.urlsafe_b64encode(block_hash).decode()
             block_ids.append(block_id)
-            request_data[block_id] = (block_id, block_data_list[i], 'application/octet-stream')
+            request_data[block_id] = (block_id, block_data, 'application/octet-stream')
+
+        # for i in range(len(block_data_list)) :
+        #     block_hash = hashlib.sha256(block_data_list[i]).digest()
+        #     block_id = base64.urlsafe_b64encode(block_hash).decode()
+        #     block_ids.append(block_id)
+        #     request_data[block_id] = (block_id, block_data_list[i], 'application/octet-stream')
         request_data['operation'] = json.dumps({'block_ids' : block_ids, 'expiration' : expiration})
         url = "{0}/block/store".format(self.url_base)
         response = requests.post(url, files=request_data, timeout=self.default_timeout)
-        logger.info('store_blocks response code = %s', response.status_code)
+        logger.debug('store_blocks response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()
+
+    def check_block(self, block_id) :
+        raise NotImplementedError
 
     def check_blocks(self, block_ids) :
         url = "{0}/block/check".format(self.url_base)
         response = requests.post(url, json=block_ids, timeout=self.default_timeout)
-        logger.info('check_blocks response code = %s', response.status_code)
+        logger.debug('check_blocks response code = %s', response.status_code)
         response.raise_for_status()
         return response.json()

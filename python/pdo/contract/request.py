@@ -122,7 +122,7 @@ class ContractRequest(object) :
 
             contract_response = ContractResponse(self, response_parsed)
         except Exception as e:
-            logger.warn('contract response is invalid; %s', str(e))
+            logger.exception('contract response is invalid; %s', str(e))
             raise InvocationException('contract response is invalid') from e
 
         return contract_response

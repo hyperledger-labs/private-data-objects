@@ -30,11 +30,12 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @staticmethod
-    def compute_hash(encrypted_state, encoding = 'raw') :
-        """ compute the hash of the encrypted state
+    def compute_hash(raw_state, encoding = 'raw') :
+        """ compute the hash of the contract state
+
+        :param raw_state string: root block of contract state, json string
         """
-        state_byte_array = crypto.base64_to_byte_array(encrypted_state)
-        state_hash = crypto.compute_message_hash(state_byte_array)
+        state_hash = crypto.compute_message_hash(raw_state)
         if encoding == 'raw' :
             return state_hash
         elif encoding == 'b64' :
@@ -84,9 +85,8 @@ class ContractState(object) :
 
         try :
             logger.debug('save state block to file %s', filename)
-            with open(filename, 'w') as statefile :
+            with open(filename, 'wb') as statefile :
                 statefile.write(raw_data)
-                # json.dump(, statefile)
         except Exception as e :
             logger.info('failed to save state; %s', str(e))
             raise Exception('unable to cache state {}'.format(filename))
@@ -105,7 +105,7 @@ class ContractState(object) :
 
         try :
             logger.debug('read state block from file %s', filename)
-            with open(filename, "r") as statefile :
+            with open(filename, "rb") as statefile :
                 raw_data = statefile.read()
         except FileNotFoundError as fe :
             logger.error('file not found; %s', filename)
@@ -118,31 +118,6 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @staticmethod
-    def __push_block_to_eservice__(eservice, contract_id, state_hash, data_dir = None) :
-        """
-        ensure that a particular block is stored in the eservice
-
-        :param eservice EnclaveServiceClient object:
-        :param contract_id str: contract identifier
-        :param state_hash string: base64 encoded hash of the block
-        """
-
-        logger.debug('ensure block %s is stored in the eservice', state_hash)
-
-        # check to see if the eservice already has the block
-        if eservice.block_store_head(state_hash) > 0 :
-            return False
-
-        raw_data = ContractState.__read_data_block_from_cache__(contract_id, state_hash, data_dir)
-        if raw_data is None :
-            raise Exception('unable to locate required block; {}'.format(state_hash))
-
-        eservice.block_store_put(state_hash, raw_data)
-
-        logger.debug('sent block %s to eservice', state_hash)
-        return True
-
-    @staticmethod
     def __push_blocks_to_eservice__(eservice, contract_id, block_ids, data_dir = None) :
         """
         ensure that required blocks are stored in the storage service
@@ -151,10 +126,11 @@ class ContractState(object) :
         :param contract_id str: contract identifier
         :param block_ids list of strings: base64 encoded hash of the block
         """
+
         # check to see which blocks need to be pushed
         blocks_to_push = []
         blocks_to_extend = []
-        block_status_list = eservice.check_blocks(block_ids, encoding='b64')
+        block_status_list = eservice.check_blocks(block_ids)
         for block_status in block_status_list :
             # if the size is 0 then the block is unknown to the storage service
             if block_status['size'] == 0 :
@@ -164,6 +140,12 @@ class ContractState(object) :
             elif block_status['expiration'] < 5 :
                 blocks_to_extend.append(block_status['block_id'])
 
+        if len(blocks_to_push) == 0 :
+            logger.debug('enclave service has state')
+            return 0
+
+        logger.debug('push blocks to service: %s', blocks_to_push)
+
         def block_data_generator(contract_id, block_ids, data_dir) :
             for block_id in block_ids :
                 raw_data = ContractState.__read_data_block_from_cache__(contract_id, block_id, data_dir)
@@ -172,7 +154,7 @@ class ContractState(object) :
                 yield raw_data
 
         block_data_list = block_data_generator(contract_id, blocks_to_push, data_dir)
-        block_store_list = eservice.store_blocks(block_data_list, expiration=60, encoding='b64')
+        block_store_list = eservice.store_blocks(block_data_list, expiration=60)
         if block_store_list is None :
             raise Exception('failed to push blocks to eservice')
 
@@ -198,11 +180,12 @@ class ContractState(object) :
             return False
 
         # it is not in the cache so grab it from the eservice
-        raw_data = eservice.block_store_get(state_hash)
+        raw_data = eservice.get_block(state_hash)
         if raw_data :
             # since we don't really trust the eservice, make sure that the
             # block it sent us is really the one that we were supposed to get
-            if ContractState.compute_hash(raw_data, encoding='b64') != state_hash :
+            raw_data_hash = ContractState.compute_hash(raw_data, encoding='b64')
+            if  raw_data_hash != state_hash :
                 raise Exception('invalid block returned from eservice')
 
             ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
@@ -253,13 +236,13 @@ class ContractState(object) :
         client = sawtooth.helpers.pdo_connect.PdoRegistryHelper(ledger_config['LedgerURL'])
 
         try :
-            contract_state = client.get_ccl_state_dict(contract_id, current_state_hash)
-            encrypted_state = contract_state['state_update']['encrypted_state']
+            contract_info = client.get_ccl_state_dict(contract_id, current_state_hash)
+            raw_state = contract_info['state_update']['encrypted_state']
         except Exception as e :
             logger.info('error getting state; %s', str(e))
             raise Exception('failed to retrieve contract state; {}', contract_id)
 
-        return cls(contract_id, encrypted_state = encrypted_state)
+        return cls(contract_id, raw_state = raw_state)
 
     # --------------------------------------------------
     @classmethod
@@ -267,54 +250,53 @@ class ContractState(object) :
         return cls(contract_id)
 
     # --------------------------------------------------
-    def __init__(self, contract_id, encrypted_state = '') :
+    def __init__(self, contract_id, raw_state = '') :
         self.contract_id = contract_id
-        self.update_state(encrypted_state)
+        self.update_state(raw_state)
 
     # --------------------------------------------------
-    def update_state(self, encrypted_state) :
-        self.encrypted_state = encrypted_state
+    def update_state(self, raw_state) :
+        """update state information from the root block
+
+        :param raw_state string: root block of contract state, json string
+        """
+        self.raw_state = raw_state
         self.component_block_ids = []
 
-        if self.encrypted_state :
-            b64_decoded_byte_array = crypto.base64_to_byte_array(self.encrypted_state)
-            b64_decoded_string = crypto.byte_array_to_string(b64_decoded_byte_array).rstrip('\0')
-            json_main_state_block = json.loads(b64_decoded_string)
+        if self.raw_state :
+            logger.debug('contract state: %s', self.raw_state)
+            state = self.raw_state
+
+            # backward compatibility with json parser
+            try :
+                state = state.decode('utf8')
+            except AttributeError :
+                pass
+
+            state = state.rstrip('\0')
+            json_main_state_block = json.loads(state)
             self.component_block_ids = json_main_state_block['BlockIds']
 
     # --------------------------------------------------
     def get_state_hash(self, encoding='raw') :
         """
-        gets the hash of the encrypted state if it is non-empty
-        returns None if no encrypted state exists
+        gets the hash of the contract state if it is non-empty
+        returns None if no contract state exists
         """
-        if self.encrypted_state:
-            return ContractState.compute_hash(self.encrypted_state, encoding)
+        if self.raw_state:
+            return ContractState.compute_hash(self.raw_state, encoding)
         return None
 
     # --------------------------------------------------
     def serialize_for_invocation(self) :
         """
         serializes the elements needed by the contract enclave to invoke the contract
-        does not include the encrypted state itself
+        does not include the contract state itself
         """
         result = dict()
         result['ContractID'] = self.contract_id
-        if self.encrypted_state :
-            result['StateHash'] = ContractState.compute_hash(self.encrypted_state, encoding='b64')
-
-        return result
-
-    # --------------------------------------------------
-    def serialize(self) :
-        """
-        serializes the entire state (including the state itself) for storage
-        """
-        result = dict()
-        result['ContractID'] = self.contract_id
-        if self.encrypted_state :
-            result['EncryptedState'] = self.encrypted_state
-            result['StateHash'] = ContractState.compute_hash(self.encrypted_state, encoding='b64')
+        if self.raw_state :
+            result['StateHash'] = ContractState.compute_hash(self.raw_state, encoding='b64')
 
         return result
 
@@ -326,13 +308,13 @@ class ContractState(object) :
         :param eservice EnclaveServiceClient object:
         """
 
-        if not self.encrypted_state :
+        if not self.raw_state :
             return
 
         block_ids = [ self.get_state_hash(encoding='b64') ]
         block_ids.extend(self.component_block_ids)
 
-        pushed_blocks = ContractState.__push_blocks_to_eservice__(eservice, block_ids, data_dir)
+        pushed_blocks = ContractState.__push_blocks_to_eservice__(eservice, self.contract_id, block_ids, data_dir)
         stat_logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 
     # --------------------------------------------------
@@ -343,7 +325,7 @@ class ContractState(object) :
         :param eservice EnclaveServiceClient object:
         """
 
-        if not self.encrypted_state :
+        if not self.raw_state :
             return
 
         pulled_blocks = 0
@@ -360,4 +342,4 @@ class ContractState(object) :
 
     # --------------------------------------------------
     def save_to_cache(self, data_dir = None) :
-        ContractState.__cache_data_block__(self.contract_id, self.encrypted_state, data_dir)
+        ContractState.__cache_data_block__(self.contract_id, self.raw_state, data_dir)

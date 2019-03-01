@@ -98,7 +98,7 @@ class BlockStoreManager(object) :
         """
         return {'verifying_key' : self.service_keys.verifying_key }
 
-    def list_blocks(self, encoding='raw') :
+    def list_blocks(self, encoding='b64') :
         """Return a list of all block identifiers currently
         stored in the database; mostly for debugging purposes
 
@@ -119,7 +119,7 @@ class BlockStoreManager(object) :
 
         return block_ids
 
-    def get_block(self, block_id, encoding='raw') :
+    def get_block(self, block_id, encoding='b64') :
         """Return the data for a block given the hash of the block
 
         :param block_id string: block identifier
@@ -137,10 +137,10 @@ class BlockStoreManager(object) :
 
         return block_data
 
-    def get_blocks(self, block_ids, encoding='raw') :
+    def get_blocks(self, block_ids, encoding='b64') :
         pass
 
-    def store_block(self, block_data, expiration=60, encoding='raw') :
+    def store_block(self, block_data, expiration=60, encoding='b64') :
         """Add a new data block to the store
 
         :param block_data string: binary content of the block
@@ -149,7 +149,7 @@ class BlockStoreManager(object) :
         """
         return self.store_blocks([block_data], expiration, encoding)
 
-    def store_blocks(self, block_data_list, expiration=60, encoding='raw') :
+    def store_blocks(self, block_data_list, expiration=60, encoding='b64') :
         """Save a list of blocks in the store
 
         :param iterable block_data_list: iterable collection of blocks to store
@@ -219,10 +219,10 @@ class BlockStoreManager(object) :
         result['block_ids'] = list(map(encoding_fn, block_hashes))
         return result
 
-    def check_block(self, block_id, encoding='raw') :
+    def check_block(self, block_id, encoding='b64') :
         pass
 
-    def check_blocks(self, block_ids, encoding='raw') :
+    def check_blocks(self, block_ids, encoding='b64') :
         """Check status of a list of block
 
         :param block_ids list of string: block identifiers

@@ -24,6 +24,8 @@ import re
 
 import pdo.test.helpers.secrets as secret_helper
 
+from pdo.sservice.block_store_manager import BlockStoreManager
+
 import pdo.eservice.pdo_helper as enclave_helper
 import pdo.service_client.enclave as eservice_helper
 import pdo.service_client.provisioning as pservice_helper
@@ -42,6 +44,7 @@ txn_dependencies = []
 
 # representation of the enclave
 enclave = None
+block_store = None
 
 use_ledger = True
 use_eservice = False
@@ -54,7 +57,13 @@ def ErrorShutdown() :
     Perform a clean shutdown after an error
     """
     try :
-        enclave_helper.shutdown()
+        if block_store is not None :
+            block_store.close()
+    except Exception as e :
+        logger.exception('failed to close block_store')
+
+    try :
+        enclave_helper.shutdown_enclave()
     except Exception as e :
         logger.exception('shutdown failed')
 
@@ -76,17 +85,25 @@ def CreateAndRegisterEnclave(config) :
             logger.error('failed to contact enclave service; %s', str(e))
             sys.exit(-1)
 
-    enclave_config = config.get('EnclaveModule')
-    ledger_config = config.get('Sawtooth')
+    # not using an eservice so build the local enclave
+    try :
+        global block_store
+        block_store_file = config['StorageService']['BlockStore']
+        block_store = BlockStoreManager(block_store_file, create_block_store=True)
+    except Exception as e :
+        logger.error('failed to initialize the block store; %s', str(e))
+        sys.exit(-1)
 
     try :
-        enclave_helper.initialize_enclave(enclave_config)
+        enclave_helper.initialize_enclave(config)
         enclave = enclave_helper.Enclave.create_new_enclave()
+        enclave.attach_block_store(block_store)
     except Exception as e :
         logger.error('failed to initialize the enclave; %s', str(e))
         sys.exit(-1)
 
     try :
+        ledger_config = config.get('Sawtooth')
         if use_ledger :
             txnid = enclave.register_enclave(ledger_config)
             txn_dependencies = [ txnid ]
@@ -232,7 +249,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.error('contract initialization failed: %s', initialize_response.result)
             ErrorShutdown()
 
-        contract.set_state(initialize_response.encrypted_state)
+        contract.set_state(initialize_response.raw_state)
 
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))
@@ -332,7 +349,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
                 ErrorShutdown()
 
             logger.debug('update state')
-            contract.set_state(update_response.encrypted_state)
+            contract.set_state(update_response.raw_state)
 
     logger.info('completed in %s', time.time() - start_time)
     logger.info('passed %d of %d tests', total_tests - total_failed, total_tests)
@@ -379,7 +396,7 @@ def LocalMain(config) :
         logger.error('contract execution failed; %s', str(e))
         ErrorShutdown()
 
-    enclave_helper.shutdown()
+    enclave_helper.shutdown_enclave()
     sys.exit(0)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -428,7 +445,7 @@ def Main() :
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='directories to search for the configuration file', nargs = '+')
 
-    parser.add_argument('-i', '--identity', help='Identity to use for the process', type=str)
+    parser.add_argument('-i', '--identity', help='Identity to use for the process', default='test-request', type=str)
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
@@ -442,6 +459,8 @@ def Main() :
 
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
+
+    parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--contract', help='Name of the contract to use', default='integer-key')
@@ -459,9 +478,7 @@ def Main() :
     # customize the configuration file for the current request
     global config_map
 
-    config_map['identity'] = 'test-request'
-    if options.identity :
-        config_map['identity'] = options.identity
+    config_map['identity'] = options.identity
 
     if options.data_dir :
         config_map['data'] = options.data_dir
@@ -535,6 +552,15 @@ def Main() :
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
+    # set up the storage service configuration
+    if config.get('StorageService') is None :
+        config['StorageService'] = {
+            'BlockStore' : os.path.join(config['Contract']['DataDirectory'], options.identity + '.mdb'),
+        }
+    if options.block_store :
+        config['StorageService']['BlockStore'] = options.block_store
+
+    # set up the ledger configuration
     if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
         use_ledger = False
         config.pop('Sawtooth', None)

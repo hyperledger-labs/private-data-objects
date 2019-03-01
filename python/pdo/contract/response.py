@@ -123,18 +123,19 @@ class ContractResponse(object) :
             self.code_hash = request.contract_code.compute_hash()
             self.message_hash = request.message.compute_hash()
             self.new_state_hash = crypto.base64_to_byte_array(state_hash_b64)
+
             self.originator_keys = request.originator_keys
             self.enclave_service = request.enclave_service
 
             self.old_state_hash = ()
             if request.operation != 'initialize' :
-                self.old_state_hash = ContractState.compute_hash(request.contract_state.encrypted_state)
+                self.old_state_hash = ContractState.compute_hash(request.contract_state.raw_state)
 
             if not self.__verify_enclave_signature(request.enclave_keys) :
                 raise Exception('failed to verify enclave signature')
 
-            self.encrypted_state = self.enclave_service.block_store_get(state_hash_b64)
-            self.new_state_object = ContractState(self.contract_id, self.encrypted_state)
+            self.raw_state = self.enclave_service.get_block(state_hash_b64)
+            self.new_state_object = ContractState(self.contract_id, self.raw_state)
             self.new_state_object.pull_state_from_eservice(self.enclave_service)
 
     # -------------------------------------------------------
@@ -184,6 +185,12 @@ class ContractResponse(object) :
         b64_new_state_hash = crypto.byte_array_to_base64(self.new_state_hash)
         b64_code_hash = crypto.byte_array_to_base64(self.code_hash)
 
+        raw_state = self.raw_state
+        try :
+            raw_state = raw_state.decode()
+        except AttributeError :
+            pass
+
         txnid = initialize_submitter.submit_ccl_initialize_from_data(
             self.originator_keys.signing_key,
             self.originator_keys.verifying_key,
@@ -193,7 +200,7 @@ class ContractResponse(object) :
             self.contract_id,
             b64_message_hash,
             b64_new_state_hash,
-            self.encrypted_state,
+            raw_state,
             b64_code_hash,
             **extra_params)
 
@@ -248,6 +255,12 @@ class ContractResponse(object) :
         if txn_dependencies :
             extra_params['transaction_dependency_list'] = list(txn_dependencies)
 
+        raw_state = self.raw_state
+        try :
+            raw_state = raw_state.decode()
+        except AttributeError :
+            pass
+
         # now send off the transaction to the ledger
         txnid = update_submitter.submit_ccl_update_from_data(
             self.originator_keys.verifying_key,
@@ -258,7 +271,7 @@ class ContractResponse(object) :
             b64_message_hash,
             b64_new_state_hash,
             b64_old_state_hash,
-            self.encrypted_state,
+            raw_state,
             self.dependencies,
             **extra_params)
 

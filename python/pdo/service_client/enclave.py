@@ -35,7 +35,7 @@ class EnclaveException(Exception) :
 # -----------------------------------------------------------------
 class EnclaveServiceClient(GenericServiceClient) :
 
-    default_timeout = 10.0
+    default_timeout = 20.0
 
     def __init__(self, url) :
         super().__init__(url)

@@ -30,7 +30,7 @@ class MessageException(Exception) :
 class GenericServiceClient(object) :
 
     def __init__(self, url) :
-        self.ServiceURL = url
+        self.ServiceURL = url.rstrip('/')
         self.ProxyHandler = urllib.request.ProxyHandler({})
 
     def _postmsg(self, request) :

@@ -255,7 +255,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
             logger.error('contract initialization failed: %s', initialize_response.result)
             ErrorShutdown()
 
-        contract.set_state(initialize_response.encrypted_state)
+        contract.set_state(initialize_response.raw_state)
 
     except Exception as e :
         logger.error('failed to create the initial state; %s', str(e))
@@ -281,7 +281,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         else:
             logger.debug('no ledger config; skipping iniatialize state save')
     except Exception as e :
-        logger.error('failed to save the initial state; %s', str(e))
+        logger.exception('failed to save the initial state; %s', str(e))
         ErrorShutdown()
 
     contract.contract_state.save_to_cache(data_dir=data_dir)
@@ -343,7 +343,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             ErrorShutdown()
 
         logger.debug('update state')
-        contract.set_state(update_response.encrypted_state)
+        contract.set_state(update_response.raw_state)
 
     logger.info('completed in %s', time.time() - start_time)
 
@@ -386,7 +386,7 @@ def LocalMain(config) :
         logger.error('contract execution failed; %s', str(e))
         ErrorShutdown()
 
-    enclave_helper.shutdown()
+    enclave_helper.shutdown_enclave()
     sys.exit(0)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -544,7 +544,7 @@ def Main() :
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
-    # set up the enclave service configuration
+    # set up the storage service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
             'BlockStore' : os.path.join(config['Contract']['DataDirectory'], options.identity + '.mdb'),
@@ -552,6 +552,7 @@ def Main() :
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
 
+    # set up the ledger configuration
     if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
         use_ledger = False
         config.pop('Sawtooth', None)
