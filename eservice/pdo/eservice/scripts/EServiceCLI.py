@@ -35,192 +35,145 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-from twisted.web import server, resource, http
+from twisted.web import http
+from twisted.web.server import Site
+from twisted.web.resource import Resource, NoResource
 from twisted.internet import reactor, defer
 from twisted.internet.threads import deferToThread
 from twisted.web.server import NOT_DONE_YET
-from twisted.web.error import Error
 from twisted.python.threadpool import ThreadPool
 
+## ----------------------------------------------------------------
+def ErrorResponse(request, error_code, msg) :
+    """
+    Generate a common error response for broken requests
+    """
+
+    if error_code > 400 :
+        logger.warn(msg)
+    elif error_code > 300 :
+        logger.debug(msg)
+
+    result = "" if request.method == 'HEAD' else (msg + '\n')
+
+    request.setResponseCode(error_code)
+    request.setHeader('content-type', 'text/plain')
+    request.write(result.encode('utf8'))
+
+    return request
+
+## -----------------------------------------------------------------
+def UnpackRequest(request) :
+    encoding = request.getHeader('Content-Type')
+    if encoding != 'application/json' :
+        msg = 'unknown message encoding, {0}'.format(encoding)
+        raise Exception(msg)
+
+    # Attempt to decode the data if it is not already a string
+    try :
+        data = request.content.getvalue().decode('utf8')
+    except AttributeError:
+        pass
+
+    try :
+        return json.loads(data)
+    except Exception as e :
+        msg = 'failed to unpack JSON request'
+        raise Exception(msg)
+
+
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class ContractEnclaveServer(resource.Resource):
-    isLeaf = True
+class CommonResource(Resource) :
 
     ## -----------------------------------------------------------------
-    def __init__(self, config, enclave) :
-        self.Config = config
-
-        self.Enclave = enclave
-        self.SealedData = enclave.sealed_data
-        self.VerifyingKey = enclave.verifying_key
-        self.EncryptionKey = enclave.encryption_key
-        self.EnclaveID = enclave.enclave_id
-        self.StorageURL = config['StorageService']['URL']
-
-        self.RequestMap = {
-            'UpdateContractRequest' : self._HandleUpdateContractRequest,
-            'EnclaveDataRequest' : self._HandleEnclaveDataRequest,
-            'VerifySecretRequest' : self._HandleVerifySecretRequest,
-        }
+    def __init__(self, enclave) :
+        Resource.__init__(self)
+        self.enclave = enclave
 
     ## -----------------------------------------------------------------
-    @staticmethod
-    def __safe_write__(request, message) :
-        """
-        This method writes an error message to a potentially broken
-        connection. At this point, writing the message is "best effort"
-        so we don't try to fix or catch errors
-        """
-        try:
-            request.write(message)
-            request.finish()
-        except :
-            pass
+    def _handle_error_(self, failure) :
+        f = failure.trap(Exception)
+        logger.warn("an error occurred (%s): %s", type(self).__name__, failure.value.args)
 
     ## -----------------------------------------------------------------
-    def ErrorResponse(self, request, response, msg) :
-        """
-        Generate a common error response for broken requests
-        """
-
-        if response > 400 :
-            logger.warn(msg)
-        elif response > 300 :
-            logger.debug(msg)
-
-        request.setResponseCode(response)
-        request.setHeader('content-type', 'text/plain')
-
-        result = "" if request.method == 'HEAD' else (msg + '\n')
-        return result.encode('utf8')
+    def _handle_done_(self, request) :
+        request.finish()
 
     ## -----------------------------------------------------------------
-    def render_GET(self, request) :
-        logger.warn('GET REQUEST: %s', request.uri)
-        if request.uri == b'/shutdown' :
-            logger.warn('shutdown request received')
-            reactor.callLater(1, reactor.stop)
-            return ""
-
-        return self.ErrorResponse(request, http.BAD_REQUEST, 'unsupported')
-
-    ## -----------------------------------------------------------------
-    def render_POST(self, request) :
-        """
-        Handle a POST request on the HTTP interface. All message on the
-        POST interface are gossip messages that should be relayed into
-        the gossip network as is.
-        """
-
-        try :
-            # process the message encoding
-            encoding = request.getHeader('Content-Type')
-            data = request.content.getvalue()
-
-            if encoding == 'application/json' :
-                # Attempt to decode the data if it is not already a string
-                try:
-                    data = data.decode('utf-8')
-                except AttributeError:
-                    pass
-                minfo = json.loads(data)
-            # elif encoding == 'application/cbor' :
-            #     minfo = cbor.loads(data)
-            else :
-                msg = 'unknown message encoding, {0}'.format(encoding)
-                return self.ErrorResponse(request, http.BAD_REQUEST, msg)
-
-        except :
-            logger.exception('exception while decoding http request %s', request.path)
-            msg = 'unabled to decode incoming request {0}'.format(data)
-            return self.ErrorResponse(request, http.BAD_REQUEST, msg)
-
-        operation = minfo.get('operation', '**UNSPECIFIED**')
-        if operation not in self.RequestMap :
-            msg = 'unknown request {0}'.format(operation)
-            return self.ErrorResponse(request, http.BAD_REQUEST, msg)
-
-        # ** This is VERY noisy and significantly degrades performance!
-        #logger.debug('received request %s', operation)
-
-        # Add operation to queue
-
-        def getResponse(operation, minfo):
-            return self.RequestMap[operation](minfo)
-
-        def thereIsAnError(failure):
-            failure.trap(Error, Exception)
-
-        def isDone(response_dict):
-
-            try :
-                encoding = request.getHeader('Content-Type')
-                if encoding == 'application/json' :
-                    response = json.dumps(response_dict)
-
-                # ** This is VERY noisy and significantly degrades performance!
-                #logger.info('response[%s]: %s', encoding, response)
-                request.setHeader('content-type', encoding)
-                request.setResponseCode(http.OK)
-                request.write(response.encode('utf8'))
-                request.finish()
-
-            except Error as e :
-                logger.error('error while processing request {0}; {1}'.format(request.path, e.message))
-                self.__safe_write__(request, self.ErrorResponse(request, int(e.status), e.message))
-
-            except Exception as e :
-                logger.error('unknown exception while processing request {0}; {1}/{2}'.format(request.path, type(e), str(e)))
-                msg = 'unknown exception processing http request {0}'.format(request.path)
-                self.__safe_write__(request, self.ErrorResponse(request, http.BAD_REQUEST, msg))
-
-        d = deferToThread(getResponse, operation, minfo)
-        d.addCallback(isDone).addErrback(thereIsAnError)
+    def _defer_request_(self, handler, request) :
+        d = deferToThread(handler, request)
+        d.addErrback(self._handle_error_)
+        d.addCallback(self._handle_done_)
 
         return NOT_DONE_YET
 
-    ## -----------------------------------------------------------------
-    def _HandleUpdateContractRequest(self, minfo) :
-        # {
-        #     "encrypted_session_key" : <>,
-        #     "encrypted_request" : <>
-        # }
 
-        try :
-            encrypted_session_key = minfo['encrypted_session_key']
-            encrypted_request = minfo['encrypted_request']
-
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
-
-        except Exception as e :
-            logger.error('unknown exception unpacking request (UpdateContractRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'unknown exception unpacking request (UpdateContractRequest)')
-
-        try :
-            response = self.Enclave.send_to_contract(encrypted_session_key, encrypted_request)
-            return {'result' : response}
-
-        except Exception as e :
-            logger.error('unknown exception processing request (UpdateContractRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (UpdateContractRequest)')
-
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class ShutdownResource(Resource) :
+    isLeaf = True
 
     ## -----------------------------------------------------------------
-    def _HandleVerifySecretRequest(self, minfo) :
-        ## {
-        ##    "contract_id" : <>,
-        ##    "creator_id" : <>,
-        ##    "secrets" : [
-        ##        {
-        ##            "pspk" : <>,
-        ##            "encrypted_secret" : <>
-        ##        }
-        ##    ]
-        ## }
+    def __init__(self) :
+        Resource.__init__(self)
+
+    ## -----------------------------------------------------------------
+    def render_GET(self, request) :
+        logger.warn('shutdown request received')
+        reactor.callLater(1, reactor.stop)
+
+        return ErrorResponse(request, http.NO_CONTENT, "shutdown")
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class InfoResource(CommonResource) :
+    isLeaf = True
+
+    ## -----------------------------------------------------------------
+    def __init__(self, enclave, storage_url) :
+        CommonResource.__init__(self, enclave)
+        self.storage_url = storage_url
+
+    ## -----------------------------------------------------------------
+    def _handle_request_(self, request) :
+
         try :
+            response = dict()
+            response['verifying_key'] = self.enclave.verifying_key
+            response['encryption_key'] = self.enclave.encryption_key
+            response['enclave_id'] = self.enclave.enclave_id
+            response['storage_service_url'] = self.storage_url
+
+            result = json.dumps(response).encode()
+
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/json')
+            request.write(result)
+
+            return request
+
+        except Exception as e :
+            logger.error("unknown exception while handling request (Info); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
+
+    ## -----------------------------------------------------------------
+    def render_GET(self, request) :
+        return self._defer_request_(self._handle_request_, request)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class VerifyResource(CommonResource) :
+    isLeaf = True
+
+    ## -----------------------------------------------------------------
+    def __init__(self, enclave) :
+        CommonResource.__init__(self, enclave)
+
+    ## -----------------------------------------------------------------
+    def _handle_request_(self, request) :
+        try :
+            minfo = UnpackRequest(request)
             contractid = minfo['contract_id']
             creatorid = minfo['creator_id']
             secrets = minfo['secrets']
@@ -229,32 +182,146 @@ class ContractEnclaveServer(resource.Resource):
             for secret in secrets :
                 assert secret['pspk']
                 assert secret['encrypted_secret']
-
         except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            raise Error(http.BAD_REQUEST, 'missing field {0}'.format(ke))
-
+            logger.error('missing field in request (Verify): %s', ke)
+            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
         except Exception as e :
-            logger.error('unknown excption unpacking request (VerifySecretRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'unknown error unpacking request (VerifySecretRequest)')
+            logger.error("unknown exception unpacking request (Verify); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
 
         try :
-            verify_response = self.Enclave.verify_secrets(contractid, creatorid, secrets)
-            return dict(verify_response)
+            response = self.enclave.verify_secrets(contractid, creatorid, secrets)
 
         except Exception as e :
-            logger.error('unknown exception processing request (VerifySecretRequest); {0}/{1}'.format(type(e), str(e)))
-            raise Error(http.BAD_REQUEST, 'uknown exception unpacking request (VerifySecretRequest)')
+            logger.error('unknown exception processing request (Verify); %s', str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, 'uknown exception processing request')
+
+        try :
+            result = json.dumps(dict(response)).encode()
+
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/json')
+            request.write(result)
+
+            return request
+
+        except Exception as e :
+            logger.error("unknown exception packing response (Verify); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
 
     ## -----------------------------------------------------------------
-    def _HandleEnclaveDataRequest(self, minfo) :
-        response = dict()
-        response['verifying_key'] = self.VerifyingKey
-        response['encryption_key'] = self.EncryptionKey
-        response['enclave_id'] = self.EnclaveID
-        resposne['storage_service_url'] = self.StorageURL
+    def render_POST(self, request) :
+        return self._defer_request_(self._handle_request_, request)
 
-        return response
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class InvokeResource(CommonResource) :
+    isLeaf = True
+
+    ## -----------------------------------------------------------------
+    def __init__(self, enclave) :
+        CommonResource.__init__(self, enclave)
+
+    ## -----------------------------------------------------------------
+    def _handle_request_(self, request) :
+        # {
+        #     "encrypted_session_key" : <>,
+        #     "encrypted_request" : <>
+        # }
+
+        try :
+            minfo = UnpackRequest(request)
+            encrypted_session_key = minfo['encrypted_session_key']
+            encrypted_request = minfo['encrypted_request']
+        except KeyError as ke :
+            logger.error('missing field in request: %s', ke)
+            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
+        except Exception as e :
+            logger.error("unknown exception unpacking request (Invoke); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
+
+        try :
+            response = self.enclave.send_to_contract(encrypted_session_key, encrypted_request)
+
+        except Exception as e :
+            logger.error('unknown exception processing request (Invoke); %s', str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, 'unknown exception processing request')
+
+        try :
+            # result = json.dumps(response).encode()
+
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/text')
+            request.write(response.encode())
+
+            return request
+
+        except Exception as e :
+            logger.error("unknown exception packing response (Invoke); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
+
+    ## -----------------------------------------------------------------
+    def render_POST(self, request) :
+        return self._defer_request_(self._handle_request_, request)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class ContractEnclaveServer(Resource):
+
+    ## -----------------------------------------------------------------
+    def __init__(self, enclave, storage_url) :
+        Resource.__init__(self)
+        self.enclave = enclave
+        self.storage_url = storage_url
+
+    ## -----------------------------------------------------------------
+    def getChild(self, name ,request) :
+        logger.debug('request: %s', name)
+        if name == b'invoke' :
+            return InvokeResource(self.enclave)
+        elif name == b'verify' :
+            return VerifyResource(self.enclave)
+        elif name == b'info' :
+            return InfoResource(self.enclave, self.storage_url)
+        elif name == b'shutdown' :
+            return ShutdownResource()
+        else :
+            return NoResource()
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def StartEnclaveService(http_host, http_port, enclave, storage_url) :
+    logger.info('service started on port %s', http_port)
+
+    root = ContractEnclaveServer(enclave, storage_url)
+    site = Site(root)
+
+    threadpool = reactor.getThreadPool()
+    threadpool.start()
+    threadpool.adjustPoolsize(8, 100) # Min & Max number of request to service at a time
+    logger.info('# of workers: %d', threadpool.workers)
+
+    reactor.listenTCP(http_port, site, interface=http_host)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def RunService() :
+    @defer.inlineCallbacks
+    def shutdown_twisted():
+        logger.info("Stopping Twisted")
+        yield reactor.callFromThread(reactor.stop)
+
+    reactor.addSystemEventTrigger('before', 'shutdown', shutdown_twisted)
+
+    try :
+        reactor.run()
+    except ReactorNotRunning:
+        logger.warn('shutdown')
+    except :
+        logger.warn('shutdown')
+
+    pdo_enclave_helper.shutdown_enclave()
+    sys.exit(0)
 
 # -----------------------------------------------------------------
 # sealed_data is base64 encoded string
@@ -306,41 +373,8 @@ def CreateEnclaveData(enclave_config, ledger_config, txn_keys) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def RunEnclaveService(config, enclave) :
-    httpport = config['EnclaveService']['HttpPort']
-    logger.info('service started on port %s', httpport)
-
-    root = ContractEnclaveServer(config, enclave)
-    site = server.Site(root)
-
-    threadpool = reactor.getThreadPool()
-    threadpool.start()
-    threadpool.adjustPoolsize(8, 100) # Min & Max number of request to service at a time
-    logger.info('# of workers: %d', threadpool.workers)
-
-    reactor.listenTCP(httpport, site)
-
-    @defer.inlineCallbacks
-    def shutdown_twisted():
-        logger.info("Stopping Twisted")
-        yield reactor.callFromThread(reactor.stop)
-
-    reactor.addSystemEventTrigger('before', 'shutdown', shutdown_twisted)
-
-    try :
-        reactor.run()
-    except ReactorNotRunning:
-        logger.warn('shutdown')
-    except :
-        logger.warn('shutdown')
-
-    pdo_enclave_helper.shutdown_enclave()
-    sys.exit(0)
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
 def LocalMain(config) :
-    # enclave configuration is in the 'EnclaveConfig' table
+    # load and initialize the enclave library
     try :
         logger.debug('initialize the enclave')
         pdo_enclave_helper.initialize_enclave(config)
@@ -348,31 +382,51 @@ def LocalMain(config) :
         logger.exception('failed to initialize enclave; %s', e)
         sys.exit(-1)
 
+    # create the sawtooth transaction keys needed to register the enclave
     try :
-        enclave_config = config.get('EnclaveData', {})
-        ledger_config = config.get('Sawtooth', {})
-        key_config = config.get('Key', {})
+        key_config = config['Key']
+        key_file = key_config['FileName']
+        key_path = key_config['SearchPath']
+        txn_keys = keys.TransactionKeys.read_from_file(key_file, search_path = key_path)
+    except KeyError as ke :
+        logger.error('missing configuration for %s', str(ke))
+        sys.exit(-1)
+    except Exception as e :
+        logger.error('unable to load transaction keys; %s', str(e))
+        sys.exit(-1)
 
-        try :
-            key_file = key_config['FileName']
-            key_path = key_config['SearchPath']
-            txn_keys = keys.TransactionKeys.read_from_file(key_file, search_path = key_path)
-        except Exception as e :
-            logger.error('unable to load transaction keys; %s', str(e))
-            sys.exit(-1)
-
+    # create or load the enclave data
+    try :
+        enclave_config = config['EnclaveData']
+        ledger_config = config['Sawtooth']
         enclave = LoadEnclaveData(enclave_config, txn_keys)
         if enclave is None :
             enclave = CreateEnclaveData(enclave_config, ledger_config, txn_keys)
-        assert enclave
+            assert enclave
 
         enclave.verify_registration(ledger_config)
-    except Exception as e:
-        logger.exception('failed to initialize enclave; %s', e)
+    except KeyError as ke :
+        logger.error('missing configuration for %s', str(ke))
+        sys.exit(-1)
+    except Exception as e :
+        logger.error('failed to initialize the enclave; %s', str(e))
         sys.exit(-1)
 
-    logger.info('start service for enclave\n%s', enclave.verifying_key)
-    RunEnclaveService(config, enclave)
+    # set up the handlers for the enclave service
+    try :
+        http_port = config['EnclaveService']['HttpPort']
+        http_host = config['EnclaveService']['Host']
+        storage_url = config['StorageService']['URL']
+        StartEnclaveService(http_host, http_port, enclave, storage_url)
+    except KeyError as ke :
+        logger.error('missing configuration for %s', str(ke))
+        sys.exit(-1)
+    except Exception as e:
+        logger.exception('failed to start the enclave service; %s', e)
+        sys.exit(-1)
+
+    # and run the service
+    RunService()
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
