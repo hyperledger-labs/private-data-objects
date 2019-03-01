@@ -55,11 +55,19 @@ PYTHON_FILES = \
 	pdo/sservice/block_store_manager.py \
 	pdo/__init__.py
 
+SCRIPTS = \
+	bin/es-start.sh \
+	bin/es-stop.sh \
+	bin/es-status.sh \
+	bin/ss-start.sh \
+	bin/ss-stop.sh \
+	bin/ss-status.sh
+
 ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
-$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
+$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
 	python setup.py bdist_egg
 

@@ -42,7 +42,10 @@ if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
     sys.exit(2)
 
 data_files = [
-    (bin_dir, ['bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh']),
+    (bin_dir, [
+        'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
+        'bin/ss-start.sh', 'bin/ss-stop.sh', 'bin/ss-status.sh',
+        ]),
     (dat_dir, []),
     (etc_dir, [ 'etc/sample_eservice.toml', 'etc/sample_sservice.toml' ]),
     (log_dir, []),
