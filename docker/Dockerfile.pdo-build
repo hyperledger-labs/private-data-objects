@@ -17,15 +17,15 @@
 #   Build Private Data Objects.
 #
 #  Configuration (build) paramaters
-#  - proxy configuration: 		https_proxy http_proxy ftp_proxy  (default: undefined)
-#  - base image with pdo dev environ: 	PDO_DEV_IMAGE (default: pdo-dev)
+#  - proxy configuration: 			https_proxy http_proxy ftp_proxy  (default: undefined)
+#  - base image with pdo dev environ: 		PDO_DEV_IMAGE (default: pdo-dev)
 #    (presumably built from Dockerfile.pde-dev)
-#  - sgx-mode:				SGX_MODE (default: SIM)
-#  - pdo repo to use:			PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
-#  - pdo repo branch to use:		PDO_REPO_BRANCH (default: master)
-#  - sawtooth core repo to use:		STC_REPO_URL (default: https://github.com/hyperledger/sawtooth-core.git)
-#  - sawtooth core repo branch to use:	STC_REPO_BRANCH (default: master)
-#  - build in debug mode:		PDO_DEBUG_BUILD (default: 0)
+#  - sgx-mode:					SGX_MODE (default: SIM)
+#  - pdo repo to use:				PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
+#  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
+#  - sawtooth python sdk repo to use:		STL_REPO_URL (default: https://github.com/hyperledger/sawtooth-sdk-python.git)
+#  - sawtooth python sdk repo branch to use:	STL_REPO_BRANCH (default: master)
+#  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -78,8 +78,8 @@ ARG PDO_DEV_IMAGE=pdo-dev
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
 ARG PDO_REPO_BRANCH=master
-ARG STC_REPO_URL=https://github.com/hyperledger/sawtooth-core.git
-ARG STC_REPO_BRANCH=master
+ARG STL_REPO_URL=https://github.com/hyperledger/sawtooth-sdk-python.git
+ARG STL_REPO_BRANCH=master
 
 RUN mkdir /tmp/build-src
 COPY . /tmp/build-src
@@ -88,7 +88,7 @@ WORKDIR /project/pdo/
 
 RUN mkdir src && cd src \
  && git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects \
- && git clone --single-branch --branch ${STC_REPO_BRANCH} ${STC_REPO_URL} sawtooth-core
+ && git clone --single-branch --branch ${STL_REPO_BRANCH} ${STL_REPO_URL} sawtooth-sdk-python
 
 
 # Build ..
@@ -130,12 +130,11 @@ RUN \
 #
 # Build sawtooth interface.
 # - note though due to sawtooth and pdo having incompatibl OS dependencies we have another docker images for TP
- && cd /project/pdo/src/sawtooth-core \
+ && cd /project/pdo/src/sawtooth-sdk-python \
  && pip install grpcio grpcio-tools \
  && bin/protogen \
- && cd sdk/python/ \
  && python3 setup.py install \
- && cd ../../signing \
+ && cd ./signing \
  && python3 setup.py install \
  #back to pdo source
  && cd /project/pdo/src/private-data-objects/eservice/ \
