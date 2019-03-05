@@ -13,22 +13,14 @@
  * limitations under the License.
  */
 
-#include <stdarg.h>
-
 #include "TestEnclave.h"
-#include "TestEnclave_t.h" /* print_string */
-
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
+#include "TestEnclave_t.h"
 #include "testCrypto.h"
-#include "crypto.h"
-#include "tSgxSSL_api.h"
-
-#include "c11_support.h" /* vsnprintf_s */
+#include "pdo_error.h"
+void trusted_wrapper_ocall_Log(pdo_log_level_t level, const char* message)
+{
+    ocall_Log(level, message);
+}
 
 // Test ECALL
 int test()

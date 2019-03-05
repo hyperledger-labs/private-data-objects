@@ -15,11 +15,7 @@
 
 #pragma once
 
-#include <string.h>
-
-#include "error.h"
 #include "log.h"
-#include "parson.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 #if defined(SGX_SIMULATOR)
@@ -27,6 +23,3 @@ const bool IS_SGX_SIMULATOR = true;
 #else
 const bool IS_SGX_SIMULATOR = false;
 #endif
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern void printf(const char* fmt, ...);

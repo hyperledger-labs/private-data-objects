@@ -15,36 +15,16 @@
 
 #include "enclave_t.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-
-#include "enclave_utils.h"
-#include "error.h"
-#include "pdo_error.h"
-#include "c11_support.h"
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void printf(const char* fmt, ...)
+/*
+    the trusted_wrapper_ocall_Log function is required in, and used by,
+    in the trusted common library. The library generates the log message
+    and triggers the wrapper and so the ocall in untrusted space.
+*/
+void trusted_wrapper_ocall_Log(pdo_log_level_t level, const char* message)
 {
-    char buf[BUFSIZ] = {'\0'};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(buf, BUFSIZ, fmt, ap);
-    va_end(ap);
 #if PDO_DEBUG_BUILD
-    ocall_Print(buf);
-#endif
-}  // printf
+    ocall_Log(level, message);
+#endif  // PDO_DEBUG_BUILD
+}
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void Log(int level, const char* fmt, ...)
-{
-    char buf[BUFSIZ] = {'\0'};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(buf, BUFSIZ, fmt, ap);
-    va_end(ap);
-#if PDO_DEBUG_BUILD
-    ocall_Log(level, buf);
-#endif
-}  // Log

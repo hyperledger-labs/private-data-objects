@@ -28,8 +28,7 @@ enclave {
     };
 
     untrusted {
-        void ocall_Print([in, string] const char* str);
-        void ocall_Log(int level, [in, string] const char* str);
+        void ocall_Log(pdo_log_level_t level, [in, string] const char* str);
         void ocall_SetErrorMessage([in, string] const char* msg);
         void ocall_GetTimer([out] uint64_t* value);
     };

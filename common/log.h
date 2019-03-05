@@ -15,11 +15,22 @@
 
 #pragma once
 
+#include "pdo_error.h"
+
 #define SAFE_LOG(LEVEL, FMT, ...)
 #define SAFE_LOG1(LEVEL, MSG)
 
-#if _UNTRUSTED_
-#include "pdo_error.h"
+#define SAFE_LOG_EXCEPTION(MSG) SAFE_LOG(PDO_LOG_ERROR, "EXCEPTION: %s; %s", MSG, e.what())
+
+// SAFE_LOG should be used for any logging statements that might end
+// up in the enclave. With debugging off all logging messages will be
+// removed completely
+#if PDO_DEBUG_BUILD
+#undef SAFE_LOG
+#define SAFE_LOG(LEVEL, FMT, ...) pdo::logger::LogV(LEVEL, FMT, ##__VA_ARGS__)
+#undef SAFE_LOG1
+#define SAFE_LOG1(LEVEL, MSG) pdo::logger::Log((pdo_log_level_t)LEVEL, MSG)
+#endif  /* PDO_DEBUG_BUILD */
 
 namespace pdo
 {
@@ -34,29 +45,10 @@ namespace pdo
     }
 }
 
-// SAFE_LOG should be used for any logging statements that might end
-// up in the enclave. With debugging off all logging messages will be
-// removed completely
-
-#if PDO_DEBUG_BUILD
-#undef SAFE_LOG
-#define SAFE_LOG(LEVEL, FMT, ...) pdo::logger::LogV(LEVEL, FMT, ##__VA_ARGS__)
-#undef SAFE_LOG1
-#define SAFE_LOG1(LEVEL, MSG) pdo::logger::Log(LEVEL, MSG)
-#endif  /* PDO_DEBUG_BUILD */
-
+#if _UNTRUSTED_
 #else  /* _UNTRUSTED_ */
 
 // this will be implemented by the enclave
-extern void Log(int level, const char* fmt, ...);
-
-#if PDO_DEBUG_BUILD
-#undef SAFE_LOG
-#define SAFE_LOG(LEVEL, FMT, ...) Log(LEVEL, FMT, ##__VA_ARGS__)
-#undef SAFE_LOG1
-#define SAFE_LOG1(LEVEL, MSG) Log(LEVEL, MSG)
-#endif  /* PDO_DEBUG_BUILD */
+extern void trusted_wrapper_ocall_Log(pdo_log_level_t level, const char* msg);
 
 #endif  /* _UNTRUSTED_ */
-
-#define SAFE_LOG_EXCEPTION(MSG) SAFE_LOG(PDO_LOG_ERROR, "EXCEPTION: %s; %s", MSG, e.what())

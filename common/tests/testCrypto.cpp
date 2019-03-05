@@ -19,6 +19,7 @@
 #include "crypto.h"
 #include "error.h"
 #include "log.h"
+#include "pdo_error.h"
 #include "c11_support.h"
 #include "crypto/verify_ias_report/ias-certificates.h"
 
@@ -32,7 +33,6 @@
 #else
 
 #include "tSgxSSL_api.h"
-#include "TestEnclave_t.h"
 #endif
 
 namespace pcrypto = pdo::crypto;
@@ -40,20 +40,6 @@ namespace constants = pdo::crypto::constants;
 
 // Error handling
 namespace Error = pdo::error;
-
-void Log(int level, const char* fmt, ...)
-{
-    char buf[BUFSIZ] = {'\0'};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(buf, BUFSIZ, fmt, ap);
-    va_end(ap);
-#if _UNTRUSTED_
-    pdo::logger::Log((pdo_log_level_t)level, buf);
-#else
-    ocall_Log(level, buf);
-#endif
-}  // Log
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 int pcrypto::testCrypto()

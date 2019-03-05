@@ -13,24 +13,22 @@
  * limitations under the License.
  */
 
-#if _UNTRUSTED_
-
 #include <stdarg.h>
 #include <stdio.h>
-#include <pthread.h>
 
 #include "log.h"
 #include "c11_support.h"
 
 #define FIXED_BUFFER_SIZE (1<<14)
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#if _UNTRUSTED_
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// XX Internal helper functions                              XX
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#include <pthread.h>
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#define MUTEX_LOCK pthread_mutex_lock
+#define MUTEX_UNLOCK pthread_mutex_unlock
+
+// Internal helper function (untrusted space only)
 static void LogStdOut(
     pdo_log_level_t level,
     const char* message
@@ -39,7 +37,21 @@ static void LogStdOut(
     printf("[LOG %u] %s", level, message);
 } // LogStdOut
 
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static pdo_log_t g_LogFunction = LogStdOut;
+
+#else // _UNTRUSTED_
+
+#include "sgx_thread.h"
+
+#define MUTEX_LOCK sgx_thread_mutex_lock
+#define MUTEX_UNLOCK sgx_thread_mutex_unlock
+
+static sgx_thread_mutex_t mutex = SGX_THREAD_MUTEX_INITIALIZER;
+static pdo_log_t g_LogFunction = trusted_wrapper_ocall_Log;
+
+#endif // _UNTRUSTED_
+
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XX External interface                                     XX
@@ -64,9 +76,9 @@ void pdo::logger::Log(
 {
     if (g_LogFunction)
     {
-        pthread_mutex_lock(&mutex);
+        MUTEX_LOCK(&mutex);
         g_LogFunction(level, message);
-        pthread_mutex_unlock(&mutex);
+        MUTEX_UNLOCK(&mutex);
     }
 } // Log
 
@@ -87,5 +99,3 @@ void pdo::logger::LogV(
         pdo::logger::Log(level, msg);
     }
 } // Log
-
-#endif
