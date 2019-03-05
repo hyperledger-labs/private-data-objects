@@ -101,5 +101,5 @@ if(NOT "${TINY_SCHEME_SRC} " STREQUAL " ")
     TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
     # Link the untrusted common library
-    TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} "-lupdo-lmdb-block-store" "-lcrypto" "-lupdo-common" "-lssl" "-llmdb")
+    TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS} "-lupdo-lmdb-block-store" "-lcrypto" "-lupdo-common" "-lssl" "-llmdb")
 endif()
