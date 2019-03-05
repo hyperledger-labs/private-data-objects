@@ -13,10 +13,6 @@
  * limitations under the License.
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-//#include "tSgxSSL_api.h"
 #include <pwd.h>
 #include <unistd.h>
 #define MAX_PATH FILENAME_MAX
@@ -27,16 +23,6 @@
 #include "c11_support.h"
 #include "log.h"
 #include "error.h"
-
-void Log(int level, const char* fmt, ...)
-{
-    char buf[BUFSIZ] = {'\0'};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(buf, BUFSIZ, fmt, ap);
-    va_end(ap);
-    ocall_Log(level, buf);
-}  // Log
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -177,9 +163,9 @@ int initialize_enclave(void)
 }
 
 /* OCall functions */
-void ocall_Log(int level, const char *str)
+void ocall_Log(pdo_log_level_t level, const char *str)
 {
-    printf("[LOG %u] %s", level, str);
+    SAFE_LOG(PDO_LOG_DEBUG, "[LOG %u] %s", level, str);
 } // ocall_Log
 
 /* Application entry */

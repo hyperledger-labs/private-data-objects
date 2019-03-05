@@ -34,7 +34,9 @@
 #ifdef __STDC_LIB_EXT1__
     #define __STDC_WANT_LIB_EXT1__ 1
 #else
+#ifdef _UNTRUSTED_
     int memset_s(void *dest, size_t max, int c, size_t count);
+#endif
     int memcpy_s(void *dest, size_t sizeInBytes, const void *src, size_t count);
     int strncpy_s(char *dest, size_t sizeInBytes, const char *src, size_t count);
     int strnlen_s(const char *str, size_t sizeInBytes);
