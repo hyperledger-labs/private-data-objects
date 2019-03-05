@@ -215,7 +215,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         logger.error('failed to verify the state encryption key; %s', str(e))
         ErrorShutdown()
 
-    logger.info('encrypted state encryption key: %s', encrypted_state_encryption_key)
+    logger.debug('encrypted state encryption key: %s', encrypted_state_encryption_key)
 
     # --------------------------------------------------
     logger.info('add the provisioned enclave to the contract')
@@ -258,7 +258,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         contract.set_state(initialize_response.raw_state)
 
     except Exception as e :
-        logger.error('failed to create the initial state; %s', str(e))
+        logger.exception('failed to create the initial state; %s', str(e))
         ErrorShutdown()
 
     logger.info('enclave created initial state')

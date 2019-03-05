@@ -152,8 +152,8 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
     const Base64EncodedString& inSealedEnclaveData,
-    const Base64EncodedString& inEncryptedSessionKey,
-    const Base64EncodedString& inSerializedRequest,
+    const ByteArray& inEncryptedSessionKey,
+    const ByteArray& inSerializedRequest,
     uint32_t& outResponseIdentifier,
     size_t& outSerializedResponseSize,
     int enclaveIndex
@@ -165,10 +165,6 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
     {
         size_t response_size;
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
-        ByteArray encrypted_session_key = Base64EncodedStringToByteArray(inEncryptedSessionKey);
-        ByteArray serialized_request = Base64EncodedStringToByteArray(inSerializedRequest);
-
-        // xxxxx call the enclave
 
         /// get the enclave id for passing into the ecall
         sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
@@ -181,8 +177,8 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
                     enclaveid,
                     &presult,
                     sealed_enclave_data,
-                    encrypted_session_key,
-                    serialized_request,
+                    inEncryptedSessionKey,
+                    inSerializedRequest,
                     &response_size
                 ]
                 ()
@@ -192,10 +188,10 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
                         &presult,
                         sealed_enclave_data.data(),
                         sealed_enclave_data.size(),
-                        encrypted_session_key.data(),
-                        encrypted_session_key.size(),
-                        serialized_request.data(),
-                        serialized_request.size(),
+                        inEncryptedSessionKey.data(),
+                        inEncryptedSessionKey.size(),
+                        inSerializedRequest.data(),
+                        inSerializedRequest.size(),
                         &response_size);
                     return pdo::error::ConvertErrorStatus(sresult_inner, presult);
                 }
@@ -230,7 +226,7 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
     const Base64EncodedString& inSealedEnclaveData,
     const uint32_t inResponseIdentifier,
     const size_t inSerializedResponseSize,
-    Base64EncodedString& outSerializedResponse,
+    ByteArray& outSerializedResponse,
     int enclaveIndex
     )
 {
@@ -238,8 +234,9 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
 
     try
     {
-        ByteArray serialized_response(inSerializedResponseSize);
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
+
+        outSerializedResponse.resize(inSerializedResponseSize);
 
         // xxxxx call the enclave
 
@@ -255,7 +252,7 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
                     enclaveid,
                     &presult,
                     sealed_enclave_data,
-                    &serialized_response
+                    &outSerializedResponse
                 ]
                 ()
                 {
@@ -264,15 +261,13 @@ pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
                         &presult,
                         sealed_enclave_data.data(),
                         sealed_enclave_data.size(),
-                        serialized_response.data(),
-                        serialized_response.size());
+                        outSerializedResponse.data(),
+                        outSerializedResponse.size());
                     return pdo::error::ConvertErrorStatus(sresult_inner, presult);
                 }
                 );
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (GetSerializedResponse)");
         g_Enclave[enclaveIndex].ThrowPDOError(presult);
-
-        outSerializedResponse = ByteArrayToBase64EncodedString(serialized_response);
     }
     catch (pdo::error::Error& e)
     {

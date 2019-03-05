@@ -14,6 +14,7 @@
 
 import json
 import requests
+import base64
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ from pdo.service_client.generic import GenericServiceClient
 from pdo.service_client.generic import MessageException
 from pdo.service_client.storage import StorageServiceClient
 from pdo.common.keys import EnclaveKeys
+import pdo.common.crypto as crypto
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -70,19 +72,19 @@ class EnclaveServiceClient(GenericServiceClient) :
         self.check_blocks = storage_service.check_blocks
 
     # -----------------------------------------------------------------
-    # encrypted_session_key -- base64 aes key encrypted with enclave's rsa key
-    # encrypted_request -- base64 string encrypted with aes session key
+    # encrypted_session_key -- byte string containing aes key encrypted with enclave's rsa key
+    # encrypted_request -- byte string request encrypted with aes session key
     # -----------------------------------------------------------------
     def send_to_contract(self, encrypted_session_key, encrypted_request) :
         request = dict()
-        request['encrypted_session_key'] = encrypted_session_key
-        request['encrypted_request'] = encrypted_request
+        request['encrypted_session_key'] = (None, encrypted_session_key, 'application/octet-stream')
+        request['encrypted_request'] = (None, encrypted_request, 'application/octet-stream')
 
         try :
             url = '{0}/invoke'.format(self.ServiceURL)
-            response = requests.post(url, json=request, timeout=self.default_timeout)
+            response = requests.post(url, files=request, timeout=self.default_timeout)
             response.raise_for_status()
-            return response.text
+            return response.content
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
             logger.warn('network error connecting to service (invoke); %s', str(e))

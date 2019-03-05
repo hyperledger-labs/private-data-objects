@@ -224,15 +224,9 @@ class InvokeResource(CommonResource) :
 
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
-        # {
-        #     "encrypted_session_key" : <>,
-        #     "encrypted_request" : <>
-        # }
-
         try :
-            minfo = UnpackRequest(request)
-            encrypted_session_key = minfo['encrypted_session_key']
-            encrypted_request = minfo['encrypted_request']
+            encrypted_session_key = request.args[b'encrypted_session_key'][0]
+            encrypted_request = request.args[b'encrypted_request'][0]
         except KeyError as ke :
             logger.error('missing field in request: %s', ke)
             return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
@@ -248,11 +242,9 @@ class InvokeResource(CommonResource) :
             return ErrorResponse(request, http.BAD_REQUEST, 'unknown exception processing request')
 
         try :
-            # result = json.dumps(response).encode()
-
             request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/text')
-            request.write(response.encode())
+            request.setHeader('content-type', 'application/octet-stream')
+            request.write(response)
 
             return request
 

@@ -88,11 +88,6 @@ class StorageServiceClient(object) :
             block_ids.append(block_id)
             request_data[block_id] = (block_id, block_data, 'application/octet-stream')
 
-        # for i in range(len(block_data_list)) :
-        #     block_hash = hashlib.sha256(block_data_list[i]).digest()
-        #     block_id = base64.urlsafe_b64encode(block_hash).decode()
-        #     block_ids.append(block_id)
-        #     request_data[block_id] = (block_id, block_data_list[i], 'application/octet-stream')
         request_data['operation'] = json.dumps({'block_ids' : block_ids, 'expiration' : expiration})
         url = "{0}/block/store".format(self.url_base)
         response = requests.post(url, files=request_data, timeout=self.default_timeout)
