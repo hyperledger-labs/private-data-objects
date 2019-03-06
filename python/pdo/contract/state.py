@@ -260,6 +260,26 @@ class ContractState(object) :
         self.update_state(raw_state)
 
     # --------------------------------------------------
+    def decode_state(self) :
+        """decode the raw root block and parse the JSON
+        """
+
+        if self.raw_state is None :
+            return {}
+
+        logger.debug('contract state: %s', self.raw_state)
+        state = self.raw_state
+
+        # backward compatibility with json parser
+        try :
+            state = state.decode('utf8')
+        except AttributeError :
+            pass
+
+        state = state.rstrip('\0')
+        return json.loads(state)
+
+    # --------------------------------------------------
     def update_state(self, raw_state) :
         """update state information from the root block
 
@@ -269,17 +289,7 @@ class ContractState(object) :
         self.component_block_ids = []
 
         if self.raw_state :
-            logger.debug('contract state: %s', self.raw_state)
-            state = self.raw_state
-
-            # backward compatibility with json parser
-            try :
-                state = state.decode('utf8')
-            except AttributeError :
-                pass
-
-            state = state.rstrip('\0')
-            json_main_state_block = json.loads(state)
+            json_main_state_block = self.decode_state()
             self.component_block_ids = json_main_state_block['BlockIds']
 
     # --------------------------------------------------

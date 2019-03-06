@@ -23,6 +23,7 @@
 ./pdo/test/contract.py
 ./pdo/test/helpers/__init__.py
 ./pdo/test/helpers/secrets.py
+./pdo/test/helpers/state.py
 ./pdo/test/request.py
 ./pdo/test/storage.py
 ./sawtooth/__init__.py

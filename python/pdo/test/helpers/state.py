@@ -26,18 +26,17 @@ def TamperWithStateBlockOrder(state_object) :
     if len(state_object.component_block_ids) < 2 :
         raise Exception('cannot tamper with state block order')
 
-    temp_id = state_object.component_block_ids[0]
-    state_object.component_block_ids[0] = state_object.component_block_ids[1]
-    state_object.component_block_ids[1] = temp_id
+    block_ids = state_object.component_block_ids
+
+    temp_id = block_ids[0]
+    block_ids[0] = block_ids[1]
+    block_ids[1] = temp_id
 
     # get the original block and modify it
-    b64_decoded_byte_array = crypto.base64_to_byte_array(state_object.encrypted_state)
-    b64_decoded_string = crypto.byte_array_to_string(b64_decoded_byte_array).rstrip('\0')
-    json_main_state_block = json.loads(b64_decoded_string)
-    json_main_state_block['BlockIds'] = state_object.component_block_ids
+    decoded_state = state_object.decode_state()
+    decoded_state['BlockIds'] = block_ids
 
     #re-store the tampered main state block
-    new_main_state_block = json.dumps(json_main_state_block)
-    new_main_state_block_byte_array = crypto.string_to_byte_array(new_main_state_block)
-    state_object.update_state(crypto.byte_array_to_base64(new_main_state_block_byte_array))
+    state_object.raw_state = json.dumps(decoded_state).encode('utf8')
+    state_object.component_block_ids = block_ids
     state_object.save_to_cache()

@@ -13,6 +13,6 @@
 # limitations under the License.
 
 __all__ = [
-    'keys',
-    'secrets'
+    'secrets',
+    'state'
 ]

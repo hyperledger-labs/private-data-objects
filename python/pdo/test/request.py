@@ -20,7 +20,7 @@ import time
 import argparse
 import random
 import pdo.test.helpers.secrets as secret_helper
-import pdo.test.state as test_state
+import pdo.test.helpers.state as test_state
 
 from pdo.sservice.block_store_manager import BlockStoreManager
 
@@ -383,7 +383,7 @@ def LocalMain(config) :
     try :
         UpdateTheContract(config, enclave, contract, contract_creator_keys)
     except Exception as e :
-        logger.error('contract execution failed; %s', str(e))
+        logger.exception('contract execution failed; %s', str(e))
         ErrorShutdown()
 
     enclave_helper.shutdown_enclave()
