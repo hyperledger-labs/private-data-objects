@@ -337,8 +337,7 @@ class ShutdownResource(Resource) :
         logger.warn('shutdown request received')
         reactor.callLater(1, reactor.stop)
 
-        ErrorResponse(request, http.NO_CONTENT, "shutdown")
-        request.finish()
+        return ErrorResponse(request, http.NO_CONTENT, "shutdown")
 
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

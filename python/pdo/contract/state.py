@@ -140,6 +140,11 @@ class ContractState(object) :
             elif block_status['expiration'] < 5 :
                 blocks_to_extend.append(block_status['block_id'])
 
+        # there is currently no operation to simply extend the expiration of
+        # an existing block, so for now just add the blocks to extend onto
+        # the end of the blocks to push
+        blocks_to_push += blocks_to_extend
+
         if len(blocks_to_push) == 0 :
             logger.debug('enclave service has state')
             return 0

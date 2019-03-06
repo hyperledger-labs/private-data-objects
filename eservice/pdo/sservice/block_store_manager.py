@@ -173,7 +173,6 @@ class BlockStoreManager(object) :
         # this might keep the database locked for too long for a write transaction
         # might want to flip the order, one transaction per update
         with self.block_store_env.begin(write=True) as txn :
-            logger.info('start transaction')
             for block_data in block_data_list :
                 block_hash = hashlib.sha256(block_data).digest()
                 block_hashes.append(block_hash)
