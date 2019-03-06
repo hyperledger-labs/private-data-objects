@@ -26,18 +26,8 @@ std::string g_enclaveError;
 
 extern "C" {
 
-    void ocall_Print(
-        const char *str
-        )
-    {
-        /* Proxy/Bridge will check the length and null-terminate
-        * the input string to prevent buffer overflow.
-        */
-        std::cout << str;
-    } // ocall_Print
-
     void ocall_Log(
-        int level,
+        pdo_log_level_t level,
         const char *str
         )
     {

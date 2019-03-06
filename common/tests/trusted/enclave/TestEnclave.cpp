@@ -13,35 +13,13 @@
  * limitations under the License.
  */
 
-#include <stdarg.h>
-
 #include "TestEnclave.h"
-#include "TestEnclave_t.h" /* print_string */
-
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
+#include "TestEnclave_t.h"
 #include "testCrypto.h"
-#include "crypto.h"
-#include "tSgxSSL_api.h"
-
-#include "c11_support.h" /* vsnprintf_s */
-
-/*
- * printf:
- *   Invokes OCALL to display the enclave buffer to the terminal.
- */
-void printf(const char* fmt, ...)
+#include "pdo_error.h"
+void trusted_wrapper_ocall_Log(pdo_log_level_t level, const char* message)
 {
-    char buf[BUFSIZ] = {'\0'};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf_s(buf, BUFSIZ, fmt, ap);
-    va_end(ap);
-    ocall_print_string(buf);
+    ocall_Log(level, message);
 }
 
 // Test ECALL

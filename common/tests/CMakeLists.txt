@@ -62,7 +62,7 @@ if(NOT UNTRUSTED_ONLY)
 	# ENCLAVE_EDL is defined in the enclave subdirectory
 	SGX_EDGE_UNTRUSTED(${ENCLAVE_EDL} ENCLAVE_EDGE_SOURCES)
 
-	ADD_EXECUTABLE(${TRUSTED_TEST_NAME} trusted/app/TestApp.cpp ${PDO_TOP_DIR}/common/c11_support.cpp ${ENCLAVE_EDGE_SOURCES})
+	ADD_EXECUTABLE(${TRUSTED_TEST_NAME} trusted/app/TestApp.cpp ${ENCLAVE_EDGE_SOURCES})
 
 	# Make sure the enclave builds before the test app that links it
 	ADD_DEPENDENCIES(${TRUSTED_TEST_NAME} TestEnclave)
@@ -77,6 +77,7 @@ if(NOT UNTRUSTED_ONLY)
 	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} -Wl,-L,${SGX_SSL}/lib64/release)
 	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} ${URTS_LIBRARY_NAME} sgx_usgxssl)
 	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} pthread)
+	TARGET_LINK_LIBRARIES(${TRUSTED_TEST_NAME} ${UNTRUSTED_LIB_NAME})
 
 	# Register this application as a test
 	add_test(

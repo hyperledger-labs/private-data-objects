@@ -16,15 +16,10 @@
 #ifndef _ENCLAVE_H_
 #define _ENCLAVE_H_
 
-#include <assert.h>
-#include <stdlib.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-void printf(const char* fmt, ...);
-
+int test();
 #if defined(__cplusplus)
 }
 #endif
