@@ -1,4 +1,4 @@
-pn# Copyright 2018 Intel Corporation
+# Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,8 +70,12 @@ class ContractRequest(object) :
         result['CreatorID'] = self.creator_id
         result['EncryptedStateEncryptionKey'] = self.encrypted_state_encryption_key
 
-        result['ContractState'] = self.contract_state.serialize_for_invocation()
-        result['ContractCode'] = self.contract_code.serialize()
+        if self.operation == 'initialize' :
+            result['ContractCode'] = self.contract_code.serialize()
+        else :
+            result['ContractCodeHash'] = self.contract_code.compute_hash(encoding='b64')
+            result['ContractStateHash'] = self.contract_state.get_state_hash(encoding='b64')
+
         result['ContractMessage'] = self.message.serialize()
 
         return json.dumps(result)

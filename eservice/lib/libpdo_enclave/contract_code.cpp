@@ -23,9 +23,10 @@
 #include "parson.h"
 
 #include "contract_code.h"
+#include "contract_state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Request format for create and send methods
+// Request format used when initializing a new contract
 //
 //     "ContractCode" :
 //     {
@@ -39,22 +40,119 @@
 void ContractCode::Unpack(const JSON_Object* object)
 {
     const char* pvalue = nullptr;
+    try
+    {
+        // contract code
+        pvalue = json_object_dotget_string(object, "Code");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve Code");
+        code_.assign(pvalue);
 
-    // contract code
-    pvalue = json_object_dotget_string(object, "Code");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve Code");
-    code_.assign(pvalue);
+        pvalue = json_object_dotget_string(object, "Name");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve Name");
+        name_.assign(pvalue);
 
-    pvalue = json_object_dotget_string(object, "Name");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve Name");
-    name_.assign(pvalue);
+        pvalue = json_object_dotget_string(object, "Nonce");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve Nonce");
+        nonce_.assign(pvalue);
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Error while unpacking contract code; %s", e.what());
+        throw;
+    }
+}
 
-    pvalue = json_object_dotget_string(object, "Nonce");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve Nonce");
-    nonce_.assign(pvalue);
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractCode::FetchFromState(
+    const ContractState& state,
+    const ByteArray& code_hash)
+{
+    try
+    {
+        {
+            std::string str = "ContractCode.Code";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(state.state_->PrivilegedGet(k));
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v.size() == 0, "contract code missing");
+            code_ = ByteArrayToString(v);
+        }
+
+        {
+            std::string str = "ContractCode.Name";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(state.state_->PrivilegedGet(k));
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v.size() == 0, "contract code name missing");
+            name_ = ByteArrayToString(v);
+        }
+
+        {
+            std::string str = "ContractCode.Nonce";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(state.state_->PrivilegedGet(k));
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v.size() == 0, "contract code nonce missing");
+            nonce_ = ByteArrayToString(v);
+        }
+
+        {
+            std::string str = "ContractCode.Hash";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(state.state_->PrivilegedGet(k));
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v.size() == 0, "contract code hash missing");
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v != code_hash, "mismatched contract code hash");
+        }
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Error while retrieving contract code; %s", e.what());
+        throw;
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractCode::SaveToState(ContractState& state)
+{
+    try
+    {
+        {
+            std::string str = "ContractCode.Code";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(code_.begin(), code_.end());
+            state.state_->PrivilegedPut(k, v);
+        }
+
+        {
+            std::string str = "ContractCode.Name";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(name_.begin(), name_.end());
+            state.state_->PrivilegedPut(k, v);
+        }
+
+        {
+            std::string str = "ContractCode.Nonce";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(nonce_.begin(), nonce_.end());
+            state.state_->PrivilegedPut(k, v);
+        }
+
+        {
+            std::string str = "ContractCode.Hash";
+            ByteArray k(str.begin(), str.end());
+            state.state_->PrivilegedPut(k, ComputeHash());
+        }
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Error while storing contract code; %s", e.what());
+        throw;
+    }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

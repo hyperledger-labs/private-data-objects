@@ -108,6 +108,11 @@ ContractRequest::ContractRequest(
         !pvalue, "invalid request; failed to retrieve ContractID");
     contract_id_.assign(pvalue);
 
+    ByteArray id_hash = Base64EncodedStringToByteArray(contract_id_);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        id_hash.size() != SHA256_DIGEST_LENGTH,
+        "invalid contract id");
+
     pvalue = json_object_dotget_string(request_object, "CreatorID");
     pdo::error::ThrowIf<pdo::error::ValueError>(
         !pvalue, "invalid request; failed to retrieve CreatorID");
@@ -120,23 +125,43 @@ ContractRequest::ContractRequest(
 
     state_encryption_key_ = DecodeAndDecryptStateEncryptionKey(contract_id_, pvalue);
 
-    // contract code
-    ovalue = json_object_dotget_object(request_object, "ContractCode");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve ContractCode");
-    contract_code_.Unpack(ovalue);
+    if (operation_ == op_initialize)
+    {
+        // contract code
+        ovalue = json_object_dotget_object(request_object, "ContractCode");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve ContractCode");
+        contract_code_.Unpack(ovalue);
 
-    // contract state
-    ovalue = json_object_dotget_object(request_object, "ContractState");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !ovalue, "invalid request; failed to retrieve ContractState");
+        // create a new state
+        contract_state_.Initialize(state_encryption_key_, id_hash);
+        contract_code_.SaveToState(contract_state_);
+    }
+    else
+    {
+        // contract code hash
+        pvalue = json_object_dotget_string(request_object, "ContractCodeHash");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve ContractCodeHash");
 
-    ByteArray id_hash = Base64EncodedStringToByteArray(contract_id_);
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        id_hash.size() != SHA256_DIGEST_LENGTH,
-        "invalid contract id");
+        const ByteArray code_hash = Base64EncodedStringToByteArray(pvalue);
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            code_hash.size() != SHA256_DIGEST_LENGTH,
+            "invalid contract code hash");
 
-    contract_state_.Unpack(state_encryption_key_, ovalue, id_hash, contract_code_.ComputeHash());
+        // contract state hash
+        pvalue = json_object_dotget_string(request_object, "ContractStateHash");
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pvalue, "invalid request; failed to retrieve ContractStateHash");
+
+        ByteArray state_hash = Base64EncodedStringToByteArray(pvalue);
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            state_hash.size() != SHA256_DIGEST_LENGTH,
+            "invalid contract state hash");
+
+        contract_state_.Unpack(state_encryption_key_, state_hash, id_hash);
+        contract_code_.FetchFromState(contract_state_, code_hash);
+    }
 
     // contract message
     ovalue = json_object_dotget_object(request_object, "ContractMessage");
