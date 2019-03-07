@@ -289,22 +289,22 @@ namespace state
 void pstate::trie_node::operate_trie_non_recursive(
     data_node_io& dn_io, const kv_operation_e operation, const ByteArray& kvkey, const ByteArray& in_value, ByteArray& out_value)
 {
-    std::vector<recursive_item> trie_recursion_stack;
+    std::list<recursive_item> trie_recursion_stack;
     unsigned int depth = 0;
 
     // the first entry of the first data node is the trie root
     // if the trie contains data then the root has a next node
     // if the trie is empty then the next node is null/empty
     recursive_item ri;
-    recursive_item ri_next;
     ri.node.location.block_offset_ = {dn_io.block_warehouse_.get_root_block_num(), data_node::data_begin_index()};
     trie_node::read_trie_node(dn_io, ri.node.location.block_offset_, ri.node);
     //initialize the recursion stack with the root node
     ri.go_next = true;
     trie_recursion_stack.push_back(ri);
     //append next uninitialized node
+    trie_recursion_stack.emplace_back();
+    recursive_item& ri_next = trie_recursion_stack.back();
     ri_next.node.location.block_offset_ = ri.node.node.next_offset;
-    trie_recursion_stack.push_back(ri_next);
 
     while(1)
     {
@@ -336,20 +336,25 @@ void pstate::trie_node::operate_trie_non_recursive(
         }
 
         // operate on trie node
-        unsigned int spl = shared_prefix_length((uint8_t*)ri.node.node.key_chunk, ri.node.node.hdr.keyChunkSize,
-            kvkey.data() + depth, kvkey.size() - depth);
+        uint8_t* key_chunk_start_p = (uint8_t*)kvkey.data() + depth;
+        unsigned int key_chunk_size = kvkey.size() - depth;
+        unsigned int spl = shared_prefix_length(
+                                (uint8_t*)ri.node.node.key_chunk,
+                                ri.node.node.hdr.keyChunkSize,
+                                key_chunk_start_p,
+                                key_chunk_size);
 
         if (spl == 0)
         {  // no match, so either go next or EOS matched
             //if right depth has not been reached OR (it has been reached but) the current trie is not EOS, go next
             if (depth < kvkey.size() || ri.node.node.hdr.keyChunkSize > 0)
             {  // no match, go next
-                recursive_item ri_next;
                 //update field in referenced working recursive item
                 ri.go_next = true;
-                //push the next node with the location set
+                //push the next node with the location set (to avoid copy, append item and modify it)
+                trie_recursion_stack.emplace_back();
+                recursive_item& ri_next = trie_recursion_stack.back();
                 ri_next.node.location.block_offset_ = ri.node.node.next_offset;
-                trie_recursion_stack.push_back(ri_next);
                 //notice: depth value is not changed
 
                 continue;
@@ -387,12 +392,12 @@ void pstate::trie_node::operate_trie_non_recursive(
         {  // some match, so either partial or full
             if (spl == ri.node.node.hdr.keyChunkSize)
             {  // full match, go to child
-                recursive_item ri_child;
                 //update field in referenced working recursive item
                 ri.go_next = false;
                 //push the child node with the location set
+                trie_recursion_stack.emplace_back();
+                recursive_item& ri_child = trie_recursion_stack.back();
                 ri_child.node.location.block_offset_ = ri.node.node.child_offset;
-                trie_recursion_stack.push_back(ri_child);
                 //update depth value
                 depth += spl;
             }
@@ -416,24 +421,22 @@ void pstate::trie_node::operate_trie_non_recursive(
 
     while(!trie_recursion_stack.empty())
     {
-        // reference to last item in stack
-        recursive_item& ri = trie_recursion_stack.back();
+        // pop last item in stack
+        recursive_item ri_popped = trie_recursion_stack.back();
+        trie_recursion_stack.pop_back();
 
         if (operation == DEL_OP && trie_recursion_stack.size() > 1)
         {
             // check whether we should delete this trie node, while removing items from stack
             // as nodes have been deleted, childless nodes can be removed (except the root node)
-            delete_trie_node_childless(dn_io, ri.node);
+            delete_trie_node_childless(dn_io, ri_popped.node);
         }
 
-        if(ri.node.modified)
+        if(ri_popped.node.modified)
         {
-            write_trie_node(dn_io, ri.node);
+            write_trie_node(dn_io, ri_popped.node);
         }
 
-        // remove item from stack
-        recursive_item ri_popped = trie_recursion_stack.back();
-        trie_recursion_stack.pop_back();
         if(trie_recursion_stack.empty())
         {
             //no previous node to update
