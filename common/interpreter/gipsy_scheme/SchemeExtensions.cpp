@@ -972,9 +972,7 @@ static pointer key_value_open(scheme *sc, pointer args)
     // benefits though i think it probably excessive
 
     try {
-        int result = pdo::lmdb_block_store::BlockStoreInit(s_filename);
-        if (result !=  PDO_SUCCESS)
-            return scheme_return_error_s(sc, "failed to create the blockstore");
+        pdo::lmdb_block_store::BlockStoreOpen(s_filename);
 
         const ByteArray state_encryption_key(16, 0);
         pdo::state::Interpreter_KV* keystore = NULL;

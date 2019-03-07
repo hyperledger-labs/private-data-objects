@@ -80,7 +80,24 @@ def parse_configuration_files(cfiles, search_path, variable_map = None) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def expand_expressions(text, variable_map) :
+    """expand expressions found in a string, an expression is given
+    in a ${{expr}}. For example, ${{port+5}} will expand to 7005 if
+    port is set to 7000 in the variable_map.
 
+    :param string text: template text
+    :param dict variable_map: dictionary of variable bindings
+    "returns string: text with expressions evaluated.
+    """
+    for item in re.findall(r'\${{(.*)}}', text, re.MULTILINE) :
+        exp = '${{%s}}' % item
+        val = str(eval(item, variable_map))
+        text = text.replace(exp, val)
+
+    return text
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def parse_configuration_file(filename, variable_map) :
     """
     Parse a configuration file expanding variable references
@@ -101,6 +118,7 @@ def parse_configuration_file(filename, variable_map) :
         text += re.sub(cpattern, '', line) + ' '
 
     if variable_map :
+        text = expand_expressions(text, variable_map)
         text = Template(text).safe_substitute(variable_map)
 
     return toml.loads(text)

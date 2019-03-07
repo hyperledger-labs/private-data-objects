@@ -18,9 +18,17 @@
 [StorageService]
 # Identity is a string used to identify the service in log files
 Identity = "${identity}"
-HttpPort = 7200
+
+# Information about the network connection for the service
 Host = "localhost"
+HttpPort = 7200
+
+# name of the LMDB file where the blocks are stored
 BlockStore = "${data}/${identity}.mdb"
+
+# number of seconds between garbage collection, 0 means
+# don't garbage collect at all
+GarbageCollectionInterval = 10
 
 # --------------------------------------------------
 # Logging -- configuration of service logging

@@ -82,7 +82,7 @@ def CreateContract(ledger_config, client_keys, enclaveclients, contract) :
     logger.info('Requesting that the enclave initialize the contract...')
     initialize_request = contract.create_initialize_request(client_keys, enclaveclient)
     initialize_response = initialize_request.evaluate()
-    contract.set_state(initialize_response.encrypted_state)
+    contract.set_state(initialize_response.raw_state)
 
     logger.info('Contract state created successfully')
 

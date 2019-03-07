@@ -96,7 +96,7 @@ def SendMessageAsIdentity(config, contract, invoker_keys, message, fmt = 'python
             else :
                 response.submit_update_transaction(ledger_config)
 
-            contract.set_state(response.encrypted_state)
+            contract.set_state(response.raw_state)
 
             data_dir = contract_config['DataDirectory']
             contract.contract_state.save_to_cache(data_dir=data_dir)
@@ -178,7 +178,7 @@ def CreateAndRegisterContract(config, contract_info, creator_keys) :
         logger.warn('initialization for contract %s failed; %s', contract_name, emessage)
         raise Exception('initialization failed; {}'.format(emessage))
 
-    contract.set_state(initialize_response.encrypted_state)
+    contract.set_state(initialize_response.raw_state)
 
     logger.info('initial state created')
 

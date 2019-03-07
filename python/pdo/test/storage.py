@@ -18,11 +18,15 @@ import os
 import sys
 
 import argparse
+import base64
+import hashlib
+
 import logging
 import pdo.common.logger as plogger
 
 logger = logging.getLogger(__name__)
 
+import pdo.common.crypto as crypto
 from pdo.service_client.storage import StorageServiceClient
 
 # -----------------------------------------------------------------
@@ -40,19 +44,45 @@ plogger.setup_loggers({'LogLevel' : options.loglevel.upper(), 'LogFile' : option
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def decode_block_id(block_id) :
+    return base64.urlsafe_b64decode(block_id)
+
+def verify_store_signature(store_response, expiration, verifying_key) :
+    block_hashes = map(decode_block_id, store_response['block_ids'])
+
+    signing_hash_accumulator = expiration.to_bytes(32, byteorder='big', signed=False)
+    signing_hash_accumulator += b''.join(block_hashes)
+    signing_hash = hashlib.sha256(signing_hash_accumulator).digest()
+
+    decoded_signature = base64.urlsafe_b64decode(store_response['signature'])
+
+    vk = crypto.SIG_PublicKey(verifying_key)
+    return vk.VerifySignature(signing_hash, decoded_signature)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 client = StorageServiceClient(options.url)
 
 # -----------------------------------------------------------------
 # Begin the tests
 # -----------------------------------------------------------------
-
 # -----------------------------------------------------------------
 logger.info('attempt to put a single block to the service')
 # -----------------------------------------------------------------
+default_expiration = 30
 try :
     block_data = os.urandom(1000)
-    block_id = client.put_block(block_data)
+    result = client.store_block(block_data, expiration=default_expiration)
+    assert result
+
+    assert verify_store_signature(result, default_expiration, client.verifying_key)
+
+    block_ids = result['block_ids']
+    assert block_ids and len(block_ids) == 1
+
+    block_id = result['block_ids'][0]
     assert block_id
+
 except Exception as e :
     logger.error('put test failed; %s', str(e))
     sys.exit(-1)
@@ -75,8 +105,14 @@ try :
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
-    block_ids = client.put_blocks(block_data)
+    result = client.store_blocks(block_data, expiration=default_expiration)
+    assert result
+
+    assert verify_store_signature(result, default_expiration, client.verifying_key)
+
+    block_ids = result['block_ids']
     assert block_ids and len(block_ids) == 3
+
 except Exception as e :
     logger.error('bulk upload test failed; %s', str(e))
     sys.exit(-1)
@@ -96,8 +132,12 @@ except Exception as e :
 logger.info('test bulk status')
 # -----------------------------------------------------------------
 try :
-    status = client.check_status(block_ids)
+    status = client.check_blocks(block_ids)
     assert status and len(status) == 3
+    for s in status :
+        assert s['size'] == 10
+        assert 0 < s['expiration'] and s['expiration'] <= 30
+
 except Exception as e :
     logger.error('bulk status failed; %s', str(e))
     sys.exit(-1)
@@ -112,3 +152,6 @@ except Exception as e:
 else :
     logger.error('failed to catch bad request')
     sys.exit(-1)
+
+logger.info('all tests passed')
+sys.exit(0)

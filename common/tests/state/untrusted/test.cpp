@@ -28,15 +28,9 @@
 /* Application entry */
 int main(int argc, char* argv[])
 {
-    int result = 0;
     SAFE_LOG(PDO_LOG_DEBUG, "Test UNTRUSTED State API.\n");
 
-    result = pdo::lmdb_block_store::BlockStoreInit(TEST_DATABASE_NAME);
-    if (result != 0)
-    {
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to initialize block store: %d\n", result);
-        return -1;
-    }
+    pdo::lmdb_block_store::BlockStoreOpen(TEST_DATABASE_NAME);
 
     SAFE_LOG(PDO_LOG_DEBUG, "Test State KV: start\n");
     test_state_kv();

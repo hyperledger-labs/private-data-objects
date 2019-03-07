@@ -67,7 +67,7 @@ def refresh_contract(state, contract) :
 
         contract_state = ContractState.get_from_ledger(ledger_config, contract.contract_id)
         contract_state.save_to_cache(data_dir=data_directory)
-        contract.set_state(contract_state.encrypted_state)
+        contract.set_state(contract_state.raw_state)
     except Exception as e :
         raise Exception('unable to refresh the state from the ledger; {0}'.format(str(e)))
 
