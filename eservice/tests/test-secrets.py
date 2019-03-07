@@ -20,6 +20,8 @@ import hashlib
 import random
 import json
 
+from pdo.sservice.block_store_manager import BlockStoreManager
+
 import pdo.test.helpers.secrets as secret_helper
 import pdo.eservice.pdo_helper as enclave_helper
 
@@ -34,13 +36,22 @@ logger = logging.getLogger(__name__)
 
 import pdo.common.config as pconfig
 
+block_store = None
+enclave_client = None
+
 # -----------------------------------------------------------------
 def ErrorShutdown() :
     """
     Perform a clean shutdown after an error
     """
     try :
-        enclave_helper.shutdown()
+        if block_store is not None :
+            block_store.close()
+    except Exception as e :
+        logger.exception('failed to close block_store')
+
+    try :
+        enclave_helper.shutdown_enclave()
     except Exception as e :
         logger.exception('shutdown failed')
 
@@ -88,9 +99,26 @@ except pconfig.ConfigurationException as e :
     logger.error(str(e))
     ErrorShutdown()
 
+try :
+    if config.get('StorageService') is None :
+        config['StorageService'] = {
+            'BlockStore' : os.path.join(config['Contract']['DataDirectory'], 'test-request.mdb'),
+        }
+
+except KeyError as ke :
+    logger.error('missing configuration for %s', str(ke))
+    ErrorShutdown()
+
 contract_creator_keys = keys.ServiceKeys.create_service_keys()
 contract_creator_id = contract_creator_keys.identity
 contract_id = crypto.byte_array_to_hex(crypto.random_bit_string(256))[:32]
+
+try :
+    block_store_file = config['StorageService']['BlockStore']
+    block_store = BlockStoreManager(block_store_file, create_block_store=True)
+except Exception as e :
+    logger.error('failed to initialize the block store; %s', str(e))
+    ErrorShutdown()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -98,8 +126,9 @@ plogger.setup_loggers({'LogLevel' : options.loglevel.upper(), 'LogFile' : option
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-enclave_helper.initialize_enclave(config.get('EnclaveModule'))
+enclave_helper.initialize_enclave(config)
 enclave_client = enclave_helper.Enclave.create_new_enclave()
+enclave_client.attach_block_store(block_store)
 
 # -----------------------------------------------------------------
 logger.info('test correct inputs')
@@ -263,5 +292,5 @@ except :
     pass
 
 # this is necessary for a clean shutdown
-enclave_helper.shutdown()
+enclave_helper.shutdown_enclave()
 sys.exit(0)

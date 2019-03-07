@@ -157,7 +157,7 @@ def LocalMain(config, message) :
             logger.error('failed to save the new state; %s', str(e))
             sys.exit(-1)
 
-        contract.set_state(update_response.encrypted_state)
+        contract.set_state(update_response.raw_state)
         contract.contract_state.save_to_cache(data_dir = data_directory)
 
     sys.exit(0)

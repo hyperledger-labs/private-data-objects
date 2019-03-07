@@ -88,7 +88,7 @@ def __create_contract(ledger_config, client_keys, enclaveclients, contract) :
     if not initialize_response.status :
         raise Exception("failed to initialize the contract; %s", initialize_response.result)
 
-    contract.set_state(initialize_response.encrypted_state)
+    contract.set_state(initialize_response.raw_state)
 
     logger.info('Contract state created successfully')
 

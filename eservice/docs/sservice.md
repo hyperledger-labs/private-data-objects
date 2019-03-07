@@ -25,27 +25,26 @@ The storage service is configured through a Toml configuration file generally pl
 * key-dir -- one or more directories to search for the private key used by the storage service to sign storage contracts
 * data-dir -- path where data files are stored
 * block-store -- name of the file where blocks are stored, defaults to ``${data}/${identity}.mdb``
+* gc-interval -- the interval over which the garbage collector runs in seconds, defaults to 10
 
 ## Operations ##
 
 The storage service supports several operations for interacting with the block store.
 
-| URL           | Method | Request Body     | Response Body            | Description                                    |
-|:--------------|:-------|:-----------------|:-------------------------|------------------------------------------------|
-| /block/<id>   | GET    | None             | application/octet-string | Return the requested block                     |
-| /block/<id>   | PUT    | None             | None                     | Store the requested block                      |
-| /block/<id>   | HEAD   | None             | None                     | Return size of block or NOT_FOUND              |
-| /block/list   | GET    | None             | application/json         | List of all known blocks                       |
-| /block/status | POST   | application/json | application/json         | Size and expiration of requested blocks        |
-| /block/store  | POST   | multipart/form   | application/json         | Store multiple blocks, return proof of storage |
-| /info         | GET    | None             | application/json         | Request information about the service          |
-| /shutdown     | GET    | None             | None                     | Request to shutdown the service                |
+| URL          | Method | Request Body     | Response Body            | Description                                    |
+|:-------------|:-------|:-----------------|:-------------------------|------------------------------------------------|
+| /block/<id>  | GET    | None             | application/octet-string | Return the requested block                     |
+| /block/list  | GET    | None             | application/json         | List of all known blocks                       |
+| /block/check | POST   | application/json | application/json         | Size and expiration of requested blocks        |
+| /block/store | POST   | multipart/form   | application/json         | Store multiple blocks, return proof of storage |
+| /info        | GET    | None             | application/json         | Request information about the service          |
+| /shutdown    | GET    | None             | None                     | Request to shutdown the service                |
 
 Across operations, a block id (the sha256 hash of the block) will be represented as a url-encoded, base64 string. Block data is always binary and identified as ``application/octet-string``.
 
 ### Status ###
 
-The ``status`` operation returns the size and expiration time of any requested block that is currently maintained by the storage service. If a requested block is currently not managed by the storage service, length and expiration will be set to 0. Note that the expiration is the number of seconds in the future when the block will expire; it is not a wall clock time.
+The ``status`` operation returns the size and expiration time of any requested block that is currently maintained by the storage service. If a requested block is currently not managed by the storage service, length and expiration will be set to 0. Note that the expiration is the number of seconds in the future (not wall clock time) that the storage service agrees to persist the block.
 
 #### Input ####
 
@@ -70,14 +69,14 @@ The ``status`` operation returns the size and expiration time of any requested b
 ```
 ### Store Blocks ###
 
-The ``store`` operation requests that the storage service manage a set of blocks for at least a requested interval of time. If the storage service agrees to manage the blocks for the requested time, it will sign the hash of the hashes of the stored blocks (computed in the same order as the blocks were requested). The request will be encoded as ``multipart/form``. The first section of the form will contain a ``JSON`` request that includes requested interval and a list of block identifiers. Each specified block will be in its own section in the form.
+The ``store`` operation requests that the storage service manage a set of blocks for at least a requested interval of time. If the storage service agrees to manage the blocks for the requested time, it will sign the hash of the hashes of the stored blocks (computed in the same order as the blocks were requested). The request will be encoded as ``multipart/form``. The first section of the form will contain a ``JSON`` request that includes requested interval and a list of block identifiers. Each specified block will be in its own section in the form identified by the block identifier.
 
 #### Input ####
 
 
 ```JSON
 {
-    "interval" : "integer",
+    "expiration" : "integer",
     "block_ids" : [
         "base64 encoded block hash", ...
     ]
@@ -88,7 +87,9 @@ The ``store`` operation requests that the storage service manage a set of blocks
 
 ```JSON
 {
-    "public-key" : "PEM encoded ECDSA verifying key",
     "signature" : "base64 encoded signature"
+    "block_ids" : [
+        "base64 encoded block hash", ...
+    ]
 }
 ```

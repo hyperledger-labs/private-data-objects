@@ -83,7 +83,7 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
             raise Exception('failed to save the new state to the ledger; {0}'.format(str(e)))
 
         try :
-            contract.set_state(update_response.encrypted_state)
+            contract.set_state(update_response.raw_state)
             contract.contract_state.save_to_cache(data_dir = data_directory)
         except Exception as e :
             logger.exception('failed to save the new state in the cache')

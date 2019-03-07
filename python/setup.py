@@ -103,7 +103,7 @@ setup(name='pdo_common_library',
           'console_scripts': [
               'pdo-test-contract = pdo.test.contract:Main',
               'pdo-test-request = pdo.test.request:Main',
-              'pdo-test-secrets = pdo.test.secrets:Main',
+              'pdo-test-storage = pdo.test.storage:Main',
           ]
       }
 )
