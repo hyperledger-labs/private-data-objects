@@ -17,7 +17,7 @@
 # --------------------------------------------------
 [ProvisioningService]
 Identity = "${identity}"
-HttpPort = ${httpport}
+HttpPort = ${{7000+_count_}}
 Host = "localhost"
 
 # --------------------------------------------------

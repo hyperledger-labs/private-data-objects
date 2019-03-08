@@ -83,6 +83,7 @@ function cleanup {
     yell "shutdown services"
     ${PDO_HOME}/bin/ps-stop.sh --count ${NUM_SERVICES} > /dev/null
     ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
+    ${PDO_HOME}/bin/ss-stop.sh --count ${NUM_SERVICES} > /dev/null
     rm -f ${SAVE_FILE}
 }
 
@@ -110,6 +111,7 @@ try make test > /dev/null
 # -----------------------------------------------------------------
 yell start enclave and provisioning services
 # -----------------------------------------------------------------
+try ${PDO_HOME}/bin/ss-start.sh --count ${NUM_SERVICES} > /dev/null
 try ${PDO_HOME}/bin/ps-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
@@ -149,6 +151,9 @@ try pdo-test-contract --no-ledger --contract memory-test \
 ## -----------------------------------------------------------------
 yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
+say start storage service test
+try pdo-test-storage --url http://localhost:7201 --loglevel warn --logfile __screen__
+
 say start request test
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \

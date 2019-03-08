@@ -16,6 +16,7 @@
 /* Enclave.edl - Top EDL file. */
 
 enclave {
+    include "pdo_error.h"
 
     /* Import ECALL/OCALL from sub-directory EDLs.
      *  [from]: specifies the location of EDL file.
@@ -29,12 +30,10 @@ enclave {
         public int test();
     };
     /*
-     * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
-     *  [in]: copy the string buffer to App outside.
-     *  [string]: specifies 'str' is a NULL terminated buffer.
+     * ocall_log - invokes OCALL to display string buffer inside the enclave.
      */
     untrusted {
-        void ocall_print_string([in, string] const char *str);
+        void ocall_Log(pdo_log_level_t level, [in, string] const char *str);
     };
 
 };

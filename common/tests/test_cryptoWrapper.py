@@ -192,7 +192,6 @@ except Exception as exc:
 
 try:
  ciphertext = crypto.SKENC_EncryptMessage(key, iv, msg)
- print(len(ciphertext))
  crypto.SKENC_DecryptMessage(key, iv, ciphertext)
 except Exception as exc:
  logger.error("ERROR: Symmetric encryption test failed: ", exc)

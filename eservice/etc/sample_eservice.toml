@@ -13,13 +13,20 @@
 # limitations under the License.
 
 # --------------------------------------------------
-# Service -- general information about the service
+# EnclaveService -- general information about the enclave service
 # --------------------------------------------------
 [EnclaveService]
 # Identity is a string used to identify the service in log files
 Identity = "${identity}"
 HttpPort = 7100
 Host = "localhost"
+
+# --------------------------------------------------
+# StorageService -- information about the associated storage service
+# --------------------------------------------------
+[StorageService]
+URL = "http://localhost:7200"
+BlockStore = "${data}/${identity}.mdb"
 
 # --------------------------------------------------
 # Sawtooth -- sawtooth ledger configuration

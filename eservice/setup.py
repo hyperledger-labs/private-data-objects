@@ -42,9 +42,12 @@ if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
     sys.exit(2)
 
 data_files = [
-    (bin_dir, ['bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh']),
+    (bin_dir, [
+        'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
+        'bin/ss-start.sh', 'bin/ss-stop.sh', 'bin/ss-status.sh',
+        ]),
     (dat_dir, []),
-    (etc_dir, [ 'etc/sample_eservice.toml' ]),
+    (etc_dir, [ 'etc/sample_eservice.toml', 'etc/sample_sservice.toml' ]),
     (log_dir, []),
     (key_dir, []),
     ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')])
@@ -155,6 +158,7 @@ setup(name='pdo_eservice',
       namespace_packages=['pdo'],
       install_requires = [
           'colorlog',
+          'lmdb',
           'requests',
           'toml',
           'twisted'
@@ -165,7 +169,7 @@ setup(name='pdo_eservice',
       data_files = data_files,
       entry_points = {
           'console_scripts': [
-              'sservice = pdo.eservice.scripts.SServiceCLI:Main',
+              'sservice = pdo.sservice.scripts.SServiceCLI:Main',
               'eservice = pdo.eservice.scripts.EServiceCLI:Main',
               'eservice-enclave-info = pdo.eservice.scripts.EServiceEnclaveInfoCLI:Main'
           ]

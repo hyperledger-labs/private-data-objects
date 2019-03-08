@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'secrets',
-    'state'
-]
+PLIST=$(pgrep -u $USER -f sservice)
+if [ -n "$PLIST" ] ; then
+    ps -h --format cmd -p $PLIST
+fi

@@ -18,6 +18,11 @@
 #include "pdo_error.h"
 #include "types.h"
 
+// The default time in seconds that a new block will be held
+// in the storage service, one minute might be excessive but
+// is certainly reasonable
+#define MINIMUM_EXPIRATION_TIME 60
+
 namespace pdo
 {
     namespace lmdb_block_store
@@ -34,7 +39,7 @@ namespace pdo
          *  Success (return PDO_SUCCESS) - Block store ready to use
          *  Failure (return nonzero) - Block store is unusable
          */
-        pdo_err_t BlockStoreInit(const std::string& db_path);
+        void BlockStoreOpen(const std::string& db_path);
 
         /**
          * Close the block store and flush the data to disk

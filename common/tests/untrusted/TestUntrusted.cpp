@@ -16,23 +16,25 @@
 #include <stdio.h>
 
 #include "testCrypto.h"
+#include "error.h"
+#include "log.h"
 
 /* Application entry */
 int main(int argc, char *argv[])
 {
     int result;
 
-    printf("Test UNTRUSTED Common API.\n");
+    SAFE_LOG(PDO_LOG_DEBUG, "Test UNTRUSTED Common API.\n");
 
     result = pdo::crypto::testCrypto();
 
     if (result != 0)
     {
-	printf("ERROR: UNTRUSTED Common API test FAILED.\n");
-	return -1;
+	    SAFE_LOG(PDO_LOG_ERROR, "ERROR: UNTRUSTED Common API test FAILED.\n");
+	    return -1;
     }
 
-    printf("Test UNTRUSTED Common API SUCCESSFUL!\n");
+    SAFE_LOG(PDO_LOG_DEBUG, "Test UNTRUSTED Common API SUCCESSFUL!\n");
 
     return 0;
 }

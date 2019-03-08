@@ -25,7 +25,9 @@ import argparse
 import base64
 import hashlib
 import json
-import lmdb
+import time
+
+from pdo.sservice.block_store_manager import BlockStoreManager
 
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
@@ -40,13 +42,13 @@ logger = logging.getLogger(__name__)
 from twisted.web import http
 from twisted.web.server import Site
 from twisted.web.resource import Resource, NoResource
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, task
 from twisted.internet.threads import deferToThread
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.error import Error
 from twisted.python.threadpool import ThreadPool
 
-## -----------------------------------------------------------------
+## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
     """
     Generate a common error response for broken requests
@@ -70,10 +72,9 @@ def ErrorResponse(request, error_code, msg) :
 class CommonResource(Resource) :
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
+    def __init__(self, block_store) :
         Resource.__init__(self)
-        self.service_keys = service_keys
-        self.block_store_env = block_store_env
+        self.block_store = block_store
 
     ## -----------------------------------------------------------------
     def _handle_error_(self, failure) :
@@ -94,32 +95,28 @@ class CommonResource(Resource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class BlockList(CommonResource) :
+class ListBlocksResource(CommonResource) :
     isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
-        CommonResource.__init__(self, service_keys, block_store_env)
+    def __init__(self, block_store) :
+        CommonResource.__init__(self, block_store)
 
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
         try :
-            block_ids = []
-            with self.block_store_env.begin() as txn :
-                cursor = txn.cursor()
-                for key, value in cursor :
-                    block_ids.append(base64.urlsafe_b64encode(key).decode())
-
+            block_ids = self.block_store.list_blocks(encoding='b64')
             result = json.dumps(block_ids).encode()
 
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/json')
+            request.write(result)
+
+            return request
+
         except Exception as e :
-            logger.error("unknown exception (BlockList); %s", str(e))
+            logger.error("unknown exception (ListBlocks); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while processing list blocks request")
-
-        request.setHeader('content-type', 'application/json')
-        request.write(result)
-
-        return request
 
     ## -----------------------------------------------------------------
     def render_GET(self, request) :
@@ -128,113 +125,44 @@ class BlockList(CommonResource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class BlockData(CommonResource) :
+class GetBlockResource(CommonResource) :
+    isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env, block_hash) :
-        CommonResource.__init__(self, service_keys, block_store_env)
-        self.block_hash = block_hash
+    def __init__(self, block_store, block_id) :
+        CommonResource.__init__(self, block_store)
+        self.block_id = block_id
 
     ## -----------------------------------------------------------------
     def _handle_get_request_(self, request) :
         try :
-            try :
-                block_hash = base64.urlsafe_b64decode(self.block_hash)
-            except :
-                return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(self.block_hash))
-
-            with self.block_store_env.begin() as txn :
-                block_data = txn.get(block_hash)
-                if not block_data :
-                    return ErrorResponse(request, http.NOT_FOUND, "no such block; {0}".format(self.block_hash))
+            block_data = self.block_store.get_block(self.block_id, encoding='b64')
+            if block_data is None :
+                return ErrorResponse(request, http.NOT_FOUND, "unknown block; {0}".format(self.block_id))
 
             request.setResponseCode(http.OK)
             request.setHeader('content-type', 'application/octet-stream')
             request.write(block_data)
+
             return request
 
         except Exception as e :
             logger.error("unknown exception (BlockGet); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST,
-                                 "unknown exception while processing get block request; {0}".format(self.block_hash))
-
-    ## -----------------------------------------------------------------
-    def _handle_put_request_(self, request) :
-        try :
-            try :
-                requested_block_hash = base64.urlsafe_b64decode(self.block_hash)
-            except :
-                return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(self.block_hash))
-
-            block_data = request.content.getvalue()
-            block_hash = hashlib.sha256(block_data).digest()
-            if requested_block_hash != block_hash :
-                return ErrorResponse(request, http.BAD_REQUEST, "mismatch block hash; {0}".format(self.block_hash))
-
-            with self.block_store_env.begin(write=True) as txn :
-                if not txn.get(block_hash) :
-                    if not txn.put(block_hash, block_data) :
-                        return ErrorResponse(request, http.BAD_REQUEST, "failed to save block data")
-
-            request.setResponseCode(http.OK)
-            request.write(b"SUCCESS\n")
-            return request
-
-        except Exception as e :
-            logger.error("unknown exception (BlockPut); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST,
-                                 "unknown exception while processing put block request; {0}".format(self.block_hash))
-
-    ## -----------------------------------------------------------------
-    def _handle_head_request_(self, request) :
-        try :
-            try :
-                block_hash = base64.urlsafe_b64decode(self.block_hash)
-            except :
-                return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(self.block_hash))
-
-            block_size = -1
-            with self.block_store_env.begin() as txn :
-                block_data = txn.get(block_hash)
-                if block_data :
-                    block_size = len(block_data)
-
-            if block_size < 0 :
-                request.setResponseCode(http.NOT_FOUND)
-                request.setHeader('content-length', str(0))
-                request.write(b"")
-            else :
-                request.setResponseCode(http.OK)
-                request.setHeader('content-length', str(block_size))
-                request.write(b"")
-
-            return request
-
-        except Exception as e :
-            logger.error("unknown exception (BlockHead); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST,
-                                 "unknown exception while processing block head request; {0}".format(self.block_hash))
+                                 "unknown exception while processing get block request; {0}".format(self.block_id))
 
     ## -----------------------------------------------------------------
     def render_GET(self, request) :
         return self._defer_request_(self._handle_get_request_, request)
 
-    ## -----------------------------------------------------------------
-    def render_PUT(self, request) :
-        return self._defer_request_(self._handle_put_request_, request)
-
-    ## -----------------------------------------------------------------
-    def render_HEAD(self, request) :
-        return self._defer_request_(self._handle_head_request_, request)
-
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class BlockStatus(CommonResource) :
+class CheckBlocksResource(CommonResource) :
     isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
-        CommonResource.__init__(self, service_keys, block_store_env)
+    def __init__(self, block_store) :
+        CommonResource.__init__(self, block_store)
 
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
@@ -256,38 +184,28 @@ class BlockStatus(CommonResource) :
             block_ids = json.loads(data)
 
         except Exception as e :
-            logger.error("unknown exception unpacking request (BlockStatus); %s", str(e))
+            logger.error("unknown exception unpacking request (CheckBlock); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking block status request")
 
         try :
-            block_status_list = []
-            with self.block_store_env.begin() as txn :
-                for block_id in block_ids :
-                    try :
-                        block_hash = base64.urlsafe_b64decode(block_id)
-                    except :
-                        return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(block_id))
-
-                    block_status = { 'block_id' : block_id, 'size' : 0, 'expiration' : 0 }
-                    block_data = txn.get(block_hash)
-                    if block_data :
-                        block_status['size'] = len(block_data)
-
-                    block_status_list.append(block_status)
+            block_status_list = self.block_store.check_blocks(block_ids, encoding='b64')
 
         except Exception as e :
-            logger.error("unknown exception computing status (BlockStatus); %s", str(e))
+            logger.error("unknown exception computing status (CheckBlock); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while computing block status")
 
         try :
             result = json.dumps(block_status_list).encode()
-        except Exception as e :
-            logger.error("unknown exception packing response (BlockStatus); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
 
-        request.setHeader('content-type', 'application/json')
-        request.write(result)
-        return request
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/json')
+            request.write(result)
+
+            return request
+
+        except Exception as e :
+            logger.error("unknown exception packing response (CheckBlock); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
 
     ## -----------------------------------------------------------------
     def render_POST(self, request) :
@@ -295,11 +213,19 @@ class BlockStatus(CommonResource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class BlockStore(CommonResource) :
+class StoreBlocksResource(CommonResource) :
+    isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
-        CommonResource.__init__(self, service_keys, block_store_env)
+    def __init__(self, block_store) :
+        CommonResource.__init__(self, block_store)
+
+    ## -----------------------------------------------------------------
+    def block_data_iterator(self, block_ids, blocks) :
+        """create an iterator for the blocks in the request
+        """
+        for block_id in block_ids :
+            yield blocks[block_id.encode('utf8')][0]
 
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
@@ -310,57 +236,37 @@ class BlockStore(CommonResource) :
                 data = data.decode('utf-8')
             except AttributeError:
                 pass
+
             minfo = json.loads(data)
             block_ids = minfo['block_ids']
-            interval = minfo['interval']
-
-            signing_hash_accumulator = interval.to_bytes(32, byteorder='big', signed=False)
+            expiration = minfo['expiration']
 
         except Exception as e :
             logger.error("unknown exception unpacking request (BlockStore); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking block store request")
 
         try :
-            # this might keep the database locked for too long for a write transaction
-            # might want to flip the order, one transaction per update
-            with self.block_store_env.begin(write=True) as txn :
-                for block_id in block_ids :
-                    block_id = block_id.encode()
-                    try :
-                        requested_block_hash = base64.urlsafe_b64decode(block_id)
-                    except :
-                        return ErrorResponse(request, http.BAD_REQUEST, "invalid block hash; {0}".format(block_id))
-
-                    try :
-                        block_data = request.args[block_id][0]
-                    except :
-                        return ErrorResponse(request, http.BAD_REQUEST, "missing block data; {0}".format(block_id))
-
-                    block_hash = hashlib.sha256(block_data).digest()
-                    if requested_block_hash != block_hash :
-                        return ErrorResponse(request, http.BAD_REQUEST, "block hash mismatch; {0}".format(block_id))
-
-                    if not txn.put(block_hash, block_data) :
-                        return ErrorResponse(request, http.BAD_REQUEST, "failed to save block data")
-
-                    signing_hash_accumulator += block_hash
+            # block_list will be an iterator for blocks in the request, this prevents
+            # the need to make a copy of the data blocks
+            block_list = self.block_data_iterator(block_ids, request.args)
+            raw_result = self.block_store.store_blocks(block_list, expiration=expiration, encoding='b64')
 
         except Exception as e :
             logger.error("unknown exception (BlockStore); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while storing blocks")
 
         try :
-            signing_hash = hashlib.sha256(signing_hash_accumulator).digest()
-            signature = self.service_keys.sign(signing_hash, encoding='b64')
-            result = json.dumps({'signature' : signature}).encode('utf8')
+            result = json.dumps(raw_result).encode('utf8')
+
+            request.setResponseCode(http.OK)
+            request.setHeader('content-type', 'application/json')
+            request.write(result)
+
+            return request
 
         except Exception as e :
-            logger.error("unknown exception packing response (BlockStatus); %s", str(e))
+            logger.error("unknown exception packing response (BlockStore); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
-
-        request.setHeader('content-type', 'application/json')
-        request.write(result)
-        return request
 
     ## -----------------------------------------------------------------
     def render_POST(self, request) :
@@ -368,48 +274,46 @@ class BlockStore(CommonResource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class BlockRoot(Resource) :
+class BlockResource(CommonResource) :
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
-        Resource.__init__(self)
-        self.service_keys = service_keys
-        self.block_store_env = block_store_env
+    def __init__(self, block_store) :
+        CommonResource.__init__(self, block_store)
 
     ## -----------------------------------------------------------------
     def getChild(self, name, request) :
         if name == b'list' :
-            return BlockList(self.service_keys, self.block_store_env)
-        elif name == b'status' :
-            return BlockStatus(self.service_keys, self.block_store_env)
+            return ListBlocksResource(self.block_store)
+        elif name == b'check' :
+            return CheckBlocksResource(self.block_store)
         elif name == b'store' :
-            return BlockStore(self.service_keys, self.block_store_env)
-        elif name :
-            return BlockData(self.service_keys, self.block_store_env, name)
+            return StoreBlocksResource(self.block_store)
+        elif name is not None :
+            return GetBlockResource(self.block_store, name)
         else :
             return NoResource()
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class Info(CommonResource) :
+class InfoResource(CommonResource) :
     isLeaf = True
 
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
-        CommonResource.__init__(self, service_keys, block_store_env)
+    def __init__(self, block_store) :
+        CommonResource.__init__(self, block_store)
 
     ## -----------------------------------------------------------------
     def _handle_request_(self, request) :
 
         try :
-            response = dict()
-            response['verifying_key'] = self.service_keys.verifying_key
+            response = self.block_store.get_service_info()
             result = json.dumps(response).encode()
 
         except Exception as e :
             logger.error("unknown exception (Info); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while processing info request")
 
+        request.setResponseCode(http.OK)
         request.setHeader('content-type', 'application/json')
         request.write(result)
 
@@ -421,7 +325,7 @@ class Info(CommonResource) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class Shutdown(Resource) :
+class ShutdownResource(Resource) :
     isLeaf = True
 
     ## -----------------------------------------------------------------
@@ -433,36 +337,48 @@ class Shutdown(Resource) :
         logger.warn('shutdown request received')
         reactor.callLater(1, reactor.stop)
 
-        ErrorResponse(request, http.NO_CONTENT, "shutdown")
-        request.finish()
+        return ErrorResponse(request, http.NO_CONTENT, "shutdown")
 
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class ContractStorageServer(Resource) :
     ## -----------------------------------------------------------------
-    def __init__(self, service_keys, block_store_env) :
+    def __init__(self, block_store) :
         Resource.__init__(self)
-        self.service_keys = service_keys
-        self.block_store_env = block_store_env
+        self.block_store = block_store
 
     ## -----------------------------------------------------------------
     def getChild(self, name, request) :
         if name == b'block' :
-            return BlockRoot(self.service_keys, self.block_store_env)
+            return BlockResource(self.block_store)
         elif name == b'info' :
-            return Info(self.service_keys, self.block_store_env)
+            return InfoResource(self.block_store)
         elif name == b'shutdown' :
-            return Shutdown()
+            return ShutdownResource()
         else :
             return NoResource()
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def RunStorageService(http_host, http_port, service_keys, block_store_env) :
+def GarbageCollector(block_store) :
+    logger.debug('run the garbage collector')
+    try :
+        block_store.expire_blocks()
+    except Exception as e :
+        logger.error('garbage collection failed; %s', str(e))
+        return
+
+def StartGarbageCollector(block_store, gcinterval) :
+    loop = task.LoopingCall(GarbageCollector, block_store)
+    loopDeferred = loop.start(gcinterval)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def StartStorageService(http_host, http_port, block_store) :
     logger.info('service started on port %s', http_port)
 
-    root = ContractStorageServer(service_keys, block_store_env)
+    root = ContractStorageServer(block_store)
     site = Site(root)
 
     threadpool = reactor.getThreadPool()
@@ -471,6 +387,10 @@ def RunStorageService(http_host, http_port, service_keys, block_store_env) :
     logger.info('# of workers: %d', threadpool.workers)
 
     reactor.listenTCP(http_port, site, interface=http_host)
+
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def RunService(block_store) :
 
     @defer.inlineCallbacks
     def shutdown_twisted():
@@ -487,8 +407,7 @@ def RunStorageService(http_host, http_port, service_keys, block_store_env) :
         logger.warn('shutdown')
 
     # sync and close the database
-    block_store_env.sync()
-    block_store_env.close()
+    block_store.close()
 
     sys.exit(0)
 
@@ -512,15 +431,17 @@ def LocalMain(config) :
         service_config = config.get('StorageService', {})
 
         try :
+            gcinterval = service_config['GarbageCollectionInterval']
+            if gcinterval < 0 :
+                gcinterval = 0            # gcinterval 0 means don't run the garbage collector
+
             http_port = service_config['HttpPort']
             http_host = service_config['Host']
 
-            map_size = 1024 * 1024 * 1024
             create = config.get('create', False)
-            block_store = service_config['BlockStore']
-            block_store_env = lmdb.open(block_store, create=create, max_dbs=2, subdir=False, sync=False, map_size=map_size)
-            #mdb = env.open_db('meta_data'.encode())
-            #bdb = env.open_db('block_data'.encode())
+            block_store_file = service_config['BlockStore']
+            block_store = BlockStoreManager(block_store_file, service_keys=service_keys, create_block_store=create)
+
         except KeyError as ke :
             logger.error('missing configuration for StorageService.%s', str(ke))
             sys.exit(-1)
@@ -528,11 +449,19 @@ def LocalMain(config) :
             logger.error('unable to open the block store; %s', str(e))
             sys.exit(-1)
 
+        try :
+            if gcinterval > 0 :
+                StartGarbageCollector(block_store, gcinterval)
+            StartStorageService(http_host, http_port, block_store)
+        except Exception as e :
+            logger.error('failed to start services; %s', str(e))
+            sys.exit(-1)
+
     except Error as e:
         logger.exception('failed to initialize the storage service; %s', e)
         sys.exit(-1)
 
-    RunStorageService(http_host, http_port, service_keys, block_store_env)
+    RunService(block_store)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -575,6 +504,7 @@ def Main() :
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
 
+    parser.add_argument('--gc-interval', help='Number of seconds between garbage collection', type=int)
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
     parser.add_argument('--create', help='Create the blockstore if it does not exist', action='store_true')
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
@@ -632,16 +562,20 @@ def Main() :
     # set up the enclave service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
-            'HttpPort' : 7101,
+            'HttpPort' : 7201,
             'Host' : 'localhost',
             'Identity' : options.identity,
-            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb')
+            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),
+            'GarbageCollectionInterval' : 10
         }
     if options.http :
         config['StorageService']['HttpPort'] = options.http
 
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
+
+    if options.gc_interval :
+        config['StorageService']['GarbageCollectionInterval'] = options.gc_interval
 
     # GO!
     LocalMain(config)
