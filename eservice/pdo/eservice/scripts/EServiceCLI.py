@@ -23,6 +23,8 @@ import sys
 import argparse
 import json
 
+import time
+
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
 import pdo.common.logger as plogger
@@ -34,36 +36,65 @@ logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+request_identifier = 0
 
 from twisted.web import http
-from twisted.web.server import Site
 from twisted.web.resource import Resource, NoResource
+from twisted.web.server import Site, NOT_DONE_YET
+from twisted.python.threadpool import ThreadPool
 from twisted.internet import reactor, defer
 from twisted.internet.threads import deferToThread
-from twisted.web.server import NOT_DONE_YET
-from twisted.python.threadpool import ThreadPool
+from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet.error import ConnectionDone
 
 ## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
-    """
-    Generate a common error response for broken requests
+    """Generate a common error response for broken requests
     """
 
-    if error_code > 400 :
-        logger.warn(msg)
-    elif error_code > 300 :
-        logger.debug(msg)
-
-    result = "" if request.method == 'HEAD' else (msg + '\n')
+    result = ""
+    if request.method != 'HEAD' :
+        result = msg + '\n'
+        result = result.encode('utf8')
 
     request.setResponseCode(error_code)
     request.setHeader('content-type', 'text/plain')
-    request.write(result.encode('utf8'))
+    request.setHeader('content-length', len(result))
+    request.write(result)
+
+    try :
+        request.finish()
+    except :
+        logger.exception("exception during request finish")
+        raise
+
+    return request
+
+## ----------------------------------------------------------------
+def BusyResponse(request) :
+    """Generate a common response for busy server, in theory the
+    retry-after is a number of seconds that the client should
+    wait; there is nothing particularly special about 1 just
+    that we want the client to retransmit, hopefully at a better
+    time.
+    """
+
+    result = b'BUSY'
+
+    request.setResponseCode(429)          # too many requess
+    request.setHeader('retry-after', 1)   # wait 1 second for retry
+    request.setHeader('content-type', 'text/plain')
+    request.setheader('content-length', len(result))
+    request.write(result)
 
     return request
 
 ## -----------------------------------------------------------------
 def UnpackRequest(request) :
+    """Unpack a JSON request that has been received; this procedure
+    is really about making sure that the bytes are in a string format
+    that will work across python versions.
+    """
     encoding = request.getHeader('Content-Type')
     if encoding != 'application/json' :
         msg = 'unknown message encoding, {0}'.format(encoding)
@@ -81,7 +112,6 @@ def UnpackRequest(request) :
         msg = 'failed to unpack JSON request'
         raise Exception(msg)
 
-
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class CommonResource(Resource) :
@@ -92,19 +122,36 @@ class CommonResource(Resource) :
         self.enclave = enclave
 
     ## -----------------------------------------------------------------
-    def _handle_error_(self, failure) :
-        f = failure.trap(Exception)
-        logger.warn("an error occurred (%s): %s", type(self).__name__, failure.value.args)
+    def _handle_connection_lost_(self, identifier, reason) :
+        msg = ''
+        if reason is not None :
+            if reason.check(ConnectionDone) :
+                logger.info("[%05d] connection closed: %s", identifier, msg)
+                return
+            msg = reason.getErrorMessage()
+
+        logger.warn("[%05d] connection lost: %s", identifier, msg)
 
     ## -----------------------------------------------------------------
-    def _handle_done_(self, request) :
-        request.finish()
+    def _handle_error_(self, identifier, failure) :
+        logger.warn("[%05d] an error occurred: %s", identifier, failure.getErrorMessage())
+        f = failure.trap(Error, Exception)
 
     ## -----------------------------------------------------------------
     def _defer_request_(self, handler, request) :
+        threadpool = reactor.getThreadPool()
+        if len(threadpool.working) > 8 :
+            return BusyResponse(request)
+
+        global request_identifier
+        request_identifier += 1
+        request.request_identifier = request_identifier
+        logger.info('[%05d] start request: %s:%s', request.request_identifier, request.client.host, request.client.port)
+
+        request.notifyFinish().addErrback(lambda r : self._handle_connection_lost_(request.request_identifier, r))
+
         d = deferToThread(handler, request)
-        d.addErrback(self._handle_error_)
-        d.addCallback(self._handle_done_)
+        d.addErrback(lambda r : self._handle_error_(request.request_identifier, r))
 
         return NOT_DONE_YET
 
@@ -149,13 +196,27 @@ class InfoResource(CommonResource) :
 
             request.setResponseCode(http.OK)
             request.setHeader('content-type', 'application/json')
+            request.setHeader('content-length', len(result))
             request.write(result)
 
-            return request
+        except (Error, RuntimeError) :
+            logger.error("unknown error while handling request (Info); %s", str(e))
+            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
 
         except Exception as e :
             logger.error("unknown exception while handling request (Info); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
+
+        try :
+            request.finish()
+        except AttributeError as e :
+            logger.error('attribute error; %s', str(e))
+        except RuntimeError as e :
+            logger.error('runtime error; %s', str(e))
+            raise
+        except :
+            logger.exception("exception during request finish")
+            raise
 
     ## -----------------------------------------------------------------
     def render_GET(self, request) :
@@ -182,6 +243,7 @@ class VerifyResource(CommonResource) :
             for secret in secrets :
                 assert secret['pspk']
                 assert secret['encrypted_secret']
+
         except KeyError as ke :
             logger.error('missing field in request (Verify): %s', ke)
             return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
@@ -201,13 +263,30 @@ class VerifyResource(CommonResource) :
 
             request.setResponseCode(http.OK)
             request.setHeader('content-type', 'application/json')
+            request.setHeader('content-length', len(result))
             request.write(result)
-
-            return request
 
         except Exception as e :
             logger.error("unknown exception packing response (Verify); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
+
+        try :
+            logger.info('[%05d] finish verify request: %s, %s, %s, %s',
+                        request.request_identifier,
+                        request.finished,
+                        request.sentLength,
+                        request.chunked,
+                        request.startedWriting)
+
+            request.finish()
+        except AttributeError as e :
+            logger.debug('[%05d] attribute error: %s', request.request_identifier, str(e))
+        except RuntimeError as e :
+            logger.debug('[%05d] runtime error: %s', request.request_identifier, str(e))
+        except :
+            logger.exception("exception during request finish")
+
+        return request
 
     ## -----------------------------------------------------------------
     def render_POST(self, request) :
@@ -243,57 +322,57 @@ class InvokeResource(CommonResource) :
 
         try :
             request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/octet-stream')
+            request.setHeader(b'content-length', len(response))
+            request.setHeader(b'content-type', b'application/octet-stream')
             request.write(response)
-
-            return request
 
         except Exception as e :
             logger.error("unknown exception packing response (Invoke); %s", str(e))
             return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
 
+        try :
+            logger.info('[%05d] finish invoke request: %s, %s, %s, %s',
+                        request.request_identifier,
+                        request.finished,
+                        request.sentLength,
+                        request.chunked,
+                        request.startedWriting)
+
+            request.finish()
+        except AttributeError as e :
+            logger.debug('[%05d] attribute error: %s', request.request_identifier, str(e))
+        except RuntimeError as e :
+            logger.debug('[%05d] runtime error: %s', request.request_identifier, str(e))
+        except :
+            logger.exception("exception during request finish")
+
+        return request
+
     ## -----------------------------------------------------------------
     def render_POST(self, request) :
         return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class ContractEnclaveServer(Resource):
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave, storage_url) :
-        Resource.__init__(self)
-        self.enclave = enclave
-        self.storage_url = storage_url
-
-    ## -----------------------------------------------------------------
-    def getChild(self, name ,request) :
-        logger.debug('request: %s', name)
-        if name == b'invoke' :
-            return InvokeResource(self.enclave)
-        elif name == b'verify' :
-            return VerifyResource(self.enclave)
-        elif name == b'info' :
-            return InfoResource(self.enclave, self.storage_url)
-        elif name == b'shutdown' :
-            return ShutdownResource()
-        else :
-            return NoResource()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def StartEnclaveService(http_host, http_port, enclave, storage_url) :
     logger.info('service started on port %s', http_port)
 
-    root = ContractEnclaveServer(enclave, storage_url)
-    site = Site(root)
+    # root = ContractEnclaveServer(enclave, storage_url)
+    root = Resource()
+    root.putChild(b'invoke', InvokeResource(enclave))
+    root.putChild(b'verify', VerifyResource(enclave))
+    root.putChild(b'info', InfoResource(enclave, storage_url))
+    root.putChild(b'shutdown', ShutdownResource())
 
-    threadpool = reactor.getThreadPool()
-    threadpool.start()
-    threadpool.adjustPoolsize(8, 100) # Min & Max number of request to service at a time
-    logger.info('# of workers: %d', threadpool.workers)
+    site = Site(root, logPath='/tmp/logs/logs.txt', timeout=60)
+    site.displayTracebacks = True
 
-    reactor.listenTCP(http_port, site, interface=http_host)
+    reactor.suggestThreadPoolSize(10)
+
+    endpoint = TCP4ServerEndpoint(reactor, http_port, backlog=32, interface=http_host)
+    endpoint.listen(site)
+
+    #reactor.listenTCP(http_port, site, interface=http_host)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

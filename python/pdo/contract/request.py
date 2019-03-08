@@ -101,6 +101,11 @@ class ContractRequest(object) :
 
         try :
             decrypted_response = crypto.SKENC_DecryptMessage(self.session_key, encrypted_response)
+        except Exception as e:
+            logger.exception('failed to decrypt response; %s', encrypted_response)
+            raise InvocationException('contract response cannot be decrypted')
+
+        try :
             response_string = crypto.byte_array_to_string(decrypted_response)
             response_parsed = json.loads(response_string[0:-1])
 

@@ -15,6 +15,7 @@
 import json
 import requests
 import base64
+import time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class EnclaveServiceClient(GenericServiceClient) :
 
     def __init__(self, url) :
         super().__init__(url)
+        self.session = requests.Session()
+
         enclave_info = self.get_enclave_public_info()
         self.enclave_keys = EnclaveKeys(enclave_info['verifying_key'], enclave_info['encryption_key'])
 
@@ -82,11 +85,31 @@ class EnclaveServiceClient(GenericServiceClient) :
 
         try :
             url = '{0}/invoke'.format(self.ServiceURL)
-            response = requests.post(url, files=request, timeout=self.default_timeout)
-            response.raise_for_status()
-            return response.content
+            while True :
+                response = self.session.post(url, files=request, timeout=self.default_timeout, stream=False)
+                if response.status_code == 429 :
+                    requested_retry = response.headers.get('Retry-After', 0.5)
+                    logger.info('prepare to resubmit the request; %s', requested_retry)
+                    time.sleep(min(0.5, float(requested_retry)))
+                    continue
 
-        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
+                response.raise_for_status()
+
+                encoding = response.headers.get('Content-Transfer-Encoding','')
+                if  encoding == 'base64' :
+                    return base64.b64decode(response.content)
+
+                return response.content
+
+        except requests.Timeout as e :
+            logger.warn('timeout')
+            raise MessageException(str(e)) from e
+
+        except requests.ConnectionError as e :
+            logger.warn('connection error; %s; %s', type(e), e.strerror)
+            raise MessageException(str(e)) from e
+
+        except requests.HTTPError as e :
             logger.warn('network error connecting to service (invoke); %s', str(e))
             raise MessageException(str(e)) from e
 
@@ -108,10 +131,16 @@ class EnclaveServiceClient(GenericServiceClient) :
 
         try :
             url = '{0}/verify'.format(self.ServiceURL)
-            response = requests.post(url, json=request, timeout=self.default_timeout)
-            response.raise_for_status()
+            while True :
+                response = self.session.post(url, json=request, timeout=self.default_timeout, stream=False)
+                if response.status_code == 429 :
+                    logger.info('prepare to resubmit the request')
+                    sleeptime = min(1.0, float(response.headers.get('retry-after', 1.0)))
+                    time.sleep(sleeptime)
+                    continue
 
-            return response.json()
+                response.raise_for_status()
+                return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
             logger.warn('network error connecting to service (verify_secrets); %s', str(e))
@@ -125,10 +154,16 @@ class EnclaveServiceClient(GenericServiceClient) :
     def get_enclave_public_info(self) :
         try :
             url = '{0}/info'.format(self.ServiceURL)
-            response = requests.get(url, timeout=self.default_timeout)
-            response.raise_for_status()
+            while True :
+                response = self.session.get(url, timeout=self.default_timeout)
+                if response.status_code == 429 :
+                    logger.info('prepare to resubmit the request')
+                    sleeptime = min(1.0, float(response.headers.get('retry-after', 1.0)))
+                    time.sleep(sleeptime)
+                    continue
 
-            return response.json()
+                response.raise_for_status()
+                return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
             logger.warn('network error connecting to service (get_enclave_public_info); %s', str(e))
