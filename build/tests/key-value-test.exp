@@ -21,3 +21,4 @@
 '(put-big-key "a" 5000), "a{5000}"
 # this returns the 10000 character key
 '(put-big-key "a" 10000), "a{10000}"
+'(put-big-key "a" 100000), "a{100000}"

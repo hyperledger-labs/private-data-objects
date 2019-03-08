@@ -15,24 +15,6 @@
 
 #include "state.h"
 
-#if _UNTRUSTED_
-#define THROW_EXCEPTION_ON_STACK_FULL(p)
-#else
-extern "C" {
-bool is_stack_addr(void* p, size_t size);
-}
-
-#define FAILURE_STACK_ZONE_BYTES 0x3000
-
-#define THROW_EXCEPTION_ON_STACK_FULL(p)                               \
-    {                                                                  \
-        if (!is_stack_addr((uint8_t*)p - FAILURE_STACK_ZONE_BYTES, 1)) \
-        {                                                              \
-            throw pdo::error::RuntimeError("stack full");              \
-        }                                                              \
-    }
-#endif
-
 namespace pstate = pdo::state;
 
 unsigned int pstate::trie_node::shared_prefix_length(
@@ -63,54 +45,6 @@ void pstate::trie_node::delete_trie_node_childless(data_node_io& dn_io,
         //       this allows previous/upper node to correctly update their next/child offset
         write_trie_node(dn_io, node);
         node.location.block_offset_ = node.node.next_offset;
-    }
-}
-
-void pstate::trie_node::do_operate_trie_child(data_node_io& dn_io,
-    trie_node& node,
-    const kv_operation_e operation,
-    const unsigned int depth,
-    const ByteArray& kvkey,
-    const ByteArray& in_value,
-    ByteArray& value)
-{
-    trie_node child_node;
-    child_node.location.block_offset_ = node.node.child_offset;
-
-    // operate on child node
-    operate_trie(dn_io, child_node, operation,
-        depth + node.node.hdr.keyChunkSize,  // all key chunk was matched
-        kvkey, in_value, value);
-
-    //if child node location has changed, updated it
-    if(node.node.child_offset != child_node.location.block_offset_)
-    {
-        node.node.child_offset = child_node.location.block_offset_;
-        node.modified = true;
-    }
-}
-
-void pstate::trie_node::do_operate_trie_next(data_node_io& dn_io,
-    trie_node& node,
-    const kv_operation_e operation,
-    const unsigned int depth,
-    const ByteArray& kvkey,
-    const ByteArray& in_value,
-    ByteArray& value)
-{
-    trie_node next_node;
-    next_node.location.block_offset_ = node.node.next_offset;
-
-    // operate on next node
-    operate_trie(dn_io, next_node, operation,
-        depth,  // same depth
-        kvkey, in_value, value);
-
-    //if next node location has changed, updated it
-    if(node.node.next_offset != next_node.location.block_offset_)
-    {
-        node.node.next_offset = next_node.location.block_offset_;
-        node.modified = true;
     }
 }
 
@@ -327,114 +261,6 @@ void pstate::trie_node::write_trie_node(data_node_io& dn_io, trie_node& in_trie_
     in_trie_node.modified = false;
 }
 
-void pstate::trie_node::operate_trie(data_node_io& dn_io,
-    trie_node& node,
-    const kv_operation_e operation,
-    const unsigned int depth,
-    const ByteArray& kvkey,
-    const ByteArray& in_value,
-    ByteArray& out_value)
-{
-#if !_UNTRUSTED_
-    int stack_check_var;
-    THROW_EXCEPTION_ON_STACK_FULL(&stack_check_var)
-#endif
-
-    // first, create the node if necessary, or fail
-    if(! node.initialized)
-    {
-        if(node.location.is_empty())
-        {
-            if (operation == PUT_OP)
-            {
-                // in put operation, always create a trie node
-                create_node(kvkey, depth, kvkey.size(), node);
-            }
-            else
-            {
-                // no trie node to proceed with delete or get
-                return;
-            }
-        }
-        else
-        {
-            //load the node
-            read_trie_node(dn_io, node.location.block_offset_, node);
-        }
-    }
-
-    // operate on trie node
-    unsigned int spl = shared_prefix_length((uint8_t*)node.node.key_chunk, node.node.hdr.keyChunkSize,
-        kvkey.data() + depth, kvkey.size() - depth);
-
-    if (spl == 0)
-    {  // no match, so either go next or EOS matched
-        //if right depth has not been reached OR (it has been reached but) the current trie is not EOS, go next
-        if (depth < kvkey.size() || node.node.hdr.keyChunkSize > 0)
-        {  // no match, go next
-            do_operate_trie_next(
-                dn_io, node, operation, depth, kvkey, in_value, out_value);
-        }
-        else
-        {  // match EOS, do op
-            switch (operation)
-            {
-                case PUT_OP:
-                {
-                    do_write_value(dn_io, node, in_value);
-                    break;
-                }
-                case GET_OP:
-                {
-                    do_read_value(dn_io, node, out_value);
-                    break;
-                }
-                case DEL_OP:
-                {
-                    do_delete_value(dn_io, node);
-                    break;
-                }
-                default:
-                {
-                    throw error::ValueError("invalid kv/trie operation");
-                }
-            }
-        }
-    }
-    else
-    {  // some match, so either partial or full
-        if (spl == node.node.hdr.keyChunkSize)
-        {  // full match
-            do_operate_trie_child(
-                dn_io, node, operation, depth, kvkey, in_value, out_value);
-        }
-        else
-        {  // partial match, continue only on PUT op
-            if (operation == PUT_OP)
-            {
-                // split chunk and redo operate
-                do_split_trie_node(dn_io, node, spl);
-
-                // notice: current_tnh remains the same because: 1) chunk is just shorter; 2) its
-                // next (if any) is removed; 3) it had and keeps having a child
-
-                operate_trie(dn_io, node, operation, depth, kvkey, in_value, out_value);
-            }
-        }
-    }
-
-    if (operation == DEL_OP)
-    {
-        // check whether we should delete this trie node, while going bottom up
-        delete_trie_node_childless(dn_io, node);
-    }
-
-    if(node.modified)
-    {
-        write_trie_node(dn_io, node);
-    }
-}  // operate_trie
-
 void pstate::trie_node::init_trie_root(data_node_io& dn_io)
 {
     //initialize root node
@@ -447,25 +273,200 @@ void pstate::trie_node::init_trie_root(data_node_io& dn_io)
     write_trie_node(dn_io, root);
 }
 
-void pstate::trie_node::operate_trie_root(
-    data_node_io& dn_io, const kv_operation_e operation, const ByteArray& kvkey, const ByteArray& in_value, ByteArray& value)
+namespace pdo
 {
+namespace state
+{
+    class recursive_item
+    {
+    public:
+        trie_node node;
+        bool go_next; // true: proceed with next offset; false: proceed with child offset
+    };
+}
+}
+
+void pstate::trie_node::operate_trie_non_recursive(
+    data_node_io& dn_io, const kv_operation_e operation, const ByteArray& kvkey, const ByteArray& in_value, ByteArray& out_value)
+{
+    std::list<recursive_item> trie_recursion_stack;
     unsigned int depth = 0;
+
     // the first entry of the first data node is the trie root
     // if the trie contains data then the root has a next node
     // if the trie is empty then the next node is null/empty
-    trie_node root;
-    root.location.block_offset_ = {dn_io.block_warehouse_.get_root_block_num(), data_node::data_begin_index()};
-    trie_node::read_trie_node(dn_io, root.location.block_offset_, root);
+    recursive_item ri;
+    ri.node.location.block_offset_ = {dn_io.block_warehouse_.get_root_block_num(), data_node::data_begin_index()};
+    trie_node::read_trie_node(dn_io, ri.node.location.block_offset_, ri.node);
+    //initialize the recursion stack with the root node
+    ri.go_next = true;
+    trie_recursion_stack.push_back(ri);
+    //append next uninitialized node
+    trie_recursion_stack.emplace_back();
+    recursive_item& ri_next = trie_recursion_stack.back();
+    ri_next.node.location.block_offset_ = ri.node.node.next_offset;
 
-    do_operate_trie_next(dn_io, root, operation, depth, kvkey, in_value, value);
-
-    // check modifications
-    if(root.modified)
+    while(1)
     {
-        write_trie_node(dn_io, root);
+        // reference to last item in stack
+        // notice: the referenced node may not be initialized, it must be created if location is null,or read otherwise
+        recursive_item& ri = trie_recursion_stack.back();
+
+        // first, create/read the node if necessary, or return
+        if(! ri.node.initialized)
+        {
+            if(ri.node.location.is_empty())
+            {
+                if (operation == PUT_OP)
+                {
+                    // in put operation, always create a trie node
+                    create_node(kvkey, depth, kvkey.size(), ri.node);
+                }
+                else
+                {
+                    // no trie node to proceed with delete or get
+                    return;
+                }
+            }
+            else
+            {
+                //load the node
+                read_trie_node(dn_io, ri.node.location.block_offset_, ri.node);
+            }
+        }
+
+        // operate on trie node
+        uint8_t* key_chunk_start_p = (uint8_t*)kvkey.data() + depth;
+        unsigned int key_chunk_size = kvkey.size() - depth;
+        unsigned int spl = shared_prefix_length(
+                                (uint8_t*)ri.node.node.key_chunk,
+                                ri.node.node.hdr.keyChunkSize,
+                                key_chunk_start_p,
+                                key_chunk_size);
+
+        if (spl == 0)
+        {  // no match, so either go next or EOS matched
+            //if right depth has not been reached OR (it has been reached but) the current trie is not EOS, go next
+            if (depth < kvkey.size() || ri.node.node.hdr.keyChunkSize > 0)
+            {  // no match, go next
+                //update field in referenced working recursive item
+                ri.go_next = true;
+                //push the next node with the location set (to avoid copy, append item and modify it)
+                trie_recursion_stack.emplace_back();
+                recursive_item& ri_next = trie_recursion_stack.back();
+                ri_next.node.location.block_offset_ = ri.node.node.next_offset;
+                //notice: depth value is not changed
+
+                continue;
+            }
+            else
+            {  // match EOS, do op
+                switch (operation)
+                {
+                    case PUT_OP:
+                    {
+                        do_write_value(dn_io, ri.node, in_value);
+                        break;
+                    }
+                    case GET_OP:
+                    {
+                        do_read_value(dn_io, ri.node, out_value);
+                        break;
+                    }
+                    case DEL_OP:
+                    {
+                        do_delete_value(dn_io, ri.node);
+                        break;
+                    }
+                    default:
+                    {
+                        throw error::ValueError("invalid kv/trie operation");
+                    }
+                }
+
+                //operation done, exit the main while loop
+                break;
+            }
+        }
+        else
+        {  // some match, so either partial or full
+            if (spl == ri.node.node.hdr.keyChunkSize)
+            {  // full match, go to child
+                //update field in referenced working recursive item
+                ri.go_next = false;
+                //push the child node with the location set
+                trie_recursion_stack.emplace_back();
+                recursive_item& ri_child = trie_recursion_stack.back();
+                ri_child.node.location.block_offset_ = ri.node.node.child_offset;
+                //update depth value
+                depth += spl;
+            }
+            else
+            {  // partial match, continue only on PUT op
+                if (operation == PUT_OP)
+                {
+                    // split chunk and redo operate
+                    do_split_trie_node(dn_io, ri.node, spl);
+                }
+                else
+                {
+                    return;
+                }
+            }
+            continue;
+        }
     }
-    // NOTICE: we do NOT sync the cache here, so modifications are not reflected in the block store;
-    //         in the case of failure, any modification is discarded, the transaction in progress will not succeed,
-    //         no new state is generated, and the request processing can (and will) start over from the last state
+
+    // operation has been perfomed, now go bottom up emptying the recursion stack
+
+    while(!trie_recursion_stack.empty())
+    {
+        // pop last item in stack
+        recursive_item ri_popped = trie_recursion_stack.back();
+        trie_recursion_stack.pop_back();
+
+        if (operation == DEL_OP && trie_recursion_stack.size() > 1)
+        {
+            // check whether we should delete this trie node, while removing items from stack
+            // as nodes have been deleted, childless nodes can be removed (except the root node)
+            delete_trie_node_childless(dn_io, ri_popped.node);
+        }
+
+        if(ri_popped.node.modified)
+        {
+            write_trie_node(dn_io, ri_popped.node);
+        }
+
+        if(trie_recursion_stack.empty())
+        {
+            //no previous node to update
+            continue;
+        }
+
+        // update offsets as necessary
+        recursive_item& ri_prev = trie_recursion_stack.back();
+
+        if(ri_prev.go_next)
+        {
+            //ri_popped is "next" of ri_prev
+            //if next node location has changed, updated it
+            if(ri_prev.node.node.next_offset != ri_popped.node.location.block_offset_)
+            {
+                ri_prev.node.node.next_offset = ri_popped.node.location.block_offset_;
+                ri_prev.node.modified = true;
+            }
+        }
+        else
+        {
+            //ri_popped is "child" of ri_prev
+            //if child node location has changed, updated it
+            if(ri_prev.node.node.child_offset != ri_popped.node.location.block_offset_)
+            {
+                ri_prev.node.node.child_offset = ri_popped.node.location.block_offset_;
+                ri_prev.node.modified = true;
+            }
+        }
+
+        continue;
+    }
 }

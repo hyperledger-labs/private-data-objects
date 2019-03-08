@@ -116,7 +116,7 @@ ByteArray pstate::State_KV::Get(const ByteArray& key)
     ByteArray out_value;
     try
     {
-        trie_node::operate_trie_root(dn_io_, GET_OP, kvkey, in_value, out_value);
+        trie_node::operate_trie_non_recursive(dn_io_, GET_OP, kvkey, in_value, out_value);
     }
     catch(const std::exception& e)
     {
@@ -133,7 +133,7 @@ void pstate::State_KV::Put(const ByteArray& key, const ByteArray& value)
     ByteArray v;
     try
     {
-        trie_node::operate_trie_root(dn_io_, PUT_OP, kvkey, value, v);
+        trie_node::operate_trie_non_recursive(dn_io_, PUT_OP, kvkey, value, v);
     }
     catch (const std::exception& e)
     {
@@ -150,7 +150,7 @@ void pstate::State_KV::Delete(const ByteArray& key)
     const ByteArray& kvkey = key;
     try
     {
-        trie_node::operate_trie_root(dn_io_, DEL_OP, kvkey, in_value, value);
+        trie_node::operate_trie_non_recursive(dn_io_, DEL_OP, kvkey, in_value, value);
     }
     catch(const std::exception& e)
     {
