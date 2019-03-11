@@ -21,6 +21,8 @@ import urllib.error
 import logging
 logger = logging.getLogger(__name__)
 
+import random
+
 class MessageException(Exception) :
     """
     A class to capture communication exceptions when communicating with services
@@ -32,6 +34,9 @@ class GenericServiceClient(object) :
     def __init__(self, url) :
         self.ServiceURL = url.rstrip('/')
         self.ProxyHandler = urllib.request.ProxyHandler({})
+
+        self.Identifier = 'session{0:05d}'.format(random.randint(0,1<<16))
+        logger.debug('starting session %s', self.Identifier)
 
     def _postmsg(self, request) :
         """

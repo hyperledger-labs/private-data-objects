@@ -25,6 +25,13 @@ std::map<std::string, std::string> contract_verify_secrets(
     const std::string& serializedSecretList); /* json */
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::string contract_handle_contract_encoded_request(
+    const std::string& sealed_signup_data, /* base64 encoded string */
+    const std::string& encrypted_session_key, /* base64 encoded string */
+    const std::string& serialized_request /* base64 encoded string */
+    );
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::vector<uint8_t> contract_handle_contract_request(
     const std::string& sealedSignupData,
     const std::vector<uint8_t>& encryptedSessionKey,

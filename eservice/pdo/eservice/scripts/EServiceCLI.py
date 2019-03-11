@@ -30,6 +30,9 @@ import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
+from pdo.eservice.wsgi.info import InfoApp
+from pdo.eservice.wsgi.invoke import InvokeApp
+from pdo.eservice.wsgi.verify import VerifyApp
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,6 +49,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.threads import deferToThread
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.error import ConnectionDone
+from twisted.web.wsgi import WSGIResource
 
 ## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
@@ -58,8 +62,8 @@ def ErrorResponse(request, error_code, msg) :
         result = result.encode('utf8')
 
     request.setResponseCode(error_code)
-    request.setHeader('content-type', 'text/plain')
-    request.setHeader('content-length', len(result))
+    request.setHeader(b'Content-Type', b'text/plain')
+    request.setHeader(b'Content-Length', len(result))
     request.write(result)
 
     try :
@@ -82,9 +86,9 @@ def BusyResponse(request) :
     result = b'BUSY'
 
     request.setResponseCode(429)          # too many requess
-    request.setHeader('retry-after', 1)   # wait 1 second for retry
-    request.setHeader('content-type', 'text/plain')
-    request.setheader('content-length', len(result))
+    request.setHeader('Retry-After', 1)   # wait 1 second for retry
+    request.setHeader(b'Content-Type', b'text/plain')
+    request.setheader(b'Content-Length', len(result))
     request.write(result)
 
     return request
@@ -126,7 +130,7 @@ class CommonResource(Resource) :
         msg = ''
         if reason is not None :
             if reason.check(ConnectionDone) :
-                logger.info("[%05d] connection closed: %s", identifier, msg)
+                logger.debug("[%05d] connection closed: %s", identifier, msg)
                 return
             msg = reason.getErrorMessage()
 
@@ -146,7 +150,7 @@ class CommonResource(Resource) :
         global request_identifier
         request_identifier += 1
         request.request_identifier = request_identifier
-        logger.info('[%05d] start request: %s:%s', request.request_identifier, request.client.host, request.client.port)
+        logger.debug('[%05d] start request: %s:%s', request.request_identifier, request.client.host, request.client.port)
 
         request.notifyFinish().addErrback(lambda r : self._handle_connection_lost_(request.request_identifier, r))
 
@@ -172,199 +176,26 @@ class ShutdownResource(Resource) :
 
         return ErrorResponse(request, http.NO_CONTENT, "shutdown")
 
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InfoResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave, storage_url) :
-        CommonResource.__init__(self, enclave)
-        self.storage_url = storage_url
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-
-        try :
-            response = dict()
-            response['verifying_key'] = self.enclave.verifying_key
-            response['encryption_key'] = self.enclave.encryption_key
-            response['enclave_id'] = self.enclave.enclave_id
-            response['storage_service_url'] = self.storage_url
-
-            result = json.dumps(response).encode()
-
-            request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/json')
-            request.setHeader('content-length', len(result))
-            request.write(result)
-
-        except (Error, RuntimeError) :
-            logger.error("unknown error while handling request (Info); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
-
-        except Exception as e :
-            logger.error("unknown exception while handling request (Info); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
-
-        try :
-            request.finish()
-        except AttributeError as e :
-            logger.error('attribute error; %s', str(e))
-        except RuntimeError as e :
-            logger.error('runtime error; %s', str(e))
-            raise
-        except :
-            logger.exception("exception during request finish")
-            raise
-
-    ## -----------------------------------------------------------------
-    def render_GET(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class VerifyResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        CommonResource.__init__(self, enclave)
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-        try :
-            minfo = UnpackRequest(request)
-            contractid = minfo['contract_id']
-            creatorid = minfo['creator_id']
-            secrets = minfo['secrets']
-
-            # verify the integrity of the secret list
-            for secret in secrets :
-                assert secret['pspk']
-                assert secret['encrypted_secret']
-
-        except KeyError as ke :
-            logger.error('missing field in request (Verify): %s', ke)
-            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Verify); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
-
-        try :
-            response = self.enclave.verify_secrets(contractid, creatorid, secrets)
-
-        except Exception as e :
-            logger.error('unknown exception processing request (Verify); %s', str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, 'uknown exception processing request')
-
-        try :
-            result = json.dumps(dict(response)).encode()
-
-            request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/json')
-            request.setHeader('content-length', len(result))
-            request.write(result)
-
-        except Exception as e :
-            logger.error("unknown exception packing response (Verify); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
-
-        try :
-            logger.info('[%05d] finish verify request: %s, %s, %s, %s',
-                        request.request_identifier,
-                        request.finished,
-                        request.sentLength,
-                        request.chunked,
-                        request.startedWriting)
-
-            request.finish()
-        except AttributeError as e :
-            logger.debug('[%05d] attribute error: %s', request.request_identifier, str(e))
-        except RuntimeError as e :
-            logger.debug('[%05d] runtime error: %s', request.request_identifier, str(e))
-        except :
-            logger.exception("exception during request finish")
-
-        return request
-
-    ## -----------------------------------------------------------------
-    def render_POST(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InvokeResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        CommonResource.__init__(self, enclave)
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-        try :
-            encrypted_session_key = request.args[b'encrypted_session_key'][0]
-            encrypted_request = request.args[b'encrypted_request'][0]
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Invoke); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
-
-        try :
-            response = self.enclave.send_to_contract(encrypted_session_key, encrypted_request)
-
-        except Exception as e :
-            logger.error('unknown exception processing request (Invoke); %s', str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, 'unknown exception processing request')
-
-        try :
-            request.setResponseCode(http.OK)
-            request.setHeader(b'content-length', len(response))
-            request.setHeader(b'content-type', b'application/octet-stream')
-            request.write(response)
-
-        except Exception as e :
-            logger.error("unknown exception packing response (Invoke); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
-
-        try :
-            logger.info('[%05d] finish invoke request: %s, %s, %s, %s',
-                        request.request_identifier,
-                        request.finished,
-                        request.sentLength,
-                        request.chunked,
-                        request.startedWriting)
-
-            request.finish()
-        except AttributeError as e :
-            logger.debug('[%05d] attribute error: %s', request.request_identifier, str(e))
-        except RuntimeError as e :
-            logger.debug('[%05d] runtime error: %s', request.request_identifier, str(e))
-        except :
-            logger.exception("exception during request finish")
-
-        return request
-
-    ## -----------------------------------------------------------------
-    def render_POST(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def StartEnclaveService(http_host, http_port, enclave, storage_url) :
     logger.info('service started on port %s', http_port)
 
-    # root = ContractEnclaveServer(enclave, storage_url)
-    root = Resource()
-    root.putChild(b'invoke', InvokeResource(enclave))
-    root.putChild(b'verify', VerifyResource(enclave))
-    root.putChild(b'info', InfoResource(enclave, storage_url))
-    root.putChild(b'shutdown', ShutdownResource())
+    thread_pool = ThreadPool(maxthreads=8)
+    thread_pool.start()
+    reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
-    site = Site(root, logPath='/tmp/logs/logs.txt', timeout=60)
+    root = Resource()
+    root.putChild(b'shutdown', ShutdownResource())
+    root.putChild(b'info', WSGIResource(reactor, thread_pool, InfoApp(enclave, storage_url)))
+    root.putChild(b'invoke', WSGIResource(reactor, thread_pool, InvokeApp(enclave)))
+    root.putChild(b'verify', WSGIResource(reactor, thread_pool, VerifyApp(enclave)))
+
+    # root.putChild(b'invoke', InvokeResource(enclave))
+    # root.putChild(b'verify', VerifyResource(enclave))
+    # root.putChild(b'info', InfoResource(enclave, storage_url))
+
+    site = Site(root, timeout=60)
     site.displayTracebacks = True
 
     reactor.suggestThreadPoolSize(10)

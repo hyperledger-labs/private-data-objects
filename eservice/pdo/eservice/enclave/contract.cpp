@@ -59,6 +59,21 @@ std::map<std::string, std::string> contract_verify_secrets(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Base64EncodedString contract_handle_contract_encoded_request(
+    const std::string& sealed_signup_data,
+    const Base64EncodedString& encrypted_session_key,
+    const Base64EncodedString& serialized_request
+    )
+{
+    ByteArray decoded_key = Base64EncodedStringToByteArray(encrypted_session_key);
+    ByteArray decoded_request = Base64EncodedStringToByteArray(serialized_request);
+
+    ByteArray response_array = contract_handle_contract_request(sealed_signup_data, decoded_key, decoded_request);
+
+    return ByteArrayToBase64EncodedString(response_array);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::vector<uint8_t> contract_handle_contract_request(
     const std::string& sealed_signup_data,
     const std::vector<uint8_t>& encrypted_session_key,

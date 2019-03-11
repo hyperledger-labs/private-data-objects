@@ -196,8 +196,18 @@ def shutdown():
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def send_to_contract(sealed_data, encrypted_session_key, encrypted_request) :
+    """binary interface for invoking methods in the contract
+    """
     result = enclave.contract_handle_contract_request(sealed_data, encrypted_session_key, encrypted_request)
     return bytes(result)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def send_to_contract_encoded(sealed_data, encrypted_session_key, encrypted_request) :
+    """base64 interface for invoking methods in the contract
+    """
+    result = enclave.contract_handle_contract_encoded_request(sealed_data, encrypted_session_key, encrypted_request)
+    return result
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
