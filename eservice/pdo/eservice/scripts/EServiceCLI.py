@@ -21,34 +21,28 @@ Enclave service.
 import os
 import sys
 import argparse
-import json
-
-import time
 
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
-from pdo.eservice.wsgi.info import InfoApp
-from pdo.eservice.wsgi.invoke import InvokeApp
-from pdo.eservice.wsgi.verify import VerifyApp
+# from pdo.eservice.wsgi.info import InfoApp
+# from pdo.eservice.wsgi.invoke import InvokeApp
+# from pdo.eservice.wsgi.verify import VerifyApp
+from pdo.eservice.wsgi import *
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-request_identifier = 0
-
 from twisted.web import http
 from twisted.web.resource import Resource, NoResource
-from twisted.web.server import Site, NOT_DONE_YET
+from twisted.web.server import Site
 from twisted.python.threadpool import ThreadPool
 from twisted.internet import reactor, defer
-from twisted.internet.threads import deferToThread
 from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet.error import ConnectionDone
 from twisted.web.wsgi import WSGIResource
 
 ## ----------------------------------------------------------------
@@ -74,92 +68,6 @@ def ErrorResponse(request, error_code, msg) :
 
     return request
 
-## ----------------------------------------------------------------
-def BusyResponse(request) :
-    """Generate a common response for busy server, in theory the
-    retry-after is a number of seconds that the client should
-    wait; there is nothing particularly special about 1 just
-    that we want the client to retransmit, hopefully at a better
-    time.
-    """
-
-    result = b'BUSY'
-
-    request.setResponseCode(429)          # too many requess
-    request.setHeader('Retry-After', 1)   # wait 1 second for retry
-    request.setHeader(b'Content-Type', b'text/plain')
-    request.setheader(b'Content-Length', len(result))
-    request.write(result)
-
-    return request
-
-## -----------------------------------------------------------------
-def UnpackRequest(request) :
-    """Unpack a JSON request that has been received; this procedure
-    is really about making sure that the bytes are in a string format
-    that will work across python versions.
-    """
-    encoding = request.getHeader('Content-Type')
-    if encoding != 'application/json' :
-        msg = 'unknown message encoding, {0}'.format(encoding)
-        raise Exception(msg)
-
-    # Attempt to decode the data if it is not already a string
-    try :
-        data = request.content.getvalue().decode('utf8')
-    except AttributeError:
-        pass
-
-    try :
-        return json.loads(data)
-    except Exception as e :
-        msg = 'failed to unpack JSON request'
-        raise Exception(msg)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class CommonResource(Resource) :
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        Resource.__init__(self)
-        self.enclave = enclave
-
-    ## -----------------------------------------------------------------
-    def _handle_connection_lost_(self, identifier, reason) :
-        msg = ''
-        if reason is not None :
-            if reason.check(ConnectionDone) :
-                logger.debug("[%05d] connection closed: %s", identifier, msg)
-                return
-            msg = reason.getErrorMessage()
-
-        logger.warn("[%05d] connection lost: %s", identifier, msg)
-
-    ## -----------------------------------------------------------------
-    def _handle_error_(self, identifier, failure) :
-        logger.warn("[%05d] an error occurred: %s", identifier, failure.getErrorMessage())
-        f = failure.trap(Error, Exception)
-
-    ## -----------------------------------------------------------------
-    def _defer_request_(self, handler, request) :
-        threadpool = reactor.getThreadPool()
-        if len(threadpool.working) > 8 :
-            return BusyResponse(request)
-
-        global request_identifier
-        request_identifier += 1
-        request.request_identifier = request_identifier
-        logger.debug('[%05d] start request: %s:%s', request.request_identifier, request.client.host, request.client.port)
-
-        request.notifyFinish().addErrback(lambda r : self._handle_connection_lost_(request.request_identifier, r))
-
-        d = deferToThread(handler, request)
-        d.addErrback(lambda r : self._handle_error_(request.request_identifier, r))
-
-        return NOT_DONE_YET
-
-
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class ShutdownResource(Resource) :
@@ -178,10 +86,20 @@ class ShutdownResource(Resource) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def StartEnclaveService(http_host, http_port, enclave, storage_url) :
+def StartEnclaveService(config, enclave) :
+    try :
+        http_port = config['EnclaveService']['HttpPort']
+        http_host = config['EnclaveService']['Host']
+        storage_url = config['StorageService']['URL']
+        worker_threads = config['EnclaveService'].get('WorkerThreads', 8)
+        reactor_threads = config['EnclaveService'].get('ReactorThreads', 8)
+    except KeyError as ke :
+        logger.error('missing configuration for %s', str(ke))
+        sys.exit(-1)
+
     logger.info('service started on port %s', http_port)
 
-    thread_pool = ThreadPool(maxthreads=8)
+    thread_pool = ThreadPool(maxthreads=worker_threads)
     thread_pool.start()
     reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
@@ -191,19 +109,13 @@ def StartEnclaveService(http_host, http_port, enclave, storage_url) :
     root.putChild(b'invoke', WSGIResource(reactor, thread_pool, InvokeApp(enclave)))
     root.putChild(b'verify', WSGIResource(reactor, thread_pool, VerifyApp(enclave)))
 
-    # root.putChild(b'invoke', InvokeResource(enclave))
-    # root.putChild(b'verify', VerifyResource(enclave))
-    # root.putChild(b'info', InfoResource(enclave, storage_url))
-
     site = Site(root, timeout=60)
     site.displayTracebacks = True
 
-    reactor.suggestThreadPoolSize(10)
+    reactor.suggestThreadPoolSize(reactor_threads)
 
     endpoint = TCP4ServerEndpoint(reactor, http_port, backlog=32, interface=http_host)
     endpoint.listen(site)
-
-    #reactor.listenTCP(http_port, site, interface=http_host)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -316,13 +228,7 @@ def LocalMain(config) :
 
     # set up the handlers for the enclave service
     try :
-        http_port = config['EnclaveService']['HttpPort']
-        http_host = config['EnclaveService']['Host']
-        storage_url = config['StorageService']['URL']
-        StartEnclaveService(http_host, http_port, enclave, storage_url)
-    except KeyError as ke :
-        logger.error('missing configuration for %s', str(ke))
-        sys.exit(-1)
+        StartEnclaveService(config, enclave)
     except Exception as e:
         logger.exception('failed to start the enclave service; %s', e)
         sys.exit(-1)

@@ -12,4 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [ 'common', 'info', 'invoke', 'verify' ]
+from pdo.eservice.wsgi.info import InfoApp
+from pdo.eservice.wsgi.invoke import InvokeApp
+from pdo.eservice.wsgi.verify import VerifyApp
+
+__all__ = [ 'InfoApp', 'InvokeApp', 'VerifyApp' ]
