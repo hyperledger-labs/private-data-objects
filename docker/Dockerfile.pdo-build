@@ -134,8 +134,6 @@ RUN \
  && pip install grpcio grpcio-tools \
  && bin/protogen \
  && python3 setup.py install \
- && cd ./signing \
- && python3 setup.py install \
  #back to pdo source
  && cd /project/pdo/src/private-data-objects/eservice/ \
  && sed -i 's/python /python3 /g' Makefile \

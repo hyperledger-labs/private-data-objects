@@ -40,3 +40,15 @@ services:
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
     volumes:
       - ./:/mnt/pdo
+
+  # PDO Transaction processor
+  pdo-tp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.pdo-tp
+      args:
+        PDO_REPO_URL: file:///tmp/build-src/.git
+        PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
+    volumes:
+      - ./:/mnt/pdo
+
