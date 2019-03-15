@@ -42,18 +42,7 @@ SWIG_SOURCES = \
 SWIG_FILES = $(addprefix pdo/eservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 
-PYTHON_FILES = \
-	pdo/eservice/enclave/__init__.py \
-	pdo/eservice/pdo_helper.py \
-	pdo/eservice/scripts/EServiceCLI.py \
-	pdo/eservice/scripts/__init__.py \
-	pdo/eservice/pdo_enclave.py \
-	pdo/eservice/__init__.py \
-	pdo/eservice/utility/ias_client.py \
-	pdo/eservice/utility/__init__.py \
-	pdo/sservice/scripts/SServiceCLI.py \
-	pdo/sservice/block_store_manager.py \
-	pdo/__init__.py
+PYTHON_FILES = $(shell cat MANIFEST)
 
 SCRIPTS = \
 	bin/es-start.sh \

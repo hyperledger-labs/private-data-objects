@@ -23,47 +23,82 @@ import sys
 import argparse
 import json
 
+import time
+
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
+from pdo.eservice.wsgi.info import InfoApp
+from pdo.eservice.wsgi.invoke import InvokeApp
+from pdo.eservice.wsgi.verify import VerifyApp
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+request_identifier = 0
 
 from twisted.web import http
-from twisted.web.server import Site
 from twisted.web.resource import Resource, NoResource
+from twisted.web.server import Site, NOT_DONE_YET
+from twisted.python.threadpool import ThreadPool
 from twisted.internet import reactor, defer
 from twisted.internet.threads import deferToThread
-from twisted.web.server import NOT_DONE_YET
-from twisted.python.threadpool import ThreadPool
+from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet.error import ConnectionDone
+from twisted.web.wsgi import WSGIResource
 
 ## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
-    """
-    Generate a common error response for broken requests
+    """Generate a common error response for broken requests
     """
 
-    if error_code > 400 :
-        logger.warn(msg)
-    elif error_code > 300 :
-        logger.debug(msg)
-
-    result = "" if request.method == 'HEAD' else (msg + '\n')
+    result = ""
+    if request.method != 'HEAD' :
+        result = msg + '\n'
+        result = result.encode('utf8')
 
     request.setResponseCode(error_code)
-    request.setHeader('content-type', 'text/plain')
-    request.write(result.encode('utf8'))
+    request.setHeader(b'Content-Type', b'text/plain')
+    request.setHeader(b'Content-Length', len(result))
+    request.write(result)
+
+    try :
+        request.finish()
+    except :
+        logger.exception("exception during request finish")
+        raise
+
+    return request
+
+## ----------------------------------------------------------------
+def BusyResponse(request) :
+    """Generate a common response for busy server, in theory the
+    retry-after is a number of seconds that the client should
+    wait; there is nothing particularly special about 1 just
+    that we want the client to retransmit, hopefully at a better
+    time.
+    """
+
+    result = b'BUSY'
+
+    request.setResponseCode(429)          # too many requess
+    request.setHeader('Retry-After', 1)   # wait 1 second for retry
+    request.setHeader(b'Content-Type', b'text/plain')
+    request.setheader(b'Content-Length', len(result))
+    request.write(result)
 
     return request
 
 ## -----------------------------------------------------------------
 def UnpackRequest(request) :
+    """Unpack a JSON request that has been received; this procedure
+    is really about making sure that the bytes are in a string format
+    that will work across python versions.
+    """
     encoding = request.getHeader('Content-Type')
     if encoding != 'application/json' :
         msg = 'unknown message encoding, {0}'.format(encoding)
@@ -81,7 +116,6 @@ def UnpackRequest(request) :
         msg = 'failed to unpack JSON request'
         raise Exception(msg)
 
-
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class CommonResource(Resource) :
@@ -92,19 +126,36 @@ class CommonResource(Resource) :
         self.enclave = enclave
 
     ## -----------------------------------------------------------------
-    def _handle_error_(self, failure) :
-        f = failure.trap(Exception)
-        logger.warn("an error occurred (%s): %s", type(self).__name__, failure.value.args)
+    def _handle_connection_lost_(self, identifier, reason) :
+        msg = ''
+        if reason is not None :
+            if reason.check(ConnectionDone) :
+                logger.debug("[%05d] connection closed: %s", identifier, msg)
+                return
+            msg = reason.getErrorMessage()
+
+        logger.warn("[%05d] connection lost: %s", identifier, msg)
 
     ## -----------------------------------------------------------------
-    def _handle_done_(self, request) :
-        request.finish()
+    def _handle_error_(self, identifier, failure) :
+        logger.warn("[%05d] an error occurred: %s", identifier, failure.getErrorMessage())
+        f = failure.trap(Error, Exception)
 
     ## -----------------------------------------------------------------
     def _defer_request_(self, handler, request) :
+        threadpool = reactor.getThreadPool()
+        if len(threadpool.working) > 8 :
+            return BusyResponse(request)
+
+        global request_identifier
+        request_identifier += 1
+        request.request_identifier = request_identifier
+        logger.debug('[%05d] start request: %s:%s', request.request_identifier, request.client.host, request.client.port)
+
+        request.notifyFinish().addErrback(lambda r : self._handle_connection_lost_(request.request_identifier, r))
+
         d = deferToThread(handler, request)
-        d.addErrback(self._handle_error_)
-        d.addCallback(self._handle_done_)
+        d.addErrback(lambda r : self._handle_error_(request.request_identifier, r))
 
         return NOT_DONE_YET
 
@@ -125,183 +176,34 @@ class ShutdownResource(Resource) :
 
         return ErrorResponse(request, http.NO_CONTENT, "shutdown")
 
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InfoResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave, storage_url) :
-        CommonResource.__init__(self, enclave)
-        self.storage_url = storage_url
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-
-        try :
-            response = dict()
-            response['verifying_key'] = self.enclave.verifying_key
-            response['encryption_key'] = self.enclave.encryption_key
-            response['enclave_id'] = self.enclave.enclave_id
-            response['storage_service_url'] = self.storage_url
-
-            result = json.dumps(response).encode()
-
-            request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/json')
-            request.write(result)
-
-            return request
-
-        except Exception as e :
-            logger.error("unknown exception while handling request (Info); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while handling request")
-
-    ## -----------------------------------------------------------------
-    def render_GET(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class VerifyResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        CommonResource.__init__(self, enclave)
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-        try :
-            minfo = UnpackRequest(request)
-            contractid = minfo['contract_id']
-            creatorid = minfo['creator_id']
-            secrets = minfo['secrets']
-
-            # verify the integrity of the secret list
-            for secret in secrets :
-                assert secret['pspk']
-                assert secret['encrypted_secret']
-        except KeyError as ke :
-            logger.error('missing field in request (Verify): %s', ke)
-            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Verify); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
-
-        try :
-            response = self.enclave.verify_secrets(contractid, creatorid, secrets)
-
-        except Exception as e :
-            logger.error('unknown exception processing request (Verify); %s', str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, 'uknown exception processing request')
-
-        try :
-            result = json.dumps(dict(response)).encode()
-
-            request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/json')
-            request.write(result)
-
-            return request
-
-        except Exception as e :
-            logger.error("unknown exception packing response (Verify); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
-
-    ## -----------------------------------------------------------------
-    def render_POST(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InvokeResource(CommonResource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        CommonResource.__init__(self, enclave)
-
-    ## -----------------------------------------------------------------
-    def _handle_request_(self, request) :
-        # {
-        #     "encrypted_session_key" : <>,
-        #     "encrypted_request" : <>
-        # }
-
-        try :
-            minfo = UnpackRequest(request)
-            encrypted_session_key = minfo['encrypted_session_key']
-            encrypted_request = minfo['encrypted_request']
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            return ErrorResponse(request, http.BAD_REQUEST, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Invoke); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while unpacking request")
-
-        try :
-            response = self.enclave.send_to_contract(encrypted_session_key, encrypted_request)
-
-        except Exception as e :
-            logger.error('unknown exception processing request (Invoke); %s', str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, 'unknown exception processing request')
-
-        try :
-            # result = json.dumps(response).encode()
-
-            request.setResponseCode(http.OK)
-            request.setHeader('content-type', 'application/text')
-            request.write(response.encode())
-
-            return request
-
-        except Exception as e :
-            logger.error("unknown exception packing response (Invoke); %s", str(e))
-            return ErrorResponse(request, http.BAD_REQUEST, "unknown exception while packing response")
-
-    ## -----------------------------------------------------------------
-    def render_POST(self, request) :
-        return self._defer_request_(self._handle_request_, request)
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class ContractEnclaveServer(Resource):
-
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave, storage_url) :
-        Resource.__init__(self)
-        self.enclave = enclave
-        self.storage_url = storage_url
-
-    ## -----------------------------------------------------------------
-    def getChild(self, name ,request) :
-        logger.debug('request: %s', name)
-        if name == b'invoke' :
-            return InvokeResource(self.enclave)
-        elif name == b'verify' :
-            return VerifyResource(self.enclave)
-        elif name == b'info' :
-            return InfoResource(self.enclave, self.storage_url)
-        elif name == b'shutdown' :
-            return ShutdownResource()
-        else :
-            return NoResource()
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def StartEnclaveService(http_host, http_port, enclave, storage_url) :
     logger.info('service started on port %s', http_port)
 
-    root = ContractEnclaveServer(enclave, storage_url)
-    site = Site(root)
+    thread_pool = ThreadPool(maxthreads=8)
+    thread_pool.start()
+    reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
-    threadpool = reactor.getThreadPool()
-    threadpool.start()
-    threadpool.adjustPoolsize(8, 100) # Min & Max number of request to service at a time
-    logger.info('# of workers: %d', threadpool.workers)
+    root = Resource()
+    root.putChild(b'shutdown', ShutdownResource())
+    root.putChild(b'info', WSGIResource(reactor, thread_pool, InfoApp(enclave, storage_url)))
+    root.putChild(b'invoke', WSGIResource(reactor, thread_pool, InvokeApp(enclave)))
+    root.putChild(b'verify', WSGIResource(reactor, thread_pool, VerifyApp(enclave)))
 
-    reactor.listenTCP(http_port, site, interface=http_host)
+    # root.putChild(b'invoke', InvokeResource(enclave))
+    # root.putChild(b'verify', VerifyResource(enclave))
+    # root.putChild(b'info', InfoResource(enclave, storage_url))
+
+    site = Site(root, timeout=60)
+    site.displayTracebacks = True
+
+    reactor.suggestThreadPoolSize(10)
+
+    endpoint = TCP4ServerEndpoint(reactor, http_port, backlog=32, interface=http_host)
+    endpoint.listen(site)
+
+    #reactor.listenTCP(http_port, site, interface=http_host)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

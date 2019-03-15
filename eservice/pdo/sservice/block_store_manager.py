@@ -63,7 +63,7 @@ class BlockStoreManager(object) :
     symmetry with the storage service client.
     """
 
-    map_size = 1024 * 1024 * 1024
+    map_size = 1024 * 1024 * 1024 * 1024
 
     def __init__(self, block_store_file, service_keys = None, create_block_store=False) :
         """Initialize storage service class instance

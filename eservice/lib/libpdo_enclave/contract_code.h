@@ -20,6 +20,8 @@
 #include "crypto.h"
 #include "parson.h"
 
+#include "contract_state.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class ContractCode
@@ -33,7 +35,11 @@ public:
     std::string nonce_;
 
     ContractCode(void){};
+
     void Unpack(const JSON_Object* object);
+
+    void FetchFromState(const ContractState& state, const ByteArray& code_hash);
+    void SaveToState(ContractState& state);
 
     ByteArray ComputeHash(void) const;
 };

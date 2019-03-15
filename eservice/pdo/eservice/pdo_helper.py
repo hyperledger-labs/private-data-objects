@@ -204,11 +204,30 @@ class Enclave(object) :
         """
         send a contract update request to the enclave
 
+        :param encrypted_session_key: byte array, encrypted AES key
+        :param encrypted_request: byte array, encrypted contract request
+        """
+        try :
+            return pdo_enclave.send_to_contract(
+                self.sealed_data,
+                encrypted_session_key,
+                encrypted_request)
+
+        except Exception as e :
+            logger.error('send_to_contract failed; %s, %s', type(e), str(e.args))
+            raise
+
+    # -------------------------------------------------------
+    def send_to_contract_encoded(self, encrypted_session_key, encrypted_request) :
+
+        """
+        send a contract update request to the enclave
+
         :param encrypted_session_key: base64 encoded encrypted AES key
         :param encrypted_request: base64 encoded encrypted contract request
         """
         try :
-            return pdo_enclave.send_to_contract(
+            return pdo_enclave.send_to_contract_encoded(
                 self.sealed_data,
                 encrypted_session_key,
                 encrypted_request)
