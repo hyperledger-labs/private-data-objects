@@ -46,7 +46,6 @@ __all__ = [
 ]
 
 verify_secrets = enclave.contract_verify_secrets
-send_to_contract = enclave.contract_handle_contract_request
 get_enclave_public_info = enclave.unseal_enclave_data
 block_store_open = enclave.block_store_open
 block_store_close = enclave.block_store_close
@@ -193,6 +192,22 @@ def shutdown():
     _ias = None
     _sig_rl_update_time = None
     _epid_group = None
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def send_to_contract(sealed_data, encrypted_session_key, encrypted_request) :
+    """binary interface for invoking methods in the contract
+    """
+    result = enclave.contract_handle_contract_request(sealed_data, encrypted_session_key, encrypted_request)
+    return bytes(result)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def send_to_contract_encoded(sealed_data, encrypted_session_key, encrypted_request) :
+    """base64 interface for invoking methods in the contract
+    """
+    result = enclave.contract_handle_contract_encoded_request(sealed_data, encrypted_session_key, encrypted_request)
+    return result
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

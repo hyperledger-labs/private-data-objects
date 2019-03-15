@@ -37,25 +37,15 @@
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //
-// contract state format
-//
-// {
-//     "EncryptedStateEncryptionKey" : "<base64 encoded encrypted state encryption key>",
-//     "ContractID" : "<string>",
-//     "CreatorID" : "<string>",
-//     "StateHash" : "<base64 encoded root hash of the state>"
-// }
-//
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-//
 // contract KV predefined keys
 //
 // {
-//     "IntrinsicState" : "<string of scheme state>",
-//     "IdHash"         : "<string>",
-//     "CodeHash"       : "<string>"
+//     "IntrinsicState"     : "<string of scheme state>",
+//     "IdHash"             : "<string>",
+//     "ContractCode.Code"  : "<string>"
+//     "ContractCode.Name"  : "<string>"
+//     "ContractCode.Nonce" : "<string>"
+//     "ContractCode.Hash"  : "<string>"
 // }
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -86,55 +76,63 @@ void ContractState::Finalize(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Unpack(
     const ByteArray& state_encryption_key_,
-    const JSON_Object* object,
-    const ByteArray& id_hash,
-    const ByteArray& code_hash)
+    const ByteArray& state_hash,
+    const ByteArray& id_hash)
 {
     const char* pvalue;
 
     try
     {
-        pvalue = json_object_dotget_string(object, "StateHash");
-        if (pvalue != NULL && pvalue[0] != '\0')
-        {
-            input_block_id_ = base64_decode(pvalue);
-            state_ = new pdo::state::Interpreter_KV(input_block_id_, state_encryption_key_);
+        input_block_id_ = state_hash;
+        state_ = new pdo::state::Interpreter_KV(input_block_id_, state_encryption_key_);
 
-            // verify the integrity of the state, the contract id must match
-            // and the code hash must match
-            {
-                std::string str = "IdHash";
-                ByteArray k(str.begin(), str.end());
-                pdo::error::ThrowIf<pdo::error::ValueError>(
-                    id_hash != state_->PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
-            }
-            {
-                std::string str = "CodeHash";
-                ByteArray k(str.begin(), str.end());
-                pdo::error::ThrowIf<pdo::error::ValueError>(
-                    code_hash != state_->PrivilegedGet(k), "invalid encrypted state; contract code mismatch");
-            }
+        // the contract id stored in state must match the contract id
+        // that was given in the request, this ensures that the evaluation
+        // occurs on the correct state
+        {
+            std::string str = "IdHash";
+            ByteArray k(str.begin(), str.end());
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                id_hash != state_->PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
         }
-        else
+    }
+    catch (std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
+        if (state_ != NULL)
         {
-            SAFE_LOG(PDO_LOG_DEBUG, "No state to unpack");
-            /* here the initial state is created */
-            state_ = new pdo::state::Interpreter_KV(state_encryption_key_);
+            state_->Finalize(input_block_id_);
+            state_ = NULL;
+        }
 
-            // add the contract identity and the code hash into the
-            // newly created key value store
-            {
-                std::string str = "IdHash";
-                ByteArray k(str.begin(), str.end());
-                ByteArray v(id_hash);
-                state_->PrivilegedPut(k, v);
-            }
-            {
-                std::string str = "CodeHash";
-                ByteArray k(str.begin(), str.end());
-                ByteArray v(code_hash);
-                state_->PrivilegedPut(k, v);
-            }
+        throw;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error, an unknown exception in contract state");
+        throw;
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractState::Initialize(
+    const ByteArray& state_encryption_key_,
+    const ByteArray& id_hash)
+{
+    try
+    {
+        SAFE_LOG(PDO_LOG_DEBUG, "Initialize new state");
+
+        /* here the initial state is created */
+        state_ = new pdo::state::Interpreter_KV(state_encryption_key_);
+
+        // add the contract id into the state so that we can verify
+        // that this state belongs to this contract
+        {
+            std::string str = "IdHash";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(id_hash);
+            state_->PrivilegedPut(k, v);
         }
     }
     catch (std::exception& e)

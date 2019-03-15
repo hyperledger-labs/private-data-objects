@@ -43,7 +43,11 @@ public:
 
     void Unpack(
         const ByteArray& state_encryption_key_,
-        const JSON_Object* object,
-        const ByteArray& id_hash,
-        const ByteArray& code_hash);
+        const ByteArray& state_hash,
+        const ByteArray& id_hash);
+
+    void Initialize(
+        const ByteArray& state_encryption_key_,
+        const ByteArray& id_hash);
+
 };

@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string>
 #include <map>
+#include <vector>
 
 #include "error.h"
 #include "pdo_error.h"
@@ -58,10 +59,25 @@ std::map<std::string, std::string> contract_verify_secrets(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-std::string contract_handle_contract_request(
+Base64EncodedString contract_handle_contract_encoded_request(
     const std::string& sealed_signup_data,
-    const std::string& encrypted_session_key,
-    const std::string& serialized_request
+    const Base64EncodedString& encrypted_session_key,
+    const Base64EncodedString& serialized_request
+    )
+{
+    ByteArray decoded_key = Base64EncodedStringToByteArray(encrypted_session_key);
+    ByteArray decoded_request = Base64EncodedStringToByteArray(serialized_request);
+
+    ByteArray response_array = contract_handle_contract_request(sealed_signup_data, decoded_key, decoded_request);
+
+    return ByteArrayToBase64EncodedString(response_array);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::vector<uint8_t> contract_handle_contract_request(
+    const std::string& sealed_signup_data,
+    const std::vector<uint8_t>& encrypted_session_key,
+    const std::vector<uint8_t>& serialized_request
     )
 {
     pdo_err_t presult;
@@ -80,7 +96,7 @@ std::string contract_handle_contract_request(
         readyEnclave.getIndex());
     ThrowPDOError(presult);
 
-    Base64EncodedString response;
+    std::vector<uint8_t> response(response_size);
     presult = pdo::enclave_api::contract::GetSerializedResponse(
         sealed_signup_data,
         response_identifier,
@@ -91,4 +107,3 @@ std::string contract_handle_contract_request(
 
     return response;
 }
-

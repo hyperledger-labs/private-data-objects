@@ -14,6 +14,8 @@
 
 import json
 import requests
+import base64
+import time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,12 +24,20 @@ from pdo.service_client.generic import GenericServiceClient
 from pdo.service_client.generic import MessageException
 from pdo.service_client.storage import StorageServiceClient
 from pdo.common.keys import EnclaveKeys
+import pdo.common.crypto as crypto
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class EnclaveException(Exception) :
     """
     A class to capture invocation exceptions
+    """
+    pass
+
+class RetryException(Exception) :
+    """
+    A class for exceptions in the enclave service that
+    could be handled through a retry
     """
     pass
 
@@ -39,6 +49,10 @@ class EnclaveServiceClient(GenericServiceClient) :
 
     def __init__(self, url) :
         super().__init__(url)
+        self.session = requests.Session()
+        self.session.headers.update({'x-session-identifier' : self.Identifier})
+        self.request_identifier = 0
+
         enclave_info = self.get_enclave_public_info()
         self.enclave_keys = EnclaveKeys(enclave_info['verifying_key'], enclave_info['encryption_key'])
 
@@ -70,26 +84,50 @@ class EnclaveServiceClient(GenericServiceClient) :
         self.check_blocks = storage_service.check_blocks
 
     # -----------------------------------------------------------------
-    # encrypted_session_key -- base64 aes key encrypted with enclave's rsa key
-    # encrypted_request -- base64 string encrypted with aes session key
+    # encrypted_session_key -- byte string containing aes key encrypted with enclave's rsa key
+    # encrypted_request -- byte string request encrypted with aes session key
     # -----------------------------------------------------------------
-    def send_to_contract(self, encrypted_session_key, encrypted_request) :
-        request = dict()
-        request['encrypted_session_key'] = encrypted_session_key
-        request['encrypted_request'] = encrypted_request
-
+    def send_to_contract(self, encrypted_session_key, encrypted_request, encoding='base64') :
+        request_identifier = self.request_identifier
+        self.request_identifier += 1
         try :
             url = '{0}/invoke'.format(self.ServiceURL)
-            response = requests.post(url, json=request, timeout=self.default_timeout)
-            response.raise_for_status()
-            return response.text
+            request_headers = {'x-request-identifier' : 'request{0}'.format(request_identifier)}
+            content_headers = {}
+            if encoding == 'base64' :
+                encrypted_session_key = base64.b64encode(encrypted_session_key)
+                encrypted_request = base64.b64encode(encrypted_request)
+                content_headers['Content-Transfer-Encoding'] = 'base64'
 
-        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
-            logger.warn('network error connecting to service (invoke); %s', str(e))
+            request = dict()
+            request['encrypted_session_key'] = (None, encrypted_session_key, 'application/octet-stream', content_headers)
+            request['encrypted_request'] = (None, encrypted_request, 'application/octet-stream', content_headers)
+
+            response = self.session.post(url, files=request, headers=request_headers, timeout=self.default_timeout, stream=False)
+            response.raise_for_status()
+
+            encoding = response.headers.get('Content-Transfer-Encoding','')
+            content = response.content
+
+            if  encoding == 'base64' :
+                return base64.b64decode(content)
+
+            return content
+
+        except requests.Timeout as e :
+            logger.warn('[%d] requests timeout (invoke)', request_identifier)
+            raise MessageException(str(e)) from e
+
+        except requests.ConnectionError as e :
+            logger.warn('[%d] connection error (invoke); %s', request_identifier, e.strerror)
+            raise MessageException(str(e)) from e
+
+        except requests.HTTPError as e :
+            logger.warn('[%d] network error connecting to service (invoke); %s', request_identifier, str(e))
             raise MessageException(str(e)) from e
 
         except Exception as e :
-            logger.warn('unknown exception (invoke); %s', str(e))
+            logger.warn('[%d] unknown exception (invoke); %s', request_identifier, str(e))
             raise EnclaveException(str(e)) from e
 
 
@@ -106,10 +144,16 @@ class EnclaveServiceClient(GenericServiceClient) :
 
         try :
             url = '{0}/verify'.format(self.ServiceURL)
-            response = requests.post(url, json=request, timeout=self.default_timeout)
-            response.raise_for_status()
+            while True :
+                response = self.session.post(url, json=request, timeout=self.default_timeout, stream=False)
+                if response.status_code == 429 :
+                    logger.info('prepare to resubmit the request')
+                    sleeptime = min(1.0, float(response.headers.get('retry-after', 1.0)))
+                    time.sleep(sleeptime)
+                    continue
 
-            return response.json()
+                response.raise_for_status()
+                return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
             logger.warn('network error connecting to service (verify_secrets); %s', str(e))
@@ -123,10 +167,16 @@ class EnclaveServiceClient(GenericServiceClient) :
     def get_enclave_public_info(self) :
         try :
             url = '{0}/info'.format(self.ServiceURL)
-            response = requests.get(url, timeout=self.default_timeout)
-            response.raise_for_status()
+            while True :
+                response = self.session.get(url, timeout=self.default_timeout)
+                if response.status_code == 429 :
+                    logger.info('prepare to resubmit the request')
+                    sleeptime = min(1.0, float(response.headers.get('retry-after', 1.0)))
+                    time.sleep(sleeptime)
+                    continue
 
-            return response.json()
+                response.raise_for_status()
+                return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
             logger.warn('network error connecting to service (get_enclave_public_info); %s', str(e))

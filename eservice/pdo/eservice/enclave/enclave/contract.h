@@ -48,8 +48,8 @@ namespace pdo
             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             pdo_err_t HandleContractRequest(
                 const Base64EncodedString& inSealedEnclaveData,
-                const Base64EncodedString& inEncryptedSessionKey,
-                const Base64EncodedString& inSerializedRequest,
+                const ByteArray& inEncryptedSessionKey,
+                const ByteArray& inSerializedRequest,
                 uint32_t& outResponseIdentifier,
                 size_t& outSerializedResponseSize,
                 int enclaveIndex
@@ -60,7 +60,7 @@ namespace pdo
                 const Base64EncodedString& inSealedEnclaveData,
                 const uint32_t inResponseIdentifier,
                 const size_t inSerializedResponseSize,
-                Base64EncodedString& outSerializedResponse,
+                ByteArray& outSerializedResponse,
                 int enclaveIndex
                 );
 

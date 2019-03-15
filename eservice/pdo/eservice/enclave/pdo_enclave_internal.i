@@ -15,15 +15,6 @@
 
 %module pdo_enclave_internal
 
-%include <std_vector.i>
-%include <std_map.i>
-%include <std_string.i>
-
-namespace std {
-    %template(StringVector) vector<string>;
-    %template(StringMap) map<string, string>;
-}
-
 %include <exception.i>
 
 %exception {
@@ -76,6 +67,24 @@ namespace std {
     }
 }
 
+%include "typemaps.i"
+
+/* Convert from C --> Python */
+%typemap(out) ByteArrayWrapper {
+    $result = PyByteArray_FromStringAndSize((const char*)$1.data.data(),$1.data.size());
+}
+
+%include "std_string.i"
+%include "std_vector.i"
+%include "std_map.i"
+%include "stdint.i"
+
+namespace std {
+    %template(StringVector) vector<string>;
+    %template(StringMap) map<string, string>;
+    %template(__byte_vector__) vector<uint8_t>;
+    %template(__char_vector__) vector<char>;
+}
 
 %thread;
 %{

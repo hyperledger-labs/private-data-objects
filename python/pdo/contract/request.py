@@ -70,51 +70,42 @@ class ContractRequest(object) :
         result['CreatorID'] = self.creator_id
         result['EncryptedStateEncryptionKey'] = self.encrypted_state_encryption_key
 
-        result['ContractState'] = self.contract_state.serialize_for_invocation()
-        result['ContractCode'] = self.contract_code.serialize()
+        if self.operation == 'initialize' :
+            result['ContractCode'] = self.contract_code.serialize()
+        else :
+            result['ContractCodeHash'] = self.contract_code.compute_hash(encoding='b64')
+            result['ContractStateHash'] = self.contract_state.get_state_hash(encoding='b64')
+
         result['ContractMessage'] = self.message.serialize()
 
         return json.dumps(result)
-
-    # -------------------------------------------------------
-    def __encrypt_session_key(self) :
-        encrypted_key = self.enclave_keys.encrypt(self.session_key)
-        return crypto.byte_array_to_base64(encrypted_key)
-
-    # -------------------------------------------------------
-    def __decrypt_response(self, response) :
-        """
-        decrypt the response using the session key
-
-        :param response string: base64 encoded, encrypted with session key
-        """
-        decoded_response = crypto.base64_to_byte_array(response)
-        return crypto.SKENC_DecryptMessage(self.session_key, decoded_response)
 
     # -------------------------------------------------------
     def evaluate(self) :
         """
         evaluate the request using the enclave service
         """
-        encrypted_session_key = self.__encrypt_session_key()
 
         # Encrypt the request
         serialized_byte_array = crypto.string_to_byte_array(self.__serialize_for_encryption())
-        encrypted_request_raw = crypto.SKENC_EncryptMessage(self.session_key, serialized_byte_array)
-        encrypted_request = crypto.byte_array_to_base64(encrypted_request_raw)
+        encrypted_request = bytes(crypto.SKENC_EncryptMessage(self.session_key, serialized_byte_array))
+        encrypted_key = bytes(self.enclave_keys.encrypt(self.session_key))
 
         try :
             self.contract_state.push_state_to_eservice(self.enclave_service)
-
-            encoded_encrypted_response = self.enclave_service.send_to_contract(encrypted_session_key, encrypted_request)
-            logger.debug("raw response from enclave: %s", encoded_encrypted_response)
+            encrypted_response = self.enclave_service.send_to_contract(encrypted_key, encrypted_request)
 
         except Exception as e:
             logger.warn('contract invocation failed; %s', str(e))
             raise InvocationException('contract invocation failed') from e
 
         try :
-            decrypted_response = self.__decrypt_response(encoded_encrypted_response)
+            decrypted_response = crypto.SKENC_DecryptMessage(self.session_key, encrypted_response)
+        except Exception as e:
+            logger.exception('failed to decrypt response; %s', encrypted_response)
+            raise InvocationException('contract response cannot be decrypted')
+
+        try :
             response_string = crypto.byte_array_to_string(decrypted_response)
             response_parsed = json.loads(response_string[0:-1])
 
