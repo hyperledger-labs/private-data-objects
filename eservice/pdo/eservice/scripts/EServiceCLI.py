@@ -27,9 +27,7 @@ import pdo.common.keys as keys
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
-# from pdo.eservice.wsgi.info import InfoApp
-# from pdo.eservice.wsgi.invoke import InvokeApp
-# from pdo.eservice.wsgi.verify import VerifyApp
+from pdo.common.wsgi import AppWrapperMiddleware
 from pdo.eservice.wsgi import *
 
 import logging
@@ -105,9 +103,9 @@ def StartEnclaveService(config, enclave) :
 
     root = Resource()
     root.putChild(b'shutdown', ShutdownResource())
-    root.putChild(b'info', WSGIResource(reactor, thread_pool, InfoApp(enclave, storage_url)))
-    root.putChild(b'invoke', WSGIResource(reactor, thread_pool, InvokeApp(enclave)))
-    root.putChild(b'verify', WSGIResource(reactor, thread_pool, VerifyApp(enclave)))
+    root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(enclave, storage_url))))
+    root.putChild(b'invoke', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InvokeApp(enclave))))
+    root.putChild(b'verify', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(VerifyApp(enclave))))
 
     site = Site(root, timeout=60)
     site.displayTracebacks = True

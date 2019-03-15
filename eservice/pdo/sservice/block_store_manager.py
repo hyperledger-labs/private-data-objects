@@ -63,7 +63,7 @@ class BlockStoreManager(object) :
     symmetry with the storage service client.
     """
 
-    map_size = 1024 * 1024 * 1024 * 1024
+    map_size = 1 << 40
 
     def __init__(self, block_store_file, service_keys = None, create_block_store=False) :
         """Initialize storage service class instance
@@ -137,8 +137,17 @@ class BlockStoreManager(object) :
 
         return block_data
 
+    # return block_data_list
+    def __block_iterator__(self, block_ids, encoding) :
+        for block_id in block_ids :
+            yield self.get_block(block_id, encoding)
+
     def get_blocks(self, block_ids, encoding='b64') :
-        pass
+        """Return the data for a list of blocks
+        """
+        # the iterator means that we don't have to use as much memory
+        # for operations that can process the blocks one at a time
+        return self.__block_iterator__(block_ids, encoding)
 
     def store_block(self, block_data, expiration=60, encoding='b64') :
         """Add a new data block to the store

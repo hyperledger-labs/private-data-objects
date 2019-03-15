@@ -20,36 +20,29 @@ handling contract method invocation requests.
 """
 
 from http import HTTPStatus
+import json
 
-from pdo.common.wsgi import ErrorResponse, UnpackMultipartRequest, IndexMultipartRequest
+from pdo.common.wsgi import ErrorResponse
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InvokeApp(object) :
-    def __init__(self, enclave) :
-        self.enclave = enclave
+class InfoApp(object) :
+    def __init__(self, block_store) :
+        self.block_store = block_store
 
     def __call__(self, environ, start_response) :
+        """Return blockstore information
+        """
         try :
-            request = UnpackMultipartRequest(environ)
-            request_index = IndexMultipartRequest(request)
-            encrypted_session_key = request.parts[request_index['encrypted_session_key']].content
-            encrypted_request = request.parts[request_index['encrypted_request']].content
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            return ErrorResponse(start_response, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Invoke); %s", str(e))
-            return ErrorResponse(start_response, "unknown exception while unpacking request")
+            response = self.block_store.get_service_info()
+            result = json.dumps(response).encode()
 
-        try :
-            result = self.enclave.send_to_contract(encrypted_session_key, encrypted_request)
         except Exception as e :
-            logger.error('unknown exception processing request (Invoke); %s', str(e))
-            return ErrorResponse(start_response, 'unknown exception processing request')
+            logger.exception("info")
+            return ErrorResponse(start_response, "exception; {0}".format(str(e)))
 
         status = "{0} {1}".format(HTTPStatus.OK.value, HTTPStatus.OK.name)
         headers = [

@@ -66,6 +66,7 @@ $(PYTHON_DIR) : $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade setuptools
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade toml
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests_toolbelt
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade colorlog
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade twisted
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pyyaml

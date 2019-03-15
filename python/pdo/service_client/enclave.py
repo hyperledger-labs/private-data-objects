@@ -87,7 +87,7 @@ class EnclaveServiceClient(GenericServiceClient) :
     # encrypted_session_key -- byte string containing aes key encrypted with enclave's rsa key
     # encrypted_request -- byte string request encrypted with aes session key
     # -----------------------------------------------------------------
-    def send_to_contract(self, encrypted_session_key, encrypted_request, encoding='base64') :
+    def send_to_contract(self, encrypted_session_key, encrypted_request, encoding='raw') :
         request_identifier = self.request_identifier
         self.request_identifier += 1
         try :
@@ -109,7 +109,7 @@ class EnclaveServiceClient(GenericServiceClient) :
             encoding = response.headers.get('Content-Transfer-Encoding','')
             content = response.content
 
-            if  encoding == 'base64' :
+            if encoding == 'base64' :
                 return base64.b64decode(content)
 
             return content

@@ -15,13 +15,13 @@
 # limitations under the License.
 
 """
-This file defines the VerifyApp class, a WSGI interface class for
-handling requests to verify contract state encryption keys.
+This file defines the InvokeApp class, a WSGI interface class for
+handling contract method invocation requests.
 """
 
+from http import HTTPStatus
 import json
 
-from http import HTTPStatus
 from pdo.common.wsgi import ErrorResponse, UnpackJSONRequest
 
 import logging
@@ -29,45 +29,35 @@ logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class VerifyApp(object) :
-    def __init__(self, enclave) :
-        self.enclave = enclave
+class CheckBlocksApp(object) :
+    def __init__(self, block_store) :
+        self.block_store = block_store
 
     def __call__(self, environ, start_response) :
         try :
-            minfo = UnpackJSONRequest(environ)
-            contractid = minfo['contract_id']
-            creatorid = minfo['creator_id']
-            secrets = minfo['secrets']
+            block_ids = UnpackJSONRequest(environ)
 
-            # verify the integrity of the secret list
-            for secret in secrets :
-                assert secret['pspk']
-                assert secret['encrypted_secret']
-
-        except KeyError as ke :
-            logger.error('missing field in request (Verify): %s', ke)
-            return ErrorResponse(start_response, 'missing field {0}'.format(ke))
         except Exception as e :
-            logger.error("unknown exception unpacking request (Verify); %s", str(e))
-            return ErrorResponse(start_response, "unknown exception while unpacking request")
+            logger.exception('CheckBlocksApp')
+            return ErrorResponse(start_response, "unknown exception while unpacking block status request")
 
         try :
-            response = self.enclave.verify_secrets(contractid, creatorid, secrets)
+            block_status_list = self.block_store.check_blocks(block_ids, encoding='b64')
 
         except Exception as e :
-            logger.error('unknown exception processing request (Verify); %s', str(e))
-            return ErrorResponse(start_response, 'uknown exception processing request')
+            logger.exception('CheckBlocksApp')
+            return ErrorResponse(start_response, "unknown exception while computing block status")
 
         try :
-            result = json.dumps(dict(response)).encode()
+            result = json.dumps(block_status_list).encode()
         except Exception as e :
-            logger.error("unknown exception packing response (Verify); %s", str(e))
+            logger.exception('CheckBlocksApp')
             return ErrorResponse(start_response, "unknown exception while packing response")
 
         status = "{0} {1}".format(HTTPStatus.OK.value, HTTPStatus.OK.name)
         headers = [
                    ('Content-Type', 'application/json'),
+                   ('Content-Transfer-Encoding', 'utf-8'),
                    ('Content-Length', str(len(result)))
                    ]
         start_response(status, headers)

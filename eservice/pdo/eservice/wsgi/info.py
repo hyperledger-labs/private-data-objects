@@ -22,23 +22,19 @@ handling requests for enclave service information.
 import json
 
 from http import HTTPStatus
-from pdo.eservice.wsgi.common import ErrorResponse, CommonApp
+from pdo.common.wsgi import ErrorResponse
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InfoApp(CommonApp) :
+class InfoApp(object) :
     def __init__(self, enclave, storage_url) :
-        CommonApp.__init__(self, enclave)
+        self.enclave = enclave
         self.storage_url = storage_url
 
     def __call__(self, environ, start_response) :
-        request_identifier = environ.get('HTTP_X_REQUEST_IDENTIFIER','')
-        session_identifier = environ.get('HTTP_X_SESSION_IDENTIFIER','')
-        logger.debug('received info request %s:%s', session_identifier, request_identifier)
-
         try :
             response = dict()
             response['verifying_key'] = self.enclave.verifying_key
