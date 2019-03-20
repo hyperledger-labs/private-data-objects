@@ -16,6 +16,9 @@
 # Use this docker-compose file together with sawtoth-pdo.yaml (and other extensions)
 # if you run behind a proxy and have the corresponding environment variables http_proxy
 # https_proxy and no_proxy defined
+# Note: for vanilla docker >=17.07 you can define proxy in ~/.docker/config.json 
+# (see https://docs.docker.com/network/proxy/) but this seems to be ignored by
+# docker-compose ...
 
 version: "2.1"
 
@@ -27,7 +30,11 @@ services:
       args:
         http_proxy: ${http_proxy}
         https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy}
+        no_proxy: ${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
 
   # PDO Transaction processor
   pdo-tp:
@@ -35,5 +42,32 @@ services:
       args:
         http_proxy: ${http_proxy}
         https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy}
+        no_proxy: ${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
 
+  settings-tp:
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+
+  validator:
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+
+  rest-api:
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+
+  shell:
+    environment:
+      http_proxy: "${http_proxy}"
+      https_proxy: "${https_proxy}"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
