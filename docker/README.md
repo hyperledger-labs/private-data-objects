@@ -30,7 +30,7 @@ cpu inside containers or `down` to shut the invironment down again.
 See [docker-compose commandline reference](https://docs.docker.com/compose/reference/)
 for more information on commands.  Note also the 'run' makefile target which
 should simplify the invocation by guaranteeing that the parameters are consistent
-with what was used during `test-env-setup`, just invoke as `make run ARGS='<docker-compose subcommand & args>'`
+with what was used during `test-env-setup`, just invoke as `make run ARGS='<docker-compose subcommand & args>'.
 
 If you define the PDO_DEBUG_BUILD environment variable, the make commands will (with help of `docker/sawtooth.debugging.yaml') build
 the code with debugging and and run docker containers such that gdb/sgx-gdb-based debugging is possible.
@@ -38,6 +38,8 @@ Note though, that due to some docker(-compose)ism, terminating daemon processes 
 by ps-start/es-start will run in zombie processes. They don't hold any resources such as sockets or alike
 and subseequent ps-start/es-start will run successfully.  However, note that run-tests.sh will fail
 due to some pgrep statements in the script ...
+
+While you can run end-to-end tests inside docker, sometimes it might be easier to test outside so you can, e.g., monitor localhost traffic with wireshark which seems challenging with docker. Note that with 'make test-env-setup' (or 'make test-env-setup-with-no-build' if you are sure container images for PDO-TP and other components are already properly built) you get a fresh sawtooth setup where ledger rest API is also exposed to the host, i.e., the default localhost:8008 does also work from the host and you can test client and {e,s,p}services on the host with a fresh and self-contained/single machine installation.
 
 Lastly, the makefile allows you some local overrides/customization via the (optional) `docker/make.loc`
 file. E.g., you can add more debugging tools (apt packages) into your pdo containers and define HW sgx-mode as default
