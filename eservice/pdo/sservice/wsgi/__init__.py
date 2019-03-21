@@ -12,8 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pdo.eservice.wsgi.info import InfoApp
-from pdo.eservice.wsgi.invoke import InvokeApp
-from pdo.eservice.wsgi.verify import VerifyApp
+from pdo.sservice.wsgi.check_blocks import CheckBlocksApp
+from pdo.sservice.wsgi.get_block import GetBlockApp, GetBlocksApp
+from pdo.sservice.wsgi.info import InfoApp
+from pdo.sservice.wsgi.list_blocks import ListBlocksApp
+from pdo.sservice.wsgi.store_blocks import StoreBlocksApp
 
-__all__ = [ 'InfoApp', 'InvokeApp', 'VerifyApp' ]
+__all__ = [
+           'CheckBlocksApp',
+           'GetBlockApp',
+           'GetBlocksApp',
+           'InfoApp',
+           'ListBlocksApp',
+           'StoreBlocksApp',
+           ]

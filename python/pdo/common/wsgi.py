@@ -18,32 +18,39 @@
 Enclave service.
 """
 
+import cgi
 import json
-from cgi import FieldStorage
+
+from requests_toolbelt.multipart.decoder import MultipartDecoder
 from http import HTTPStatus
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## ----------------------------------------------------------------
-def ErrorResponse(start_response, msg) :
+def ErrorResponse(start_response, msg, status=None) :
     """Generate a common error response for broken requests
     """
+
+    logger.info('error response: %s', msg)
 
     result = msg + '\n'
     result = result.encode('utf8')
 
-    status = "{0} {1}".format(HTTPStatus.BAD_REQUEST.value, HTTPStatus.BAD_REQUEST.name)
+    if status is None :
+        status = HTTPStatus.BAD_REQUEST
+
+    status_msg = "{0} {1}".format(status.value, status.name)
     headers = [
                ('Content-Type', 'text/plain'),
                ('Content-Length', str(len(result)))
                ]
 
-    start_response(status, headers)
+    start_response(status_msg, headers)
     return [result]
 
 ## -----------------------------------------------------------------
-def UnpackRequest(environ) :
+def UnpackJSONRequest(environ) :
     """Unpack a JSON request that has been received; this procedure
     is really about making sure that the bytes are in a string format
     that will work across python versions.
@@ -61,26 +68,47 @@ def UnpackRequest(environ) :
     return json.loads(request_body)
 
 ## -----------------------------------------------------------------
-def UnpackMultipart(environ):
-    """
+def UnpackMultipartRequest(environ) :
+    """Unpack a multipart request
     """
 
     request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-    request_encoding = environ.get('CONTENT_TYPE','')
-    if not request_encoding.startswith('multipart/form-data') :
-        msg = 'unknown message encoding, <{0}>'.format(request_encoding)
+    request_type = environ.get('CONTENT_TYPE','')
+    if not request_type.startswith('multipart/form-data') :
+        msg = 'unknown request type, <{0}>'.format(request_type)
         raise Exception(msg)
 
-    return FieldStorage(fp=environ['wsgi.input'], environ=environ, keep_blank_values=True)
+    request_body = environ['wsgi.input'].read(request_body_size)
+    return MultipartDecoder(request_body, request_type)
+
+## -----------------------------------------------------------------
+def IndexMultipartRequest(request) :
+    """Process the headers for the multipart request and create
+    an index of the names that are found
+    """
+    index = {}
+    for p in range(0, len(request.parts)) :
+        value, headers = cgi.parse_header(request.parts[p].headers[b'Content-Disposition'].decode())
+        name = headers.get('name')
+        if name is None :
+            logger.warn('missing name from multipart request')
+        index[name] = p
+
+    return index
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class CommonApp(object) :
-    request_identifier = 0
+class AppWrapperMiddleware(object) :
 
-    ## -----------------------------------------------------------------
-    def __init__(self, enclave) :
-        self.enclave = enclave
-        self.identifier = CommonApp.request_identifier
+    def __init__(self, wrapped_app) :
+        self.wrapped_app = wrapped_app
 
-        CommonApp.request_identifier += 1
+    def __call__(self, environ, start_response) :
+        """Wrap the call to the underlying application
+        """
+
+        request_identifier = environ.get('HTTP_X_REQUEST_IDENTIFIER','')
+        session_identifier = environ.get('HTTP_X_SESSION_IDENTIFIER','')
+        logger.debug('received info request %s:%s', session_identifier, request_identifier)
+
+        return self.wrapped_app(environ, start_response)

@@ -53,7 +53,7 @@ class ContractState(object) :
         """
         decoded = crypto.base64_to_byte_array(b64name)
         encoded = crypto.byte_array_to_hex(decoded)
-        return encoded[16:]
+        return encoded[:16]
 
     # --------------------------------------------------
     @classmethod
@@ -167,36 +167,45 @@ class ContractState(object) :
 
     # --------------------------------------------------
     @classmethod
-    def __pull_block_from_eservice__(cls, eservice, contract_id, state_hash, data_dir = None) :
+    def __pull_blocks_from_eservice__(cls, eservice, contract_id, block_ids, data_dir = None) :
         """
-        ensure that a block is cached locally
+        ensure that a list of blocks is cached locally
 
         :param eservice EnclaveServiceClient object:
         :param contract_id str: contract identifier
-        :param state_hash string: base64 encoded hash of the block
+        :param block_ids list: base64 encoded hash of the blocks required
         """
 
-        # check to see if the eservice already has the block
-        logger.debug('ensure block %s is stored in the local cache', state_hash)
-
         # first see if the block is already in the cache
-        filename = ContractState.__cache_filename__(contract_id, state_hash, data_dir)
-        if os.path.isfile(filename) :
-            return False
+        blocks_to_pull = set()
+        for block_id in block_ids :
+            filename = ContractState.__cache_filename__(contract_id, block_id, data_dir)
+            if not os.path.isfile(filename) :
+                blocks_to_pull.add(block_id)
+
+        block_count = len(blocks_to_pull)
+        if block_count == 0 :
+            logger.debug('no blocks to pull')
+            return 0
 
         # it is not in the cache so grab it from the eservice
-        raw_data = eservice.get_block(state_hash)
-        if raw_data :
-            # since we don't really trust the eservice, make sure that the
-            # block it sent us is really the one that we were supposed to get
-            raw_data_hash = ContractState.compute_hash(raw_data, encoding='b64')
-            if  raw_data_hash != state_hash :
-                raise Exception('invalid block returned from eservice')
+        block_data_iterator = eservice.get_blocks(list(blocks_to_pull))
 
-            ContractState.__cache_data_block__(contract_id, raw_data, data_dir)
+        # since we don't really trust the eservice, make sure that the
+        # block it sent us is really the one that we were supposed to get
+        for raw_block in block_data_iterator :
+            raw_block_hash = ContractState.compute_hash(raw_block, encoding='b64')
+            if raw_block_hash not in blocks_to_pull :
+                raise Exception('unknown block pulled from storage service; {0}'.format(raw_block_hash))
 
-        logger.debug('retrieved block %s from eservice', state_hash)
-        return True
+            ContractState.__cache_data_block__(contract_id, raw_block, data_dir)
+            blocks_to_pull.remove(raw_block_hash)
+
+        # make sure that the storage service gave us all the blocks we asked for
+        if len(blocks_to_pull) != 0 :
+            raise Exception('failed to pull blocks from storage service; %s', list(blocks_to_pull))
+
+        return len(blocks_to_pull)
 
     # --------------------------------------------------
     @classmethod
@@ -343,15 +352,12 @@ class ContractState(object) :
         if not self.raw_state :
             return
 
-        pulled_blocks = 0
+        # raw state already contains the data for the root block, just write it out
+        ContractState.__cache_data_block__(self.contract_id, self.raw_state, data_dir)
 
-        b64_block_id = self.get_state_hash(encoding='b64')
-        if ContractState.__pull_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
-            pulled_blocks += 1
-
-        for b64_block_id in self.component_block_ids :
-            if ContractState.__pull_block_from_eservice__(eservice, self.contract_id, b64_block_id, data_dir) :
-                pulled_blocks += 1
+        # and then make sure we have everything else we need for the state
+        pulled_blocks = ContractState.__pull_blocks_from_eservice__(
+            eservice, self.contract_id, self.component_block_ids, data_dir)
 
         stat_logger.debug('state length is %d, pulled %d new blocks', len(self.component_block_ids), pulled_blocks)
 

@@ -72,7 +72,7 @@ logger.info('attempt to put a single block to the service')
 default_expiration = 30
 try :
     block_data = os.urandom(1000)
-    result = client.store_block(block_data, expiration=default_expiration)
+    result = client.store_blocks([block_data], expiration=default_expiration)
     assert result
 
     assert verify_store_signature(result, default_expiration, client.verifying_key)
@@ -111,10 +111,11 @@ try :
     assert verify_store_signature(result, default_expiration, client.verifying_key)
 
     block_ids = result['block_ids']
+    logger.info('RESULT: %s', result)
     assert block_ids and len(block_ids) == 3
 
 except Exception as e :
-    logger.error('bulk upload test failed; %s', str(e))
+    logger.exception('bulk upload test failed; %s', str(e))
     sys.exit(-1)
 
 # -----------------------------------------------------------------
@@ -124,6 +125,17 @@ try :
     for i in range(len(block_ids)) :
         verify_block_data = client.get_block(block_ids[i])
         assert block_data[i] == verify_block_data
+except Exception as e :
+    logger.error('failed to verify bulk upload; %s', str(e))
+    sys.exit(-1)
+
+# -----------------------------------------------------------------
+logger.info('verify that the upload succeeded using bulk get')
+# -----------------------------------------------------------------
+try :
+    verify_block_data_list = client.get_blocks(block_ids)
+    for i in range(len(block_ids)) :
+        assert block_data[i] == verify_block_data_list[i]
 except Exception as e :
     logger.error('failed to verify bulk upload; %s', str(e))
     sys.exit(-1)

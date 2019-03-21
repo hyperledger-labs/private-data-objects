@@ -20,40 +20,31 @@ handling contract method invocation requests.
 """
 
 from http import HTTPStatus
+import json
 
-from pdo.common.wsgi import ErrorResponse, UnpackMultipartRequest, IndexMultipartRequest
+from pdo.common.wsgi import ErrorResponse
 
 import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class InvokeApp(object) :
-    def __init__(self, enclave) :
-        self.enclave = enclave
+class ListBlocksApp(object) :
+    def __init__(self, block_store) :
+        self.block_store = block_store
 
     def __call__(self, environ, start_response) :
         try :
-            request = UnpackMultipartRequest(environ)
-            request_index = IndexMultipartRequest(request)
-            encrypted_session_key = request.parts[request_index['encrypted_session_key']].content
-            encrypted_request = request.parts[request_index['encrypted_request']].content
-        except KeyError as ke :
-            logger.error('missing field in request: %s', ke)
-            return ErrorResponse(start_response, 'missing field {0}'.format(ke))
-        except Exception as e :
-            logger.error("unknown exception unpacking request (Invoke); %s", str(e))
-            return ErrorResponse(start_response, "unknown exception while unpacking request")
+            block_ids = self.block_store.list_blocks(encoding='b64')
+            result = json.dumps(block_ids).encode()
 
-        try :
-            result = self.enclave.send_to_contract(encrypted_session_key, encrypted_request)
         except Exception as e :
-            logger.error('unknown exception processing request (Invoke); %s', str(e))
-            return ErrorResponse(start_response, 'unknown exception processing request')
+            logger.exception('ListBlocksApp')
+            return ErrorResponse(start_response, "unknown exception while processing list blocks request")
 
         status = "{0} {1}".format(HTTPStatus.OK.value, HTTPStatus.OK.name)
         headers = [
-                   ('Content-Type', 'application/octet-stream'),
+                   ('Content-Type', 'application/json'),
                    ('Content-Transfer-Encoding', 'utf-8'),
                    ('Content-Length', str(len(result)))
                    ]
