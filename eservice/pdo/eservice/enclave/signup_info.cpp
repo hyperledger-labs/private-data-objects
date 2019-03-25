@@ -19,6 +19,7 @@
 
 #include "error.h"
 #include "jsonvalue.h"
+#include "log.h"
 #include "packages/parson/parson.h"
 #include "pdo_error.h"
 #include "swig_utils.h"
@@ -180,7 +181,7 @@ std::map<std::string, std::string> create_enclave_data(
         enclave_quote);
     ThrowPDOError(presult);
 
-    PyLog(PDO_LOG_DEBUG, public_enclave_data.str().c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, public_enclave_data.str().c_str());
 
     // parse the json and save the verifying and encryption keys
     std::string verifying_key;

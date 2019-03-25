@@ -137,7 +137,7 @@ def initialize_with_configuration(config) :
     global _ias
     global logger
 
-    enclave._SetLogger(logger)
+    enclave.SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
     valid_keys = set(['spid', 'ias_url', 'spid_cert_file'])
@@ -222,7 +222,7 @@ def get_enclave_service_info(spid) :
     if _pdo :
         raise Exception('get_enclave_service_info must be called exclusively')
 
-    enclave._SetLogger(logger)
+    enclave.SetLogger(logger)
 
     signed_enclave = __find_enclave_library(None)
     logger.debug("Attempting to load enclave at: %s", signed_enclave)

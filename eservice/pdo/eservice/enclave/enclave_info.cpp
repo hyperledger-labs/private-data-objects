@@ -38,15 +38,13 @@ pdo_enclave_info::pdo_enclave_info(
     const int num_of_enclaves
     )
 {
-    pdo::logger::SetLogFunction(PyLog);
-
-    PyLog(PDO_LOG_INFO, "Initializing SGX PDO enclave");
-    PyLogV(PDO_LOG_DEBUG, "Enclave path: %s", enclaveModulePath.c_str());
-    PyLogV(PDO_LOG_DEBUG, "SPID: %s", spid.c_str());
+    SAFE_LOG1(PDO_LOG_INFO, "Initializing SGX PDO enclave");
+    SAFE_LOG(PDO_LOG_DEBUG, "Enclave path: %s", enclaveModulePath.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "SPID: %s", spid.c_str());
 
     pdo_err_t ret = pdo::enclave_api::base::Initialize(enclaveModulePath,spid,num_of_enclaves);
     ThrowPDOError(ret);
-    PyLog(PDO_LOG_INFO, "SGX PDO enclave initialized.");
+    SAFE_LOG1(PDO_LOG_INFO, "SGX PDO enclave initialized.");
 
     HexEncodedString mrEnclaveBuffer;
     HexEncodedString basenameBuffer;
