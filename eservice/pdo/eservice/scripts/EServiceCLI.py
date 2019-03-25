@@ -97,7 +97,7 @@ def StartEnclaveService(config, enclave) :
 
     logger.info('service started on port %s', http_port)
 
-    thread_pool = ThreadPool(maxthreads=worker_threads)
+    thread_pool = ThreadPool(minthreads=1, maxthreads=worker_threads)
     thread_pool.start()
     reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
