@@ -15,6 +15,7 @@
 import argparse
 import random
 import logging
+import sys
 logger = logging.getLogger(__name__)
 
 from pdo.common.keys import ServiceKeys
@@ -22,6 +23,8 @@ from pdo.service_client.enclave import EnclaveServiceClient
 
 from pdo.client.controller.commands.contract import get_contract
 from pdo.client.controller.commands.eservice import get_enclave_service
+from pdo.client.controller.commands.eservice import ReadEserviceDatabase
+
 
 __all__ = ['command_send']
 
@@ -44,8 +47,25 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
         raise Exception('unable to load the contract')
 
     # ---------- set up the enclave service ----------
+    if state.get(['enclave']) == 'random-db':
+        # pick an enclave id randomly from among the proviosned enclaves for the contact, and use the database to identify the eservice URL 
+        assert state.get(['eservice_db_json_file']) is not None, 'No database file name specified. Cannot update contract'
+        eservice_db = ReadEserviceDatabase(state.get(['eservice_db_json_file']))
+        # pick one enclave at random from the pdo file 
+        enclave_id = random.choice(list(contract.enclave_map.keys()))
+        # get the URL from the database
+        try :
+            enclave_url = eservice_db[enclave_id]
+        except Exception as e:
+            logger.error("Unable to find the URL for the contract enclave using the eservice database: " + str(e))
+            sys.exit(-1)
+        logger.info("Using the eservice database to identify the eservice URL where enclave is hosted. Enclave is picked at random from among the ones listed in the pdo file")
+        logger.info('contact enclave service at %s', enclave_url)
+    else:
+        enclave_url = enclave
+    
     try :
-        enclave_client = get_enclave_service(state, enclave)
+        enclave_client = get_enclave_service(state, enclave_url)
     except Exception as e :
         raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
@@ -97,15 +117,23 @@ def command_send(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='read')
-    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
+    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use or say "random-db" to pick one randomly from the eservice databse', type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
     parser.add_argument('message', help='Message to be sent to the contract', type=str)
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to corresponding eservice URLS', type=str)
 
     options = parser.parse_args(pargs)
     message = options.message
     waitflag = options.wait
+
+    if options.enclaveservice_db:
+        state.set('eservice_db_json_file', options.enclaveservice_db)
+    
+    if options.enclave:
+        if options.enclave=='random-db':
+            state.set('enclave', 'random-db')
 
     result = send_to_contract(state, options.save_file, options.enclave, options.message)
     if options.symbol :

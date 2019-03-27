@@ -98,6 +98,8 @@ def Main() :
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS or say "random-db" to pick one randomly from the contract file, and use the eservice database to get the URL', type=str)
+
     parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
     parser.add_argument('-s', '--script', help='File from which to read script', type=str)
 
@@ -161,7 +163,10 @@ def Main() :
             'ProvisioningServiceURLs' : []
         }
     if options.eservice_url :
-        config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        if options.eservice_url[0] == 'random-db':
+            config['enclave'] = 'random-db'
+        else:
+            config['Service']['EnclaveServiceURLs'] = options.eservice_url
     if options.pservice_url :
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
 
@@ -176,6 +181,9 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+    
+    if options.enclaveservice_db:
+        config['eservice_db_json_file'] = options.enclaveservice_db
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 

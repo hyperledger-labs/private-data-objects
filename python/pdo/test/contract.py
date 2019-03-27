@@ -36,6 +36,8 @@ import pdo.common.keys as keys
 import pdo.common.secrets as secrets
 import pdo.common.utility as putils
 
+from pdo.client.controller.commands.eservice import UpdateEserviceDatabase
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -77,13 +79,24 @@ def CreateAndRegisterEnclave(config) :
 
     if use_eservice :
         try :
-            eservice_url = random.choice(config['Service']['EnclaveServiceURLs'])
+            eservice_urls = config['Service']['EnclaveServiceURLs']
+            eservice_url = random.choice(eservice_urls)
             logger.info('use enclave service at %s', eservice_url)
             enclave = eservice_helper.EnclaveServiceClient(eservice_url)
-            return enclave
         except Exception as e :
             logger.error('failed to contact enclave service; %s', str(e))
             sys.exit(-1)
+
+        # Add enclaves' URLS to the eservice data base file if they dont already exit. 
+        # The db is a json file. Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client
+        if config.get('eservice_db_json_file') is not None:
+            try:
+                UpdateEserviceDatabase(config['eservice_db_json_file'], service_urls = eservice_urls) 
+            except Exception as e:
+                logger.error('Unable to update the eservie database:' + str(e))
+                sys.exit(-1)
+
+        return enclave
 
     # not using an eservice so build the local enclave
     try :
@@ -466,6 +479,8 @@ def Main() :
     parser.add_argument('--contract', help='Name of the contract to use', default='integer-key')
     parser.add_argument('--expressions', help='Name of a file to read for expressions', default=None)
 
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS', type=str)
+
     options = parser.parse_args()
 
     # first process the options necessary to load the default configuration
@@ -577,6 +592,10 @@ def Main() :
     except FileNotFoundError as fe :
         logger.error('unable to locate expression file "%s"', expression_file)
         sys.exit(-1)
+
+    if options.enclaveservice_db:
+        config['eservice_db_json_file'] = options.enclaveservice_db
+
 
     LocalMain(config)
 

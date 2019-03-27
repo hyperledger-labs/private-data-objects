@@ -18,7 +18,6 @@ import argparse
 import os
 import sys
 import random
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,8 @@ import pdo.common.utility as putils
 from pdo.contract import Contract
 from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
+
+from pdo.client.controller.commands.eservice import ReadEserviceDatabase
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -56,6 +57,7 @@ class InputIterator(object) :
             return input(self.Prompt)
         except EOFError as e :
             raise StopIteration
+
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -97,20 +99,35 @@ def LocalMain(config, message) :
         sys.exit(-1)
 
     # ---------- set up the enclave service ----------
+    if config.get('eservice_db_json_file') is not None:
+        logger.info("Using the eservice database to identify the eservice URL where enclave is hosted. Enclave is picked at random from among the ones listed in the pdo file")
+        eservice_db = ReadEserviceDatabase(config['eservice_db_json_file'])
+        # pick one enclave at random from the pdo file 
+        enclave_id = random.choice(list(contract.enclave_map.keys()))
+        # get the URL from the database
+        try :
+            enclave_url = eservice_db[enclave_id]
+        except Exception as e:
+            logger.error("Unable to find the URL for the contract enclave using the eservice database: " + str(e))
+            sys.exit(-1)
+    else:
+        try:
+            enclave_url = service_config['PreferredEnclaveService'] 
+        except Exception as e:
+            logger.error('missing configuration parameter %s', str(ke))
+            sys.exit(-1)
+
+    
     try :
-        enclave_url = service_config['PreferredEnclaveService']
         enclave_client = EnclaveServiceClient(enclave_url)
         logger.info('contact enclave service at %s', enclave_url)
-    except KeyError as ke :
-        logger.error('missing configuration parameter %s', str(ke))
-        sys.exit(-1)
     except Exception as e :
         logger.error('unable to connect to enclave service; %s', str(e))
         sys.exit(-1)
 
     try :
         # this is just a sanity check to make sure the selected enclave
-        # has actually been provisioned
+        # has actually been provisioned.
         contract.get_state_encryption_key(enclave_client.enclave_id)
     except KeyError as ke :
         logger.error('selected enclave is not provisioned')
@@ -217,7 +234,8 @@ def Main() :
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
-    parser.add_argument('--enclave', help='URL of the enclave service to use, or random to pick one randomly', type=str)
+    parser.add_argument('--enclave', help='URL of the enclave service to use, or say "random" to pick one randomly from pcontract.toml or say "random-db" to pick one randomly from the contract file, and use the eservice database to get the URL', type=str)
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS', type=str)
 
     parser.add_argument('message', help="Message to evaluate", type=str)
 
@@ -263,16 +281,31 @@ def Main() :
     if options.ledger :
         config['Sawtooth']['LedgerURL'] = options.ledger
 
+    # if options.enclave is a URL of a provisioned enclave, then this enclave will be used to update the contract. If options.enclave =='random',
+    # we pick a URL randomly from the pcontract.tml file. If options.enclave=='random-db', we pick an enclave randomly from the contract pdo file.
+    # In this case, the url is identified via the esrvice database file, whose path must be provided  as an input. 
+    
     # make sure we have an enclave
-    if config.get('Service') is None :
+    if config.get('Service') is None:
         config['Service'] = {
-            'PreferredEnclaveService' : 'http://locahost:7001'
+            'PreferredEnclaveService' : 'http://127.0.0.1:7101'
         }
-    if options.enclave :
+    
+    if options.enclave:
         if options.enclave == 'random' :
-            options.enclave = random.choice(config['Service'].get('EnclaveServiceURLs',['http://localhost:7001']))
-        config['Service']['PreferredEnclaveService'] = options.enclave
-
+            options.enclave = random.choice(config['Service'].get('EnclaveServiceURLs',['http://127.0.0.1:7101']))
+            config['Service']['PreferredEnclaveService'] = options.enclave
+            config['eservice_db_json_file'] = None
+        elif options.enclave == 'random-db' :
+            if options.enclaveservice_db is None:
+                logger.error("Need to provide eservice database path in order use random-db enclave option")
+                sys.exit(-1)    
+            config['eservice_db_json_file'] = options.enclaveservice_db    
+        else:
+            # in this case options.enclave must be a valid URL for a provisioend enclave
+            config['Service']['PreferredEnclaveService'] = options.enclave
+            config['eservice_db_json_file'] = None
+    
     # set up the key search paths
     if config.get('Key') is None :
         config['Key'] = {
@@ -294,6 +327,8 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+    
+        
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 

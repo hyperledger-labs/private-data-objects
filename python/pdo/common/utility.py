@@ -28,7 +28,8 @@ __all__ = [
     'build_simple_file_name',
     'build_file_name',
     'find_file_in_path',
-    'from_transaction_signature_to_id'
+    'from_transaction_signature_to_id',
+    'are_the_urls_same'
     ]
 
 __DefaultDataDirectory__ = './data'
@@ -115,3 +116,11 @@ def from_transaction_signature_to_id(transaction_signature) :
     """
     id = crypto.byte_array_to_base64(crypto.compute_message_hash(crypto.hex_to_byte_array(transaction_signature)))
     return id
+
+#--------------------------------------------------------------------
+#--------------------------------------------------------------------
+def are_the_urls_same(url1, url2):
+    # OK, we need a better way to compare URLS than the string comparison used here. 
+    # Ideally, one should normalize urls, and also resolve hostname to ip address before comparison
+
+    return (url1 == url2)

@@ -15,6 +15,7 @@
 import argparse
 import logging
 import random
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ from pdo.contract import register_contract
 from pdo.contract import add_enclave_to_contract
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.service_client.provisioning import ProvisioningServiceClient
+from pdo.client.controller.commands.eservice import UpdateEserviceDatabase
+
 
 __all__ = ['command_create']
 
@@ -107,6 +110,7 @@ def command_create(state, bindings, pargs) :
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('--symbol', help='binding symbol for result', type=str)
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS', type=str)
     options = parser.parse_args(pargs)
 
     contract_class = options.contract_class
@@ -144,6 +148,19 @@ def command_create(state, bindings, pargs) :
             enclaveclients.append(EnclaveServiceClient(url))
     except Exception as e :
         raise Exception('unable to contact enclave services; {0}'.format(str(e)))
+
+    
+    # Add enclaves' URLS to the eservice data base file if they dont already exit. 
+    # The db is a json file. Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client
+    if options.enclaveservice_db:
+        state.set(['eservice_db_json_file'], options.enclaveservice_db)
+    
+    if state.get(['eservice_db_json_file']):
+        try:
+            UpdateEserviceDatabase(state.get(['eservice_db_json_file']), service_clients=enclaveclients)
+        except Exception as e:
+            logger.error('Unable to update the eservie database:' + str(e))
+            sys.exit(-1)
 
     # ---------- set up the provisioning service clients ----------
     # This is a dictionary of provisioning service public key : client pairs

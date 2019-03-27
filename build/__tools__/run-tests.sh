@@ -78,6 +78,8 @@ if [ $? == 0 ] ; then
 fi
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+ESERVICE_URL_DB_FILE=${PDO_HOME}/data/enclave_db.json
+
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
@@ -85,6 +87,7 @@ function cleanup {
     ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
     ${PDO_HOME}/bin/ss-stop.sh --count ${NUM_SERVICES} > /dev/null
     rm -f ${SAVE_FILE}
+    rm -r ${ESERVICE_URL_DB_FILE}
 }
 
 trap cleanup EXIT
@@ -283,6 +286,77 @@ pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
+
+#-----------------------------------------
+yell test the eservice database file usage
+#------------------------------------------
+
+say start request test. We create a new database file as part of this test
+try pdo-test-request --no-ledger   \
+    --eservice-url http://127.0.0.1:7101 \
+    --logfile $PDO_HOME/logs/client.log --loglevel info --enclaveservice-db ${ESERVICE_URL_DB_FILE}
+
+
+say start integer-key contract test. We update the previously created database file as part of this test by adding a new entry
+try pdo-test-contract --no-ledger --contract integer-key \
+    --eservice http://127.0.0.1:7102 \
+    --logfile $PDO_HOME/logs/client.log --loglevel info --enclaveservice-db ${ESERVICE_URL_DB_FILE}
+
+
+say create the contract. Client may add more entries to the database file depending on toml file contents
+# make sure we have the necessary files in place
+CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
+if [ ! -f ${CONFIG_FILE} ]; then
+    die missing client configuration file, ${CONFIG_FILE}
+fi
+
+CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
+if [ ! -f ${CONTRACT_FILE} ]; then
+    die missing contract source file, ${CONTRACT_FILE}
+fi
+
+try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+     --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --identity user1 --save-file ${SAVE_FILE} \
+    --contract mock-contract --source _mock-contract.scm --enclaveservice-db ${ESERVICE_URL_DB_FILE}
+
+n=15
+say increment the value with a simple expression ${n} times. Each time, the contract encalve is picked  at random from among the ones found in the pdo file. the encalve url is fetched from the database file
+for v in $(seq 1 ${n}) ; do
+    # pick an enclave at random from the contract file, and use the database to identify the URL
+    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                       --logfile $PDO_HOME/logs/client.log --loglevel info \
+                       --identity user1 --save-file ${SAVE_FILE}  --enclave random-db --enclaveservice-db ${ESERVICE_URL_DB_FILE} \
+                       "'(inc-value)")
+    if [ $value != $v ]; then
+        die "contract has the wrong value ($value instead of $v)"
+    fi
+done
+
+
+say start pdo-shell test with database. New entries may be added as part of contract creation
+
+KEYGEN=${SRCDIR}/build/__tools__/make-keys
+if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
+    yell create keys for the contracts
+    for color in red green blue ; do
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
+    done
+fi
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+: "${PDO_LEDGER_URL?Missing environment variable PDO_LEDGER_URL}"
+#Client may add more entries to the database file depending on toml file contents
+try pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info --ledger $PDO_LEDGER_URL \
+    --enclaveservice-db ${ESERVICE_URL_DB_FILE} -s ${SRCDIR}/contracts/exchange/scripts/create.psh -m color red 
+
+# picks an enclave at random from the contract file, and uses the database to identify the URL
+for p in $(seq 1 5); do
+    pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info --ledger $PDO_LEDGER_URL \
+    --eservice-url random-db --enclaveservice-db ${ESERVICE_URL_DB_FILE} -s ${SRCDIR}/contracts/exchange/scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
+done
 
 yell completed all tests
 exit 0

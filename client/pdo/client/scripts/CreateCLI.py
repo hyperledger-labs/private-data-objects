@@ -33,6 +33,9 @@ from pdo.contract import add_enclave_to_contract
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.service_client.provisioning import ProvisioningServiceClient
 
+from pdo.client.controller.commands.eservice import UpdateEserviceDatabase
+
+
 logger = logging.getLogger(__name__)
 
 ## -----------------------------------------------------------------
@@ -133,6 +136,7 @@ def LocalMain(commands, config) :
     logger.info('Loaded contract data for %s', contract_name)
 
     # ---------- set up the enclave clients ----------
+
     try :
         enclaveclients = []
         for url in service_config['EnclaveServiceURLs'] :
@@ -141,6 +145,15 @@ def LocalMain(commands, config) :
         logger.error('unable to setup enclave services; %s', str(e))
         sys.exit(-1)
 
+    # Add enclaves' URLS to the eservice data base file if they dont already exit. 
+    # The db is a json file. Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client
+    if config.get('eservice_db_json_file') is not None:
+        try:
+            UpdateEserviceDatabase(config['eservice_db_json_file'], service_clients=enclaveclients)
+        except Exception as e:
+            logger.error('Unable to update eservice database:' + str(e))
+            sys.exit(-1)
+        
     # ---------- set up the provisioning service clients ----------
     # This is a dictionary of provisioning service public key : client pairs
     try :
@@ -246,6 +259,8 @@ def Main(commands) :
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS', type=str)
+
     options = parser.parse_args()
 
     # first process the options necessary to load the default configuration
@@ -327,6 +342,9 @@ def Main(commands) :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+
+    if options.enclaveservice_db:
+        config['eservice_db_json_file'] = options.enclaveservice_db
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 

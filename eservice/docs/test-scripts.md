@@ -100,6 +100,8 @@ the configuration file
   provision service is used
 * ``--eservice <string>`` -- URL for the enclave service
 * ``--pservice <string> <string> ...`` -- list of URLs for provisioning
+  ``enclaveservice-db`` -- json file mapping enclave ids to corresponding eservice URLS. 
+
   services
 * ``--logfile <string>`` -- name of the log file to use, ``__screen__``
   dumps the log to the console
@@ -187,4 +189,10 @@ $ python test-request.py --ledger http://localhost:8008 \
     --pservice http://localhost:7101 http://localhost:7102 \
     --eservice http://localhost:7001 \
     --iterations 500
+
+#Run the test with mock-contract, no ledger, one eservice and the enclave service database
+#database will be created if none exists. The (key, value) key = <enclave_id> value = http://127.0.0.1:7101
+#will be added to the database, if this does not already exist. The client can reuse this database across multiple contracts
+$ python test-request.py --no-ledger  --eservice-url http://127.0.0.1:7101 \
+    --enclaveservice-db ${ESERVICE_URL_DB_FILE}
 ```
