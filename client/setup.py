@@ -65,6 +65,7 @@ setup(name='pdo_client',
               'pdo-add-enclave = pdo.client.scripts.CreateCLI:AddEnclave',
               'pdo-update = pdo.client.scripts.UpdateCLI:Main',
               'pdo-shell = pdo.client.scripts.ShellCLI:Main',
+              'pdo-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Main'
           ]
       }
 )

@@ -18,7 +18,6 @@ import argparse
 import os
 import sys
 import random
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,7 @@ import pdo.common.utility as putils
 from pdo.contract import Contract
 from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
+import pdo.service_client.service_data.eservice as db
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -56,6 +56,7 @@ class InputIterator(object) :
             return input(self.Prompt)
         except EOFError as e :
             raise StopIteration
+
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -97,20 +98,38 @@ def LocalMain(config, message) :
         sys.exit(-1)
 
     # ---------- set up the enclave service ----------
-    try :
-        enclave_url = service_config['PreferredEnclaveService']
-        enclave_client = EnclaveServiceClient(enclave_url)
-        logger.info('contact enclave service at %s', enclave_url)
-    except KeyError as ke :
-        logger.error('missing configuration parameter %s', str(ke))
-        sys.exit(-1)
-    except Exception as e :
-        logger.error('unable to connect to enclave service; %s', str(e))
-        sys.exit(-1)
+    if service_config.get('EnclaveServiceNames'): #use the database to get the enclave for the contract
+        logger.info('Using eservice database to look up service URL for the contract enclave')
+        try:
+            eservice_to_use = random.choice(service_config['EnclaveServiceNames'])
+            # load the eservice database
+            if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
+                try:
+                    db.load_database(service_config['EnclaveServiceDatabaseFile'])
+                except Exception as e:
+                    logger.error('Error loading eservice database %s', str(e))
+                    sys.exit(-1)
+            enclave_client = db.get_client_by_name(eservice_to_use)
+        except Exception as e:
+            logger.error('Unable to get the eservice client using the eservice database: %s', str(e)) 
+            sys.exit(-1)   
+    else:
+        try:
+            enclave_url = service_config['PreferredEnclaveService'] 
+        except Exception as e:
+            logger.error('missing configuration parameter %s', str(ke))
+            sys.exit(-1)
+        try :
+            enclave_client = EnclaveServiceClient(enclave_url)
+        except Exception as e :
+            logger.error('unable to connect to enclave service; %s', str(e))
+            sys.exit(-1)
+        
+    logger.info('contact enclave service at %s', enclave_client.ServiceURL)
 
     try :
         # this is just a sanity check to make sure the selected enclave
-        # has actually been provisioned
+        # has actually been provisioned.
         contract.get_state_encryption_key(enclave_client.enclave_id)
     except KeyError as ke :
         logger.error('selected enclave is not provisioned')
@@ -217,7 +236,9 @@ def Main() :
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
-    parser.add_argument('--enclave', help='URL of the enclave service to use, or random to pick one randomly', type=str)
+    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database.', nargs='+')
+    parser.add_argument('--enclave', help='URL of the enclave service to use, or say "random" to pick one randomly from pcontract.toml', type=str)
+    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
 
     parser.add_argument('message', help="Message to evaluate", type=str)
 
@@ -263,16 +284,27 @@ def Main() :
     if options.ledger :
         config['Sawtooth']['LedgerURL'] = options.ledger
 
-    # make sure we have an enclave
+    # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
-            'PreferredEnclaveService' : 'http://locahost:7001'
+            'EnclaveServiceNames' : [],
+            'PreferredEnclaveService' : 'http://127.0.0.1:7101',
+            'EnclaveServiceURLs' : [],
+            'ProvisioningServiceURLs' : [],
+            'EnclaveServiceDatabaseFile' : None
         }
+    
+    if options.eservice_name:
+        config['Service']['EnclaveServiceNames'] = options.eservice_name
+    if options.eservice_db:
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db    
     if options.enclave :
         if options.enclave == 'random' :
             options.enclave = random.choice(config['Service'].get('EnclaveServiceURLs',['http://localhost:7001']))
         config['Service']['PreferredEnclaveService'] = options.enclave
-
+        # we will not use database
+        config['Service']['EnclaveServiceNames'] = []
+    
     # set up the key search paths
     if config.get('Key') is None :
         config['Key'] = {
