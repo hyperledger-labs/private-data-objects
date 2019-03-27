@@ -92,10 +92,8 @@ def load_contract(state, contract_file) :
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def get_contract(state, save_file=None) :
-    """create an enclave client for the preferred enclave service; assumes
-    exception handling by the calling procedure
-    """
-
+    """ Get contract object using the save_file. If there is no save_file, try loading contract using config."""
+   
     if save_file is not None :
         return load_contract(state, save_file)
 

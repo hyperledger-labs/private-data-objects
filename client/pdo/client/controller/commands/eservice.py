@@ -15,6 +15,7 @@
 import argparse
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 from pdo.service_client.enclave import EnclaveServiceClient

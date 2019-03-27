@@ -19,6 +19,7 @@ import sys
 import time
 import argparse
 import random
+import json
 import pdo.test.helpers.secrets as secret_helper
 import pdo.test.helpers.state as test_state
 
@@ -27,12 +28,17 @@ from pdo.sservice.block_store_manager import BlockStoreManager
 import pdo.eservice.pdo_helper as enclave_helper
 import pdo.service_client.enclave as eservice_helper
 import pdo.service_client.provisioning as pservice_helper
+from pdo.service_client.servicedatabase import ServiceDB_Manager
 
 import pdo.contract as contract_helper
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.secrets as secrets
 import pdo.common.utility as putils
+
+import requests
+from urllib.parse import urlparse
+import socket
 
 import logging
 logger = logging.getLogger(__name__)
@@ -81,14 +87,28 @@ def CreateAndRegisterEnclave(config) :
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
-        try :
-            eservice_url = random.choice(config['Service']['EnclaveServiceURLs'])
-            logger.info('use enclave service at %s', eservice_url)
-            enclave = eservice_helper.EnclaveServiceClient(eservice_url)
-            return enclave
-        except Exception as e :
-            logger.error('failed to contact enclave service; %s', str(e))
-            sys.exit(-1)
+        
+        # Pick an enclave for the creating the contract
+        if config['Service'].get('EnclaveServiceNames'): #use the database to get the enclave
+            logger.info('Using eservice database to look up service URL for the contract enclave')            
+            try:
+                eservice_to_use = random.choice(config['Service']['EnclaveServiceNames'])
+                db = ServiceDB_Manager(service_type='eservice', file_name=config['Service']['EnclaveServiceDatabaseFile'])
+                enclave = db.get_serviceclient_by_name(eservice_to_use)
+            except Exception as e:
+                logger.error('Unable to get the eservice client using the eservice database: ' + str(e)) 
+                sys.exit(-1)   
+        else: # do not use the database, use the url and get the client directly
+            try :
+                eservice_urls = config['Service']['EnclaveServiceURLs']
+                eservice_url = random.choice(eservice_urls)
+                enclave = eservice_helper.EnclaveServiceClient(eservice_url)
+            except Exception as e :
+                logger.error('failed to contact enclave service; %s', str(e))
+                sys.exit(-1)
+        
+        logger.info('use enclave service at %s', enclave.ServiceURL)
+        return enclave
 
     # not using an eservice so build the local enclave
     try :
@@ -448,6 +468,7 @@ def Main() :
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
+    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
@@ -457,6 +478,8 @@ def Main() :
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
 
     parser.add_argument('--tamper-block-order', help='Flag for tampering with the order of the state blocks', action='store_true')
+
+    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
 
     options = parser.parse_args()
 
@@ -520,15 +543,24 @@ def Main() :
     # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
+            'EnclaveServiceNames' : [],
             'EnclaveServiceURLs' : [],
-            'ProvisioningServiceURLs' : []
+            'ProvisioningServiceURLs' : [],
+            'EnclaveServiceDatabaseFile' : None
         }
+
+    if options.eservice_name:
+        use_eservice = True
+        config['Service']['EnclaveServiceNames'] = options.eservice_name
+    if options.eservice_db:
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.eservice_url :
         use_eservice = True
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
     if options.pservice_url :
         use_pservice = True
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
+    
 
     # set up the data paths
     if config.get('Contract') is None :
@@ -564,6 +596,7 @@ def Main() :
     if tamper_block_order :
         config['iterations'] = 1
 
+    
     LocalMain(config)
 
 Main()

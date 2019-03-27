@@ -16,5 +16,6 @@ __all__ = [
     'helpers',
     'contract',
     'request',
-    'state'
+    'state',
+    'servicedb'
 ]
