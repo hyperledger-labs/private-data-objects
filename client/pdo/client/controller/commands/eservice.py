@@ -14,10 +14,14 @@
 
 import argparse
 import logging
+import sys
+import os
+import json
 
 logger = logging.getLogger(__name__)
 
 from pdo.service_client.enclave import EnclaveServiceClient
+
 
 __all__ = ['command_eservice']
 
@@ -26,7 +30,7 @@ __all__ = ['command_eservice']
 def command_eservice(state, bindings, pargs) :
     """controller command to manage the list of enclave services
     """
-    subcommands = ['add', 'remove', 'set', 'use', 'info', 'list']
+    subcommands = ['add', 'remove', 'set', 'use', 'info', 'list', 'udpatedb']
 
     parser = argparse.ArgumentParser(prog='eservice')
     subparsers = parser.add_subparsers(dest='command')
@@ -93,7 +97,7 @@ def command_eservice(state, bindings, pargs) :
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def get_enclave_service(state, enclave_url=None) :
+def get_enclave_service(state=None, enclave_url=None) :
     """create an enclave client for the preferred enclave service; assumes
     exception handling by the calling procedure
     """
@@ -106,3 +110,4 @@ def get_enclave_service(state, enclave_url=None) :
         raise Exception('no enclave service specified')
 
     return EnclaveServiceClient(enclave_url)
+

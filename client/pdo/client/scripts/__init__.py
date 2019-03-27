@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [ 'controller', 'AuctionTestCLI', 'CreateCLI', 'UpdateCLI' ]
+__all__ = [ 'controller', 'AuctionTestCLI', 'CreateCLI', 'UpdateCLI', 'eservicedatabaseCLI' ]

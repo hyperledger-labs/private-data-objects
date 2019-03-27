@@ -65,6 +65,10 @@ setup(name='pdo_client',
               'pdo-add-enclave = pdo.client.scripts.CreateCLI:AddEnclave',
               'pdo-update = pdo.client.scripts.UpdateCLI:Main',
               'pdo-shell = pdo.client.scripts.ShellCLI:Main',
+              'pdo-create-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Create',
+              'pdo-add-to-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Add',
+              'pdo-update-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Update',
+              'pdo-remove-from-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Remove'
           ]
       }
 )

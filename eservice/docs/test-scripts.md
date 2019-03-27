@@ -98,8 +98,11 @@ the configuration file
 * ``--data <string>`` -- path to directory used for storing data
 * ``--secret-count <integer>`` -- number of secrets to generate if no
   provision service is used
-* ``--eservice <string>`` -- URL for the enclave service
+* ``--eservice-url <string>`` -- URL for the enclave service
 * ``--pservice <string> <string> ...`` -- list of URLs for provisioning
+  ``--eservice-db`` -- json file for eservice database
+  ``--eservice-name`` -- the name of an enclave service as in the client's eservice database 
+
   services
 * ``--logfile <string>`` -- name of the log file to use, ``__screen__``
   dumps the log to the console
@@ -187,4 +190,5 @@ $ python test-request.py --ledger http://localhost:8008 \
     --pservice http://localhost:7101 http://localhost:7102 \
     --eservice http://localhost:7001 \
     --iterations 500
+
 ```

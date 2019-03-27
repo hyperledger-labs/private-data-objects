@@ -78,6 +78,7 @@ if [ $? == 0 ] ; then
 fi
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
@@ -157,25 +158,25 @@ try pdo-test-storage --url http://localhost:7201 --loglevel warn --logfile __scr
 say start request test
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start integer-key contract test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start key value store test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract key-value-test \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start memory test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 ## -----------------------------------------------------------------

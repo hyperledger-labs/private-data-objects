@@ -16,5 +16,6 @@ all = [
     'enclave',
     'generic',
     'provisioning',
-    'storage'
+    'storage',
+    'servicedatabase'
 ]

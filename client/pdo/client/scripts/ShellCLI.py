@@ -95,8 +95,11 @@ def Main() :
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
+    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
+
+    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
 
     parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
     parser.add_argument('-s', '--script', help='File from which to read script', type=str)
@@ -154,12 +157,18 @@ def Main() :
     if options.key_dir :
         config['Key']['SearchPath'] = options.key_dir
 
-    # set up the service configuration
+   # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
+            'EnclaveServiceNames' : [],
             'EnclaveServiceURLs' : [],
-            'ProvisioningServiceURLs' : []
+            'ProvisioningServiceURLs' : [],
+            'EnclaveServiceDatabaseFile' : None
         }
+    if options.eservice_name:
+        config['Service']['EnclaveServiceNames'] = options.eservice_name
+    if options.eservice_db:
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.eservice_url :
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
     if options.pservice_url :
@@ -176,7 +185,7 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
-
+    
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     if options.script :
