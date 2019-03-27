@@ -19,6 +19,7 @@ import sys
 import time
 import argparse
 import random
+import json
 import pdo.test.helpers.secrets as secret_helper
 import pdo.test.helpers.state as test_state
 
@@ -33,6 +34,10 @@ import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.secrets as secrets
 import pdo.common.utility as putils
+
+import requests
+from urllib.parse import urlparse
+import socket
 
 import logging
 logger = logging.getLogger(__name__)
@@ -67,6 +72,95 @@ def ErrorShutdown() :
 
     sys.exit(-1)
 
+def are_the_urls_same(url1, url2):
+    # OK, we need a better way to compare URLS than the string comparison used here. 
+    # Ideally, one should normalize urls, and also resolve hostname to ip address before comparison
+
+    return (url1 == url2)
+
+def ReadEserviceDatabase(eservice_db_file):
+    """ Read the eservice data base. The db is a json file. 
+    Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client.
+    Return the database as a dictonary. 
+    
+    This method is currently unused in this module. This needs to be used if client directly updates the contract without creating it.
+    In this case, the client gets enclave ids from the contract pdo file. URLs are obtained via this module by reading the database.
+    """
+
+    if os.path.exists(eservice_db_file):
+        try:
+            with open(eservice_db_file, 'r') as fp:
+                eservice_db = json.load(fp)
+        except Exception as e:
+            logger.error('Could not open encalve service database file : ' + str(e))
+            sys.exit(-1)
+    else:
+        logger.error('Attempting to read non existent eservice data base file.')
+        sys.exit(-1)
+    
+    return eservice_db
+
+def UpdateEserviceDatabase(enclave_for_contract, config):
+    """ Update the eservice data base by adding new entires. The db is a json file. 
+    Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client.
+    
+    This method can also be used to create a new database by a client. 
+    """
+    eservice_db_file = config['eservice_db_json_file']
+   
+    if os.path.exists(eservice_db_file):
+        try:
+            with open(eservice_db_file, 'r') as fp:
+                eservice_db = json.load(fp)
+        except Exception as e:
+            logger.error('Could not open encalve service database file : ' + str(e))
+            sys.exit(-1)
+    else :
+        eservice_db = dict()
+        
+    num_curr_entires = len(eservice_db)
+    eservice_urls = config['Service']['EnclaveServiceURLs']
+
+    for url in eservice_urls:
+
+        try : 
+            
+            if are_the_urls_same(url, enclave_for_contract.ServiceURL):
+                # this if-else loop is just to ensure that we do not create another EnclaveServiceClient object for the enclave chosen for the contract.
+                # This avoids duplicating requests-session for the same URL.
+                enclave_id = enclave_for_contract.enclave_id
+            else:
+                enclave = eservice_helper.EnclaveServiceClient(url)
+                enclave_id = enclave.enclave_id
+
+            if enclave_id in eservice_db.keys():
+                # if the enclave is already in the database, if must be hosted at the same URL 
+                if not are_the_urls_same(eservice_db[enclave_id], url):
+                    logger.error('Enclave is hosted at a URL different from the one found in the database. Exiting ...')
+                    sys.exit(-1)
+            else :
+                # make sure the url is not already present in the database. Each URL hosts atmost one enclave, and each enaclave is hosted by one URL
+                if url in eservice_db.values():
+                    logger.error('Multiple enclaves hosted at the same URL. Exiting ...')
+                    sys.exit(-1)
+                eservice_db[enclave_id] = url
+        except Exception as e:
+            logger.error('Unable to get enclave id for URLS in config: ' + str(e))
+            sys.exit(-1)
+    
+    # save the dictionary in the database
+    if len(eservice_db) > num_curr_entires:
+        logger.info('Adding %d new entries to eservice data base', len(eservice_db) - num_curr_entires)
+        try:
+            with open(eservice_db_file, 'w') as fp:
+                json.dump(eservice_db, fp)
+        except Exception as e:
+            logger.error('Could not update the encalve service database: ' + str(e))
+            sys.exit(-1)
+    else:
+        logger.info('All enclaves already present in the eservice database. Nothing new to add')
+
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def CreateAndRegisterEnclave(config) :
@@ -81,14 +175,26 @@ def CreateAndRegisterEnclave(config) :
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
+        
+        # Pick an enclave for the creating the contract
         try :
             eservice_url = random.choice(config['Service']['EnclaveServiceURLs'])
             logger.info('use enclave service at %s', eservice_url)
             enclave = eservice_helper.EnclaveServiceClient(eservice_url)
-            return enclave
         except Exception as e :
             logger.error('failed to contact enclave service; %s', str(e))
             sys.exit(-1)
+        
+        # Add enclaves' URLS to the eservice data base file if they dont already exit. 
+        # The db is a json file. Key is enclave id , value is eservice URL. The db contains the info for all enclaves known to the client
+        if config.get('eservice_db_json_file') is not None:
+            try:
+                UpdateEserviceDatabase(enclave, config) 
+            except Exception as e:
+                logger.error('Unable to update the eservie database:' + str(e))
+                sys.exit(-1)
+
+        return enclave
 
     # not using an eservice so build the local enclave
     try :
@@ -458,6 +564,8 @@ def Main() :
 
     parser.add_argument('--tamper-block-order', help='Flag for tampering with the order of the state blocks', action='store_true')
 
+    parser.add_argument('--enclaveservice-db', help='json file mapping enclave ids to correspodnign eservice URLS', type=str)
+
     options = parser.parse_args()
 
     # first process the options necessary to load the default configuration
@@ -563,6 +671,9 @@ def Main() :
     tamper_block_order = options.tamper_block_order
     if tamper_block_order :
         config['iterations'] = 1
+
+    if options.enclaveservice_db:
+        config['eservice_db_json_file'] = options.enclaveservice_db
 
     LocalMain(config)
 

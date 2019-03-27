@@ -78,6 +78,8 @@ if [ $? == 0 ] ; then
 fi
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+ENCLAVE_DB_FILE=${PDO_HOME}/data/enclave_db.json
+
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
@@ -85,6 +87,7 @@ function cleanup {
     ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
     ${PDO_HOME}/bin/ss-stop.sh --count ${NUM_SERVICES} > /dev/null
     rm -f ${SAVE_FILE}
+    rm -r ${ENCLAVE_DB_FILE}
 }
 
 trap cleanup EXIT
@@ -283,6 +286,48 @@ pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
+
+yell test the eservice database file usage
+
+# 
+say start request test. We create a new database file as part of this test
+try pdo-test-request --no-ledger   \
+    --eservice-url http://127.0.0.1:7101 \
+    --logfile $PDO_HOME/logs/client.log --loglevel info --enclaveservice-db ${ENCLAVE_DB_FILE}
+
+
+say start integer-key contract test. We update the previously created database file as part of this test by adding a new entry
+try pdo-test-contract --no-ledger --contract integer-key \
+    --eservice http://127.0.0.1:7102 \
+    --logfile $PDO_HOME/logs/client.log --loglevel info --enclaveservice-db ${ENCLAVE_DB_FILE}
+
+
+## -----------------------------------------------------------------
+yell start pdo-create and pdo-update tests
+## -----------------------------------------------------------------
+
+
+say create the contract. We may add more entries to the database file depending on toml file contents
+try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+     --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --identity user1 --save-file ${SAVE_FILE} \
+    --contract mock-contract --source _mock-contract.scm --enclaveservice-db ${ENCLAVE_DB_FILE}
+
+
+n = 15
+say increment the value with a simple expression ${n} times. Each time, the contract encalve is picked  at random from among the ones found in the pdo file. the encalve url is fetched from the database file
+for v in $(seq 1 ${n}) ; do
+    
+    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                       --logfile $PDO_HOME/logs/client.log --loglevel info \
+                       --identity user1 --save-file ${SAVE_FILE}  --enclaveservice-db ${ENCLAVE_DB_FILE} \
+                       "'(inc-value)")
+    if [ $value != $v ]; then
+        die "contract has the wrong value ($value instead of $v)"
+    fi
+done
+
+read -p "Enter any key to continue" variable1
 
 yell completed all tests
 exit 0
