@@ -15,6 +15,7 @@
 import argparse
 import logging
 import random
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ from pdo.contract import register_contract
 from pdo.contract import add_enclave_to_contract
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.service_client.provisioning import ProvisioningServiceClient
+from pdo.service_client.servicedatabase import ServiceDB_Manager
+
 
 __all__ = ['command_create']
 
@@ -134,17 +137,28 @@ def command_create(state, bindings, pargs) :
     logger.info('Loaded contract code for %s', contract_class)
 
     # ---------- set up the enclave clients ----------
-    try :
+    enclaveclients = []
+    enclave_names = state.get(['Service', 'EnclaveServiceNames'], [])
+    if len(enclave_names) > 0: #use the database to get the list of enclaves for the contract
+        logger.info('Using eservice database to look up service URL for the contract enclave')
+        try:
+            db = ServiceDB_Manager(service_type='eservice', file_name=state.get(['Service', 'EnclaveServiceDatabaseFile']))
+            for name in enclave_names:
+                enclaveclients.append(db.get_serviceclient_by_name(name))
+        except Exception as e:
+            logger.error('Unable to get the eservice clients using the eservice database: ' + str(e)) 
+            sys.exit(-1)   
+    else:
         eservice_urls = state.get(['Service', 'EnclaveServiceURLs'], [])
         if len(eservice_urls) == 0 :
             raise Exception('no enclave services specified')
+        try:
+            for url in eservice_urls :
+                enclaveclients.append(EnclaveServiceClient(url))
+        except Exception as e :
+            raise Exception('unable to contact enclave services; {0}'.format(str(e)))
 
-        enclaveclients = []
-        for url in eservice_urls :
-            enclaveclients.append(EnclaveServiceClient(url))
-    except Exception as e :
-        raise Exception('unable to contact enclave services; {0}'.format(str(e)))
-
+    
     # ---------- set up the provisioning service clients ----------
     # This is a dictionary of provisioning service public key : client pairs
     try :

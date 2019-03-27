@@ -15,6 +15,7 @@
 import argparse
 import random
 import logging
+import sys
 logger = logging.getLogger(__name__)
 
 from pdo.common.keys import ServiceKeys
@@ -22,6 +23,7 @@ from pdo.service_client.enclave import EnclaveServiceClient
 
 from pdo.client.controller.commands.contract import get_contract
 from pdo.client.controller.commands.eservice import get_enclave_service
+from pdo.service_client.servicedatabase import ServiceDB_Manager
 
 __all__ = ['command_send']
 
@@ -44,10 +46,21 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
         raise Exception('unable to load the contract')
 
     # ---------- set up the enclave service ----------
-    try :
-        enclave_client = get_enclave_service(state, enclave)
-    except Exception as e :
-        raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
+    enclave_names = state.get(['Service', 'EnclaveServiceNames'], [])
+    if len(enclave_names) > 0: #use the database to get the list of enclaves for the contract
+        logger.info('Using eservice database to look up service URL for the contract enclave')
+        try:
+            eservice_to_use = random.choice(state.get(['Service', 'EnclaveServiceNames']))
+            db = ServiceDB_Manager(service_type='eservice', file_name=state.get(['Service', 'EnclaveServiceDatabaseFile']))
+            enclave_client = db.get_serviceclient_by_name(eservice_to_use)
+        except Exception as e:
+            logger.exception('Unable to get the eservice clients using the eservice database: ' + str(e)) 
+            raise Exception from e
+    else:
+        try :
+            enclave_client = get_enclave_service(state, enclave)
+        except Exception as e :
+            raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
     try :
         # this is just a sanity check to make sure the selected enclave
@@ -102,7 +115,7 @@ def command_send(state, bindings, pargs) :
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
     parser.add_argument('message', help='Message to be sent to the contract', type=str)
-
+    
     options = parser.parse_args(pargs)
     message = options.message
     waitflag = options.wait
