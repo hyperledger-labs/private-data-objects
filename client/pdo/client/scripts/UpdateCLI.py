@@ -70,6 +70,15 @@ def LocalMain(config, message) :
         logger.error('missing configuration section %s', str(ke))
         sys.exit(-1)
 
+    # ---------- load the eservice database ----------
+    if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
+        logger.info('loading eservice database')
+        try:
+            db.load_database(service_config['EnclaveServiceDatabaseFile'])
+        except Exception as e:
+            logger.error('Error loading eservice database %s', str(e))
+            sys.exit(-1)
+
     # ---------- load the contract information file ----------
     try:
         save_file = contract_config['SaveFile']
@@ -101,13 +110,6 @@ def LocalMain(config, message) :
         logger.info('Using eservice database to look up service URL for the contract enclave')
         try:
             eservice_to_use = random.choice(service_config['EnclaveServiceNames'])
-            # load the eservice database
-            if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
-                try:
-                    db.load_database(service_config['EnclaveServiceDatabaseFile'])
-                except Exception as e:
-                    logger.error('Error loading eservice database %s', str(e))
-                    sys.exit(-1)
             enclave_client = db.get_client_by_name(eservice_to_use)
         except Exception as e:
             logger.error('Unable to get the eservice client using the eservice database: %s', str(e)) 
@@ -147,7 +149,7 @@ def LocalMain(config, message) :
         logger.info('send message <%s> to contract', msg)
 
         try :
-            update_request = contract.create_update_request(contract_invoker_keys, enclave_client, msg)
+            update_request = contract.create_update_request(contract_invoker_keys, msg, enclave_client)
             update_response = update_request.evaluate()
             if update_response.status :
                 print(update_response.result)

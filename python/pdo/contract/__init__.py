@@ -20,7 +20,9 @@ __all__ = [
     "ContractResponse",
     "ContractRequest",
     "register_contract",
-    "add_enclave_to_contract"
+    "add_enclave_to_contract",
+    "Replicator",
+    "ReplicationException"
 ]
 
 from pdo.contract.code import ContractCode
@@ -29,3 +31,6 @@ from pdo.contract.message import ContractMessage
 from pdo.contract.request import ContractRequest
 from pdo.contract.response import ContractResponse
 from pdo.contract.state import ContractState
+from pdo.contract.replication import ReplicationException
+from pdo.contract.replication import Replicator
+

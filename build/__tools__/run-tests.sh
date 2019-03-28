@@ -351,6 +351,25 @@ done
 # clean up the pdo files that are created by the shell
 rm -f ${SCRIPTDIR}/red_issuer.pdo ${SCRIPTDIR}/red_type.pdo ${SCRIPTDIR}/red_vetting.pdo
 
+
+cd ${SRCDIR}/build
+
+yell run tests for state replication 
+say start mock-contract test with replication 3 eservices 2 replicas needed before txn. 
+
+try pdo-test-request --ledger ${PDO_LEDGER_URL} \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice-name e1 e2 e3 \
+    --logfile __screen__ --loglevel warn --iterations 10 \
+    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice True
+
+say start memory test test with replication 3 eservices 2 replicas needed before txn 
+try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
+    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+    --eservice-name e1 e2 e3 \
+    --logfile __screen__ --loglevel warn \
+    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice True
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 yell completed all tests

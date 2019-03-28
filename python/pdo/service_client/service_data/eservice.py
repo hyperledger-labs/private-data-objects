@@ -321,7 +321,7 @@ def get_client_by_id(id):
     try:
         return get_client_by_url(__url_by_name__[__name_by_id__[id]])
     except Exception as e:
-        raise Exception('Cannot generate client for eservice id %s: %s', str(id), str(e))
+        raise Exception('Cannot generate client for eservice id %s , %s', str(id), str(e))
 
 #--------------------------------------------
 #--------------------------------------------

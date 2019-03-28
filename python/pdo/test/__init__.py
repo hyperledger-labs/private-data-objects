@@ -18,4 +18,5 @@ __all__ = [
     'request',
     'state',
     'servicedb',
+    'replication'
 ]
