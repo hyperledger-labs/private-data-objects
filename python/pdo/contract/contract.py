@@ -24,6 +24,9 @@ from pdo.submitter.submitter import Submitter
 from pdo.contract.request import ContractRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
+from pdo.contract.replication import Replicator
+
+import pdo.service_client.service_data.eservice as eservice_db
 
 import sawtooth.helpers.pdo_connect
 
@@ -87,14 +90,7 @@ class Contract(object) :
                 enclave['contract_enclave_id'],
                 enclave['encrypted_contract_state_encryption_key'])
 
-        if contract_info['is_proof_of_replication_enabled']:
-            replication_params = dict()
-            replication_params['is_enabled'] = contract_info['is_proof_of_replication_enabled']
-            replication_params['num_provable_replicas'] = contract_info['num_provable_replicas']
-            replication_params['availability_duration'] = contract_info['availability_duration']
-            replication_params['sservice_verifying_keys'] = contract_info['sservice_verifying_keys']
-            replication_params['max_num_replicas'] = len(contract_info['sservice_verifying_keys'])
-            obj.set_proof_of_replication_parameters(replication_params)
+        obj.set_replication_parameters(contract_info['num_provable_replicas'], contract_info['availability_duration'])
 
         return obj
 
@@ -107,9 +103,8 @@ class Contract(object) :
         self.contract_id = contract_id
         self.creator_id = creator_id
         self.extra_data = kwargs.get('extra_data', {})
-
         self.enclave_map = kwargs.get('enclave_map',{})
-        self.set_proof_of_replication_parameters(dict(is_enabled = False))
+        self.set_replication_parameters()
 
     # -------------------------------------------------------
     def set_state_encryption_key(self, enclave_id, encrypted_state_encryption_key) :
@@ -119,35 +114,37 @@ class Contract(object) :
     def get_state_encryption_key(self, enclave_id) :
         return self.enclave_map[enclave_id]
 
-    
-    def set_proof_of_replication_parameters(self, proof_of_replication_parameters = dict(is_enabled = False)):
-        self.is_replication_enabled = proof_of_replication_parameters['is_enabled']
-        if proof_of_replication_parameters['is_enabled']:
-            try:
-                self.max_num_replicas = proof_of_replication_parameters['max_num_replicas']
-                self.num_provable_replicas = proof_of_replication_parameters['num_provable_replicas']
-                self.availability_duration = proof_of_replication_parameters['availability_duration']
-                self.sservice_verifying_keys = proof_of_replication_parameters['sservice_verifying_keys']
-            except Exception as e:
-                logger.error("Unable to set state replication parameters in contract: " + str(e))
-                sys.exit(-1)
-
-    def get_proof_of_replication_parameters(self) :
-        proof_of_replication_parameters = dict()
-        proof_of_replication_parameters['is_enabled'] = self.is_replication_enabled
-        if self.is_replication_enabled:
-            proof_of_replication_parameters['max_num_replicas'] = self.max_num_replicas
-            proof_of_replication_parameters['num_provable_replicas'] = self.num_provable_replicas
-            proof_of_replication_parameters['availability_duration'] = self.availability_duration
-            proof_of_replication_parameters['sservice_verifying_keys'] = self.sservice_verifying_keys
-        return proof_of_replication_parameters
-    
     # -------------------------------------------------------
     @property
     def short_id(self) :
         assert self.contract_id
         return hex(abs(hash(self.contract_id)))[2:]
 
+
+    # -------------------------------------------------------
+    def set_replication_parameters(self, num_provable_replicas=1, availability_duration=120):
+                
+        replication_params = dict()
+        replication_params['max_num_replicas'] = len(self.enclave_map.keys())
+        replication_params['num_provable_replicas'] = num_provable_replicas
+        replication_params['availability_duration'] = availability_duration #seconds
+        
+        self.replication_params = replication_params
+        
+        if replication_params['max_num_replicas'] > 1:
+            # set storage clients for replication
+            storage_clients = []
+            for enclave_id in self.enclave_map.keys():
+                try:
+                    eservice_client = eservice_db.get_client_by_id(enclave_id)
+                except Exception as e:
+                    raise Exception('unable to set sservice clients for replication: Failed to get enclave client using database: %s', str(e))
+                storage_clients.append(eservice_client.storage_service_client)
+            
+            self.storage_clients_for_replication = storage_clients
+        else:
+            self.storage_clients_for_replication = [] # there is no replication if there is only one provisioned enclave
+           
     # -------------------------------------------------------
     @property
     def provisioned_enclaves(self) :
@@ -159,7 +156,7 @@ class Contract(object) :
         self.contract_state.update_state(state)
 
     # -------------------------------------------------------
-    def create_initialize_request(self, request_originator_keys, enclave_service, storageclients = []) :
+    def create_initialize_request(self, request_originator_keys, enclave_service=None) :
         """create a request to initialize the state of the contract
 
         :param request_originator_keys: object of type ServiceKeys
@@ -167,12 +164,11 @@ class Contract(object) :
         """
         return ContractRequest(
             'initialize',
-            request_originator_keys,
-            enclave_service,
-            self, storageclients = storageclients)
+            request_originator_keys,self,
+            enclave_service=enclave_service)
 
     # -------------------------------------------------------
-    def create_update_request(self, request_originator_keys, enclave_service, expression, storageclients = []) :
+    def create_update_request(self, request_originator_keys, expression, enclave_service=None) :
         """create a request to update the state of the contract
 
         :param request_originator_keys: object of type ServiceKeys
@@ -181,10 +177,9 @@ class Contract(object) :
         """
         return ContractRequest(
             'update',
-            request_originator_keys,
-            enclave_service,
-            self,
-            expression = expression, storageclients = storageclients)
+            request_originator_keys,self,
+            enclave_service=enclave_service,
+            expression = expression)
 
     # -------------------------------------------------------
     def save_to_file(self, basename, data_dir = None) :
@@ -206,14 +201,10 @@ class Contract(object) :
         serialized['enclaves_info'] = enclaves_info
 
         # add replication params 
-        replication_params = self.get_proof_of_replication_parameters()
-        serialized['is_proof_of_replication_enabled'] = replication_params['is_enabled']
-        if replication_params['is_enabled']:
-            serialized['num_provable_replicas'] = replication_params['num_provable_replicas']
-            serialized['availability_duration'] = replication_params['availability_duration']
-            serialized['sservice_verifying_keys'] = replication_params['sservice_verifying_keys']
-            
-
+        replication_params = self.replication_params
+        serialized['num_provable_replicas'] = replication_params['num_provable_replicas']
+        serialized['availability_duration'] = replication_params['availability_duration']
+                    
         filename = putils.build_file_name(basename, data_dir, self.__path__, self.__extension__)
 
         try :

@@ -104,6 +104,7 @@ setup(name='pdo_common_library',
               'pdo-test-contract = pdo.test.contract:Main',
               'pdo-test-request = pdo.test.request:Main',
               'pdo-test-storage = pdo.test.storage:Main',
+              'pdo-test-replication = pdo.test.replication:Main'
           ]
       }
 )
