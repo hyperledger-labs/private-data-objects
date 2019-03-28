@@ -18,7 +18,11 @@
 #include <map>
 #include <vector>
 
+// This is for the uint64_t formats for the log statements
+#include <inttypes.h>
+
 #include "error.h"
+#include "log.h"
 #include "pdo_error.h"
 #include "swig_utils.h"
 #include "types.h"
@@ -85,6 +89,12 @@ std::vector<uint8_t> contract_handle_contract_request(
     uint32_t response_identifier;
     size_t response_size;
 
+#if PDO_DEBUG_BUILD
+    uint64_t start_time = GetTimer();
+    uint64_t request_identifier = GetRequestIdentifier();
+    SAFE_LOG(PDO_LOG_DEBUG, "start request [%" PRIu64 "]", request_identifier);
+#endif
+
     pdo::enclave_queue::ReadyEnclave readyEnclave = pdo::enclave_api::base::GetReadyEnclave();
 
     presult = pdo::enclave_api::contract::HandleContractRequest(
@@ -104,6 +114,8 @@ std::vector<uint8_t> contract_handle_contract_request(
         response,
         readyEnclave.getIndex());
     ThrowPDOError(presult);
+
+    SAFE_LOG(PDO_LOG_DEBUG, "end request [%" PRIu64 "]; elapsed time %" PRIu64, request_identifier, GetTimer() - start_time);
 
     return response;
 }

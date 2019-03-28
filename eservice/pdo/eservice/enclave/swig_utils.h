@@ -29,18 +29,8 @@ void ThrowPDOError(
     );
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void PyLog(
-    pdo_log_level_t type,
-    const char *msg
-    );
-
-void PyLogV(
-    pdo_log_level_t type,
-    const char *msg,
-    ...);
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 uint64_t GetTimer();
+uint64_t GetRequestIdentifier();
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void InitializeInternal();

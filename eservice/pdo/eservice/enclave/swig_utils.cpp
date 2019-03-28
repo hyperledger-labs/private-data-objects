@@ -24,6 +24,8 @@
 #include <iostream>
 
 #include "c11_support.h"
+#include "error.h"
+#include "log.h"
 #include "pdo_error.h"
 
 #include "enclave/base.h"
@@ -31,8 +33,6 @@
 #include "swig_utils.h"
 
 #define FIXED_BUFFER_SIZE (1<<14)
-
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ThrowPDOError(
@@ -84,7 +84,7 @@ void ThrowPDOError(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static PyObject* glogger = NULL;
-void _SetLogger(
+void SetLogger(
     PyObject* inLogger
     )
 {
@@ -97,21 +97,21 @@ void _SetLogger(
     }
 } // _SetLogger
 
-PyGILState_STATE gstate;
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void PyLog(
+static PyGILState_STATE gstate;
+static void PyLog(
     pdo_log_level_t type,
     const char *msg
     )
 {
+    // note that the log function wraps this with a mutex so we don't
+    // need to
+
     if (!glogger)
     {
         printf("PyLog called before logger set, msg %s \n", msg);
         return;
     }
-
-    pthread_mutex_lock(&mutex);
 
     //Ensures GIL is available on current thread for python callbacks
     gstate = PyGILState_Ensure();
@@ -146,24 +146,7 @@ void PyLog(
     PyGILState_Release(gstate);
     //Releases GIL for other threads
 
-    pthread_mutex_unlock(&mutex);
 } // PyLog
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void PyLogV(
-    pdo_log_level_t type,
-    const char* message,
-    ...
-    )
-{
-    char msg[FIXED_BUFFER_SIZE] = { '\0' };
-    va_list ap;
-    va_start(ap, message);
-    vsnprintf_s(msg, FIXED_BUFFER_SIZE, message, ap);
-    va_end(ap);
-
-    PyLog(type, msg);
-} // PyLogV
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 uint64_t GetTimer()
@@ -175,14 +158,30 @@ uint64_t GetTimer()
     return value;
 }
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static pthread_mutex_t g_request_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t g_request_identifier = 0;
+uint64_t GetRequestIdentifier(void)
+{
+    uint64_t result;
+    pthread_mutex_lock(&g_request_mutex);
+    {
+        result = g_request_identifier;
+        g_request_identifier++;
+    }
+    pthread_mutex_unlock(&g_request_mutex);
+
+    return result;
+}
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void InitializePDOEnclaveModule()
 {
-    // Intentionally left blank
+    pdo::logger::SetLogFunction(PyLog);
 } // InitializePDOEnclaveModule
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void TerminateInternal()
 {
-    _SetLogger(NULL);
+    SetLogger(NULL);
 } // TerminateInternal

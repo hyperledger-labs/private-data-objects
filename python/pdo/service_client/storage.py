@@ -69,7 +69,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         url = "{0}/info".format(self.ServiceURL)
         try :
-            response = requests.get(url, headers=request_headers, timeout=self.default_timeout)
+            response = self.session.get(url, headers=request_headers, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (get_service_info); %s', str(e))
             raise StorageException(str(e)) from e
@@ -87,7 +87,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         url = "{0}/block/list".format(self.ServiceURL)
         try :
-            response = requests.get(url, timeout=self.default_timeout)
+            response = self.session.get(url, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (list_blocks); %s', str(e))
             raise StorageException(str(e)) from e
@@ -109,7 +109,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         url = "{0}/block/get/{1}".format(self.ServiceURL, block_id)
         try :
-            response = requests.get(url, timeout=self.default_timeout)
+            response = self.session.get(url, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (get_block); %s', str(e))
             raise StorageException(str(e)) from e
@@ -130,7 +130,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         url = "{0}/block/gets".format(self.ServiceURL)
         try :
-            response = requests.post(url, json=block_ids, timeout=self.default_timeout)
+            response = self.session.post(url, json=block_ids, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (get_blocks); %s', str(e))
             raise StorageException(str(e)) from e
@@ -185,7 +185,7 @@ class StorageServiceClient(GenericServiceClient) :
             raise StorageException(str(e)) from e
 
         try :
-            response = requests.post(url, data=mp_encoder.to_string(), headers=request_headers, timeout=self.default_timeout)
+            response = self.session.post(url, data=mp_encoder.to_string(), headers=request_headers, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (store_blocks); %s', str(e))
             raise StorageException(str(e)) from e
@@ -209,7 +209,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         url = "{0}/block/check".format(self.ServiceURL)
         try :
-            response = requests.post(url, json=block_ids, timeout=self.default_timeout)
+            response = self.session.post(url, json=block_ids, timeout=self.default_timeout)
         except Exception as e :
             logger.warn('unknown exception (check_blocks); %s', str(e))
             raise StorageException(str(e)) from e

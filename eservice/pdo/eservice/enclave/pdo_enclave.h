@@ -23,8 +23,6 @@
 #include "contract.h"
 #include "block_store.h"
 
+// From swig_utils.h
+void SetLogger(PyObject*);
 void InitializePDOEnclaveModule();
-
-void _SetLogger(
-    PyObject*
-    );
