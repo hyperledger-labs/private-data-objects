@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import json
+import random
 
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
@@ -21,6 +22,8 @@ from pdo.contract.response import ContractResponse
 from pdo.contract.message import ContractMessage
 from pdo.contract.state import ContractState
 from pdo.submitter.submitter import Submitter
+
+import pdo.service_client.service_data.eservice as eservice_db
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,25 +41,43 @@ class InvocationException(Exception) :
 class ContractRequest(object) :
     __ops__ = { 'initialize' : True, 'update' : True }
 
+    __request_number__ = 0 # a monotonic counter used locally by the client to identify all its requests. 
+                         # Every (contract_id, statehash) pair maps to a unique request_number. The converse is not true (if the request failed)
+    
     # -------------------------------------------------------
-    def __init__(self, operation, request_originator_keys, enclave_service, contract, **kwargs) :
+    def __init__(self, operation, request_originator_keys, contract, **kwargs) :
         if not self.__ops__[operation] :
             raise ValueError('invalid operation')
 
         self.operation = operation
-
         self.contract_id = contract.contract_id
         self.creator_id = contract.creator_id
-        self.encrypted_state_encryption_key = contract.get_state_encryption_key(enclave_service.enclave_id)
-        self.enclave_service = enclave_service
+                
+        if kwargs.get('enclave_service'):
+            self.enclave_service = kwargs['enclave_service']
+        else:
+            enclave_id = random.choice(list(contract.enclave_map.keys()))
+            try: #use the eservice database to get the client
+                self.enclave_service = eservice_db.get_client_by_id(enclave_id)
+            except Exception as e:
+                raise Exception('unable to assign eservice for the conrtract: Failed to get enclave client using database: %s', str(e))
+        try:
+            logger.info("Contract enclave at %s", str(self.enclave_service.ServiceURL))
+        except:
+            pass #in case the execution runs without an actual enclave
+
+        self.encrypted_state_encryption_key = contract.get_state_encryption_key(self.enclave_service.enclave_id)
         self.originator_keys = request_originator_keys
         self.channel_keys = keys.TransactionKeys()
         self.session_key = crypto.SKENC_GenerateKey()
-
         self.contract_code = contract.contract_code
         self.contract_state = contract.contract_state
         self.message = ContractMessage(self.originator_keys, self.channel_keys, **kwargs)
-
+        self.replication_params = contract.replication_params
+        self.storage_clients_for_replication = contract.storage_clients_for_replication
+        self.request_number = ContractRequest.__request_number__
+        ContractRequest.__request_number__+=1
+        
     # -------------------------------------------------------
     @property
     def enclave_keys(self) :

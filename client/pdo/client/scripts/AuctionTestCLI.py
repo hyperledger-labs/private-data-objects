@@ -76,7 +76,7 @@ def SendMessageAsIdentity(config, contract, invoker_keys, message, fmt = 'python
         enclave_id = random.choice(contract.provisioned_enclaves)
         enclave_service = enclave_services[enclave_id]
 
-        request = contract.create_update_request(invoker_keys, enclave_service, message)
+        request = contract.create_update_request(invoker_keys, message, enclave_service)
         response = request.evaluate()
         logger.info('result: %s, ', response.result)
     except Exception as e :
