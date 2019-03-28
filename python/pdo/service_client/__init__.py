@@ -17,5 +17,4 @@ all = [
     'generic',
     'provisioning',
     'storage',
-    'servicedatabase'
 ]

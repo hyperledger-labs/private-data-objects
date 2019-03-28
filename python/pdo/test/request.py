@@ -18,7 +18,7 @@ import os
 import sys
 import time
 import argparse
-import random
+
 from string import Template
 
 import pdo.test.helpers.secrets as secret_helper
@@ -32,6 +32,7 @@ import pdo.service_client.provisioning as pservice_helper
 import pdo.service_client.service_data.eservice as db
 
 import pdo.contract as contract_helper
+from pdo.contract.response import ContractResponse
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.secrets as secrets
@@ -39,9 +40,6 @@ import pdo.common.utility as putils
 
 import logging
 logger = logging.getLogger(__name__)
-
-# this will be used to test transaction dependencies
-txn_dependencies = []
 
 # representation of the enclave
 enclave = None
@@ -68,7 +66,77 @@ def ErrorShutdown() :
     except Exception as e :
         logger.exception('shutdown failed')
 
+    # Send termination signal to commit tasks
+    ContractResponse.exit_commit_workers()
+
     sys.exit(-1)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def AddReplicationParamsToContract(config, enclave_clients, contract):
+    """ Get parameters for change set replication from config. """
+
+    replication_config = config['Replication']
+
+    # ---------- get replication parameters from config --------------------------------------------------
+
+    try :
+        num_provable_replicas = replication_config['NumProvableReplicas']
+        availability_duration = replication_config['Duration']
+    except Exception as e :
+        logger.error('Replication is enabled with incomplete configuration.')
+        sys.exit(-1)
+
+    assert num_provable_replicas >= 0 , "Invalid configuration for num_provable_replicas: Must be a postive integer for proof of replication "
+    assert num_provable_replicas <= len(enclave_clients), "Invalid configuration for num_provable_replicas : Can be at most number of provisioned eservices"
+    assert availability_duration > 0 , "Invalid configuration for availability duration: Must be positive."
+
+    contract.set_replication_parameters(num_provable_replicas, availability_duration)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def AddEnclaveSecrets(ledger_config, contract_id, client_keys, enclaves, provclients) :
+    secrets = {}
+    encrypted_state_encryption_keys = {}
+    for enclave in enclaves:
+
+        if use_pservice:
+            psecrets = []
+            for provclient in provclients:
+                # Get a pspk:esecret pair from the provisioning service for each enclave
+                sig_payload = crypto.string_to_byte_array(enclave.enclave_id + contract_id)
+                secretinfo = provclient.get_secret(enclave.enclave_id,
+                                               contract_id,
+                                               client_keys.verifying_key,
+                                               client_keys.sign(sig_payload))
+                logger.debug("pservice secretinfo: %s", secretinfo)
+
+                # Add this pspk:esecret pair to the list
+                psecrets.append(secretinfo)
+        else:
+            psecrets = secret_helper.create_secrets_for_services(provclients, enclave.enclave_keys, contract_id, client_keys.identity)
+
+        # Print all of the secret pairs generated for this particular enclave
+        logger.debug('psecrets for enclave %s : %s', enclave.enclave_id, psecrets)
+
+        # Verify those secrets with the enclave
+        esresponse = enclave.verify_secrets(contract_id, client_keys.verifying_key, psecrets)
+        logger.debug("verify_secrets response: %s", esresponse)
+
+        # Store the ESEK mapping in a dictionary key'd by the enclave's public key (ID)
+        encrypted_state_encryption_keys[enclave.enclave_id] = esresponse['encrypted_state_encryption_key']
+
+        # Add this spefiic enclave to the contract
+        if use_ledger :
+            contract_helper.add_enclave_to_contract(ledger_config,
+                                client_keys,
+                                contract_id,
+                                enclave.enclave_id,
+                                psecrets,
+                                esresponse['encrypted_state_encryption_key'],
+                                esresponse['signature'])
+
+    return encrypted_state_encryption_keys
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -78,33 +146,20 @@ def CreateAndRegisterEnclave(config) :
     IMPORTANT: if an eservice is available it will be used,
                otherwise, the code interfaces directly with the python/swig wrapper in the eservice code
     """
+
     global enclave
-    global txn_dependencies
 
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
-
-        # Pick an enclave for the creating the contract
-        if config['Service'].get('EnclaveServiceNames'): #use the database to get the enclave
-            logger.info('Using eservice database to look up service URL for the contract enclave')
-            try:
-                eservice_to_use = random.choice(config['Service']['EnclaveServiceNames'])
-                enclave = db.get_client_by_name(eservice_to_use)
-            except Exception as e:
-                logger.error('Unable to get the eservice client using the eservice database: %s',  str(e))
-                sys.exit(-1)
-        else: # do not use the database, use the url and get the client directly
-            try :
-                eservice_urls = config['Service']['EnclaveServiceURLs']
-                eservice_url = random.choice(eservice_urls)
-                enclave = eservice_helper.EnclaveServiceClient(eservice_url)
-            except Exception as e :
-                logger.error('failed to contact enclave service; %s', str(e))
-                sys.exit(-1)
-
-        logger.info('use enclave service at %s', enclave.ServiceURL)
-        return enclave
+        enclaveclients = []
+        try :
+            for url in config['Service']['EnclaveServiceURLs'] :
+                enclaveclients.append(db.get_client_by_url(url))
+        except Exception as e :
+            logger.error('unable to setup enclave services; %s', str(e))
+            sys.exit(-1)
+        return enclaveclients
 
     # not using an eservice so build the local enclave
     try :
@@ -128,8 +183,6 @@ def CreateAndRegisterEnclave(config) :
         ledger_config = config.get('Sawtooth')
         if use_ledger :
             txnid = enclave.register_enclave(ledger_config)
-            txn_dependencies.append(txnid)
-
             logger.info('enclave registration successful')
 
             enclave.verify_registration(ledger_config)
@@ -137,15 +190,14 @@ def CreateAndRegisterEnclave(config) :
         else :
             logger.debug('no ledger config; skipping enclave registration')
     except Exception as e :
-        logger.error('failed to register the enclave; %s', str(e))
+        logger.exception('failed to register the enclave; %s', str(e))
         ErrorShutdown()
 
-    return enclave
+    return [enclave]
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
-    global txn_dependencies
+def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     data_dir = config['Contract']['DataDirectory']
 
@@ -160,7 +212,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 
-    # create the provisioning servers
+    # create the provisioning service clients
     if use_pservice :
         try :
             pservice_urls = config['Service']['ProvisioningServiceURLs']
@@ -172,6 +224,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
         provisioning_services = secret_helper.create_provisioning_services(config['secrets'])
     provisioning_service_keys = list(map(lambda svc : svc.identity, provisioning_services))
 
+    # register the contract, get contract_id
     try :
         if use_ledger :
             contract_id = contract_helper.register_contract(
@@ -190,74 +243,24 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     # --------------------------------------------------
     logger.info('create the provisioning secrets')
     # --------------------------------------------------
-    if use_pservice :
-        secret_list = []
-        for pservice in provisioning_services :
-            logger.debug('ask pservice %s to generate a secret for %s', pservice.ServiceURL, contract_id)
-            message = enclave.enclave_id + contract_id
-            signature = contract_creator_keys.sign(message, encoding='hex')
-            secret = pservice.get_secret(enclave.enclave_id, contract_id, contract_creator_keys.verifying_key, signature)
-            if secret is None :
-                logger.error('failed to create secret for %s', pservice.ServiceURL)
-                ErrorShutdown()
-            secret_list.append(secret)
-    else :
-        secret_list = secret_helper.create_secrets_for_services(
-            provisioning_services, enclave.enclave_keys, contract_id, contract_creator_id)
+    encrypted_state_encryption_keys = AddEnclaveSecrets(
+        ledger_config, contract.contract_id, contract_creator_keys, enclaves, provisioning_services)
 
-    logger.debug('secrets: %s', secret_list)
+    for enclave_id in encrypted_state_encryption_keys :
+        encrypted_key = encrypted_state_encryption_keys[enclave_id]
+        contract.set_state_encryption_key(enclave_id, encrypted_key)
 
-    try :
-        secretinfo = enclave.verify_secrets(contract_id, contract_creator_id, secret_list)
-        assert secretinfo
+    # add replication information to contract
+    AddReplicationParamsToContract(config, enclaves, contract)
 
-        encrypted_state_encryption_key = secretinfo['encrypted_state_encryption_key']
-        signature = secretinfo['signature']
+    # Decide if the contract uses a fixed enclave or a randomized one for each update. If fixed, we chose here. If random, 
+    # will be selected at random during request creation
+    if (use_eservice is False) or (config['Service']['Randomize_Eservice'] is False):
+        enclave_to_use = enclaves[0]
+    else:
+        enclave_to_use = 'random'
 
-    except Exception as e :
-        logger.error('failed to create the state encryption key; %s', str(e))
-        ErrorShutdown()
-
-    try :
-        if not secrets.verify_state_encryption_key_signature(
-                encrypted_state_encryption_key,
-                secret_list,
-                contract_id,
-                contract_creator_id,
-                signature,
-                enclave.enclave_keys) :
-            raise RuntimeError('signature verification failed')
-    except Exception as e :
-        logger.error('failed to verify the state encryption key; %s', str(e))
-        ErrorShutdown()
-
-    logger.debug('encrypted state encryption key: %s', encrypted_state_encryption_key)
-
-    # --------------------------------------------------
-    logger.info('add the provisioned enclave to the contract')
-    # --------------------------------------------------
-    try :
-        if use_ledger :
-            txnid = contract_helper.add_enclave_to_contract(
-                ledger_config,
-                contract_creator_keys,
-                contract_id,
-                enclave.enclave_id,
-                secret_list,
-                encrypted_state_encryption_key,
-                signature)
-            #transaction_dependency_list=txn_dependencies)
-            txn_dependencies.append(txnid)
-
-            logger.info('contract state encryption key added to contract')
-        else :
-            logger.debug('no ledger config; skipping state encryption key registration')
-    except Exception as e :
-        logger.error('failed to add state encryption key; %s', str(e))
-        ErrorShutdown()
-
-    contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
-
+    # save the contract info as a pdo file
     contract_save_file = '_' + contract.short_id + '.pdo'
     contract.save_to_file(contract_save_file, data_dir=data_dir)
 
@@ -265,7 +268,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
     logger.info('create the initial contract state')
     # --------------------------------------------------
     try :
-        initialize_request = contract.create_initialize_request(contract_creator_keys, enclave)
+        initialize_request = contract.create_initialize_request(contract_creator_keys, enclave_to_use)
         initialize_response = initialize_request.evaluate()
         if initialize_response.status is False :
             logger.error('contract initialization failed: %s', initialize_response.result)
@@ -279,38 +282,41 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     logger.info('enclave created initial state')
 
-    # --------------------------------------------------
-    logger.info('save the initial state in the ledger')
-    # --------------------------------------------------
-    try :
-        if use_ledger :
-            logger.debug("sending to ledger")
-            # note that we will wait for commit of the transaction before
-            # continuing; this is not necessary in general (if there is
-            # confidence the transaction will succeed) but is useful for
-            # testing
-            txnid = initialize_response.submit_initialize_transaction(
-                ledger_config,
-                wait=30,
-                transaction_dependency_list=txn_dependencies)
-            txn_dependencies = [txnid]
-        else:
-            logger.debug('no ledger config; skipping iniatialize state save')
-    except Exception as e :
-        logger.exception('failed to save the initial state; %s', str(e))
+    # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+    try:
+        initialize_response.commit_asynchronously(ledger_config, wait=30, use_ledger=use_ledger)
+    except Exception as e:
+        logger.exception('failed to asynchronously start replication and transaction submission:' + str(e))
         ErrorShutdown()
 
+    # wait for the commit to finish.
+    try:
+        txn_id = initialize_response.wait_for_commit()
+        if use_ledger and txn_id is None:
+            logger.error("Did not receive txn id for the initial commit")
+            ErrorShutdown()
+    except Exception as e:
+        logger.error("Error while waiting for initial commit: %s", str(e))
+        ErrorShutdown()
+
+    logger.debug('update state')
     contract.contract_state.save_to_cache(data_dir=data_dir)
 
     return contract
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
-    global txn_dependencies
+def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
 
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
+    last_response_committed = None
+
+    # Decide if the contract use a fixed enclave or a randomized one for each update. 
+    if (use_eservice is False) or (config['Service']['Randomize_Eservice'] is False):
+        enclave_to_use = enclaves[0]
+    else:
+        enclave_to_use = 'random'
 
     start_time = time.time()
     for x in range(config['iterations']) :
@@ -322,7 +328,7 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
 
         try :
             expression = "'(inc-value)"
-            update_request = contract.create_update_request(contract_invoker_keys, enclave, expression)
+            update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
             update_response = update_request.evaluate()
 
             if update_response.status is False :
@@ -335,33 +341,35 @@ def UpdateTheContract(config, enclave, contract, contract_invoker_keys) :
             logger.error('enclave failed to evaluation expression; %s', str(e))
             ErrorShutdown()
 
-        # if this operation did not change state then there is nothing
-        # to send to the ledger or to save
-        if not update_response.state_changed :
-            continue
+        # if this operation did not change state then there is nothing to commit
+        if update_response.state_changed :
+            # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+            try:
+                update_response.commit_asynchronously(ledger_config, wait=30, use_ledger=use_ledger)
+                last_response_committed = update_response
+            except Exception as e:
+                logger.error('failed to submit commit: %s', str(e))
+                ErrorShutdown()
 
-        try :
-            if use_ledger :
-                logger.debug("sending to ledger")
-                # note that we will wait for commit of the transaction before
-                # continuing; this is not necessary in general (if there is
-                # confidence the transaction will succeed) but is useful for
-                # testing
-                txnid = update_response.submit_update_transaction(
-                    ledger_config,
-                    wait=30,
-                    transaction_dependency_list=txn_dependencies)
-                txn_dependencies = [txnid]
-            else :
-                logger.debug('no ledger config; skipping state save')
-        except Exception as e :
-            logger.error('failed to save the new state; %s', str(e))
+            logger.debug('update state')
+            contract.set_state(update_response.raw_state)
+
+    # wait for the last commit to finish.
+    if last_response_committed is not None:
+        try:
+            txn_id = last_response_committed.wait_for_commit()
+            if use_ledger and txn_id is None:
+                logger.error("Did not receive txn id for the last response committed")
+                ErrorShutdown()
+        except Exception as e:
+            logger.error("Error while waiting for the last response committed: %s", str(e))
             ErrorShutdown()
 
-        logger.debug('update state')
-        contract.set_state(update_response.raw_state)
-
+    logger.info("All commits completed")
     logger.info('completed in %s', time.time() - start_time)
+
+    # shutdown commit workers
+    ContractResponse.exit_commit_workers()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -381,15 +389,22 @@ def LocalMain(config) :
             logger.error('Error loading eservice database %s', str(e))
             sys.exit(-1)
 
+        #convert any eservice names to urls using the database
+        if config['Service'].get('EnclaveServiceNames'):
+            config['Service']['EnclaveServiceURLs'] = []
+            for name in  config['Service']['EnclaveServiceNames']:
+                info = db.get_info_by_name(name)
+                config['Service']['EnclaveServiceURLs'].append(info['url'])
+
     # --------------------------------------------------
-    logger.info('create and register the enclave')
+    logger.info('create and register the enclaves')
     # --------------------------------------------------
-    enclave = CreateAndRegisterEnclave(config)
+    enclaves  = CreateAndRegisterEnclave(config)
 
     # --------------------------------------------------
     logger.info('create the contract and register it')
     # --------------------------------------------------
-    contract = CreateAndRegisterContract(config, enclave, contract_creator_keys)
+    contract = CreateAndRegisterContract(config, enclaves, contract_creator_keys)
 
     # --------------------------------------------------
     logger.info('invoke a few methods on the contract, load from file')
@@ -401,12 +416,13 @@ def LocalMain(config) :
             logger.info('reload the contract from local file')
             contract_save_file = '_' + contract.short_id + '.pdo'
             contract = contract_helper.Contract.read_from_file(ledger_config, contract_save_file, data_dir=data_dir)
+            logger.info("read the contract")
     except Exception as e :
         logger.error('failed to load the contract from a file; %s', str(e))
         ErrorShutdown()
 
     try :
-        UpdateTheContract(config, enclave, contract, contract_creator_keys)
+        UpdateTheContract(config, contract, enclaves, contract_creator_keys)
     except Exception as e :
         logger.exception('contract execution failed; %s', str(e))
         ErrorShutdown()
@@ -476,12 +492,17 @@ def Main() :
     parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
     parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
+    parser.add_argument('--randomize-eservice', help="Say True if eservice must be randomized for each update. \
+        Else, the same eservice (the first one in the list of input eservices) will be used for all udpates.", type=bool, default=False)
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
+
+    parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)
+    parser.add_argument('--availability-duration', help='duration (in seconds) for which the replicas are stored at storage service', type=int, default=60)
 
     parser.add_argument('--tamper-block-order', help='Flag for tampering with the order of the state blocks', action='store_true')
 
@@ -553,6 +574,7 @@ def Main() :
             'EnclaveServiceDatabaseFile' : None
         }
 
+    config['Service']['Randomize_Eservice'] = options.randomize_eservice
     if options.eservice_name:
         use_eservice = True
         config['Service']['EnclaveServiceNames'] = options.eservice_name
@@ -567,6 +589,11 @@ def Main() :
         use_pservice = True
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
 
+    # replication parameters
+    if options.num_provable_replicas :
+        config['Replication']['NumProvableReplicas'] = options.num_provable_replicas
+    if options.availability_duration :
+        config['Replication']['Duration'] = options.availability_duration
 
     # set up the data paths
     if config.get('Contract') is None :

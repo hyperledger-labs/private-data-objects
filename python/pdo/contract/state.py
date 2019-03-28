@@ -56,6 +56,15 @@ class ContractState(object) :
         return encoded[:16]
 
     # --------------------------------------------------
+    @staticmethod
+    def block_data_generator(contract_id, block_ids, data_dir) :
+        for block_id in block_ids :
+            raw_data = ContractState.__read_data_block_from_cache__(contract_id, block_id, data_dir)
+            if raw_data is None :
+                raise Exception('unable to locate required block; {}'.format(block_id))
+            yield raw_data
+
+    # --------------------------------------------------
     @classmethod
     def __cache_filename__(cls, contract_id, state_hash, data_dir) :
         """
@@ -151,14 +160,7 @@ class ContractState(object) :
 
         logger.debug('push blocks to service: %s', blocks_to_push)
 
-        def block_data_generator(contract_id, block_ids, data_dir) :
-            for block_id in block_ids :
-                raw_data = ContractState.__read_data_block_from_cache__(contract_id, block_id, data_dir)
-                if raw_data is None :
-                    raise Exception('unable to locate required block; {}'.format(block_id))
-                yield raw_data
-
-        block_data_list = block_data_generator(contract_id, blocks_to_push, data_dir)
+        block_data_list = ContractState.block_data_generator(contract_id, blocks_to_push, data_dir)
         block_store_list = eservice.store_blocks(block_data_list, expiration=60)
         if block_store_list is None :
             raise Exception('failed to push blocks to eservice')
@@ -186,6 +188,7 @@ class ContractState(object) :
         block_count = len(blocks_to_pull)
         if block_count == 0 :
             logger.debug('no blocks to pull')
+            logger.info("Pulled 0 new blocks after contract update")
             return 0
 
         # it is not in the cache so grab it from the eservice
@@ -204,6 +207,8 @@ class ContractState(object) :
         # make sure that the storage service gave us all the blocks we asked for
         if len(blocks_to_pull) != 0 :
             raise Exception('failed to pull blocks from storage service; %s', list(blocks_to_pull))
+
+        logger.info("Pulled %d new blocks after contract update", block_count + 1) # + 1 to add the root block
 
         return len(blocks_to_pull)
 
@@ -302,6 +307,21 @@ class ContractState(object) :
             self.component_block_ids = json_main_state_block['BlockIds']
 
     # --------------------------------------------------
+    def compute_ids_of_newblocks(self, old_block_ids):
+        """ Compute the blocks in the change set : Used for replication. The change set includes the root block if there is any change.
+        """
+        self.changed_block_ids = []
+        for block_id in self.component_block_ids:
+            if block_id not in old_block_ids :
+                self.changed_block_ids.append(block_id)
+
+        # add state hash (not sure if this is part of component block_ids, if so we can skip the following)
+        if len(self.changed_block_ids) > 0: # if there is any change, make sure that state hash is part of chaged_block_ids
+            state_hash = self.get_state_hash(encoding='b64')
+            if state_hash not in self.changed_block_ids:
+                self.changed_block_ids.append(state_hash)
+
+    #------------------------------------------------------
     def get_state_hash(self, encoding='raw') :
         """
         gets the hash of the contract state if it is non-empty
@@ -339,6 +359,9 @@ class ContractState(object) :
         block_ids.extend(self.component_block_ids)
 
         pushed_blocks = ContractState.__push_blocks_to_eservice__(eservice, self.contract_id, block_ids, data_dir)
+
+        logger.info("Pushed %d new blocks before contract update", pushed_blocks)
+
         stat_logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 
     # --------------------------------------------------
@@ -364,3 +387,5 @@ class ContractState(object) :
     # --------------------------------------------------
     def save_to_cache(self, data_dir = None) :
         ContractState.__cache_data_block__(self.contract_id, self.raw_state, data_dir)
+
+    #---------------------------------------------------

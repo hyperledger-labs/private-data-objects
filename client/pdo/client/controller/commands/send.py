@@ -75,7 +75,7 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
 
     # ---------- send the message to the enclave service ----------
     try :
-        update_request = contract.create_update_request(client_keys, eservice_client, message)
+        update_request = contract.create_update_request(client_keys, message, eservice_client)
         update_response = update_request.evaluate()
     except Exception as e:
         raise Exception('enclave failed to evaluate expression; {0}'.format(str(e)))
@@ -96,17 +96,26 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
     ledger_config = state.get(['Sawtooth'])
 
     if update_response.state_changed and commit :
-        try :
-            logger.debug("send update to the ledger")
-            extraparams = {}
-            if wait :
-                extraparams['wait'] = 30
-            txnid = update_response.submit_update_transaction(ledger_config, **extraparams)
-        except Exception as e :
-            raise Exception('failed to save the new state to the ledger; {0}'.format(str(e)))
+
+        contract.set_state(update_response.raw_state)
+
+        # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+        try:
+            update_response.commit_asynchronously(ledger_config, wait=30, use_ledger=True)
+        except Exception as e:
+            raise Exception('failed to submit commit: %s', str(e))
+
+        # wait for the commit to finish.
+        # TDB: 1. make wait_for_commit a separate shell command. 2. Add a provision to specify commit dependencies as input to send command.
+        # 3. Return commit_id after send command back to shell so as to use as input commit_dependency in a future send command
+        try:
+            txn_id = update_response.wait_for_commit()
+            if txn_id is None:
+                raise Exception("Did not receive txn id for the send operation")
+        except Exception as e:
+            raise Exception("Error while waiting for commit: %s", str(e))
 
         try :
-            contract.set_state(update_response.raw_state)
             contract.contract_state.save_to_cache(data_dir = data_directory)
         except Exception as e :
             logger.exception('failed to save the new state in the cache')

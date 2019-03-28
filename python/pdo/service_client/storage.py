@@ -172,7 +172,6 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             request_data = dict()
             request_data['operation'] = (None, json.dumps({'expiration' : expiration}), 'application/json')
-
             count = 0                     # just needed to uniquify the keys
             for block_data in block_data_list :
                 request_data['block{0}'.format(count)] = (None, block_data, 'application/octet-stream')
@@ -183,7 +182,6 @@ class StorageServiceClient(GenericServiceClient) :
         except Exception as e :
             logger.warn('unknown exception (store_blocks); %s', str(e))
             raise StorageException(str(e)) from e
-
         try :
             response = self.session.post(url, data=mp_encoder.to_string(), headers=request_headers, timeout=self.default_timeout)
         except Exception as e :

@@ -88,8 +88,21 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 
     contract.set_state(initialize_response.raw_state)
 
-    logger.debug('Saving the initial contract state in the ledger...')
-    cclinit_result = initialize_response.submit_initialize_transaction(ledger_config, wait=30.0)
+    logger.info('Contract state created successfully')
+
+    # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+    try:
+        initialize_response.commit_asynchronously(ledger_config, wait=30, use_ledger=True)
+    except Exception as e:
+        raise Exception('failed to submit commit: %s', str(e))
+
+    # wait for the commit to finish
+    try:
+        txn_id = initialize_response.wait_for_commit()
+        if txn_id is None:
+            raise Exception("Did not receive txn id for the initial commit")
+    except Exception as e:
+        raise Exception("Error while waiting for commit: %s", str(e))
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

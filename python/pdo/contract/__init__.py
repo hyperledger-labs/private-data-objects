@@ -20,7 +20,15 @@ __all__ = [
     "ContractResponse",
     "ContractRequest",
     "register_contract",
-    "add_enclave_to_contract"
+    "add_enclave_to_contract",
+    "ReplicationRequest",
+    "start_replication_service",
+    "stop_replication_service",
+    "add_replication_task",
+    "TransactionRequest",
+    "start_transaction_processing_service",
+    "stop_transacion_processing_service",
+    "add_transaction_task"
 ]
 
 from pdo.contract.code import ContractCode
@@ -29,3 +37,5 @@ from pdo.contract.message import ContractMessage
 from pdo.contract.request import ContractRequest
 from pdo.contract.response import ContractResponse
 from pdo.contract.state import ContractState
+from pdo.contract.replication import ReplicationRequest, start_replication_service, stop_replication_service, add_replication_task
+from pdo.contract.transaction import TransactionRequest, start_transaction_processing_service, stop_transacion_processing_service, add_transaction_task
