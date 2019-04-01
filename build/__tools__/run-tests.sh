@@ -338,7 +338,6 @@ say start pdo-shell test with database. New entries may be added as part of cont
 
 KEYGEN=${SRCDIR}/build/__tools__/make-keys
 if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
-    yell create keys for the contracts
     for color in red green blue ; do
         ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
         ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem

@@ -21,6 +21,7 @@ import argparse
 import random
 import csv
 import re
+import json
 
 import pdo.test.helpers.secrets as secret_helper
 
@@ -78,6 +79,7 @@ def CreateAndRegisterEnclave(config) :
     global txn_dependencies
 
     if use_eservice :
+
         try :
             eservice_urls = config['Service']['EnclaveServiceURLs']
             eservice_url = random.choice(eservice_urls)
