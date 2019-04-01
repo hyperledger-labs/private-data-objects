@@ -4,4 +4,3 @@ docker/sgx
 make.log
 cscope.files
 cscope.out
-build/__tools__/run-tests-db.sh
