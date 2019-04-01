@@ -95,6 +95,8 @@ def CreateContract(ledger_config, client_keys, enclaveclients, contract) :
 
     cclinit_result = initialize_response.submit_initialize_transaction(ledger_config)
 
+
+
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def LocalMain(commands, config) :

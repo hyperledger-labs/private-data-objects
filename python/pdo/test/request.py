@@ -73,7 +73,6 @@ def ErrorShutdown() :
         logger.exception('shutdown failed')
 
     sys.exit(-1)
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def CreateAndRegisterEnclave(config) :
