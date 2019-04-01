@@ -22,6 +22,9 @@ before logging is enabled.
 import os
 import errno
 import pdo.common.crypto as crypto
+import socket
+from urllib.parse import urlparse
+
 
 __all__ = [
     'set_default_data_directory',
@@ -120,7 +123,23 @@ def from_transaction_signature_to_id(transaction_signature) :
 #--------------------------------------------------------------------
 #--------------------------------------------------------------------
 def are_the_urls_same(url1, url2):
-    # OK, we need a better way to compare URLS than the string comparison used here. 
-    # Ideally, one should normalize urls, and also resolve hostname to ip address before comparison
+    # This is not a perfect comparison, we make make sure that 
+    # http://127.0.0.1:7101/ and http://localhost:7101 are considered the same
 
-    return (url1 == url2)
+    if (url1 == url2):
+        return True
+
+    url1_parse = urlparse(url1)
+    url2_parse = urlparse(url2)
+
+    url1_hostname_and_port = url1_parse.netloc.split(':')
+    url2_hostname_and_port = url2_parse.netloc.split(':')
+
+    url1_ip = socket.gethostbyname(url1_hostname_and_port[0])
+    url2_ip = socket.gethostbyname(url2_hostname_and_port[0])
+
+    # check ip, port and scheme
+    if url1_ip == url2_ip and url1_hostname_and_port[1] == url2_hostname_and_port[1] and url1_parse.scheme == url2_parse.scheme:
+        return True
+
+    return False
