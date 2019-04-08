@@ -27,7 +27,7 @@
 // removed completely
 #if PDO_DEBUG_BUILD
 #undef SAFE_LOG
-#define SAFE_LOG(LEVEL, FMT, ...) pdo::logger::LogV(LEVEL, FMT, ##__VA_ARGS__)
+#define SAFE_LOG(LEVEL, FMT, ...) pdo::logger::LogV((pdo_log_level_t)LEVEL, FMT, ##__VA_ARGS__)
 #undef SAFE_LOG1
 #define SAFE_LOG1(LEVEL, MSG) pdo::logger::Log((pdo_log_level_t)LEVEL, MSG)
 #endif  /* PDO_DEBUG_BUILD */
