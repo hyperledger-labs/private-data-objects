@@ -109,7 +109,7 @@ def command_send(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='read')
-    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
+    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use or say "random-db" to pick one randomly from the eservice databse', type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
