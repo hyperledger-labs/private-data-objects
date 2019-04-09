@@ -14,15 +14,10 @@
 
 import argparse
 import logging
-import sys
-import os
-
-
 
 logger = logging.getLogger(__name__)
 
 from pdo.service_client.enclave import EnclaveServiceClient
-
 
 __all__ = ['command_eservice']
 
