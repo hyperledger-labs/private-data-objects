@@ -1,20 +1,15 @@
+#if PROTECTED_OPS
     _OP_DEF(opexe_0, "load",                           1,  1,       TST_STRING,                      OP_LOAD             )
+#endif /* PROTECTED_OPS */
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_T0LVL            )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_T1LVL            )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_READ_INTERNAL    )
     _OP_DEF(opexe_0, "gensym",                         0,  0,       0,                               OP_GENSYM           )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_VALUEPRINT       )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_EVAL             )
-#if USE_TRACING
-    _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_REAL_EVAL        )
-#endif
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_E0ARGS           )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_E1ARGS           )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_APPLY            )
-#if USE_TRACING
-    _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_REAL_APPLY       )
-    _OP_DEF(opexe_0, "tracing",                        1,  1,       TST_NATURAL,                     OP_TRACING          )
-#endif
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_DOMACRO          )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_LAMBDA           )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_LAMBDA1          )
@@ -53,7 +48,9 @@
     _OP_DEF(opexe_1, 0,                                0,  0,       0,                               OP_CASE2            )
     _OP_DEF(opexe_1, "eval",                           1,  2,       TST_ANY TST_ENVIRONMENT,         OP_PEVAL            )
     _OP_DEF(opexe_1, "apply",                          1,  INF_ARG, TST_NONE,                        OP_PAPPLY           )
+#if PROTECTED_OPS
     _OP_DEF(opexe_1, "call-with-current-continuation", 1,  1,       TST_NONE,                        OP_CONTINUATION     )
+#endif /* PROTECTED_OPS */
 #if USE_MATH
     _OP_DEF(opexe_2, "inexact->exact",                 1,  1,       TST_NUMBER,                      OP_INEX2EX          )
     _OP_DEF(opexe_2, "exp",                            1,  1,       TST_NUMBER,                      OP_EXP              )
@@ -149,11 +146,15 @@
     _OP_DEF(opexe_4, "put",                            3,  3,       TST_NONE,                        OP_PUT              )
     _OP_DEF(opexe_4, "get",                            2,  2,       TST_NONE,                        OP_GET              )
 #endif
+#if PROTECTED_OPS
     _OP_DEF(opexe_4, "quit",                           0,  1,       TST_NUMBER,                      OP_QUIT             )
     _OP_DEF(opexe_4, "gc",                             0,  0,       0,                               OP_GC               )
     _OP_DEF(opexe_4, "gc-verbose",                     0,  1,       TST_NONE,                        OP_GCVERB           )
     _OP_DEF(opexe_4, "new-segment",                    0,  1,       TST_NUMBER,                      OP_NEWSEGMENT       )
     _OP_DEF(opexe_4, "oblist",                         0,  0,       0,                               OP_OBLIST           )
+#else
+    _OP_DEF(opexe_4, 0,                                0,  1,       TST_NUMBER,                      OP_QUIT             )
+#endif /* PROTECTED_OPS */
     _OP_DEF(opexe_4, "current-input-port",             0,  0,       0,                               OP_CURR_INPORT      )
     _OP_DEF(opexe_4, "current-output-port",            0,  0,       0,                               OP_CURR_OUTPORT     )
     _OP_DEF(opexe_4, "open-input-file",                1,  1,       TST_STRING,                      OP_OPEN_INFILE      )

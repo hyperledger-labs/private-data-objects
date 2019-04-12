@@ -42,7 +42,6 @@ extern "C" {
 # define USE_ASCII_NAMES 0
 # define USE_STRING_PORTS 1
 # define USE_ERROR_HOOK 1
-# define USE_TRACING 0
 # define USE_COLON_HOOK 1
 # define USE_DL 1
 # define USE_PLIST 1
@@ -52,7 +51,8 @@ extern "C" {
  * Leave it defined if you want continuations, and also for the Sharp Zaurus.
  * Undefine it if you only care about faster speed and not strict Scheme compatibility.
  */
-#define USE_SCHEME_STACK
+
+/* #define USE_SCHEME_STACK */
 
 #if USE_DL
 # define USE_INTERFACE 1
@@ -73,10 +73,6 @@ extern "C" {
 
 #ifndef USE_STRING_PORTS      /* Enable string ports */
 # define USE_STRING_PORTS 1
-#endif
-
-#ifndef USE_TRACING
-# define USE_TRACING 1
 #endif
 
 #ifndef USE_PLIST
@@ -100,20 +96,12 @@ extern "C" {
 # define USE_STRLWR 1
 #endif
 
-#ifndef STDIO_ADDS_CR    /* Define if DOS/Windows */
-# define STDIO_ADDS_CR 0
-#endif
-
 #ifndef INLINE
 # define INLINE
 #endif
 
 #ifndef USE_INTERFACE
 # define USE_INTERFACE 0
-#endif
-
-#ifndef SHOW_ERROR_LINE   /* Show error line in file */
-# define SHOW_ERROR_LINE 0
 #endif
 
 typedef struct scheme scheme;

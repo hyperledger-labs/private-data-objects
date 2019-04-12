@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Note: These tests are very sensitive to changes in how we
+# manage memory and must be adjusted for failure conditions
+# as appropriate.
+
 # -----------------------------------------------------------------
 # TEST: size of intrinsic state
 # -----------------------------------------------------------------
@@ -33,14 +37,10 @@
 # -----------------------------------------------------------------
 '(clear-state)
 '(deep-recursion 10000),10000
-'(deep-recursion 11000),11000
-'(deep-recursion 12000),12000
-'(deep-recursion 13000),13000
-'(deep-recursion 14000),14000
-'(deep-recursion 15000),excessive memory use,fail
-'(deep-recursion 16000),excessive memory use,fail
-'(deep-recursion 17000),excessive memory use,fail
-'(deep-recursion 18000),excessive memory use,fail
+'(deep-recursion 15000),15000
+'(deep-recursion 20000),20000
+'(deep-recursion 21000),21000
+'(deep-recursion 22000),excessive memory use,fail
 # run one deep recursion test to make sure the enclave is not corrupted
 '(deep-recursion 1000),1000
 

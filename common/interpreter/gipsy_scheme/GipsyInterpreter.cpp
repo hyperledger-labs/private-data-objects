@@ -60,9 +60,9 @@ namespace pstate = pdo::state;
 extern "C" {
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void SchemeLog(int level, const char *msg)
+void SchemeLog(unsigned int level, const char *msg, const int value)
 {
-    SAFE_LOG1(level, msg);
+    SAFE_LOG(level, "%s; %d", msg, value);
 }
 
 }
@@ -258,15 +258,12 @@ void GipsyInterpreter::Initialize(void)
         sc->retcode != 0,
         "failed to load the gipsy initialization package");
 
-    /* ---------- Run the garbage collector ---------- */
-    pointer gc_sym = scheme_find_symbol(sc, "gc");
-    pe::ThrowIf<pe::RuntimeError>(gc_sym == sc->NIL, "unable to find gc function symbol");
+    /* ---------- Reserve extra space in preparation for the contract ---------- */
+    pointer p = sc->vptr->reserve_cells(sc, CELL_SEGSIZE * 2);
+    pe::ThrowIf<pe::RuntimeError>(p == sc->NIL, "insufficient memory for initialization");
 
-    pointer gc_fn = cdr(scheme_find_symbol_value(sc, sc->envir, gc_sym));
-    pe::ThrowIf<pe::RuntimeError>(gc_fn == sc->NIL, "unable to find write function definition");
-
-    scheme_call(sc, gc_fn, sc->NIL);
-    pe::ThrowIf<pe::RuntimeError>(sc->retcode != 0, "garbage collection failed");
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (initial); segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -492,6 +489,9 @@ void GipsyInterpreter::create_initial_contract_state(
         SAFE_LOG_EXCEPTION("save initial contract state");
         throw;
     }
+
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (initialize contract): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -529,6 +529,9 @@ void GipsyInterpreter::send_message_to_contract(
         throw;
     }
 
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (code loaded): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
+
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
     scheme_set_external_data(sc, inoutContractState);
@@ -544,6 +547,9 @@ void GipsyInterpreter::send_message_to_contract(
         SAFE_LOG_EXCEPTION("load intrinsic state");
         throw;
     }
+
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (state loaded): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 
     /* this might not be the most obvious way to invoke the send function
        but this method is used to ensure that the message is not evaluated
@@ -593,6 +599,9 @@ void GipsyInterpreter::send_message_to_contract(
         throw;
     }
 
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (method invoked): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
+
     // this should not be necessary, but lets make sure the interpreter
     // doesn't have any carry over
     scheme_set_external_data(sc, NULL);
@@ -628,4 +637,7 @@ void GipsyInterpreter::send_message_to_contract(
         //leave the intrinsic state already in the kv
          outStateChangedFlag = false;
     }
+
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (send to contract): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 }
