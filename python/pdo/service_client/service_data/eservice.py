@@ -279,14 +279,15 @@ def get_info_by_id(id):
 def get_info_by_url(url):
     """ Get service info as present in database using url. Returns a dictonary with four fields:
     name, id, url, last_verified_time. Return None if there is no matching entry. """
-
-    if __name_by_url__.get(url):
-        name = __name_by_url__[url]
-        info = copy.deepcopy(__data__[name])
-        info['name'] = name
-        return info
-    else:
-        return None
+    
+    for url_in_db in __name_by_url__.keys():
+        if are_the_urls_same(url_in_db, url):
+            name = __name_by_url__[url_in_db]
+            info = copy.deepcopy(__data__[name])
+            info['name'] = name
+            return info
+    
+    return None
 
 #--------------------------------------------
 #--------------------------------------------

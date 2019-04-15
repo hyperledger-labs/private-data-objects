@@ -13,22 +13,22 @@ Name, id (enclave_id) and url are all synonyms for a given eservice. Exceptions 
 Usage Examples:
 
 # Create a new database with 2 entires. The name e1 (e2) gets assocaited with first (second) url. It is assumed that the json file does not exist previously, else creation will fail. The enclave_id will be automatically populated, as long as the eservice@url hosts an enclave
-pdo-eservicedb --command create --eservice-url http://localhost:7101 http://localhost:7102 --eservice-name e1 e2 
+pdo-eservicedb create --eservice-url http://localhost:7101 http://localhost:7102 --eservice-name e1 e2 
 
 # Add a new entry to the database. The enclave_id will be automatically populated, as long as the eservice@url hosts an enclave
-pdo-eservicedb --command add --eservice-url http://localhost:7103 --eservice-name e3 
+pdo-eservicedb add --eservice-url http://localhost:7103 --eservice-name e3 
 
 # Remove an entry by name from the database. In the below command, an empty field is passed to --eservice-url. This is to override any url values that might be present in the pcontract.toml, so that one does not inadvertently remove an entry from the database 
-pdo-eservicedb --command remove  --eservice-name e3 
+pdo-eservicedb remove  --eservice-name e3 
 
 # Remove an entry by url from the database. 
-pdo-eservicedb --command remove   --eservice-url http://localhost:7102 
+pdo-eservicedb remove   --eservice-url http://localhost:7102 
 
 # Update an entry by name. The url associated with name will replaced with the new url. The enclave_id will be updated as well 
-pdo-eservicedb --command update --eservice-name e1 --eservice-url http://localhost:7102  
+pdo-eservicedb update --eservice-name e1 --eservice-url http://localhost:7102  
 
 # update an entry by url. Use this to update the enclave_id corresponding to eservice@url
-pdo-eservicedb --command update  --eservice-url http://localhost:7102  
+pdo-eservicedb update  --eservice-url http://localhost:7102  
 
 Pdo test scripts can take advantage of the database to identify an enclave for running the contract. It is enough to provide the eservice name and json file as options. The exact policy for provisioning or chosing enclaves (if more than one name is passed as input) is outside the scope of the database manager functionality. This gets implemeneted as part of the specific test script, see the individual test script for details.
 

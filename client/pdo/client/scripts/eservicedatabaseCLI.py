@@ -45,7 +45,9 @@ def Add_entries(config):
      # add entries to db
     for index, url in enumerate(urls):
         try :
-            db.add_info_to_database(names[index], url, ledger_config)
+            if db.add_info_to_database(names[index], url, ledger_config) is False:
+                logger.error('Error adding new entry for url %s', str(url))
+                sys.exit(-1)
         except Exception as e:
             logger.error('Error adding new entry for url %s: %s', str(url), str(e))
             sys.exit(-1)
@@ -189,17 +191,37 @@ def Main() :
     conffiles = [ 'pcontract.toml' ]
     confpaths = [ ".", "./etc", ContractEtc ]
 
+    subcommands = ['add', 'remove', 'create', 'update']
+
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='configuration file', nargs = '+')
-    parser.add_argument('--command', help='database command to execute : Chose one from {create, add, remove, update}', required=True, type=str)
-    parser.add_argument('--eservice-url', help='service urls',  nargs='+')
-    parser.add_argument('--eservice-name', help='service names',  nargs='+')
-    parser.add_argument('--eservice-db', help='json file for database', type=str)
     parser.add_argument('--loglevel', help='Set the logging level', default='INFO')
     parser.add_argument('--logfile', help='Name of the log file', default='__screen__')
     parser.add_argument('--ledger', help='Ledger URL', type=str)
+
+    subparsers = parser.add_subparsers(dest='command')
+    
+    create_parser = subparsers.add_parser('create')
+    create_parser.add_argument('--eservice-url', help='service urls',  nargs='+')
+    create_parser.add_argument('--eservice-name', help='service names',  nargs='+')
+    create_parser.add_argument('--eservice-db', help='json file for database', type=str)
+    
+    add_parser = subparsers.add_parser('add')
+    add_parser.add_argument('--eservice-url', help='service urls',  required=True, nargs='+')
+    add_parser.add_argument('--eservice-name', help='service names', required=True,  nargs='+')
+    add_parser.add_argument('--eservice-db', help='json file for database', type=str)
+
+    remove_parser = subparsers.add_parser('remove')
+    remove_parser.add_argument('--eservice-url', help='service urls',  nargs='+')
+    remove_parser.add_argument('--eservice-name', help='service names', nargs='+')
+    remove_parser.add_argument('--eservice-db', help='json file for database', type=str)
+
+    update_parser = subparsers.add_parser('update')
+    update_parser.add_argument('--eservice-url', help='service urls', required=True, nargs='+')
+    update_parser.add_argument('--eservice-name', help='service names', nargs='+')
+    update_parser.add_argument('--eservice-db', help='json file for database', type=str)
 
     options = parser.parse_args()
 
@@ -231,9 +253,15 @@ def Main() :
 
     plogger.setup_loggers(config.get('Logging', {}))
 
-    # process the reset of the command parameters
+    # set up the ledger configuration
+    if config.get('Sawtooth') is None :
+        config['Sawtooth'] = {
+            'LedgerURL' : 'http://localhost:8008',
+        }
+    if options.ledger :
+        config['Sawtooth']['LedgerURL'] = options.ledger
 
-    # set up the service configuration
+    #set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
             'EnclaveServiceURLs' : [],
@@ -242,29 +270,55 @@ def Main() :
         }
 
     if options.eservice_db:
-        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
+            config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
 
-    if options.eservice_url :
+    # process the commands to identify the urls and names
+    if options.command == 'create':
+        # for create, we will use urls and names from toml if not provided via cmd line options
+
+        if options.eservice_url :
+            config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        if options.eservice_name :
+            config['Service']['EnclaveServiceNames'] = options.eservice_name
+        
+        LocalMain('create', config)
+        return 
+
+    if options.command == 'add':
+        # for add we will use urls and names only from cmd line. 
+
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
-    elif options.command == 'remove' or options.command == 'update' or options.command == 'add':
-        config['Service']['EnclaveServiceURLs'] = []
-    
-    if options.eservice_name :
         config['Service']['EnclaveServiceNames'] = options.eservice_name
-    elif options.command == 'remove' or options.command == 'update' or options.command == 'add':
-        config['Service']['EnclaveServiceNames'] = []
-    
-    # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
-            'LedgerURL' : 'http://localhost:8008',
-        }
-    if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
-    
-    # GO!!!
-    LocalMain(options.command, config)
+        
+        LocalMain('add', config)
+        return 
 
+    if options.command == 'remove' :
+        # for remove, we will use urls and names only from cmd line. But unlike add, one need not necessarily provide both urls and names
+
+        config['Service']['EnclaveServiceURLs'] = []
+        config['Service']['EnclaveServiceNames'] = []
+
+        if options.eservice_url :
+            config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        if options.eservice_name :
+            config['Service']['EnclaveServiceNames'] = options.eservice_name
+        
+        LocalMain('remove', config)
+        return 
+
+    if options.command == 'update' :
+        # for udpate also, we will use urls and names only from cmd line. This time, one gives either both urls and names, or just urls.
+
+        config['Service']['EnclaveServiceNames'] = []
+
+        config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        if options.eservice_name :
+            config['Service']['EnclaveServiceNames'] = options.eservice_name
+
+        LocalMain('update', config)
+        return 
+ 
 ## -----------------------------------------------------------------
 ## Entry points
 ## -----------------------------------------------------------------

@@ -114,7 +114,7 @@ def command_send(state, bindings, pargs) :
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
     parser.add_argument('message', help='Message to be sent to the contract', type=str)
-            
+
     options = parser.parse_args(pargs)
     message = options.message
     waitflag = options.wait
