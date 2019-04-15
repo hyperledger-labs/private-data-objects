@@ -57,7 +57,6 @@ class InputIterator(object) :
         except EOFError as e :
             raise StopIteration
 
-
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def LocalMain(config, message) :
@@ -129,7 +128,7 @@ def LocalMain(config, message) :
 
     try :
         # this is just a sanity check to make sure the selected enclave
-        # has actually been provisioned.
+        # has actually been provisioned
         contract.get_state_encryption_key(enclave_client.enclave_id)
     except KeyError as ke :
         logger.error('selected enclave is not provisioned')

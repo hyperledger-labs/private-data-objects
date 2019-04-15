@@ -18,5 +18,4 @@ __all__ = [
     'request',
     'state',
     'servicedb',
-    'eservice_database'
 ]

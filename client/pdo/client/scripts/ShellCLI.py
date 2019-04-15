@@ -197,7 +197,7 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
-    
+        
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
     if options.script :

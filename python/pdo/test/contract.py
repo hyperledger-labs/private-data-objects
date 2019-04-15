@@ -21,7 +21,6 @@ import argparse
 import random
 import csv
 import re
-import json
 
 import pdo.test.helpers.secrets as secret_helper
 
