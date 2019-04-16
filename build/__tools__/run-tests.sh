@@ -118,18 +118,6 @@ try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_UR
 
 cd ${SRCDIR}/build
 
-say run unit level tests for eservice database 
-cd ${SRCDIR}/python/pdo/test
-try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
-    --eservice-db $PDO_HOME/data/db-test.json --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ --ledger ${PDO_LEDGER_URL}
-try rm $PDO_HOME/data/db-test.json
-
-cd ${SRCDIR}/build
-
-say create the eservice database using database CLI 
-# add all enclaves listed in pcontract.toml
-try pdo-eservicedb --logfile $PDO_HOME/logs/client.log --loglevel info create
-
 # -----------------------------------------------------------------
 yell start tests without provisioning or enclave services
 # -----------------------------------------------------------------
@@ -300,6 +288,19 @@ fi
 #-----------------------------------------
 yell run tests with the eservice database 
 #------------------------------------------
+
+say run unit tests for eservice database 
+cd ${SRCDIR}/python/pdo/test
+try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --eservice-db $PDO_HOME/data/db-test.json --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ --ledger ${PDO_LEDGER_URL}
+try rm $PDO_HOME/data/db-test.json
+
+cd ${SRCDIR}/build
+
+say create the eservice database using database CLI 
+# add all enclaves listed in pcontract.toml
+try pdo-eservicedb --logfile $PDO_HOME/logs/client.log --loglevel info create
+
   
 say run various pdo scripts - test-request, test-contract, create, update, shell - using database
 try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info  
