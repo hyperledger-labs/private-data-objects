@@ -58,6 +58,9 @@ void *pdo::contracts::safe_malloc_for_scheme(size_t request)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void *pdo::contracts::safe_realloc_for_scheme(void* oldptr, size_t request)
 {
+    if (oldptr == NULL)
+        return pdo::contracts::safe_malloc_for_scheme(request);
+
     // find the old pointer in the memory map and remove it
     std::map<uint64_t, size_t>::iterator it = safe_malloc_map.find((uint64_t)oldptr);
     if (it == safe_malloc_map.end())

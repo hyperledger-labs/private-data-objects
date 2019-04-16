@@ -57,7 +57,8 @@ Project Status
 Hyperledger Private Data Objects operates as a Hyperledger Labs project. This
 code is provided solely to demonstrate basic PDO mechanisms and to facilitate
 collaboration to refine PDO architecture and define minimum viable product
-requirements.
+requirements. The code provided in this repository is prototype code and not
+intended for production use.
 
 Initial Committers
 -------------

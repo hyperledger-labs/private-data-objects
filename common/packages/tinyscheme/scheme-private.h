@@ -62,6 +62,8 @@ struct scheme {
 func_alloc malloc;
 func_dealloc free;
 func_realloc realloc;
+int gc_calls;
+
 
 /* return code */
 int retcode;
@@ -69,7 +71,7 @@ int tracing;
 
 
 #define CELL_SEGSIZE    5000  /* # of cells in one segment */
-#define CELL_NSEGMENT   1000   /* # of segments for cells */
+#define CELL_NSEGMENT   50   /* # of segments for cells */
 char *alloc_seg[CELL_NSEGMENT];
 pointer cell_seg[CELL_NSEGMENT];
 int     last_cell_seg;

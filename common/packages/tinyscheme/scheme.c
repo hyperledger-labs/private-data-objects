@@ -65,7 +65,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-extern void SchemeLog(int level, const char* msg);
+extern void SchemeLog(int level, const char* msg, const int value);
 
 #ifdef __APPLE__
 static int stricmp(const char *s1, const char *s2)
@@ -106,7 +106,11 @@ static const char *strlwr(char *s)
 #endif
 
 #ifndef FIRST_CELLSEGS
-#define FIRST_CELLSEGS 20
+#define FIRST_CELLSEGS 4
+#endif
+
+#ifndef MINIMUM_CELL_ALLOCATION
+#define MINIMUM_CELL_ALLOCATION (CELL_SEGSIZE / 2)
 #endif
 
 enum scheme_types {
@@ -485,6 +489,7 @@ static int alloc_cellseg(scheme * sc, int n);
 static long binary_decode(const char *s);
 static INLINE pointer get_cell(scheme * sc, pointer a, pointer b);
 static pointer _get_cell(scheme * sc, pointer a, pointer b);
+static pointer _reserve_cells(scheme * sc, int n, pointer a, pointer b);
 static pointer reserve_cells(scheme * sc, int n);
 static pointer get_consecutive_cells(scheme * sc, int n);
 static pointer find_consecutive_cells(scheme * sc, int n);
@@ -808,15 +813,11 @@ static pointer _get_cell(scheme * sc, pointer a, pointer b)
     }
 
     if (sc->free_cell == sc->NIL) {
-	const int min_to_be_recovered = sc->last_cell_seg * 8;
-	gc(sc, a, b);
-	if (sc->fcells < min_to_be_recovered || sc->free_cell == sc->NIL) {
-	    /* if only a few recovered, get more to avoid fruitless gc's */
-	    if (!alloc_cellseg(sc, 1) && sc->free_cell == sc->NIL) {
-		sc->no_memory = 1;
-		return sc->sink;
-	    }
-	}
+        pointer p = _reserve_cells(sc, MINIMUM_CELL_ALLOCATION, a, b);
+        if (p == sc->NIL) {
+            sc->no_memory = 1;
+            return sc->sink;
+        }
     }
     x = sc->free_cell;
     sc->free_cell = cdr(x);
@@ -825,7 +826,7 @@ static pointer _get_cell(scheme * sc, pointer a, pointer b)
 }
 
 /* make sure that there is a given number of cells free */
-static pointer reserve_cells(scheme * sc, int n)
+static pointer _reserve_cells(scheme * sc, int n, pointer a, pointer b)
 {
     if (sc->no_memory) {
 	return sc->NIL;
@@ -834,10 +835,11 @@ static pointer reserve_cells(scheme * sc, int n)
     /* Are there enough cells available? */
     if (sc->fcells < n) {
 	/* If not, try gc'ing some */
-	gc(sc, sc->NIL, sc->NIL);
+	gc(sc, a, b);
 	if (sc->fcells < n) {
 	    /* If there still aren't, try getting more heap */
-	    if (!alloc_cellseg(sc, 1)) {
+            int segments = n / CELL_SEGSIZE + 1;
+            if (!alloc_cellseg(sc, segments)) {
 		sc->no_memory = 1;
 		return sc->NIL;
 	    }
@@ -849,6 +851,12 @@ static pointer reserve_cells(scheme * sc, int n)
 	}
     }
     return (sc->T);
+}
+
+/* make sure that there is a given number of cells free */
+static pointer reserve_cells(scheme * sc, int n)
+{
+    return _reserve_cells(sc, n, sc->NIL, sc->NIL);
 }
 
 static pointer get_consecutive_cells(scheme * sc, int n)
@@ -1469,10 +1477,6 @@ static void gc(scheme * sc, pointer a, pointer b)
     pointer p;
     int i;
 
-    if (sc->gc_verbose) {
-	putstr(sc, "gc...");
-    }
-
     /* mark system globals */
     mark(sc->oblist);
     mark(sc->global_env);
@@ -1525,11 +1529,7 @@ static void gc(scheme * sc, pointer a, pointer b)
 	}
     }
 
-    if (sc->gc_verbose) {
-	char msg[80];
-	snprintf(msg, 80, "done: %ld cells were recovered.\n", sc->fcells);
-	putstr(sc, msg);
-    }
+    sc->gc_calls++;
 }
 
 static void finalize_cell(scheme * sc, pointer a)
@@ -1549,104 +1549,6 @@ static void finalize_cell(scheme * sc, pointer a)
 }
 
 /* ========== Routines for Reading ========== */
-
-#if 0
-static int file_push(scheme * sc, const char *fname)
-{
-    FILE *fin = NULL;
-
-    if (sc->file_i == MAXFIL - 1)
-	return 0;
-    fin = fopen(fname, "r");
-    if (fin != 0) {
-	sc->file_i++;
-	sc->load_stack[sc->file_i].kind = port_file | port_input;
-	sc->load_stack[sc->file_i].rep.stdio.file = fin;
-	sc->load_stack[sc->file_i].rep.stdio.closeit = 1;
-	sc->nesting_stack[sc->file_i] = 0;
-	sc->loadport->_object._port = sc->load_stack + sc->file_i;
-
-#if SHOW_ERROR_LINE
-	sc->load_stack[sc->file_i].rep.stdio.curr_line = 0;
-	if (fname)
-	    sc->load_stack[sc->file_i].rep.stdio.filename =
-		store_string(sc, strlen(fname), fname, 0);
-#endif
-    }
-    return fin != 0;
-}
-
-
-
-static int file_interactive(scheme * sc)
-{
-    return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin
-	&& sc->inport->_object._port->kind & port_file;
-}
-
-static port *port_rep_from_filename(scheme * sc, const char *fn, int prop)
-{
-    FILE *f;
-    char *rw;
-    port *pt;
-    if (prop == (port_input | port_output)) {
-	rw = "a+";
-    } else if (prop == port_output) {
-	rw = "w";
-    } else {
-	rw = "r";
-    }
-    f = fopen(fn, rw);
-    if (f == 0) {
-	return 0;
-    }
-    pt = port_rep_from_file(sc, f, prop);
-    pt->rep.stdio.closeit = 1;
-
-#if SHOW_ERROR_LINE
-    if (fn)
-	pt->rep.stdio.filename = store_string(sc, strlen(fn), fn, 0);
-
-    pt->rep.stdio.curr_line = 0;
-#endif
-    return pt;
-}
-
-static pointer port_from_filename(scheme * sc, const char *fn, int prop)
-{
-    port *pt;
-    pt = port_rep_from_filename(sc, fn, prop);
-    if (pt == 0) {
-	return sc->NIL;
-    }
-    return mk_port(sc, pt);
-}
-
-static port *port_rep_from_file(scheme * sc, FILE * f, int prop)
-{
-    port *pt;
-
-    pt = (port *) sc->malloc(sizeof *pt);
-    if (pt == NULL) {
-	return NULL;
-    }
-    pt->kind = port_file | prop;
-    pt->rep.stdio.file = f;
-    pt->rep.stdio.closeit = 0;
-    return pt;
-}
-
-static pointer port_from_file(scheme * sc, FILE * f, int prop)
-{
-    port *pt;
-    pt = port_rep_from_file(sc, f, prop);
-    if (pt == 0) {
-	return sc->NIL;
-    }
-    return mk_port(sc, pt);
-}
-#endif
-
 static void file_pop(scheme * sc)
 {
     if (sc->file_i != 0) {
@@ -1720,20 +1622,6 @@ static void port_close(scheme * sc, pointer p, int flag)
     port *pt = p->_object._port;
     pt->kind &= ~flag;
     if ((pt->kind & (port_input | port_output)) == 0) {
-#if 0
-	if (pt->kind & port_file) {
-
-#if SHOW_ERROR_LINE
-	    /* Cleanup is here so (close-*-port) functions could work too */
-	    pt->rep.stdio.curr_line = 0;
-
-	    if (pt->rep.stdio.filename)
-		sc->free(pt->rep.stdio.filename);
-#endif
-
-	    fclose(pt->rep.stdio.file);
-	}
-#endif
 	pt->kind = port_free;
     }
 }
@@ -1780,11 +1668,6 @@ static void backchar(scheme * sc, int c)
     if (c == EOF)
 	return;
     pt = sc->inport->_object._port;
-#if 0
-    if (pt->kind & port_file) {
-	ungetc(c, pt->rep.stdio.file);
-    } else
-#endif
     {
 	if (pt->rep.string.curr != pt->rep.string.start) {
 	    --pt->rep.string.curr;
@@ -1814,11 +1697,6 @@ static int realloc_port_string(scheme * sc, port * p)
 INTERFACE void putstr(scheme * sc, const char *s)
 {
     port *pt = sc->outport->_object._port;
-#if 0
-    if (pt->kind & port_file) {
-	fputs(s, pt->rep.stdio.file);
-    } else
-#endif
     {
 	for (; *s; s++) {
 	    if (pt->rep.string.curr != pt->rep.string.past_the_end) {
@@ -1834,11 +1712,6 @@ INTERFACE void putstr(scheme * sc, const char *s)
 static void putchars(scheme * sc, const char *s, int len)
 {
     port *pt = sc->outport->_object._port;
-#if 0
-    if (pt->kind & port_file) {
-	fwrite(s, 1, len, pt->rep.stdio.file);
-    } else
-#endif
     {
 	for (; len; len--) {
 	    if (pt->rep.string.curr != pt->rep.string.past_the_end) {
@@ -1854,11 +1727,6 @@ static void putchars(scheme * sc, const char *s, int len)
 INTERFACE void putcharacter(scheme * sc, int c)
 {
     port *pt = sc->outport->_object._port;
-#if 0
-    if (pt->kind & port_file) {
-	fputc(c, pt->rep.stdio.file);
-    } else
-#endif
     {
 	if (pt->rep.string.curr != pt->rep.string.past_the_end) {
 	    *pt->rep.string.curr++ = c;
@@ -2014,18 +1882,9 @@ static INLINE int skipspace(scheme * sc)
 
     do {
 	c = inchar(sc);
-#if SHOW_ERROR_LINE
-	if (c == '\n')
-	    curr_line++;
-#endif
     } while (isspace(c));
 
 /* record it */
-#if SHOW_ERROR_LINE
-    if (sc->load_stack[sc->file_i].kind & port_file)
-	sc->load_stack[sc->file_i].rep.stdio.curr_line += curr_line;
-#endif
-
     if (c != EOF) {
 	backchar(sc, c);
 	return 1;
@@ -2062,11 +1921,6 @@ static int token(scheme * sc)
     case ';':
 	while ((c = inchar(sc)) != '\n' && c != EOF);
 
-#if SHOW_ERROR_LINE
-	if (c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
-	    sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
-
 	if (c == EOF) {
 	    return (TOK_EOF);
 	} else {
@@ -2089,11 +1943,6 @@ static int token(scheme * sc)
 	    return (TOK_VEC);
 	} else if (c == '!') {
 	    while ((c = inchar(sc)) != '\n' && c != EOF);
-
-#if SHOW_ERROR_LINE
-	    if (c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
-		sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
 
 	    if (c == EOF) {
 		return (TOK_EOF);
@@ -2589,27 +2438,6 @@ static pointer _Error_1(scheme * sc, const char *s, pointer a)
     pointer hdl = sc->ERROR_HOOK;
 #endif
 
-#if SHOW_ERROR_LINE
-    char sbuf[STRBUFFSIZE];
-
-    /* make sure error is not in REPL */
-    if (sc->load_stack[sc->file_i].kind & port_file &&
-	sc->load_stack[sc->file_i].rep.stdio.filename != stdin) {
-	int ln = sc->load_stack[sc->file_i].rep.stdio.curr_line;
-	const char *fname = sc->load_stack[sc->file_i].rep.stdio.filename;
-
-	/* should never happen */
-	if (!fname)
-	    fname = "<unknown>";
-
-	/* we started from 0 */
-	ln++;
-	snprintf(sbuf, STRBUFFSIZE, "(%s : %i) %s", fname, ln, s);
-
-	str = (const char *) sbuf;
-    }
-#endif
-
 #if USE_ERROR_HOOK
     x = find_slot_in_env(sc, sc->envir, hdl, 1);
     if (x != sc->NIL) {
@@ -2666,7 +2494,7 @@ struct dump_stack_frame {
 static void s_save(scheme * sc, enum scheme_opcodes op, pointer args,
 		   pointer code)
 {
-    int nframes = (int) sc->dump;
+    uint64_t nframes = (uint64_t) sc->dump;
     struct dump_stack_frame *next_frame;
 
     /* enough room for the next frame? */
@@ -2686,7 +2514,7 @@ static void s_save(scheme * sc, enum scheme_opcodes op, pointer args,
 
 static pointer _s_return(scheme * sc, pointer a)
 {
-    int nframes = (int) sc->dump;
+    uint64_t nframes = (uint64_t) sc->dump;
     struct dump_stack_frame *frame;
 
     sc->value = (a);
@@ -2718,7 +2546,7 @@ static INLINE void dump_stack_initialize(scheme * sc)
 
 static void dump_stack_free(scheme * sc)
 {
-    free(sc->dump_base);
+    sc->free(sc->dump_base);
     sc->dump_base = NULL;
     sc->dump = (pointer) 0;
     sc->dump_size = 0;
@@ -2726,7 +2554,7 @@ static void dump_stack_free(scheme * sc)
 
 static INLINE void dump_stack_mark(scheme * sc)
 {
-    int nframes = (int) sc->dump;
+    uint64_t nframes = (uint64_t) sc->dump;
     int i;
     for (i = 0; i < nframes; i++) {
 	struct dump_stack_frame *frame;
@@ -2788,10 +2616,11 @@ static pointer opexe_0(scheme * sc, enum scheme_opcodes op)
     pointer x, y;
 
     switch (op) {
+#if PROTECTED_OPS
     case OP_LOAD:		/* load */
 	sc->args = mk_integer(sc, sc->file_i);
 	s_goto(sc, OP_T0LVL);
-
+#endif             /* PROTECTED_OPS */
     case OP_T0LVL:		/* top level */
 	/* If we reached the end of file, this loop is done. */
 	if (sc->loadport->_object._port->kind & port_saw_EOF) {
@@ -2852,17 +2681,6 @@ static pointer opexe_0(scheme * sc, enum scheme_opcodes op)
 	}
 
     case OP_EVAL:		/* main part of evaluation */
-#if USE_TRACING
-	if (sc->tracing) {
-	    /*s_save(sc,OP_VALUEPRINT,sc->NIL,sc->NIL); */
-	    s_save(sc, OP_REAL_EVAL, sc->args, sc->code);
-	    sc->args = sc->code;
-	    putstr(sc, "\nEval: ");
-	    s_goto(sc, OP_P0LIST);
-	}
-	/* fall through */
-    case OP_REAL_EVAL:
-#endif
 	if (is_symbol(sc->code)) {	/* symbol */
 	    x = find_slot_in_env(sc, sc->envir, sc->code, 1);
 	    if (x != sc->NIL) {
@@ -2909,27 +2727,7 @@ static pointer opexe_0(scheme * sc, enum scheme_opcodes op)
 	    s_goto(sc, OP_APPLY);
 	}
 
-#if USE_TRACING
-    case OP_TRACING:{
-	    int tr = sc->tracing;
-	    sc->tracing = ivalue(car(sc->args));
-	    s_return(sc, mk_integer(sc, tr));
-	}
-#endif
-
     case OP_APPLY:		/* apply 'code' to 'args' */
-#if USE_TRACING
-	if (sc->tracing) {
-	    printf("TYPE of op: %d\n", type(sc->code));
-	    s_save(sc, OP_REAL_APPLY, sc->args, sc->code);
-	    sc->print_flag = 1;
-	    sc->args = cons(sc, sc->code, sc->args);
-	    putstr(sc, "\nApply to: ");
-	    s_goto(sc, OP_P0LIST);
-	}
-	/* fall through */
-    case OP_REAL_APPLY:
-#endif
 	if (is_proc(sc->code)) {
 	    s_goto(sc, procnum(sc->code));	/* PROCEDURE */
 	} else if (is_foreign(sc->code)) {
@@ -2975,7 +2773,6 @@ static pointer opexe_0(scheme * sc, enum scheme_opcodes op)
 	sc->code = sc->value;
 	s_goto(sc, OP_EVAL);
 
-#if 1
     case OP_LAMBDA:		/* lambda */
 	/* If the hook is defined, apply it to sc->code, otherwise
 	   set sc->value fall thru */
@@ -2995,12 +2792,6 @@ static pointer opexe_0(scheme * sc, enum scheme_opcodes op)
 
     case OP_LAMBDA1:
 	s_return(sc, mk_closure(sc, sc->value, sc->envir));
-
-#else
-    case OP_LAMBDA:		/* lambda */
-	s_return(sc, mk_closure(sc, sc->code, sc->envir));
-
-#endif
 
     case OP_MKCLOSURE:		/* make-closure */
 	x = car(sc->args);
@@ -3391,10 +3182,12 @@ static pointer opexe_1(scheme * sc, enum scheme_opcodes op)
 	sc->code = car(sc->args);
 	s_goto(sc, OP_EVAL);
 
+#if PROTECTED_OPS
     case OP_CONTINUATION:	/* call-with-current-continuation */
 	sc->code = car(sc->args);
 	sc->args = cons(sc, mk_continuation(sc, sc->dump), sc->NIL);
 	s_goto(sc, OP_APPLY);
+#endif
 
     default:
 	snprintf(sc->strbuff, STRBUFFSIZE, "%d: illegal operator", sc->op);
@@ -4190,6 +3983,7 @@ static pointer opexe_4(scheme * sc, enum scheme_opcodes op)
 	}
 	return (sc->NIL);
 
+#if PROTECTED_OPS
     case OP_GC:		/* gc */
 	gc(sc, sc->NIL, sc->NIL);
 	s_return(sc, sc->T);
@@ -4211,36 +4005,12 @@ static pointer opexe_4(scheme * sc, enum scheme_opcodes op)
 
     case OP_OBLIST:		/* oblist */
 	s_return(sc, oblist_all_symbols(sc));
-
+#endif                   /* PROTECTED_OPS */
     case OP_CURR_INPORT:	/* current-input-port */
 	s_return(sc, sc->inport);
 
     case OP_CURR_OUTPORT:	/* current-output-port */
 	s_return(sc, sc->outport);
-#if 0
-    case OP_OPEN_INFILE:	/* open-input-file */
-    case OP_OPEN_OUTFILE:	/* open-output-file */
-    case OP_OPEN_INOUTFILE:	/* open-input-output-file */  {
-	    int prop = 0;
-	    pointer p;
-	    switch (op) {
-	    case OP_OPEN_INFILE:
-		prop = port_input;
-		break;
-	    case OP_OPEN_OUTFILE:
-		prop = port_output;
-		break;
-	    case OP_OPEN_INOUTFILE:
-		prop = port_input | port_output;
-		break;
-	    }
-	    p = port_from_filename(sc, strvalue(car(sc->args)), prop);
-	    if (p == sc->NIL) {
-		s_return(sc, sc->F);
-	    }
-	    s_return(sc, p);
-	}
-#endif
 #if USE_STRING_PORTS
     case OP_OPEN_INSTRING:	/* open-input-string */
     case OP_OPEN_INOUTSTRING:	/* open-input-output-string */  {
@@ -4470,10 +4240,6 @@ static pointer opexe_5(scheme * sc, enum scheme_opcodes op)
 		int c = inchar(sc);
 		if (c != '\n')
 		    backchar(sc, c);
-#if SHOW_ERROR_LINE
-		else if (sc->load_stack[sc->file_i].kind & port_file)
-		    sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
 		sc->nesting_stack[sc->file_i]--;
 		s_return(sc, reverse_in_place(sc, sc->NIL, sc->args));
 	    } else if (sc->tok == TOK_DOT) {
@@ -5038,6 +4804,7 @@ int scheme_init_custom_alloc(scheme * sc, func_alloc malloc, func_dealloc free, 
     sc->EOF_OBJ = &sc->_EOF_OBJ;
     typeflag(sc->EOF_OBJ) = 0;
 
+    sc->gc_calls = 0;
     sc->free_cell = &sc->_NIL;
     sc->fcells = 0;
     sc->no_memory = 0;
@@ -5123,25 +4890,12 @@ int scheme_init_custom_alloc(scheme * sc, func_alloc malloc, func_dealloc free, 
     return !sc->no_memory;
 }
 
-#if 0
-void scheme_set_input_port_file(scheme * sc, FILE * fin)
-{
-    sc->inport = port_from_file(sc, fin, port_input);
-}
-#endif
-
 void scheme_set_input_port_string(scheme * sc, char *start,
 				  char *past_the_end)
 {
     sc->inport = port_from_string(sc, start, past_the_end, port_input);
 }
 
-#if 0
-void scheme_set_output_port_file(scheme * sc, FILE * fout)
-{
-    sc->outport = port_from_file(sc, fout, port_output);
-}
-#endif
 void scheme_set_output_port_string(scheme * sc, char *start,
 				   char *past_the_end)
 {
@@ -5159,10 +4913,6 @@ void scheme_set_external_data(scheme * sc, void *p)
 void scheme_deinit(scheme * sc)
 {
     int i;
-
-#if SHOW_ERROR_LINE
-    char *fname;
-#endif
 
     sc->oblist = sc->NIL;
     sc->global_env = sc->NIL;
@@ -5185,58 +4935,14 @@ void scheme_deinit(scheme * sc)
     }
     sc->loadport = sc->NIL;
     sc->gc_verbose = 0;
+
     gc(sc, sc->NIL, sc->NIL);
 
     for (i = 0; i <= sc->last_cell_seg; i++) {
 	sc->free(sc->alloc_seg[i]);
     }
-
-#if SHOW_ERROR_LINE
-    for (i = 0; i <= sc->file_i; i++) {
-	if (sc->load_stack[i].kind & port_file) {
-	    fname = sc->load_stack[i].rep.stdio.filename;
-	    if (fname)
-		sc->free(fname);
-	}
-    }
-#endif
 }
 
-#if 0
-void scheme_load_file(scheme * sc, FILE * fin)
-{
-    scheme_load_named_file(sc, fin, 0);
-}
-
-void scheme_load_named_file(scheme * sc, FILE * fin, const char *filename)
-{
-    dump_stack_reset(sc);
-    sc->envir = sc->global_env;
-    sc->file_i = 0;
-    sc->load_stack[0].kind = port_input | port_file;
-    sc->load_stack[0].rep.stdio.file = fin;
-    sc->loadport = mk_port(sc, sc->load_stack);
-    sc->retcode = 0;
-    if (fin == stdin) {
-	sc->interactive_repl = 1;
-    }
-#if SHOW_ERROR_LINE
-    sc->load_stack[0].rep.stdio.curr_line = 0;
-    if (fin != stdin && filename)
-	sc->load_stack[0].rep.stdio.filename =
-	    store_string(sc, strlen(filename), filename, 0);
-#endif
-
-    sc->inport = sc->loadport;
-    sc->args = mk_integer(sc, sc->file_i);
-    Eval_Cycle(sc, OP_T0LVL);
-    typeflag(sc->loadport) = T_ATOM;
-    if (sc->retcode == 0) {
-	sc->retcode = sc->nesting != 0;
-    }
-}
-
-#endif
 void scheme_read_string(scheme * sc, const char *cmd, size_t cmdlen)
 {
     dump_stack_reset(sc);
