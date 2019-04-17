@@ -51,6 +51,12 @@ DOCKER_COMPOSE_OPTS=$(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
 all:
 
 pdo-dev-image:
+	# sparse lmdb files cause docker to run out of disk space. As we include ..
+	# as git root for build of pdo-build docker file, we should  not have run tests
+	# inside the default build location
+	if [ -x ../build/_dev/opt/pdo/data ]; then \
+		echo -e "\n\nWARNING: you have a local "bare-metal" build in ../build/_dev. If that includes lmdb-files, below docker-compose might run out of disk space!!\n\n"; \
+	fi
 	# unconditionally build, count on docker caching to not rebuild if not necessary
 	docker build $(DOCKER_BUILD_OPTS) -f Dockerfile.pdo-dev -t pdo-dev .
 

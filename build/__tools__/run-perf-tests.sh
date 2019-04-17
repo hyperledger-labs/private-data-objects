@@ -93,6 +93,8 @@ done
 
 # check for existing enclave and storage services, we are not
 # using the provisioning services for this particular test
+# to handle some docker oddities, define our own pgrep rather than the normal one ..
+pgrep() { ps -ef | egrep -v '<defunct>|grep' | grep "$1"; }
 pgrep eservice
 if [ $? == 0 ] ; then
     die existing enclave services detected, please shutdown

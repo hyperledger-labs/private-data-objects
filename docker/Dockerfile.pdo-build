@@ -103,20 +103,20 @@ ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
 RUN \
-# read environment explicitly as build shell doesn't do automatically (aargh ..)
-     . /etc/environment \
+# read pdo environmentexplicitly as build shell doesn't do automatically (aargh ..). see comment in Dockerfile.pdo-dev
+     . /etc/profile.d/pdo.sh \
 # .. and overwrite auto-detection of SGX_MODE with whatever we compile below ...
- && echo "export SGX_MODE=${SGX_MODE}" >> /root/.bashrc \
+ && echo "export SGX_MODE=${SGX_MODE}" >> /etc/profile.d/pdo.sh \
 # finally set up other env variables via config script based on
 # previously defined PDO_HOME, PDO_INSTALL_ROOT, PDO_ENCLAVE_CODE_SIGN_PEM
 # and default ledger url ..
  && export PDO_LEDGER_URL=http://rest-api:8008 \
  && `/project/pdo/src/private-data-objects/build/common-config.sh -e`  \
 # configs are mostly stored in config file but also persist them as environment variables ...
- && env | grep PDO | egrep -v 'PDO_ENCLAVE_CODE_SIGN_PEM|PDO_INSTALL_ROOT|PDO_HOME' | sed 's/^PDO/export PDO/g' >> /etc/environment \
+ && env | grep PDO | egrep -v 'PDO_ENCLAVE_CODE_SIGN_PEM|PDO_INSTALL_ROOT|PDO_HOME' | sed 's/^PDO/export PDO/g' >> /etc/profile.d/pdo.sh \
 # Build PDO usuing the standard build scripts
  && make -C /project/pdo/src/private-data-objects/build/ NO_SGX_RUN_DURING_BUILD=true \
- && echo '. /project/pdo/build/bin/activate' >> /root/.bashrc \
+ && echo '. /project/pdo/build/bin/activate' >> /etc/profile.d/pdo.sh \
  && . /project/pdo/build/bin/activate \
 # - build script install in virtualenv. For docker this seems a bit overkill but easier than to
 #   duplicate all build instructions.
