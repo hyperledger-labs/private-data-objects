@@ -101,17 +101,14 @@ RUN apt-get update \
     fi \
  && apt-get -y -q upgrade \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
-
-# Install Tinyscheme
-RUN mkdir -p /opt/tinyscheme
-WORKDIR /opt/tinyscheme
-RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
- && unzip tinyscheme-1.41.zip \
- && rm tinyscheme-1.41.zip  \
- && cd tinyscheme-1.41  \
- && make \
- && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/environment
+ && rm -rf /var/lib/apt/lists/* \
+# environment variables
+# we keep all definitions in '/etc/profile.d/pdo.sh'. Alas, this is called only for login shells
+# so add it at least to /etc/bash.bashrc. Nothing equivalent seems to exist for dash/sh, which is used
+# during build, so in that case we will have to explicitly '. /etc/profile.d/pdo.sh'.
+# NOTE: There seems to be _nothing_ which is guaranteed to be always called, e.g., /etc/environment
+#   also does not work as it is not always called
+ && sed -i '1s;^;. /etc/profile.d/pdo.sh\n;' /etc/bash.bashrc
 
 # Install SGX SDK
 # we install from source as with binary distribution it's difficult to get library dependencies correct
@@ -138,11 +135,11 @@ RUN git clone --branch ${SGX_SDK} https://github.com/01org/linux-sgx.git \
  && echo "yes" | ./linux-sgx/linux/installer/bin/sgx_linux_x64_sdk_*.bin \
  && ./linux-sgx/linux/installer/bin/sgx_linux_x64_psw_*.bin \
  && rm -rf linux-sgx \
- && echo ". /opt/intel/sgxsdk/environment" >> /etc/environment
+ && echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 
 # ("Untrusted") OpenSSL
 WORKDIR /tmp
-RUN wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz #\
+RUN wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz
 # && tar -zxvf openssl-${OPENSSL}.tar.gz \
 # && cd openssl-${OPENSSL}/ \
 # && ./config \
@@ -171,7 +168,17 @@ RUN git clone  --branch ${SGXSSL} https://github.com/intel/intel-sgx-ssl.git \
  && (cd intel-sgx-ssl/Linux; make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test ) \
  && (cd intel-sgx-ssl/Linux; make install ) \
  && rm -rf /tmp/intel-sgx-ssl \
- && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/environment
+ && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
+
+# Install Tinyscheme
+RUN mkdir -p /opt/tinyscheme
+WORKDIR /opt/tinyscheme
+RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
+ && unzip tinyscheme-1.41.zip \
+ && rm tinyscheme-1.41.zip  \
+ && cd tinyscheme-1.41  \
+ && make \
+ && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 # environment setup as required by PDO
 # Note
@@ -181,11 +188,10 @@ RUN git clone  --branch ${SGXSSL} https://github.com/intel/intel-sgx-ssl.git \
 # - make sure /etc/environment is always included for bash
 RUN \
     mkdir -p /project/pdo \
- && echo "export PDO_INSTALL_ROOT=/project/pdo/build" >> /etc/environment \
- && echo "export PDO_HOME=/project/pdo/build/opt/pdo" >> /etc/environment \
- && echo "export PDO_ENCLAVE_CODE_SIGN_PEM=/project/pdo/enclave.pem" >> /etc/environment \
+ && echo "export PDO_INSTALL_ROOT=/project/pdo/build" >> /etc/profile.d/pdo.sh \
+ && echo "export PDO_HOME=/project/pdo/build/opt/pdo" >> /etc/profile.d/pdo.sh \
+ && echo "export PDO_ENCLAVE_CODE_SIGN_PEM=/project/pdo/enclave.pem" >> /etc/profile.d/pdo.sh \
  && openssl genrsa -3 3072 > /project/pdo/enclave.pem \
- && sed -i '1s;^;source /etc/environment\nexport $(grep -v "^. " /etc/environment| cut -d= -f1)\n;' /root/.bashrc \
  && echo "if ([ -c /dev/isgx ] && [ -S /var/run/aesmd/aesm.socket ]); then export SGX_MODE=HW; else export SGX_MODE=SIM; fi;" >> /root/.bashrc
 
 WORKDIR /project/pdo/

@@ -67,6 +67,8 @@ SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 : "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
 
 # check for existing enclave and provisioning services
+# to handle some docker oddities, define our own pgrep rather than the normal one ..
+pgrep() { ps -ef | egrep -v '<defunct>|grep' | grep "$1"; }
 pgrep eservice
 if [ $? == 0 ] ; then
     die existing enclave services detected, please shutdown

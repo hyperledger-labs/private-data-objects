@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PLIST=$(pgrep -u $USER -f sservice)
+PLIST=$(pgrep -u ${USER:-$(whoami)} -f sservice)
 if [ -n "$PLIST" ] ; then
     ps -h --format cmd -p $PLIST
 fi
