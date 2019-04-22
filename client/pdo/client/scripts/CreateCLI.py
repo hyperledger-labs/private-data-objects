@@ -32,6 +32,7 @@ from pdo.contract import register_contract
 from pdo.contract import add_enclave_to_contract
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.service_client.provisioning import ProvisioningServiceClient
+import pdo.service_client.service_data.eservice as db
 
 logger = logging.getLogger(__name__)
 
@@ -133,14 +134,32 @@ def LocalMain(commands, config) :
     logger.info('Loaded contract data for %s', contract_name)
 
     # ---------- set up the enclave clients ----------
-    try :
-        enclaveclients = []
-        for url in service_config['EnclaveServiceURLs'] :
-            enclaveclients.append(EnclaveServiceClient(url))
-    except Exception as e :
-        logger.error('unable to setup enclave services; %s', str(e))
-        sys.exit(-1)
 
+    enclaveclients = []
+    if service_config.get('EnclaveServiceNames'): #use the database to get the list of enclaves for the contract
+        logger.info('Using eservice database to look up service URL for the contract enclave')
+        try:
+            # load the eservice database
+            if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
+                try:
+                    db.load_database(service_config['EnclaveServiceDatabaseFile'])
+                except Exception as e:
+                    logger.error('Error loading eservice database %s', str(e))
+                    sys.exit(-1)
+            for name in service_config['EnclaveServiceNames']:
+                enclaveclients.append(db.get_client_by_name(name))
+        except Exception as e:
+            logger.error('Unable to get the eservice clients using the eservice database: %s', str(e)) 
+            sys.exit(-1)   
+    else: # do not use the database
+        try :
+            for url in service_config['EnclaveServiceURLs'] :
+                enclaveclients.append(EnclaveServiceClient(url))
+        except Exception as e :
+            logger.error('unable to setup enclave services; %s', str(e))
+            sys.exit(-1)
+
+    
     # ---------- set up the provisioning service clients ----------
     # This is a dictionary of provisioning service public key : client pairs
     try :
@@ -243,9 +262,11 @@ def Main(commands) :
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
 
+    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
+    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
-
+    
     options = parser.parse_args()
 
     # first process the options necessary to load the default configuration
@@ -290,14 +311,23 @@ def Main(commands) :
     if options.ledger :
         config['Sawtooth']['LedgerURL'] = options.ledger
 
-    # set up the service configuration
+   # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
+            'EnclaveServiceNames' : [],
             'EnclaveServiceURLs' : [],
-            'ProvisioningServiceURLs' : []
+            'ProvisioningServiceURLs' : [],
+            'EnclaveServiceDatabaseFile' : None
         }
+
+    if options.eservice_name:
+        config['Service']['EnclaveServiceNames'] = options.eservice_name
+    if options.eservice_db:
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.eservice_url :
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        # if url is provided, we will not use database
+        config['Service']['EnclaveServiceNames'] = []
     if options.pservice_url :
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
 

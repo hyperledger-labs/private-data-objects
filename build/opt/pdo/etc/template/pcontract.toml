@@ -31,6 +31,15 @@ LedgerURL = "${ledger}"
 
 PreferredEnclaveService = "http://127.0.0.1:7101"
 
+EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
+
+EnclaveServiceNames = [
+    "e1",
+    "e2",
+    "e3"
+]
+
+
 EnclaveServiceURLs = [
     "http://127.0.0.1:7101",
     "http://127.0.0.1:7102",

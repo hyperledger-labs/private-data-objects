@@ -15,6 +15,7 @@
 import argparse
 import random
 import logging
+import sys
 logger = logging.getLogger(__name__)
 
 from pdo.common.keys import ServiceKeys
@@ -22,6 +23,7 @@ from pdo.service_client.enclave import EnclaveServiceClient
 
 from pdo.client.controller.commands.contract import get_contract
 from pdo.client.controller.commands.eservice import get_enclave_service
+import pdo.service_client.service_data.eservice as db
 
 __all__ = ['command_send']
 
@@ -44,10 +46,20 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
         raise Exception('unable to load the contract')
 
     # ---------- set up the enclave service ----------
-    try :
-        enclave_client = get_enclave_service(state, enclave)
-    except Exception as e :
-        raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
+    enclave_names = state.get(['Service', 'EnclaveServiceNames'], [])
+    if len(enclave_names) > 0: #use the database to get the list of enclaves for the contract
+        logger.info('Using eservice database to look up service URL for the contract enclave')
+        try:
+            eservice_to_use = random.choice(state.get(['Service', 'EnclaveServiceNames']))
+            enclave_client = db.get_client_by_name(eservice_to_use)
+        except Exception as e:
+            logger.exception('Unable to get the eservice clients using the eservice database: %s', str(e)) 
+            raise Exception from e
+    else:
+        try :
+            enclave_client = get_enclave_service(state, enclave)
+        except Exception as e :
+            raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
     try :
         # this is just a sanity check to make sure the selected enclave

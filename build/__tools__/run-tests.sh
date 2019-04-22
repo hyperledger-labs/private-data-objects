@@ -78,6 +78,7 @@ if [ $? == 0 ] ; then
 fi
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
@@ -116,7 +117,6 @@ try ${PDO_HOME}/bin/ps-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_UR
 try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/build
-
 # -----------------------------------------------------------------
 yell start tests without provisioning or enclave services
 # -----------------------------------------------------------------
@@ -151,31 +151,44 @@ try pdo-test-contract --no-ledger --contract memory-test \
 ## -----------------------------------------------------------------
 yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
+
+say run unit tests for eservice database 
+cd ${SRCDIR}/python/pdo/test
+try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --eservice-db $PDO_HOME/data/db-test.json --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ --ledger ${PDO_LEDGER_URL}
+try rm $PDO_HOME/data/db-test.json
+
+cd ${SRCDIR}/build
+
+say create the eservice database using database CLI 
+# add all enclaves listed in pcontract.toml
+try pdo-eservicedb --logfile $PDO_HOME/logs/client.log --loglevel info create
+
 say start storage service test
 try pdo-test-storage --url http://localhost:7201 --loglevel warn --logfile __screen__
 
 say start request test
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start integer-key contract test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start key value store test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract key-value-test \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start memory test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice http://localhost:7101/ \
+    --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 ## -----------------------------------------------------------------
@@ -283,6 +296,68 @@ pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
+
+#-----------------------------------------
+yell run tests with the eservice database 
+#------------------------------------------
+
+say run various pdo scripts - test-request, test-contract, create, update, shell - using database
+try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info  
+try pdo-test-contract --contract integer-key --eservice-name e2 --logfile $PDO_HOME/logs/client.log --loglevel info 
+
+# make sure we have the necessary files in place
+CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
+if [ ! -f ${CONFIG_FILE} ]; then
+    die missing client configuration file, ${CONFIG_FILE}
+fi
+
+CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
+if [ ! -f ${CONTRACT_FILE} ]; then
+    die missing contract source file, ${CONTRACT_FILE}
+fi
+
+try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+     --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --identity user1 --save-file ${SAVE_FILE} \
+    --contract mock-contract --source _mock-contract.scm --eservice-name e1 e2 e3 
+
+# this will invoke the increment operation 5 times on each enclave round robin
+# fashion; the objective of this test is to ensure that the client touches
+# multiple, independent enclave services and pushes missing state correctly
+declare -i pcontract_es=3 #.see ../opt/pdo/etc/template/pcontract.toml
+declare -i n=$((NUM_SERVICES*pcontract_es)) e v value
+for v in $(seq 1 ${n}) ; do
+    e=$((v % pcontract_es + 1))
+    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
+                       --eservice-name e${e} \
+                       --logfile $PDO_HOME/logs/client.log --loglevel info \
+                       --identity user1 --save-file ${SAVE_FILE} \
+                       "'(inc-value)")
+    if [ $value != $v ]; then
+        die "contract has the wrong value ($value instead of $v) for enclave $e"
+    fi
+done
+
+# commenting out the shell tests for now. 
+:<<'END'
+KEYGEN=${SRCDIR}/build/__tools__/make-keys
+if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
+    for color in red green blue ; do
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem
+        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
+    done
+fi
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+try pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info  \
+    --eservice-name e1 e2 e3  -s ${SRCDIR}/contracts/exchange/scripts/create.psh -m color red 
+
+for p in $(seq 1 3); do
+    pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info \
+    --eservice-name e${p} -s ${SRCDIR}/contracts/exchange/scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
+done
+END
 
 yell completed all tests
 exit 0

@@ -22,12 +22,22 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.controller.contract_controller import ContractController
 import pdo.common.utility as putils
+import pdo.service_client.service_data.eservice as db
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def LocalMain(config) :
     shell = ContractController(config)
 
+    # load the eservice database
+    if  os.path.exists(config['Service']['EnclaveServiceDatabaseFile']):
+        try:
+            db.load_database(config['Service']['EnclaveServiceDatabaseFile'])
+            logger.info('Loading the eservice database from json file %s', str(config['Service']['EnclaveServiceDatabaseFile']))
+        except Exception as e:
+            logger.error('Error loading eservice database %s', str(e))
+            sys.exit(-1)
+    
     # load the bindings specified in the configuration
     for (key, val) in config.get("VariableMap", {}).items() :
         shell.bindings.bind(key, val)
@@ -95,6 +105,8 @@ def Main() :
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
+    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
+    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
@@ -154,14 +166,23 @@ def Main() :
     if options.key_dir :
         config['Key']['SearchPath'] = options.key_dir
 
-    # set up the service configuration
+   # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
+            'EnclaveServiceNames' : [],
             'EnclaveServiceURLs' : [],
-            'ProvisioningServiceURLs' : []
+            'ProvisioningServiceURLs' : [],
+            'EnclaveServiceDatabaseFile' : None
         }
+
+    if options.eservice_name:
+        config['Service']['EnclaveServiceNames'] = options.eservice_name
+    if options.eservice_db:
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.eservice_url :
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
+        # we will not use database
+        config['Service']['EnclaveServiceNames'] = []
     if options.pservice_url :
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
 
