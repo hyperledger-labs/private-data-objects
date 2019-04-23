@@ -27,19 +27,18 @@
      (for-each (lambda (a) (write a)) args)
      (newline))
 
-   (define (throw-with-no-continuations . x)
-     (if (_more-handlers?)
-         (begin (apply (_pop-handler) x) (quit -1))
-         ;;(apply (_pop-handler) x)
-         (apply error x)))
-
-   (define (throw-with-continuations . x)
+   (define (throw . x)
      (if (_more-handlers?)
          (apply (_pop-handler) x)
          (apply error x)))
 
    (macro (catch-with-no-continuations form)
-     `(begin (catch-throw::_push-handler ,(cadr form)) ,@(cddr form)))
+     (let ((label (gensym)))
+       `(begin
+          (catch-throw::_push-handler (lambda msg (begin (apply ,(cadr form) msg) (quit -1))))
+          (let ((,label (begin ,@(cddr form))))
+            (catch-throw::_pop-handler)
+            ,label))))
 
    (macro (catch-with-continuations form)
      (let ((label (gensym)))
@@ -51,13 +50,10 @@
    ))
 
 (define error-print catch-throw::error-print)
+(define throw catch-throw::throw)
 (if (and (defined? 'call/cc) (closure? call/cc))
-    (begin
-      (define catch catch-throw::catch-with-continuations)
-      (define throw catch-throw::throw-with-continuations))
-    (begin
-      (define catch catch-throw::catch-with-no-continuations)
-      (define throw catch-throw::throw-with-no-continuations)))
+    (define catch catch-throw::catch-with-continuations)
+    (define catch catch-throw::catch-with-no-continuations))
 
 ;; Must compile with error hook enabled for this to work correctly
 (define *error-hook* throw)

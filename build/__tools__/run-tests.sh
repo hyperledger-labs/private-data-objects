@@ -154,7 +154,7 @@ try pdo-test-contract --no-ledger --contract memory-test \
 yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
 
-say run unit tests for eservice database 
+say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
 try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
     --eservice-db $PDO_HOME/data/db-test.json --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ --ledger ${PDO_LEDGER_URL}
@@ -162,7 +162,7 @@ try rm $PDO_HOME/data/db-test.json
 
 cd ${SRCDIR}/build
 
-say create the eservice database using database CLI 
+say create the eservice database using database CLI
 # add all enclaves listed in pcontract.toml
 try pdo-eservicedb --logfile $PDO_HOME/logs/client.log --loglevel info create
 
@@ -300,12 +300,12 @@ if [ $? == 0 ]; then
 fi
 
 #-----------------------------------------
-yell run tests with the eservice database 
+yell run tests with the eservice database
 #------------------------------------------
 
 say run various pdo scripts - test-request, test-contract, create, update, shell - using database
-try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info  
-try pdo-test-contract --contract integer-key --eservice-name e2 --logfile $PDO_HOME/logs/client.log --loglevel info 
+try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info
+try pdo-test-contract --contract integer-key --eservice-name e2 --logfile $PDO_HOME/logs/client.log --loglevel info
 
 # make sure we have the necessary files in place
 CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
@@ -321,7 +321,7 @@ fi
 try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
      --logfile $PDO_HOME/logs/client.log --loglevel info \
     --identity user1 --save-file ${SAVE_FILE} \
-    --contract mock-contract --source _mock-contract.scm --eservice-name e1 e2 e3 
+    --contract mock-contract --source _mock-contract.scm --eservice-name e1 e2 e3
 
 # this will invoke the increment operation 5 times on each enclave round robin
 # fashion; the objective of this test is to ensure that the client touches
@@ -340,8 +340,8 @@ for v in $(seq 1 ${n}) ; do
     fi
 done
 
-# commenting out the shell tests for now. 
-:<<'END'
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 KEYGEN=${SRCDIR}/build/__tools__/make-keys
 if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
     for color in red green blue ; do
@@ -350,16 +350,16 @@ if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
         ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
     done
 fi
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
+
 try pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info  \
-    --eservice-name e1 e2 e3  -s ${SRCDIR}/contracts/exchange/scripts/create.psh -m color red 
+    --eservice-name e1 e2 e3  -s ${SRCDIR}/contracts/exchange/scripts/create.psh -m color red
 
 for p in $(seq 1 3); do
     pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info \
     --eservice-name e${p} -s ${SRCDIR}/contracts/exchange/scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
 done
-END
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 yell completed all tests
 exit 0
