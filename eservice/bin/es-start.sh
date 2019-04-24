@@ -17,20 +17,19 @@
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     echo activate python3 first
-    exit
+    exit 1
 fi
 
-F_USAGE='-c|--count services --cfile config -l|--loglevel [debug|info|warn]'
-F_LOGLEVEL='info'
-F_COUNT=1
-F_OUTPUTDIR=''
-F_BASENAME='eservice'
-
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-F_LOGDIR=$F_SERVICEHOME/logs
-F_CONFDIR=$F_SERVICEHOME/etc
+source ${F_SERVICEHOME}/bin/common.sh
+
+F_USAGE='-c|--count services -b|--base name --ledger url -o|--output dir --clean -l|--loglevel [debug|info|warn]'
+F_COUNT=1
+F_BASENAME='eservice'
 F_LEDGERURL=''
+F_OUTPUTDIR=''
 F_CLEAN='no'
+F_LOGLEVEL='info'
 
 # -----------------------------------------------------------------
 # Process command line arguments
@@ -55,6 +54,14 @@ while true ; do
     esac
 done
 
+# (1) do not start if service already running
+pgrepf  "\beservice .* --config ${F_BASENAME}[0-9].toml\b"
+if [ $? == 0 ] ; then
+    echo existing enclave services detected, please shutdown first
+    exit 1
+fi
+
+# (2) prepare output
 if [ "$F_OUTPUTDIR" != "" ] ; then
     mkdir -p $F_OUTPUTDIR
     rm -f $F_OUTPUTDIR/*
@@ -63,6 +70,7 @@ else
     OFILE=/dev/null
 fi
 
+# (3) start services asynchronously
 for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo start enclave service $IDENTITY
@@ -79,9 +87,20 @@ for index in `seq 1 $F_COUNT` ; do
         rm -f $EFILE $OFILE
     fi
 
-    sleep 5
-
     eservice --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
              --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
 
+done
+
+# (4) wait for successfull start of the services
+for index in `seq 1 $F_COUNT` ; do
+    IDENTITY="${F_BASENAME}$index"
+    echo waiting for startup completion of enclave service $IDENTITY
+
+    url="$(get_url_base $IDENTITY)/info" || { echo "no url found for enclave service"; exit 1; }
+    resp=$(${CURL_CMD} ${url})
+    if [ $? != 0 ] || [ $resp != "200" ]; then
+	echo "enclave service $IDENTITY not properly running"
+	exit 1
+    fi
 done

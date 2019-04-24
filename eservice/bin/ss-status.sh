@@ -14,7 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PLIST=$(pgrep -u ${USER:-$(whoami)} -f sservice)
+F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
+source ${F_SERVICEHOME}/bin/common.sh
+
+F_USAGE='-b|--base name'
+F_BASENAME='sservice'
+
+# -----------------------------------------------------------------
+# Process command line arguments
+# -----------------------------------------------------------------
+TEMP=`getopt -o b:h --long base:,help \
+     -n 'ss-status.sh' -- "$@"`
+
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+
+eval set -- "$TEMP"
+while true ; do
+    case "$1" in
+        -b|--base) F_BASENAME="$2" ; shift 2 ;;
+        --help) echo $F_USAGE ; exit 1 ;;
+	--) shift ; break ;;
+	*) echo "Internal error!" ; exit 1 ;;
+    esac
+done
+
+PLIST=$(pgrepf  "\bsservice .* --config ${F_BASENAME}[0-9].toml\b")
 if [ -n "$PLIST" ] ; then
-    ps -h --format cmd -p $PLIST
+    ps -h --format pid,start,cmd -p $PLIST
 fi
