@@ -36,8 +36,7 @@ If you define the PDO_DEBUG_BUILD environment variable, the make commands will (
 the code with debugging and and run docker containers such that gdb/sgx-gdb-based debugging is possible.
 Note though, that due to some docker(-compose)ism, terminating daemon processes such as the ones started
 by ps-start/es-start will run in zombie processes. They don't hold any resources such as sockets or alike
-and subseequent ps-start/es-start will run successfully.  However, note that run-tests.sh will fail
-due to some pgrep statements in the script ...
+and subseequent \*-start/\*-status/\*-stop script should work as expected.
 
 While you can run end-to-end tests inside docker, sometimes it might be easier to test outside so you can, e.g., monitor localhost traffic with wireshark which seems challenging with docker. Note that with 'make test-env-setup' (or 'make test-env-setup-with-no-build' if you are sure container images for PDO-TP and other components are already properly built) you get a fresh sawtooth setup where ledger rest API is also exposed to the host, i.e., the default localhost:8008 does also work from the host and you can test client and {e,s,p}services on the host with a fresh and self-contained/single machine installation.
 

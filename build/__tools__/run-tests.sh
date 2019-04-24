@@ -66,19 +66,6 @@ SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 : "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
 : "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
 
-# check for existing enclave and provisioning services
-# to handle some docker oddities, define our own pgrep rather than the normal one ..
-pgrep() { ps -ef | egrep -v '<defunct>|grep' | grep "$1"; }
-pgrep eservice
-if [ $? == 0 ] ; then
-    die existing enclave services detected, please shutdown
-fi
-
-pgrep pservice
-if [ $? == 0 ] ; then
-    die existing provisioning services detected, please shutdown
-fi
-
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work

@@ -91,20 +91,6 @@ while true ; do
     esac
 done
 
-# check for existing enclave and storage services, we are not
-# using the provisioning services for this particular test
-# to handle some docker oddities, define our own pgrep rather than the normal one ..
-pgrep() { ps -ef | egrep -v '<defunct>|grep' | grep "$1"; }
-pgrep eservice
-if [ $? == 0 ] ; then
-    die existing enclave services detected, please shutdown
-fi
-
-pgrep sservice
-if [ $? == 0 ] ; then
-    die existing storage services detected, please shutdown
-fi
-
 function cleanup {
     yell "shutdown services"
     ${PDO_HOME}/bin/es-stop.sh --count ${F_SERVICES} > /dev/null

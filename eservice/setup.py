@@ -45,6 +45,7 @@ data_files = [
     (bin_dir, [
         'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
         'bin/ss-start.sh', 'bin/ss-stop.sh', 'bin/ss-status.sh',
+        'bin/common.sh'
         ]),
     (dat_dir, []),
     (etc_dir, [ 'etc/sample_eservice.toml', 'etc/sample_sservice.toml' ]),

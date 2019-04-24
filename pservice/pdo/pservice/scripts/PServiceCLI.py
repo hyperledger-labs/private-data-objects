@@ -226,6 +226,11 @@ class ProvisioningServer(resource.Resource):
     ## -----------------------------------------------------------------
     def render_GET(self, request) :
         logger.warn('GET REQUEST: %s', request.uri)
+        if request.uri == b'/info':
+            logger.info('info request received')
+            request.setHeader(b"content-type", b"text/plain")
+            request.setResponseCode(http.OK)
+            return "I'm up and running ..".encode("ascii")
         if request.uri == b'/shutdown' :
             logger.warn('shutdown request received')
             reactor.callLater(1, reactor.stop)

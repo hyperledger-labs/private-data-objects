@@ -20,21 +20,20 @@ if [[ $PY3_VERSION -lt 5 ]]; then
     exit
 fi
 
-F_USAGE='-c|--count services --cfile config -l|--loglevel [debug|info|warn]'
-F_LOGLEVEL='info'
-F_COUNT=1
-F_OUTPUTDIR=''
-F_BASENAME='sservice'
-
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-F_LOGDIR=$F_SERVICEHOME/logs
-F_CONFDIR=$F_SERVICEHOME/etc
+source ${F_SERVICEHOME}/bin/common.sh
+
+F_USAGE='-c|--count services -b|--base name -o|--output dir -l|--loglevel [debug|info|warn]'
+F_COUNT=1
+F_BASENAME='sservice'
+F_OUTPUTDIR=''
+F_LOGLEVEL='info'
 
 # -----------------------------------------------------------------
 # Process command line arguments
 # -----------------------------------------------------------------
 TEMP=`getopt -o b:c:l:o: --long base:,count:,help,loglevel:,output: \
-     -n 'es-start.sh' -- "$@"`
+     -n 'ss-start.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
@@ -51,6 +50,14 @@ while true ; do
     esac
 done
 
+# (1) do not start if service already running
+pgrepf  "\bsservice .* --config ${F_BASENAME}[0-9].toml\b"
+if [ $? == 0 ] ; then
+    echo existing storage services detected, please shutdown first
+    exit 1
+fi
+
+# (2) prepare output
 if [ "$F_OUTPUTDIR" != "" ] ; then
     mkdir -p $F_OUTPUTDIR
     rm -f $F_OUTPUTDIR/*
@@ -59,6 +66,7 @@ else
     OFILE=/dev/null
 fi
 
+# (3) start services asynchronously
 for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo start storage service $IDENTITY
@@ -74,4 +82,17 @@ for index in `seq 1 $F_COUNT` ; do
     sservice --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
              --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
 
+done
+
+# (4) wait for successfull start of the services
+for index in `seq 1 $F_COUNT` ; do
+    IDENTITY="${F_BASENAME}$index"
+    echo waiting for startup completion of storage service $IDENTITY
+
+    url="$(get_url_base $IDENTITY)/info" || { echo "no url found for storage service"; exit 1; }
+    resp=$(${CURL_CMD} ${url})
+    if [ $? != 0 ] || [ $resp != "200" ]; then
+	echo "storage service $IDENTITY not properly running"
+	exit 1
+    fi
 done
