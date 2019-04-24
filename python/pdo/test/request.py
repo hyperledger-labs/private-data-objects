@@ -19,6 +19,7 @@ import sys
 import time
 import argparse
 import random
+from string import Template
 
 import pdo.test.helpers.secrets as secret_helper
 import pdo.test.helpers.state as test_state
@@ -83,16 +84,16 @@ def CreateAndRegisterEnclave(config) :
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
-        
+
         # Pick an enclave for the creating the contract
         if config['Service'].get('EnclaveServiceNames'): #use the database to get the enclave
-            logger.info('Using eservice database to look up service URL for the contract enclave')            
+            logger.info('Using eservice database to look up service URL for the contract enclave')
             try:
                 eservice_to_use = random.choice(config['Service']['EnclaveServiceNames'])
                 enclave = db.get_client_by_name(eservice_to_use)
             except Exception as e:
-                logger.error('Unable to get the eservice client using the eservice database: %s',  str(e)) 
-                sys.exit(-1)   
+                logger.error('Unable to get the eservice client using the eservice database: %s',  str(e))
+                sys.exit(-1)
         else: # do not use the database, use the url and get the client directly
             try :
                 eservice_urls = config['Service']['EnclaveServiceURLs']
@@ -101,7 +102,7 @@ def CreateAndRegisterEnclave(config) :
             except Exception as e :
                 logger.error('failed to contact enclave service; %s', str(e))
                 sys.exit(-1)
-        
+
         logger.info('use enclave service at %s', enclave.ServiceURL)
         return enclave
 
@@ -257,7 +258,7 @@ def CreateAndRegisterContract(config, enclave, contract_creator_keys) :
 
     contract.set_state_encryption_key(enclave.enclave_id, encrypted_state_encryption_key)
 
-    contract_save_file = config['Contract']['SaveFile']
+    contract_save_file = '_' + contract.short_id + '.pdo'
     contract.save_to_file(contract_save_file, data_dir=data_dir)
 
     # --------------------------------------------------
@@ -379,7 +380,7 @@ def LocalMain(config) :
         except Exception as e:
             logger.error('Error loading eservice database %s', str(e))
             sys.exit(-1)
-            
+
     # --------------------------------------------------
     logger.info('create and register the enclave')
     # --------------------------------------------------
@@ -398,7 +399,7 @@ def LocalMain(config) :
     try :
         if use_ledger :
             logger.info('reload the contract from local file')
-            contract_save_file = config['Contract']['SaveFile']
+            contract_save_file = '_' + contract.short_id + '.pdo'
             contract = contract_helper.Contract.read_from_file(ledger_config, contract_save_file, data_dir=data_dir)
     except Exception as e :
         logger.error('failed to load the contract from a file; %s', str(e))
@@ -565,7 +566,7 @@ def Main() :
     if options.pservice_url :
         use_pservice = True
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
-    
+
 
     # set up the data paths
     if config.get('Contract') is None :
@@ -601,7 +602,7 @@ def Main() :
     if tamper_block_order :
         config['iterations'] = 1
 
-    
+
     LocalMain(config)
 
 Main()
