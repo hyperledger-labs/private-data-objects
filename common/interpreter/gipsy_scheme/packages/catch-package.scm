@@ -32,17 +32,28 @@
          (apply (_pop-handler) x)
          (apply error x)))
 
-   (macro (catch form)
+   (macro (catch-with-no-continuations form)
+     (let ((label (gensym)))
+       `(begin
+          (catch-throw::_push-handler (lambda msg (begin (apply ,(cadr form) msg) (quit -1))))
+          (let ((,label (begin ,@(cddr form))))
+            (catch-throw::_pop-handler)
+            ,label))))
+
+   (macro (catch-with-continuations form)
      (let ((label (gensym)))
        `(call/cc (lambda (exit)
                    (catch-throw::_push-handler (lambda msg (exit (apply ,(cadr form) msg))))
                    (let ((,label (begin ,@(cddr form))))
                      (catch-throw::_pop-handler)
-                     ,label)))))))
+                     ,label)))))
+   ))
 
-(define catch catch-throw::catch)
-(define throw catch-throw::throw)
 (define error-print catch-throw::error-print)
+(define throw catch-throw::throw)
+(if (and (defined? 'call/cc) (closure? call/cc))
+    (define catch catch-throw::catch-with-continuations)
+    (define catch catch-throw::catch-with-no-continuations))
 
 ;; Must compile with error hook enabled for this to work correctly
 (define *error-hook* throw)
