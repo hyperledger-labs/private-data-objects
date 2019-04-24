@@ -108,6 +108,12 @@ class Contract(object) :
 
     # -------------------------------------------------------
     @property
+    def short_id(self) :
+        assert self.contract_id
+        return hex(abs(hash(self.contract_id)))[2:]
+
+    # -------------------------------------------------------
+    @property
     def provisioned_enclaves(self) :
         return list(self.enclave_map.keys())
 

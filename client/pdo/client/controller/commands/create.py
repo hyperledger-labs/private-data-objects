@@ -114,10 +114,6 @@ def command_create(state, bindings, pargs) :
     contract_class = options.contract_class
     contract_source = options.contract_source
 
-    contract_file = "{0}.pdo".format(contract_class)
-    if options.save_file :
-        contract_file = options.save_file
-
     # ---------- load the invoker's keys ----------
     try :
         keyfile = state.get(['Key', 'FileName'])
@@ -144,8 +140,8 @@ def command_create(state, bindings, pargs) :
             for name in enclave_names:
                 enclaveclients.append(db.get_client_by_name(name))
         except Exception as e:
-            raise Exception('Unable to get the eservice clients using the eservice database: %s', str(e)) 
-            
+            raise Exception('Unable to get the eservice clients using the eservice database: %s', str(e))
+
     else:
         eservice_urls = state.get(['Service', 'EnclaveServiceURLs'], [])
         if len(eservice_urls) == 0 :
@@ -156,7 +152,7 @@ def command_create(state, bindings, pargs) :
         except Exception as e :
             raise Exception('unable to contact enclave services; {0}'.format(str(e)))
 
-    
+
     # ---------- set up the provisioning service clients ----------
     # This is a dictionary of provisioning service public key : client pairs
     try :
@@ -182,7 +178,13 @@ def command_create(state, bindings, pargs) :
         logger.info('Registered contract with class %s and id %s', contract_class, contract_id)
         contract_state = ContractState.create_new_state(contract_id)
         contract = Contract(contract_code, contract_state, contract_id, client_keys.identity)
+
+        contract_file = "{0}_{1}.pdo".format(contract_class, contract.short_id)
+        if options.save_file :
+            contract_file = options.save_file
+
         contract.save_to_file(contract_file, data_dir=data_directory)
+
     except Exception as e :
         raise Exception('failed to register the contract; {0}'.format(str(e)))
 
