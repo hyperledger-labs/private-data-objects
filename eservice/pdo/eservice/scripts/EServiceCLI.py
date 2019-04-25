@@ -95,7 +95,11 @@ def StartEnclaveService(config, enclave) :
         logger.error('missing configuration for %s', str(ke))
         sys.exit(-1)
 
-    logger.info('service started on port %s', http_port)
+    logger.info('enclave service started on %s:%s', http_host, http_port)
+    logger.info('verifying_key: %s', enclave.verifying_key)
+    logger.info('encryption_key: %s', enclave.encryption_key)
+    logger.info('enclave_id: %s', enclave.enclave_id)
+    logger.info('storage service: %s', storage_url)
 
     thread_pool = ThreadPool(minthreads=1, maxthreads=worker_threads)
     thread_pool.start()
