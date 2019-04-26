@@ -79,7 +79,8 @@ class Contract(object) :
             logger.error('error occurred retreiving contract state; %s', str(e))
             raise Exception("invalid contract file; {}".format(filename))
 
-        obj = cls(code, state, contract_info['contract_id'], contract_info['creator_id'])
+        extra_data = contract_info.get('extra_data', {})
+        obj = cls(code, state, contract_info['contract_id'], contract_info['creator_id'], extra_data=extra_data)
         for enclave in contract_info['enclaves_info'] :
             obj.set_state_encryption_key(
                 enclave['contract_enclave_id'],
@@ -95,6 +96,7 @@ class Contract(object) :
         self.contract_state = state
         self.contract_id = contract_id
         self.creator_id = creator_id
+        self.extra_data = kwargs.get('extra_data', {})
 
         self.enclave_map = kwargs.get('enclave_map',{})
 
@@ -153,6 +155,7 @@ class Contract(object) :
     # -------------------------------------------------------
     def save_to_file(self, basename, data_dir = None) :
         serialized = dict()
+        serialized['extra_data'] = self.extra_data
         serialized['contract_id'] = self.contract_id
         serialized['creator_id'] = self.creator_id
         serialized['contract_code'] = self.contract_code.serialize()
