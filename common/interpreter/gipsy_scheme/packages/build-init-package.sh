@@ -21,6 +21,45 @@
 F_PACKAGE_NAME='_init_package'
 
 # -----------------------------------------------------------------
+# -----------------------------------------------------------------
+cred=`tput setaf 1`
+cgrn=`tput setaf 2`
+cblu=`tput setaf 4`
+cmag=`tput setaf 5`
+cwht=`tput setaf 7`
+cbld=`tput bold`
+bred=`tput setab 1`
+bgrn=`tput setab 2`
+bblu=`tput setab 4`
+bwht=`tput setab 7`
+crst=`tput sgr0`
+
+function recho () {
+    echo "${cbld}${cred}" $@ "${crst}" >&2
+}
+
+function becho () {
+    echo "${cbld}${cblu}" $@ "${crst}" >&2
+}
+
+function say () {
+    echo "$(basename $0): $*" >&2;
+}
+
+function yell () {
+    becho "$(basename $0): $*" >&2;
+}
+
+function die() {
+    recho "$(basename $0): $*" >&2
+    exit 111
+}
+
+try() {
+    "$@" || die "test failed: $*"
+}
+
+# -----------------------------------------------------------------
 # Process command line arguments
 # -----------------------------------------------------------------
 TEMP=`getopt -o p: --long package: \
@@ -33,7 +72,7 @@ while true ; do
     case "$1" in
         -p|--package) F_PACKAGE_NAME="$2" ; shift 2 ;;
 	--) shift ; break ;;
-	*) echo "Internal error!" ; exit 1 ;;
+	*) die "Internal error!" ;;
     esac
 done
 
@@ -55,6 +94,5 @@ function cleanup {
 
 trap cleanup EXIT
 
-
-tinyscheme -1 $SCRIPTFILE $@ > ${F_PACKAGE_NAME}.scm
-xxd -i ${F_PACKAGE_NAME}.scm ${F_PACKAGE_NAME}.h
+TINYSCHEMEINIT=${TINY_SCHEME_SRC}/init.scm try ${TINY_SCHEME_SRC}/scheme -1 $SCRIPTFILE $@ > ${F_PACKAGE_NAME}.scm
+try xxd -i ${F_PACKAGE_NAME}.scm ${F_PACKAGE_NAME}.h

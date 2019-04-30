@@ -91,7 +91,6 @@ RUN apt-get update \
     software-properties-common \
     swig \
     tar \
-    tinyscheme \
     unzip \
     virtualenv \
     wget \
@@ -177,7 +176,7 @@ RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinysch
  && unzip tinyscheme-1.41.zip \
  && rm tinyscheme-1.41.zip  \
  && cd tinyscheme-1.41  \
- && make \
+ && make FEATURES='-DUSE_DL=1 -DUSE_PLIST=1' \
  && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 # environment setup as required by PDO
