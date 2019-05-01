@@ -16,7 +16,7 @@ PDO_HOME ?= /opt/pdo
 
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
-EXTENSIONPATH := $(ROOTDIR)/common/build
+GIPSY_SCHEME := $(ROOTDIR)/contracts/bin/gipsyscheme
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACT_SRC := auction.scm asset_type.scm exchange.scm issuer.scm vetting_organization.scm
@@ -43,34 +43,34 @@ debug :
 
 test : $(TEST_CONTRACTS)
 	@echo Run exchange contract tests
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _issuer_test.scm loglevel 2
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _exchange_test.scm loglevel 2
-	@LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 _auction_test.scm loglevel 2
+	@$(GIPSY_SCHEME) -1 _issuer_test.scm loglevel 2
+	@$(GIPSY_SCHEME) -1 _exchange_test.scm loglevel 2
+	@$(GIPSY_SCHEME) -1 _auction_test.scm loglevel 2
 	@rm -f exchange-test.mdb exchange-test.mdb-lock
 
 _auction_test.scm : tests/auction_test.bld tests/auction_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/auction_test.bld debug
+	$(GIPSY_SCHEME) -1 tests/auction_test.bld debug
 
 _exchange_test.scm : tests/exchange_test.bld tests/exchange_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/exchange_test.bld debug
+	$(GIPSY_SCHEME) -1 tests/exchange_test.bld debug
 
 _issuer_test.scm : tests/issuer_test.bld tests/issuer_test.scm $(CONTRACT_SRC) $(PACKAGE_SRC) $(TEST_PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 tests/issuer_test.bld debug
+	$(GIPSY_SCHEME) -1 tests/issuer_test.bld debug
 
 _asset_type.scm : asset_type.bld asset_type.scm $(PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 asset_type.bld
+	$(GIPSY_SCHEME) -1 asset_type.bld
 
 _auction.scm : auction.bld auction.scm $(PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 auction.bld
+	$(GIPSY_SCHEME) -1 auction.bld
 
 _exchange.scm : exchange.bld exchange.scm $(PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 exchange.bld
+	$(GIPSY_SCHEME) -1 exchange.bld
 
 _issuer.scm : issuer.bld issuer.scm $(PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 issuer.bld
+	$(GIPSY_SCHEME) -1 issuer.bld
 
 _vetting_organization.scm : vetting_organization.bld vetting_organization.scm $(PACKAGE_SRC)
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 vetting_organization.bld
+	$(GIPSY_SCHEME) -1 vetting_organization.bld
 
 install : $(CONTRACTS) $(PLUGINS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)

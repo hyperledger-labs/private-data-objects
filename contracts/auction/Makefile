@@ -16,7 +16,7 @@ PDO_HOME ?= /opt/pdo
 
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
-EXTENSIONPATH := $(ROOTDIR)/common/build
+GIPSY_SCHEME := $(ROOTDIR)/contracts/bin/gipsyscheme
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _integer-key-auction.scm
@@ -32,13 +32,13 @@ test : $(TESTS)
 	@echo No automated tests defined
 
 _integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key-auction.bld
+	$(GIPSY_SCHEME) -1 integer-key-auction.bld
 
 _debug_integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm auction-test.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key-auction.bld debug test-auction
+	$(GIPSY_SCHEME) -1 integer-key-auction.bld debug test-auction
 
 _aptest.scm : aptest.bld auction-protocol-test.scm ../integer-key/integer-key.scm integer-key-auction.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 aptest.bld debug aptest
+	$(GIPSY_SCHEME) -1 aptest.bld debug aptest
 
 install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)

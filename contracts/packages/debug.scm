@@ -12,15 +12,6 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; scheme code to incorporate Gipsy interpreter setup in a tinyscheme
-;; interpreter that runs outside the enclave
-
-(load-extension "pcontract")
-
-(require "init-package.scm")
-(require "catch-package.scm")
-(require "oops-package.scm")
-
 ;; -----------------------------------------------------------------
 ;; NAME: catch-success
 ;;
