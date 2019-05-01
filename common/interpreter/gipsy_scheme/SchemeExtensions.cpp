@@ -20,7 +20,6 @@
 #include "crypto.h"
 #include "error.h"
 #include "interpreter_kv.h"
-#include "state.h"
 #include "types.h"
 
 #include "scheme.h"
