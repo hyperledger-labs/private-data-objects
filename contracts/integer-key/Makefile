@@ -16,7 +16,7 @@ PDO_HOME ?= /opt/pdo
 
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
-EXTENSIONPATH := $(ROOTDIR)/common/build
+GIPSY_SCHEME := $(ROOTDIR)/contracts/bin/gipsyscheme
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _integer-key.scm
@@ -31,10 +31,10 @@ test :
 	@echo No automated tests defined
 
 _integer-key.scm : integer-key.bld integer-key.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key.bld
+	$(GIPSY_SCHEME) -1 integer-key.bld
 
 _debug_integer-key.scm : integer-key.bld integer-key.scm integer-key-test.scm
-	LD_LIBRARY_PATH=$(EXTENSIONPATH) tinyscheme -1 integer-key.bld debug test-integer-key
+	$(GIPSY_SCHEME) -1 integer-key.bld debug test-integer-key
 
 install : $(CONTRACTS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)

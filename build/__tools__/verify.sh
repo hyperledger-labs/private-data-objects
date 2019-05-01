@@ -90,7 +90,7 @@ try command -v cmake
 try command -v swig
 try command -v make
 try command -v g++
-try command -v tinyscheme
+try command -v ${TINY_SCHEME_SRC}/scheme
 
 if [ ! -d "${PDO_INSTALL_ROOT}" ]; then
     warn "PDO_INSTALL_ROOT directory does not exist"

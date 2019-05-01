@@ -451,12 +451,6 @@
 
 (define (acons x y z) (cons (cons x y) z))
 
-;;;; Handy for imperative programs
-;;;; Used as: (define-with-return (foo x y) .... (return z) ...)
-(macro (define-with-return form)
-     `(define ,(cadr form)
-          (call/cc (lambda (return) ,@(cddr form)))))
-
 ;;;;; Definition of MAKE-ENVIRONMENT, to be used with two-argument EVAL
 
 (macro (make-environment form)
