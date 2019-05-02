@@ -48,6 +48,7 @@ ifndef NO_SGX_RUN_DURING_BUILD
      CONDITIONAL_REGISTER_TARGET=register
   endif
 endif
+
 all: environment template system-keys verify build keys conf $(CONDITIONAL_REGISTER_TARGET)
 
 clean : clean-build clean-install
@@ -58,9 +59,9 @@ clean-install :
 clean-build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
 
-environment : $(PYTHON_DIR)
+environment : $(DSTDIR) $(PYTHON_DIR)
 
-$(PYTHON_DIR) : $(DSTDIR)
+$(PYTHON_DIR) :
 	virtualenv -p python3 --no-download $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pip
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade setuptools
@@ -78,6 +79,7 @@ $(PYTHON_DIR) : $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade lmdb
 
 $(DSTDIR) :
+	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
 	mkdir -p $(DSTDIR)
 
 verify :
@@ -88,10 +90,10 @@ build : $(PYTHON_DIR)
 
 rebuild : clean-build build $(CONDITIONAL_REGISTER_TARGET)
 
-system-keys : ${PDO_ENCLAVE_CODE_SIGN_KEY}
+system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
 
-${PDO_ENCLAVE_CODE_SIGN_KEY} :
-	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_KEY} 3072
+${PDO_ENCLAVE_CODE_SIGN_PEM} :
+	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
 keys : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; \
@@ -144,4 +146,5 @@ endif
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTSCRIPT)
 
-.PHONY : build clean clean-build clean-install conf environment keys rebuild system-keys template test verify
+.PHONY : all build clean clean-build clean-install conf environment install
+.PHONY : keys rebuild system-keys template test verify
