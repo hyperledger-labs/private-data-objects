@@ -203,6 +203,20 @@ except :
     pass
 
 # -----------------------------------------------------------------
+logger.info('test with duplicate pspk')
+logger.info('expected error: Multiple secrets from the same provisioning service')
+# -----------------------------------------------------------------
+try:
+    secret_list = secret_helper.create_secret_list(3, enclave_keys, contract_id, contract_creator_id)
+    secret_list.append(secret_list[0])
+
+    secretinfo = enclave_client.verify_secrets(contract_id, contract_creator_id, secret_list)
+    logger.error('failed to catch invalid secret list')
+    ErrorShutdown()
+except :
+    pass
+
+# -----------------------------------------------------------------
 logger.info('test with null secret')
 logger.info('expected error: RSA ciphertext is invalid')
 # -----------------------------------------------------------------

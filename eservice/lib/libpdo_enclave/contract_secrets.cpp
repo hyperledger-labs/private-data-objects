@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -88,6 +89,7 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
     pdo::error::ThrowIf<pdo::error::ValueError>(
         secret_count < 1, "there must be at least one secret provided");
 
+    std::set<std::string> pspk_list;
     for (int i = 0; i < secret_count; i++)
     {
         JSON_Object* secret_object = json_array_get_object(secret_array, i);
@@ -96,6 +98,12 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
         svalue = json_object_dotget_string(secret_object, "pspk");
         pdo::error::ThrowIfNull(svalue, "Invalid provisioning service public key");
         const std::string pspk = svalue;
+
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            pspk_list.find(pspk) != pspk_list.end(),
+            "Multiple secrets from the same provisioning service");
+
+        pspk_list.insert(pspk);
 
         svalue = json_object_dotget_string(secret_object, "encrypted_secret");
         pdo::error::ThrowIfNull(svalue, "Invalid encrypted secret");
