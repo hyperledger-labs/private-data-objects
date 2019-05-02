@@ -329,6 +329,8 @@ done
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+cd ${SCRIPTDIR}
+
 KEYGEN=${SRCDIR}/build/__tools__/make-keys
 if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
     for color in red green blue ; do
@@ -345,6 +347,9 @@ for p in $(seq 1 3); do
     pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info \
     --eservice-name e${p} -s ${SRCDIR}/contracts/exchange/scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
 done
+
+# clean up the pdo files that are created by the shell
+rm -f ${SCRIPTDIR}/red_issuer.pdo ${SCRIPTDIR}/red_type.pdo ${SCRIPTDIR}/red_vetting.pdo
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
