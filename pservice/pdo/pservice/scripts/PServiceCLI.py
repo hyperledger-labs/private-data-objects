@@ -78,7 +78,6 @@ class ProvisioningServer(resource.Resource):
             'dataRequest' : self._datareq,
         }
 
-
     ## -----------------------------------------------------------------
     def _GetContractSecret(self, contracttxnid) :
         """
@@ -130,6 +129,9 @@ class ProvisioningServer(resource.Resource):
         # create the response
         response = dict()
         response['pspk'] = self.PSPK
+        response['verifying_key'] = self.PSPK
+        response['encryption_key'] = self.EncryptionKey
+        response['enclave_id'] = self.EnclaveID
 
         return response
 
@@ -286,12 +288,21 @@ class ProvisioningServer(resource.Resource):
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def RunProvisioningService(config, enclave) :
-    httpport = config['ProvisioningService']['HttpPort']
-    logger.info('Provisioning Service started on port %s', httpport)
+    try :
+        http_port = config['ProvisioningService']['HttpPort']
+        http_host = config['ProvisioningService']['Host']
+    except KeyError as ke :
+        logger.error('missing configuration for %s', str(ke))
+        sys.exit(-1)
+
+    logger.info('provisioning service started on %s:%s', http_host, http_port)
+    logger.info('verifying_key: %s', enclave.verifying_key)
+    logger.info('encryption_key: %s', enclave.encryption_key)
+    logger.info('enclave_id: %s', enclave.enclave_id)
 
     root = ProvisioningServer(config, enclave)
     site = server.Site(root)
-    reactor.listenTCP(httpport, site)
+    reactor.listenTCP(http_port, site, interface=http_host)
 
     @defer.inlineCallbacks
     def shutdown_twisted():
