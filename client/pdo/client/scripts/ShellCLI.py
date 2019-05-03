@@ -22,25 +22,11 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.controller.contract_controller import ContractController
 import pdo.common.utility as putils
-import pdo.service_client.service_data.eservice as db
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def LocalMain(config) :
     shell = ContractController(config)
-
-    # load the eservice database
-    if  os.path.exists(config['Service']['EnclaveServiceDatabaseFile']):
-        try:
-            db.load_database(config['Service']['EnclaveServiceDatabaseFile'])
-            logger.info('Loading the eservice database from json file %s', str(config['Service']['EnclaveServiceDatabaseFile']))
-        except Exception as e:
-            logger.error('Error loading eservice database %s', str(e))
-            sys.exit(-1)
-    
-    # load the bindings specified in the configuration
-    for (key, val) in config.get("VariableMap", {}).items() :
-        shell.bindings.bind(key, val)
 
     # if there is a script file, process it; the interactive
     # shell will start unless there is an explicit exit in the script
@@ -106,12 +92,9 @@ def Main() :
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
     parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
-    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
-    parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
-    parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
     parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
-    parser.add_argument('-s', '--script', help='File from which to read script', type=str)
+    parser.add_argument('script', help='File from which to read script', type=str, nargs='?')
 
     options = parser.parse_args()
 
@@ -129,6 +112,7 @@ def Main() :
     config_map['contract'] = '__unknown__'
     if options.data_dir :
         config_map['data'] = options.data_dir
+        ContractData = options.data_dir
 
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
@@ -140,7 +124,7 @@ def Main() :
     if config.get('Logging') is None :
         config['Logging'] = {
             'LogFile' : '__screen__',
-            'LogLevel' : 'INFO'
+            'LogLevel' : 'WARN'
         }
     if options.logfile :
         config['Logging']['LogFile'] = options.logfile
@@ -169,22 +153,11 @@ def Main() :
    # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
-            'EnclaveServiceNames' : [],
-            'EnclaveServiceURLs' : [],
-            'ProvisioningServiceURLs' : [],
-            'EnclaveServiceDatabaseFile' : None
+            'EnclaveServiceDatabaseFile' : os.path.join(ContractData, 'eservice_db.json')
         }
 
-    if options.eservice_name:
-        config['Service']['EnclaveServiceNames'] = options.eservice_name
     if options.eservice_db:
         config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
-    if options.eservice_url :
-        config['Service']['EnclaveServiceURLs'] = options.eservice_url
-        # we will not use database
-        config['Service']['EnclaveServiceNames'] = []
-    if options.pservice_url :
-        config['Service']['ProvisioningServiceURLs'] = options.pservice_url
 
     # set up the data paths
     if config.get('Contract') is None :
@@ -203,10 +176,11 @@ def Main() :
     if options.script :
         config["ScriptFile"] = options.script
 
+    # this sets the initial bindings available in the script
     if options.mapvar :
-        varmap = config.get("VariableMap", {})
+        varmap = config.get("Bindings", {})
         for (k, v) in options.mapvar : varmap[k] = v
-        config["VariableMap"] = varmap
+        config["Bindings"] = varmap
 
     # GO!
     LocalMain(config)

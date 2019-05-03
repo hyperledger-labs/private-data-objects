@@ -78,7 +78,9 @@ class Bindings(object) :
 
     # --------------------------------------------------
     def bind(self, variable, value) :
+        saved = self.__bindings__.get(variable, '')
         self.__bindings__[variable] = value
+        return saved
 
     # --------------------------------------------------
     def isbound(self, variable) :
@@ -111,7 +113,9 @@ class ContractController(cmd.Cmd) :
         """
         ProcessScript -- process a file containing commands for the controller
         """
-        saved = controller.echo
+        saved_echo = controller.echo
+        saved_path = controller.bindings.bind('path', os.path.dirname(os.path.realpath(filename)))
+        saved_script = controller.bindings.bind('script', os.path.basename(os.path.realpath(filename)))
         try :
             controller.echo = echo
             cmdlines = ContractController.ParseScriptFile(filename)
@@ -119,25 +123,30 @@ class ContractController(cmd.Cmd) :
                 if controller.onecmd(cmdline) :
                     return False
         except Exception as e :
-            controller.echo = saved
+            controller.echo = saved_echo
+            controller.bindings.bind('script', saved_script)
+            controller.bindings.bind('path', saved_path)
             raise e
 
-        controller.echo = saved
+        controller.echo = saved_echo
+        controller.bindings.bind('script', saved_script)
+        controller.bindings.bind('path', saved_path)
+
         return True
 
     # -----------------------------------------------------------------
     @staticmethod
     def ParseScriptFile(filename) :
-        cpattern = re.compile('##.*$')
+        cpattern = re.compile('#[#!].*$')
 
         with open(filename) as fp :
             lines = fp.readlines()
 
-            cmdlines = []
-            for line in lines :
-                line = re.sub(cpattern, '', line.strip())
-                if len(line) > 0 :
-                    cmdlines.append(line)
+        cmdlines = []
+        for line in lines :
+            line = re.sub(cpattern, '', line.strip())
+            if len(line) > 0 :
+                cmdlines.append(line)
 
         return cmdlines
 
@@ -208,6 +217,7 @@ class ContractController(cmd.Cmd) :
             eparser.add_argument('-i', '--identity', help='identity to use for retrieving public keys')
             eparser.add_argument('-f', '--file', help='name of the file to read for the value')
             eparser.add_argument('-v', '--value', help='string value to associate with the symbol')
+            eparser.add_argument('-r', '--random', help='generate a random string', type=int)
 
             options = parser.parse_args(pargs)
 
@@ -225,6 +235,9 @@ class ContractController(cmd.Cmd) :
             if options.file :
                 with open (options.file, "r") as myfile:
                     value = myfile.read()
+
+            if options.random :
+                value = "{:X}".format(random.getrandbits(options.random))
 
             self.bindings.bind(options.symbol,value)
             if not options.quiet :
@@ -361,13 +374,32 @@ class ContractController(cmd.Cmd) :
     # -----------------------------------------------------------------
     def do_eservice(self, args) :
         """
-        eservice -- manage enclave service list
+        eservice -- manage enclave service lists for contract creation
         """
 
         pargs = shlex.split(self.bindings.expand(args))
 
         try :
             eservice(self.state, self.bindings, pargs)
+
+        except SystemExit as se :
+            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
+            return
+
+        except Exception as e :
+            print('An error occurred processing {0}: {1}'.format(args, str(e)))
+            return
+
+    # -----------------------------------------------------------------
+    def do_eservice_db(self, args) :
+        """
+        eservice_db -- manage enclave service list
+        """
+
+        pargs = shlex.split(self.bindings.expand(args))
+
+        try :
+            eservice_db(self.state, self.bindings, pargs)
 
         except SystemExit as se :
             if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))

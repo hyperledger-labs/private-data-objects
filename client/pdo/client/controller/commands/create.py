@@ -20,16 +20,15 @@ logger = logging.getLogger(__name__)
 
 import pdo.common.crypto as pcrypto
 
+from pdo.client.controller.commands.eservice import get_eservice, get_eservice_list
+from pdo.client.controller.commands.pservice import get_pservice_list
+
 from pdo.common.keys import ServiceKeys
 from pdo.contract import ContractCode
 from pdo.contract import ContractState
 from pdo.contract import Contract
 from pdo.contract import register_contract
 from pdo.contract import add_enclave_to_contract
-from pdo.service_client.enclave import EnclaveServiceClient
-from pdo.service_client.provisioning import ProvisioningServiceClient
-import pdo.service_client.service_data.eservice as db
-
 
 __all__ = ['command_create']
 
@@ -77,15 +76,12 @@ def __add_enclave_secrets(ledger_config, contract_id, client_keys, enclaveclient
     return encrypted_state_encryption_keys
 
 ## -----------------------------------------------------------------
-def __create_contract(ledger_config, client_keys, enclaveclients, contract) :
+def __create_contract(ledger_config, client_keys, preferred_eservice_client, eservice_clients, contract) :
     """Create the initial contract state
     """
 
-    # Choose one enclave at random to use to create the contract
-    enclaveclient = random.choice(enclaveclients)
-
     logger.info('Requesting that the enclave initialize the contract...')
-    initialize_request = contract.create_initialize_request(client_keys, enclaveclient)
+    initialize_request = contract.create_initialize_request(client_keys, preferred_eservice_client)
     initialize_response = initialize_request.evaluate()
     if not initialize_response.status :
         raise Exception("failed to initialize the contract; %s", initialize_response.result)
@@ -107,6 +103,8 @@ def command_create(state, bindings, pargs) :
     parser = argparse.ArgumentParser(prog='create')
     parser.add_argument('-c', '--contract-class', help='Name of the contract class', required = True, type=str)
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
+    parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', default="default")
+    parser.add_argument('-e', '--eservice-group', help='Name of the enclave service group to use', default="default")
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('--symbol', help='binding symbol for result', type=str)
     options = parser.parse_args(pargs)
@@ -132,52 +130,32 @@ def command_create(state, bindings, pargs) :
     logger.info('Loaded contract code for %s', contract_class)
 
     # ---------- set up the enclave clients ----------
-    enclaveclients = []
-    enclave_names = state.get(['Service', 'EnclaveServiceNames'], [])
-    if len(enclave_names) > 0: #use the database to get the list of enclaves for the contract
-        logger.info('Using eservice database to look up service URL for the contract enclave')
-        try:
-            for name in enclave_names:
-                enclaveclients.append(db.get_client_by_name(name))
-        except Exception as e:
-            raise Exception('Unable to get the eservice clients using the eservice database: %s', str(e))
+    eservice_clients = get_eservice_list(state, options.eservice_group)
+    if len(eservice_clients) == 0 :
+        raise Exception('unable to locate enclave services in the group %s', options.eservice_group)
 
-    else:
-        eservice_urls = state.get(['Service', 'EnclaveServiceURLs'], [])
-        if len(eservice_urls) == 0 :
-            raise Exception('no enclave services specified')
-        try:
-            for url in eservice_urls :
-                enclaveclients.append(EnclaveServiceClient(url))
-        except Exception as e :
-            raise Exception('unable to contact enclave services; {0}'.format(str(e)))
-
+    preferred_eservice_client = get_eservice(state, eservice_group=options.eservice_group)
 
     # ---------- set up the provisioning service clients ----------
-    # This is a dictionary of provisioning service public key : client pairs
-    try :
-        pservice_urls = state.get(['Service', 'ProvisioningServiceURLs'])
-        if len(pservice_urls) == 0 :
-            raise Exception('no provisioning services specified')
-
-        provclients = []
-        for url in pservice_urls :
-            provclients.append(ProvisioningServiceClient(url))
-    except Exception as e :
-        raise Exception('unable to contact provisioning services; {0}'.format(str(e)))
+    pservice_clients = get_pservice_list(state, options.pservice_group)
+    if len(pservice_clients) == 0 :
+        raise Exception('unable to locate provisioning services in the group %s', options.pservice_group)
 
     # ---------- register contract ----------
     data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Sawtooth'])
 
     try :
-        provisioning_service_keys = [pc.identity for pc in provclients]
+        provisioning_service_keys = [pc.identity for pc in pservice_clients]
         contract_id = register_contract(
             ledger_config, client_keys, contract_code, provisioning_service_keys)
 
         logger.info('Registered contract with class %s and id %s', contract_class, contract_id)
         contract_state = ContractState.create_new_state(contract_id)
         contract = Contract(contract_code, contract_state, contract_id, client_keys.identity)
+
+        # must fix this later
+        contract.extra_data['preferred-enclave'] = preferred_eservice_client.enclave_id
 
         contract_file = "{0}_{1}.pdo".format(contract_class, contract.short_id)
         if options.save_file :
@@ -191,7 +169,7 @@ def command_create(state, bindings, pargs) :
     # provision the encryption keys to all of the enclaves
     try :
         encrypted_state_encryption_keys = __add_enclave_secrets(
-            ledger_config, contract.contract_id, client_keys, enclaveclients, provclients)
+            ledger_config, contract.contract_id, client_keys, eservice_clients, pservice_clients)
 
         for enclave_id in encrypted_state_encryption_keys :
             encrypted_key = encrypted_state_encryption_keys[enclave_id]
@@ -203,7 +181,7 @@ def command_create(state, bindings, pargs) :
 
     # create the initial contract state
     try :
-        __create_contract(ledger_config, client_keys, enclaveclients, contract)
+        __create_contract(ledger_config, client_keys, preferred_eservice_client, eservice_clients, contract)
 
         contract.contract_state.save_to_cache(data_dir = data_directory)
         contract.save_to_file(contract_file, data_dir=data_directory)
