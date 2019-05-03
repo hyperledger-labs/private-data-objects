@@ -329,27 +329,10 @@ done
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-cd ${SCRIPTDIR}
-
-KEYGEN=${SRCDIR}/build/__tools__/make-keys
-if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
-    for color in red green blue ; do
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
-    done
+${SRCDIR}/build/tests/shell-test.psh --loglevel warning | grep 'shell-test result: 1231233123'
+if [ $? != 0 ]; then
+    die shell test failed
 fi
-
-try pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info  \
-    --eservice-name e1 e2 e3  -s ${SRCDIR}/contracts/exchange/scripts/create.psh -m color red
-
-for p in $(seq 1 3); do
-    pdo-shell --logfile $PDO_HOME/logs/client.log --loglevel info \
-    --eservice-name e${p} -s ${SRCDIR}/contracts/exchange/scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
-done
-
-# clean up the pdo files that are created by the shell
-rm -f ${SCRIPTDIR}/red_issuer.pdo ${SCRIPTDIR}/red_type.pdo ${SCRIPTDIR}/red_vetting.pdo
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

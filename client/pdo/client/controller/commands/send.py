@@ -22,14 +22,14 @@ from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
 
 from pdo.client.controller.commands.contract import get_contract
-from pdo.client.controller.commands.eservice import get_enclave_service
-import pdo.service_client.service_data.eservice as db
+from pdo.client.controller.commands.eservice import get_eservice
+import pdo.service_client.service_data.eservice as eservice_db
 
 __all__ = ['command_send']
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False, commit=True) :
+def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, wait=False, commit=True) :
 
     # ---------- load the invoker's keys ----------
     try :
@@ -46,32 +46,28 @@ def send_to_contract(state, save_file, enclave, message, quiet=False, wait=False
         raise Exception('unable to load the contract')
 
     # ---------- set up the enclave service ----------
-    enclave_names = state.get(['Service', 'EnclaveServiceNames'], [])
-    if len(enclave_names) > 0: #use the database to get the list of enclaves for the contract
-        logger.info('Using eservice database to look up service URL for the contract enclave')
-        try:
-            eservice_to_use = random.choice(state.get(['Service', 'EnclaveServiceNames']))
-            enclave_client = db.get_client_by_name(eservice_to_use)
-        except Exception as e:
-            logger.exception('Unable to get the eservice clients using the eservice database: %s', str(e)) 
-            raise Exception from e
-    else:
+    if eservice_url and eservice_url != 'random' :
         try :
-            enclave_client = get_enclave_service(state, enclave)
+            eservice_client = EnclaveServiceClient(eservice_url)
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
-    try :
-        # this is just a sanity check to make sure the selected enclave
-        # has actually been provisioned
-        contract.get_state_encryption_key(enclave_client.enclave_id)
-    except KeyError as ke :
-        logger.error('selected enclave is not provisioned')
-        sys.exit(-1)
+        if eservice_client.enclave_id not in contract.provisioned_enclaves :
+            raise Exception('requested enclave not provisioned for the contract; %s', eservice_url)
+    else :
+        enclave_id = random.choice(contract.provisioned_enclaves)
+        eservice_info = eservice_db.get_info_by_id(enclave_id)
+        if eservice_info is None :
+            raise Exception('attempt to use an unknown enclave; %s', enclave_id)
+
+        try :
+            eservice_client = EnclaveServiceClient(eservice_info['url'])
+        except Exception as e :
+            raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
     # ---------- send the message to the enclave service ----------
     try :
-        update_request = contract.create_update_request(client_keys, enclave_client, message)
+        update_request = contract.create_update_request(client_keys, eservice_client, message)
         update_response = update_request.evaluate()
         if update_response.status :
             if not quiet : print(update_response.result)
@@ -119,6 +115,6 @@ def command_send(state, bindings, pargs) :
     message = options.message
     waitflag = options.wait
 
-    result = send_to_contract(state, options.save_file, options.enclave, options.message)
+    result = send_to_contract(state, options.save_file, options.message, eservice_url=options.enclave)
     if options.symbol :
         bindings.bind(options.symbol, result)

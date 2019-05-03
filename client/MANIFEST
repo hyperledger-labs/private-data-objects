@@ -2,6 +2,7 @@
 ./pdo/client/controller/commands/create.py
 ./pdo/client/controller/commands/pservice.py
 ./pdo/client/controller/commands/eservice.py
+./pdo/client/controller/commands/eservice_db.py
 ./pdo/client/controller/commands/contract.py
 ./pdo/client/controller/commands/__init__.py
 ./pdo/client/controller/contract_controller.py
