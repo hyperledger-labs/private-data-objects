@@ -23,8 +23,6 @@
 #  - sgx-mode:					SGX_MODE (default: SIM)
 #  - pdo repo to use:				PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
-#  - sawtooth python sdk repo to use:		STL_REPO_URL (default: https://github.com/hyperledger/sawtooth-sdk-python.git)
-#  - sawtooth python sdk repo branch to use:	STL_REPO_BRANCH (default: master)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 
 # Build:
@@ -78,8 +76,6 @@ ARG PDO_DEV_IMAGE=pdo-dev
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
 ARG PDO_REPO_BRANCH=master
-ARG STL_REPO_URL=https://github.com/hyperledger/sawtooth-sdk-python.git
-ARG STL_REPO_BRANCH=master
 
 RUN mkdir /tmp/build-src
 COPY . /tmp/build-src
@@ -87,8 +83,7 @@ COPY . /tmp/build-src
 WORKDIR /project/pdo/
 
 RUN mkdir src && cd src \
- && git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects \
- && git clone --single-branch --branch ${STL_REPO_BRANCH} ${STL_REPO_URL} sawtooth-sdk-python
+ && git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects
 
 
 # Build ..
@@ -129,12 +124,6 @@ RUN \
  && python3 setup.py install \
 #
 # Build sawtooth interface.
-# - note though due to sawtooth and pdo having incompatibl OS dependencies we have another docker images for TP
- && cd /project/pdo/src/sawtooth-sdk-python \
- && pip install grpcio grpcio-tools \
- && bin/protogen \
- && python3 setup.py install \
- #back to pdo source
  && cd /project/pdo/src/private-data-objects/eservice/ \
  && sed -i 's/python /python3 /g' Makefile \
  && make \
