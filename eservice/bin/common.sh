@@ -9,8 +9,10 @@ get_url_base() {
     IDENTITY=$1
 
     config_file="${F_CONFDIR}/${IDENTITY}.toml"
-    host=$(perl -n -e'/^\s*Host\s*=\s*"([a-zA-Z0-9-]+)"/ && print $1' ${config_file})
+    host=$(perl -n -e'/^\s*Host\s*=\s*"([a-zA-Z0-9-.]+)"/ && print $1' ${config_file})
     [ ! -z "${host}" ] || { echo "no valide host found for service $IDENTITY"; exit 1; }
+    # As the host might be defined to listen on all interfaces, we have to remap below this special case 
+    if [ ${host} = "0.0.0.0" ]; then host="127.0.0.1"; fi
     port=$(perl -n -e'/^\s*HttpPort\s*=\s*([0-9]+)/ && print $1' ${config_file})
     [ ! -z "${port}" ] || { echo "no valide port found for service $IDENTITY"; exit 1; }
     url_base="http://${host}:${port}"
