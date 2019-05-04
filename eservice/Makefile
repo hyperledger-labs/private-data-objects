@@ -45,7 +45,6 @@ SWIG_TARGET = pdo/eservice/enclave/pdo_enclave_internal.py
 PYTHON_FILES = $(shell cat MANIFEST)
 
 SCRIPTS = \
-	bin/common.sh \
 	bin/es-start.sh \
 	bin/es-stop.sh \
 	bin/es-status.sh \

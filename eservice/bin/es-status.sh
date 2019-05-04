@@ -15,30 +15,12 @@
 # limitations under the License.
 
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-source ${F_SERVICEHOME}/bin/common.sh
+source ${F_SERVICEHOME}/bin/lib/common.sh
+source ${F_SERVICEHOME}/bin/lib/common_service.sh
 
-F_USAGE='-b|--base name'
+
 F_BASENAME='eservice'
+F_SERVICE_CMD='eservice'
+F_SERVICE_NAME='enclave'
 
-# -----------------------------------------------------------------
-# Process command line arguments
-# -----------------------------------------------------------------
-TEMP=`getopt -o b:h --long base:,help \
-     -n 'es-status.sh' -- "$@"`
-
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
-
-eval set -- "$TEMP"
-while true ; do
-    case "$1" in
-        -b|--base) F_BASENAME="$2" ; shift 2 ;;
-        --help) echo $F_USAGE ; exit 1 ;;
-	--) shift ; break ;;
-	*) echo "Internal error!" ; exit 1 ;;
-    esac
-done
-
-PLIST=$(pgrepf  "\beservice .* --config ${F_BASENAME}[0-9].toml\b")
-if [ -n "$PLIST" ] ; then
-    ps -h --format pid,start,cmd -p $PLIST
-fi
+service_status "$@"
