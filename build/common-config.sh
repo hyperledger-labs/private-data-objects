@@ -81,7 +81,7 @@ var_set() {
 		PDO_SGX_KEY_ROOT is the root directory where SGX & IAS related keys are stored.
 		The default points to a directory which contains values which are good
 		enough for SGX simulator mode.  However, for SGX HW mode you
-		should provide your own version, at least for PDO_SPID and PDO_SPID_KEY_CERT_FILE_PEM
+		should provide your own version, at least for PDO_SPID and PDO_SPID_API_KEY
 	"
 	env_key_sort[$i]="PDO_SGX_KEY_ROOT"; i=$i+1; export PDO_SGX_KEY_ROOT=${env_val[PDO_SGX_KEY_ROOT]}
 
@@ -116,13 +116,11 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_SPID"; i=$i+1; export PDO_SPID=${env_val[PDO_SPID]}
 
-	env_val[PDO_SPID_KEY_CERT_FILE_PEM]="${PDO_SPID_KEY_CERT_FILE_PEM:-${PDO_SGX_KEY_ROOT}/sgx_spid_key_cert.pem}"
-	env_desc[PDO_SPID_KEY_CERT_FILE_PEM]="
-		PDO_SPID_KEY_CERT_FILE_PEM is the name of the file that contains the
-		PEM-encoded certificate, that was submitted to Intel in order to
-		obtain the SPID, as well as the corresponding private key.
+	env_val[PDO_SPID_API_KEY]="${PDO_SPID_API_KEY:-$(cat ${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt)}"
+	env_desc[PDO_SPID_API_KEY]="
+		PDO_SPID_API_KEY is API-key associated with the SPID.
 	"
-	env_key_sort[$i]="PDO_SPID_KEY_CERT_FILE_PEM"; i=$i+1; export PDO_SPID_KEY_CERT_FILE_PEM=${env_val[PDO_SPID_KEY_CERT_FILE_PEM]}
+	env_key_sort[$i]="PDO_SPID_API_KEY"; i=$i+1; export PDO_SPID_API_KEY=${env_val[PDO_SPID_API_KEY]}
 
 	env_val[PDO_STL_KEY_ROOT]="${PDO_STL_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth}"
 	env_desc[PDO_STL_KEY_ROOT]="
@@ -187,7 +185,7 @@ return a list of export commands of the variables
 instead of directly exporting them to the environment.
 Passing parameter --reset-keys will unset keying variables
 PDO_ENCLAVE_CODE_SIGN_PEM, PDO_IAS_KEY_PEM, PDO_LEDGER_KEY_SKF,
-PDO_SPID and PDO_SPID_KEY_CERT_FILE_PEM before setting variables.
+PDO_SPID and PDO_SPID_API_KEY before setting variables.
 
 The list of variables set (in order they are defined, their defaults
 and semantics is as follows:
@@ -217,7 +215,7 @@ do
 	    unset PDO_IAS_KEY_PEM
 	    unset PDO_LEDGER_KEY_SKF
 	    unset PDO_SPID
-	    unset PDO_SPID_KEY_CERT_FILE_PEM
+	    unset PDO_SPID_API_KEY
             ;;
         --evalable-export|-e)
 	    is_sourced=0
