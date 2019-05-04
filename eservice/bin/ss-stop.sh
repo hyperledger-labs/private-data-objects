@@ -15,42 +15,10 @@
 # limitations under the License.
 
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-source ${F_SERVICEHOME}/bin/common.sh
+source ${F_SERVICEHOME}/bin/lib/common.sh
+source ${F_SERVICEHOME}/bin/lib/common_service.sh
 
-F_USAGE='-c|--count services -b|--base name'
-F_COUNT=1
 F_BASENAME='sservice'
+F_SERVICE_NAME='storage'
 
-# -----------------------------------------------------------------
-# Process command line arguments
-# -----------------------------------------------------------------
-TEMP=`getopt -o b:c:h --long base:,count:,help \
-     -n 'ss-stop.sh' -- "$@"`
-
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
-
-eval set -- "$TEMP"
-while true ; do
-    case "$1" in
-        -b|--base) F_BASENAME="$2" ; shift 2 ;;
-        -c|--count) F_COUNT="$2" ; shift 2 ;;
-        --help) echo $F_USAGE ; exit 1 ;;
-	--) shift ; break ;;
-	*) echo "Internal error!" ; exit 1 ;;
-    esac
-done
-
-rc=0
-for index in `seq 1 $F_COUNT` ; do
-    IDENTITY="${F_BASENAME}$index"
-    echo stopping storage service $IDENTITY
-
-    if [ -f ${F_LOGDIR}/${IDENTITY}.pid ]; then
-        kill -SIGTERM $(cat ${F_LOGDIR}/${IDENTITY}.pid)
-        rm -f ${F_LOGDIR}/${IDENTITY}.pid
-    else
-	echo "storage service $IDENTITY not running or not properly shut down"
-	rc=1
-    fi
-done
-exit $rc
+service_stop "$@"

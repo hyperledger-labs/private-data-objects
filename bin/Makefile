@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit 1
-fi
+PDO_HOME ?= /opt/pdo
+BIN_DIR=${PDO_HOME}/bin
+BIN_LIB_DIR=${PDO_HOME}/bin/lib
 
-F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-source ${F_SERVICEHOME}/bin/lib/common.sh
-source ${F_SERVICEHOME}/bin/lib/common_service.sh
 
-F_BASENAME='pservice'
-F_SERVICE_CMD='pservice'
-F_SERVICE_NAME='provisioning'
 
-service_start "$@"
+all : install
+
+build :
+
+install : build
+	mkdir -p ${BIN_DIR} ${BIN_LIB_DIR}
+	cp lib/*.sh ${BIN_LIB_DIR}
+	
+
+clean:
+
+.phony : all
+.phony : clean
+.phone : install

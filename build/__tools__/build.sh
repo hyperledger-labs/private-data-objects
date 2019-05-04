@@ -16,38 +16,10 @@
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-cred=`tput setaf 1`
-cgrn=`tput setaf 2`
-cblu=`tput setaf 4`
-cmag=`tput setaf 5`
-cwht=`tput setaf 7`
-cbld=`tput bold`
-bred=`tput setab 1`
-bgrn=`tput setab 2`
-bblu=`tput setab 4`
-bwht=`tput setab 7`
-crst=`tput sgr0`
+SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
+SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
-function recho () {
-    echo "${cbld}${cred}" $@ "${crst}" >&2
-}
-
-function becho () {
-    echo "${cbld}${cblu}" $@ "${crst}" >&2
-}
-
-function yell() {
-    becho "$(basename $0): $*" >&2
-}
-
-function die() {
-    recho "$(basename $0): $*" >&2
-    exit 111
-}
-
-function try() {
-    "$@" || die "test failed: $*"
-}
+source ${SRCDIR}/bin/lib/common.sh
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -55,9 +27,6 @@ PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     die activate python3 first
 fi
-
-SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 # Automatically determine how many cores the host system has
 # (for use with multi-threaded make)
@@ -81,6 +50,11 @@ mkdir -p build
 cd build
 try cmake ${CMAKE_ARGS} ..
 try make "-j$NUM_CORES"
+
+yell --------------- BIN ---------------
+cd $SRCDIR/bin
+try make "-j$NUM_CORES"
+try make install
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
