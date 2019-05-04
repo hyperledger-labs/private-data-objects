@@ -15,9 +15,9 @@
 
 # This docker-compose file starts a complete end-to-end environment for PDO with sawtooth in default mode
 # and sgx in simulator mode. The code used are the master branches for pdo and sawtooth.  If you want to
-# build against non-standard gitrepos/braches, you can define the environment variables PDO_REPO_URL,
-# PDO_REPO_BRANCH, STL_REPO_URL and/or STL_REPO_BRANCH to overwrite the defaults for PDO url/branch and
-# Sawtooth url/branch, respectively. This will not work if the repo requires authentication, e.g., git
+# build against non-standard gitrepos/braches, you can define the environment variables PDO_REPO_URL and
+# PDO_REPO_BRANCH to overwrite the defaults for PDO url/branch. 
+# This will not work if the repo requires authentication, e.g., git
 # with ssh, -- broader adoption of docker version 18.09+ (look for --secret/--ssh parameters) might change
 # this. However, to handle the common case of building and running run against your local workspace,
 # you can use thesawtooth-pdo.local-code.yaml file (see header of that file for more information).
@@ -53,8 +53,6 @@ services:
       args:
         PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
-        STL_REPO_URL: ${STL_REPO_URL:-https://github.com/hyperledger/sawtooth-sdk-python.git}
-        STL_REPO_BRANCH: ${STL_REPO_BRANCH:-master}
         SGX_MODE: SIM
     container_name: sawtooth-pdo-sim-build
     hostname: sawtooth-pdo-build
