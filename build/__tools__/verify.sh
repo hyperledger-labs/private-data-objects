@@ -106,16 +106,18 @@ fi
 
 # the SPID should be a 32 byte hex string
 if [[ ! "${PDO_SPID}" =~ ^[A-Fa-f0-9]{32}$ ]]; then
-    warn "PDO_SPID is not defined correctly"
+    warn "PDO_SPID is not defined correctly, should be a a 32-byte hex key"
 fi
 
 if [ "${SGX_MODE}" = "HW" ]; then
+    # IAS KEY should be a PEM file ..
     if [ ! -f "${PDO_IAS_KEY_PEM}" ]; then
         warn "PDO_IAS_KEY_PEM '${PDO_IAS_KEY_PEM}' file does not exist"
     fi
 
-    if [ ! -f "${PDO_SPID_KEY_CERT_FILE_PEM}" ]; then
-        warn "PDO_SPID_KEY_CERT_FILE_PEM '${PDO_SPID_KEY_CERT_FILE_PEM}' does not exist"
+    # the SPID_API_KEY should be a 32 byte hex string
+    if [[ ! "${PDO_SPID_API_KEY}" =~ ^[A-Fa-f0-9]{32}$ ]]; then
+	warn "PDO_SPID_API_KEY is not defined correctly, should be a a 32-byte hex key"
     fi
 fi
 

@@ -16,13 +16,12 @@
 Provide rest api helper functions for communicating with IAS.
 """
 
-from urllib.parse import urljoin
-
 import requests
-
 import sys
-def printf(format, *args):
-    sys.stdout.write(format % args)
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 class IasClient(object):
     """
@@ -30,26 +29,31 @@ class IasClient(object):
     """
 
     def __init__(self, **kwargs):
+        logger.info("IAS settings:")
         self._proxies = {}
         if "HttpsProxy" in kwargs:
             self._proxies["https"] = kwargs["HttpsProxy"]
+            logger.info("Proxy: " + self._proxies["https"])
         if "Spid" in kwargs:
             self._spid = kwargs["Spid"]
+            logger.info("SPID: " + self._spid)
         else:
             raise KeyError('Missing Spid setting')
         if "IasServer" in kwargs:
             self._ias_url = kwargs["IasServer"]
+            logger.info("URL: " + self._ias_url)
         else:
             raise KeyError('Missing IasServer setting')
-        if "SpidCert" in kwargs:
-            self._cert = kwargs["SpidCert"]
+        if "SpidApiKey" in kwargs:
+            self._spid_api_key = kwargs["SpidApiKey"]
+            logger.debug("SpidApiKey: " + self._spid_api_key)
         else:
-            raise KeyError('Missing SpidCert setting')
-        self._timeout=300
+            raise KeyError('Missing SpidApiKey setting')
+        self._timeout = 300
 
     def get_signature_revocation_lists(self,
                                        gid='',
-                                       path='/attestation/sgx/v3/sigrl/'):
+                                       path='/attestation/v3/sigrl/'):
         """
         @param gid: Hex, base16 encoded
         @param path: URL path for sigrl request
@@ -57,12 +61,12 @@ class IasClient(object):
                 group identified by {gid} parameter.
         """
 
-        url = self._ias_url+path+gid[0:8]
-        printf("Fetching SigRL from: %s", url)
-        result = requests.get(url, proxies= self._proxies,
-                              cert=self._cert, verify=False)
+        url = self._ias_url + path + gid[0:8]
+        logger.debug("Fetching SigRL from: %s", url)
+        result = requests.get(url, proxies=self._proxies,
+                              headers={'Ocp-Apim-Subscription-Key': self._spid_api_key})
         if result.status_code != requests.codes.ok:
-            printf("get_signature_revocation_lists HTTP Error code : %d",
+            logger.debug("get_signature_revocation_lists HTTP Error code : %d",
                          result.status_code)
             result.raise_for_status()
 
@@ -74,24 +78,32 @@ class IasClient(object):
         @return: dictionary of the response from ias.
         """
 
-        path = '/attestation/sgx/v3/report'
+        path = '/attestation/v3/report'
 
-        url = urljoin(self._ias_url, path)
+        url = self._ias_url + path
         json = {"isvEnclaveQuote": quote}
         if nonce is not None:
             json['nonce'] = nonce
 
-        printf("Posting attestation verification request to: %s\n",url)
+        logger.debug("Posting attestation verification request to: %s\n", url)
         result = requests.post(url,
                                json=json,
                                proxies=self._proxies,
-                               cert=self._cert,
+                               headers={'Ocp-Apim-Subscription-Key': self._spid_api_key},
                                timeout=self._timeout)
-        printf("received attestation result code: %d\n",
-                     result.status_code)
+        logger.debug("result headers: %s\n", result.headers)
+        logger.info("received attestation result code: %d\n", result.status_code)
         if result.status_code != requests.codes.ok:
-            printf("post_verify_attestation HTTP Error code : %d",
-                         result.status_code)
+            logger.debug("post_verify_attestation HTTP Error code : %d", result.status_code)
             result.raise_for_status()
 
-        return result.json()
+        returnblob = {
+            'verification_report': result.text,
+            'ias_signature': result.headers.get('x-iasreport-signature'),
+            'ias_certificates':
+                list(filter(None, re.split(r'(?<=-----END CERTIFICATE-----)\n+',
+                                           urllib.parse.unquote(result.headers.get('x-iasreport-signing-certificate')),
+                                           re.MULTILINE)))
+        }
+        logger.debug("received ias certificates: %s\n", returnblob['ias_certificates'])
+        return returnblob

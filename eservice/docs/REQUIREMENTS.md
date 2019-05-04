@@ -25,8 +25,8 @@ This is a PEM file which
 ### Configuration file ###
 This file include 4 string fields:
 * spid - the service provider ID obtained from Intel after registering the certificate above
- ([here](https://software.intel.com/en-us/form/sgx-onboarding));
-* spid_cert_file - the PEM file of the certificate above
+ ([here](https://api.portal.trustedservices.intel.com/EPID-attestation));
+* spid_api_key - the api key matching above spid
 * ias_url - the url of the Intel Attestation Service
 * http_proxy - a parameter to specify a proxy (if any) or '' otherwise
 

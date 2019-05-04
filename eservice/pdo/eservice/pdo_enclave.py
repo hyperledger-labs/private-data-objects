@@ -140,7 +140,7 @@ def initialize_with_configuration(config) :
     enclave.SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
-    valid_keys = set(['spid', 'ias_url', 'spid_cert_file'])
+    valid_keys = set(['spid', 'ias_url', 'spid_api_key'])
     found_keys = set(config.keys())
 
     missing_keys = valid_keys.difference(found_keys)
@@ -151,15 +151,15 @@ def initialize_with_configuration(config) :
                 '{}'.format(
                     ', '.join(sorted(list(missing_keys)))))
 
-    num_of_enclaves = int(config.get('num_of_enclaves',1))
+    num_of_enclaves = int(config.get('num_of_enclaves', 1))
 
     if not _ias:
         _ias = \
             ias_client.IasClient(
                 IasServer = config['ias_url'],
-                SpidCert = config['spid_cert_file'],
+                SpidApiKey = config['spid_api_key'],
                 Spid = config['spid'],
-                HttpsProxy = config.get('https_proxy',""))
+                HttpsProxy = config.get('https_proxy', ""))
 
     if not _pdo:
         signed_enclave = __find_enclave_library(config)

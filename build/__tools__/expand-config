@@ -30,7 +30,7 @@ try :
     ContractHome = os.environ["PDO_HOME"]
     LedgerURL = os.environ["PDO_LEDGER_URL"]
     SPID = os.environ["PDO_SPID"]
-    SPID_CERT_FILE = os.environ["PDO_SPID_KEY_CERT_FILE_PEM"]
+    SPID_API_KEY = os.environ["PDO_SPID_API_KEY"]
 except KeyError as ke :
     print("incomplete configuration, missing definition of {0}".format(str(ke)))
     sys.exit(-1)
@@ -52,7 +52,7 @@ config_map = {
     'ledger' : LedgerURL,
     'proxy' : HttpsProxy,
     'spid' : SPID,
-    'spid_cert_file' : SPID_CERT_FILE
+    'spid_api_key' : SPID_API_KEY
 }
 
 # -----------------------------------------------------------------

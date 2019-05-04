@@ -69,7 +69,7 @@ The following configuration variables can be specified:
   * ``spid`` -- a 32-digit hex string tied to the enclave implementation
   * ``ias_url`` --  URL of the Intel Attestation Service (IAS) server (ignored)
   * ``https_proxy`` -- proxy used to contact IAS server (ignored)
-  * ``spid_cert_file`` -- path to the PEM-encoded certificate file (ignored)
+  * ``spid_api_key`` -- the api key corresponding to spid (ignored)
 
 * ``contract`` -- the base name of the contract to use, this is
   expected to reference a file found in ``SchemeSearchPath``

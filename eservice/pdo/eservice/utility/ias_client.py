@@ -16,7 +16,6 @@
 Provide rest api helper functions for communicating with IAS.
 """
 
-from urllib.parse import urljoin
 import requests
 import sys
 import urllib
@@ -47,16 +46,16 @@ class IasClient(object):
             logger.info("URL: " + self._ias_url)
         else:
             raise KeyError('Missing IasServer setting')
-        if "SpidCert" in kwargs:
-            self._cert = kwargs["SpidCert"]
-            logger.info("SpidCert: " + self._cert)
+        if "SpidApiKey" in kwargs:
+            self._spid_api_key = kwargs["SpidApiKey"]
+            logger.debug("SpidApiKey: " + self._spid_api_key)
         else:
-            raise KeyError('Missing SpidCert setting')
-        self._timeout=300
+            raise KeyError('Missing SpidApiKey setting')
+        self._timeout = 300
 
     def get_signature_revocation_lists(self,
                                        gid='',
-                                       path='/attestation/sgx/v3/sigrl/'):
+                                       path='/attestation/v3/sigrl/'):
         """
         @param gid: Hex, base16 encoded
         @param path: URL path for sigrl request
@@ -64,10 +63,10 @@ class IasClient(object):
                 group identified by {gid} parameter.
         """
 
-        url = self._ias_url+path+gid[0:8]
+        url = self._ias_url + path + gid[0:8]
         logger.debug("Fetching SigRL from: %s", url)
-        result = requests.get(url, proxies= self._proxies,
-                              cert=self._cert, verify=False)
+        result = requests.get(url, proxies=self._proxies,
+                              headers={'Ocp-Apim-Subscription-Key': self._spid_api_key})
         if result.status_code != requests.codes.ok:
             logger.debug("get_signature_revocation_lists HTTP Error code : %d",
                          result.status_code)
@@ -81,18 +80,18 @@ class IasClient(object):
         @return: dictionary of the response from ias.
         """
 
-        path = '/attestation/sgx/v3/report'
+        path = '/attestation/v3/report'
 
-        url = urljoin(self._ias_url, path)
+        url = self._ias_url + path
         json = {"isvEnclaveQuote": quote}
         if nonce is not None:
             json['nonce'] = nonce
 
-        logger.debug("Posting attestation verification request to: %s\n",url)
+        logger.debug("Posting attestation verification request to: %s\n", url)
         result = requests.post(url,
                                json=json,
                                proxies=self._proxies,
-                               cert=self._cert,
+                               headers={'Ocp-Apim-Subscription-Key': self._spid_api_key},
                                timeout=self._timeout)
         logger.debug("result headers: %s\n", result.headers)
         logger.info("received attestation result code: %d\n", result.status_code)
