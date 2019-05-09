@@ -46,11 +46,27 @@ EnclaveServiceURLs = [
     "http://127.0.0.1:7103"
 ]
 
+StorageServiceURLs = [
+    "http://127.0.0.1:7201",
+    "http://127.0.0.1:7202",
+    "http://127.0.0.1:7203"
+]
+
 ProvisioningServiceURLs = [
     "http://127.0.0.1:7001",
     "http://127.0.0.1:7002",
     "http://127.0.0.1:7003"
 ]
+
+
+#--------------------------------------------------
+#Replication -- to maintain state availability 
+#-------------------------------------------------
+[Replication]
+Enable="False"
+MaxNumReplicas=3
+NumProvableReplicas=2
+Duration=120 #seconds
 
 # --------------------------------------------------
 # Contract -- Contract configuration

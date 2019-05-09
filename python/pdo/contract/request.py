@@ -49,6 +49,8 @@ class ContractRequest(object) :
         self.creator_id = contract.creator_id
         self.encrypted_state_encryption_key = contract.get_state_encryption_key(enclave_service.enclave_id)
         self.enclave_service = enclave_service
+        self.storage_clients_for_replication = kwargs.get('storageclients', []);
+        self.replication_params = contract.get_proof_of_replication_parameters()
         self.originator_keys = request_originator_keys
         self.channel_keys = keys.TransactionKeys()
         self.session_key = crypto.SKENC_GenerateKey()
