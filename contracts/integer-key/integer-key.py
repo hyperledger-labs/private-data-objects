@@ -77,45 +77,45 @@ def __command_integer_key__(state, bindings, pargs) :
 
     if options.command == 'get_signing_key' :
         message = "'(get-public-signing-key)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'create' :
         message = "'(create \"{0}\" {1})".format(options.key, options.value)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'inc' :
         message = "'(inc \"{0}\" {1})".format(options.key, options.value)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'dec' :
         message = "'(dec \"{0}\" {1})".format(options.key, options.value)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'get' :
         extraparams['commit'] = False
         message = "'(get-value \"{0}\")".format(options.key)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'transfer' :
         message = "'(transfer-ownership \"{0}\" \"{1}\")".format(options.key, options.owner)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'escrow' :
         message = "'(escrow \"{0}\" \"{1}\")".format(options.key, options.agent)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'attestation' :
         message = "'(escrow-attestation \"{0}\")".format(options.key)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -126,7 +126,7 @@ def __command_integer_key__(state, bindings, pargs) :
         dependencies = str(attestation.nth(1))
         signature = str(attestation.nth(2))
         message = "'(disburse \"{0}\" {1} {2})".format(assetkey, dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'exchange' :
@@ -136,7 +136,7 @@ def __command_integer_key__(state, bindings, pargs) :
         dependencies = str(attestation.nth(2))
         signature = str(attestation.nth(3))
         message = "'(exchange-ownership \"{0}\" \"{1}\" {2} {3})".format(offered, maxbid, dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
 ## -----------------------------------------------------------------
