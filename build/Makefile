@@ -98,7 +98,6 @@ system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
 ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
-
 service_indexes := 1 2 3 4 5
 ESERVICE_SKF := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
 SSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),sservice$(i)_private.pem))
@@ -149,7 +148,7 @@ $(ETCDIR)/enclave.toml : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
-$(ETCDIR)/pcontract.toml : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
+$(ETCDIR)/pcontract.toml : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
 	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
