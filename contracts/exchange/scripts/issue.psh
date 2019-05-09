@@ -1,3 +1,5 @@
+#! /usr/bin/env pdo-shell
+
 ## Copyright 2018 Intel Corporation
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,17 +24,15 @@
 ##
 ## The following shell variables are assumed:
 ##    color -- the color to use for the marble (default = 'green')
-##    path -- the path where the contract objects are stored (default = '.')
 ##    issuee -- name of the issuee, there must be a public key in the path (required)
 ##    count -- number of assets to issue (default = 100)
 
-## $ pdo-shell -s issue.psh -m color <color> -m path <contract path> -m issuee <identity> -m count <count>
+## $ pdo-shell issue.psh -m color <color> -m issuee <identity> -m count <count>
 
-load_plugin -c asset_type
-load_plugin -c vetting
-load_plugin -c issuer
+set -q --conditional -s data -v .
+set -q --conditional -s save -v .
+script -f ${path}/init.psh
 
-set -q --conditional -s path -v .
 set -q --conditional -s color -v green
 set -q --conditional -s count -v 100
 
@@ -42,6 +42,6 @@ identity -n ${color}_issuer
 echo issue ${count} ${color} marbles to ${issuee}
 ## =================================================================
 set -q -s issuee_key -i ${issuee}
-issuer -q -w -f ${path}/${color}_issuer.pdo issue -o '${issuee_key}' -c ${count}
+issuer -q -w -f ${save}/${color}_issuer.pdo issue -o '${issuee_key}' -c ${count}
 
 exit
