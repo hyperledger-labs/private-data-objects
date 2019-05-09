@@ -68,13 +68,19 @@ fi
 # -----------------------------------------------------------------
 : "${PDO_LEDGER_URL?Missing environment variable PDO_LEDGER_URL}"
 
-try pdo-shell --ledger $PDO_LEDGER_URL -s scripts/create.psh -m color red
-try pdo-shell --ledger $PDO_LEDGER_URL -s scripts/create.psh -m color green
+if [ ! -f ${PDO_HOME}/data/eservice-db.json ]; then
+    scripts/create_eservice_db.psh
+fi
+
+try scripts/create.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
+try scripts/create.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
 
 for p in $(seq 1 5); do
-    pdo-shell --ledger $PDO_LEDGER_URL -s scripts/issue.psh -m color green -m issuee user$p -m count $(($p * 10))
+    scripts/issue.psh --loglevel warn --ledger $PDO_LEDGER_URL \
+                      -m color green -m issuee user$p -m count $(($p * 10))
 done
 
 for p in $(seq 6 10); do
-    pdo-shell --ledger $PDO_LEDGER_URL -s scripts/issue.psh -m color red -m issuee user$p -m count $(($p * 10))
+    scripts/issue.psh --loglevel warn --ledger $PDO_LEDGER_URL \
+                      -m color red -m issuee user$p -m count $(($p * 10))
 done
