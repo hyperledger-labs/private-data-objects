@@ -33,6 +33,9 @@ SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
+KEYDIR := $(DSTDIR)/opt/pdo/keys/
+ETCDIR := $(DSTDIR)/opt/pdo/etc/
+
 KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
 CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
 BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
@@ -95,38 +98,63 @@ system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
 ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
-keys : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/eservice$${i} --format skf; done
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/sservice$${i} --format pem; done
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		for i in 1 2 3 4 5 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/pservice$${i} --format pem; done
-	. $(abspath $(DSTDIR)/bin/activate) ; \
-		for i in 1 2 3 4 5 6 7 8 9 10 ; do $(KEYGEN) --keyfile $(DSTDIR)/opt/pdo/keys/user$${i} --format pem; done
 
-conf : $(PYTHON_DIR)
-	@ echo Create configuration files from templates
+service_indexes := 1 2 3 4 5
+ESERVICE_SKF := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+SSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),sservice$(i)_private.pem))
+PSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),pservice$(i)_private.pem))
+
+user_indexes := 1 2 3 4 5 6 7 8 9 10
+USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.pem))
+
+%.skf :
+	. $(abspath $(DSTDIR)/bin/activate) ; $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
+
+%.pem :
+	. $(abspath $(DSTDIR)/bin/activate) ; $(KEYGEN) --keyfile $(subst _private,,$*) --format pem
+
+keys : $(ESERVICE_SKF) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
+
+ESERVICE_CONF := $(ETCDIR)/eservice1.toml
+SSERVICE_CONF := $(ETCDIR)/sservice1.toml
+PSERVICE_CONF := $(ETCDIR)/pservice1.toml
+
+conf : $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
+
+$(ESERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
+	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template eservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
-		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base eservice --count 5
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			multiple --file-base $(basename $(notdir $<)) --count 5
+
+$(SSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/sservice.toml
+	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template sservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
-		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base sservice --count 5
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			multiple --file-base $(basename $(notdir $<)) --count 5
+
+$(PSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pservice.toml
+	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template pservice.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
-		--output-directory $(DSTDIR)/opt/pdo/etc \
-		multiple --file-base pservice --count 5
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			multiple --file-base $(basename $(notdir $<)) --count 5
+
+$(ETCDIR)/enclave.toml : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
+	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template enclave.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
-		--output-directory $(DSTDIR)/opt/pdo/etc \
-		single --file enclave.toml
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			single --file $(notdir $@)
+
+$(ETCDIR)/pcontract.toml : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
+	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
-		$(CNFGEN) --template pcontract.toml --template-directory $(SCRIPTDIR)/opt/pdo/etc/template \
-		--output-directory $(DSTDIR)/opt/pdo/etc \
-		single --file pcontract.toml
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			single --file $(notdir $@)
 
 template : $(PYTHON_DIR)
 	mkdir -p $(DSTDIR)/opt/pdo/data
