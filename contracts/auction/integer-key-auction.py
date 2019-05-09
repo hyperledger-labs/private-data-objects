@@ -71,14 +71,14 @@ def __command_auction__(state, bindings, pargs) :
 
     if options.command == 'get_signing_key' :
         message = "'(get-public-signing-key)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'initialize' :
         message = "'(initialize \"{0}\")".format(options.key)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'prime' :
@@ -87,7 +87,7 @@ def __command_auction__(state, bindings, pargs) :
         dependencies = str(attestation.nth(1))
         signature = str(attestation.nth(2))
         message = "'(prime-auction* {0} {1} {2})".format(bidinfo, dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'submit_bid' :
@@ -96,44 +96,44 @@ def __command_auction__(state, bindings, pargs) :
         dependencies = str(attestation.nth(1))
         signature = str(attestation.nth(2))
         message = "'(submit-bid* {0} {1} {2})".format(bidinfo, dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'get_offered_asset' :
         message = "'(get-offered-asset)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'cancel_bid' :
         message = "'(cancel-bid)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'check_bid' :
         message = "'(check-bid)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'max_bid' :
         message = "'(max-bid)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'close_bidding' :
         message = "'(close-bidding)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'cancel_attestation' :
         message = "'(cancel-attestation)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'exchange_attestation' :
         message = "'(exchange-attestation)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return

@@ -71,7 +71,7 @@ def __command_exchange__(state, bindings, pargs) :
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
         message = "'(get-verifying-key)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -80,34 +80,34 @@ def __command_exchange__(state, bindings, pargs) :
     if options.command == 'get_offered_asset' :
         extraparams['commit'] = False
         message = "'(examine-offered-asset)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_requested_asset' :
         extraparams['commit'] = False
         message = "'(examine-requested-asset)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
         asset_request = "(\"{0}\" {1} \"{2}\")".format(options.type_id, options.count, options.owner)
         message = "'(initialize {0} \"{1}\")".format(asset_request, options.root)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'offer' :
         message = "'(offer-asset {0})".format(options.asset)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_offer' :
         extraparams['commit'] = False
         message = "'(claim-offer)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -115,14 +115,14 @@ def __command_exchange__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'exchange' :
         message = "'(exchange-asset {0})".format(options.asset)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_exchange' :
         extraparams['commit'] = False
         message = "'(claim-exchange)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -130,14 +130,14 @@ def __command_exchange__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'cancel' :
         message = "'(cancel)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'cancel_attestation' :
         extraparams['commit'] = False
         message = "'(cancel-attestation)"
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return

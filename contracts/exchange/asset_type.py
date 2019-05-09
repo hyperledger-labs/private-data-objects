@@ -51,14 +51,14 @@ def __command_asset_type__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'initialize' :
         message = "'(initialize \"{0}\" \"{1}\" \"{2}\")".format(options.name, options.description, options.link)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_identifier' :
         extraparams['commit'] = False
         message = "'(get-identifier)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -68,11 +68,11 @@ def __command_asset_type__(state, bindings, pargs) :
         extraparams['quiet'] = True
         extraparams['commit'] = False
         message = "'(get-name)"
-        name = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        name = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         message = "'(get-description)"
-        description = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        description = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         message = "'(get-link)"
-        link = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        link = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         print("NAME: {0}".format(name))
         print("DESC: {1}".format(description))
         print("LINK: {2}".format(link))
