@@ -36,7 +36,7 @@ _integer-key.scm : integer-key.bld integer-key.scm
 _debug_integer-key.scm : integer-key.bld integer-key.scm integer-key-test.scm
 	$(GIPSY_SCHEME) -1 integer-key.bld debug test-integer-key
 
-install : $(CONTRACTS)
+install : $(CONTRACTS) $(PLUGINS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
 	@mkdir -p $(INSTALLDIR)
 	@cp $(CONTRACTS) $(INSTALLDIR)

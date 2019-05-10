@@ -40,7 +40,7 @@ _debug_integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm
 _aptest.scm : aptest.bld auction-protocol-test.scm ../integer-key/integer-key.scm integer-key-auction.scm
 	$(GIPSY_SCHEME) -1 aptest.bld debug aptest
 
-install : $(CONTRACTS)
+install : $(CONTRACTS) $(PLUGINS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)
 	@mkdir -p $(INSTALLDIR)
 	@cp $(CONTRACTS) $(INSTALLDIR)

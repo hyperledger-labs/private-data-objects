@@ -14,11 +14,8 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-load_plugin -c asset_type
-load_plugin -c vetting
-load_plugin -c issuer
-load_plugin -c exchange
-load_plugin -c auction
+load_plugin -c integer-key
+load_plugin -c integer-key-auction
 
 ## load the eservice database
 set -q --conditional -s dbfile -v ${data}/eservice-db.json
@@ -26,3 +23,10 @@ eservice_db load --database ${dbfile}
 
 ## load the eservice and pservice groups for the site
 script -f ${home}/etc/site.psh
+
+## set up the defaults for some of the variables
+set -q --conditional -s user -v user1
+identity -n ${user}
+
+set -q --conditional -s ledger_contract -v ${save}/ikey.pdo
+set -q --conditional -s auction_contract -v ${save}/auction.pdo

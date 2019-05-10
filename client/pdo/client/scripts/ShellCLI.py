@@ -33,12 +33,12 @@ def LocalMain(config) :
     script_file = config.get("ScriptFile")
     if script_file :
         if not ContractController.ProcessScript(shell, script_file) :
-            sys.exit(0)
+            sys.exit(shell.exit_code)
 
     shell.cmdloop()
     print("")
 
-    sys.exit(0)
+    sys.exit(shell.exit_code)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

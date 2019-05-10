@@ -14,15 +14,18 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-load_plugin -c asset_type
-load_plugin -c vetting
-load_plugin -c issuer
-load_plugin -c exchange
-load_plugin -c auction
+## This is a pdo-shell script creates an asset ledger and
+## and auction. Run the script as:
+##
+## $ pdo-shell -s create.psh -i <identity>
 
-## load the eservice database
-set -q --conditional -s dbfile -v ${data}/eservice-db.json
-eservice_db load --database ${dbfile}
+set -q --conditional -s data -v .
+set -q --conditional -s save -v .
+script -f ${path}/init.psh
 
-## load the eservice and pservice groups for the site
-script -f ${home}/etc/site.psh
+## =================================================================
+echo create the asset ledger
+## =================================================================
+create -c integer-key -s _integer-key -f ${ledger_contract}
+
+exit

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
+from pdo.client.controller.util import *
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -42,26 +43,26 @@ def __command_issuer__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=str, required=True)
-    subparser.add_argument('-a', '--authority', help='serialized authority from the vetting organization', type=str, required=True)
+    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=scheme_string, required=True)
+    subparser.add_argument('-a', '--authority', help='serialized authority from the vetting organization', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('issue')
-    subparser.add_argument('-o', '--owner', help='identity of the issuance owner; ECDSA key', type=str, required=True)
+    subparser.add_argument('-o', '--owner', help='identity of the issuance owner; ECDSA key', type=scheme_string, required=True)
     subparser.add_argument('-c', '--count', help='amount of the issuance', type=int, required=True)
 
     subparser = subparsers.add_parser('transfer')
-    subparser.add_argument('-n', '--new_owner', help='identity of the new owner; ECDSA key', type=str, required=True)
+    subparser.add_argument('-n', '--new_owner', help='identity of the new owner; ECDSA key', type=scheme_string, required=True)
     subparser.add_argument('-c', '--count', help='amount to transfer', type=int, required=True)
 
     subparser = subparsers.add_parser('escrow')   # combine escrow & attestation
-    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=str, required=True)
+    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=scheme_string, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('disburse')
-    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=str, required=True)
+    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('claim')
-    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=str, required=True)
+    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=scheme_expr, required=True)
 
     options = parser.parse_args(pargs)
 
@@ -72,7 +73,7 @@ def __command_issuer__(state, bindings, pargs) :
         extraparams['commit'] = False
         message = "'(get-verifying-key)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
@@ -81,25 +82,25 @@ def __command_issuer__(state, bindings, pargs) :
         extraparams['commit'] = False
         message = "'(get-balance)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        message = "'(initialize \"{0}\" {1})".format(options.type_id, options.authority)
+        message = "'(initialize {0} {1})".format(options.type_id, options.authority)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'issue' :
-        message = "'(issue \"{0}\" {1})".format(options.owner, options.count)
+        message = "'(issue {0} {1})".format(options.owner, options.count)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'transfer' :
-        message = "'(transfer \"{0}\" {1})".format(options.new_owner, options.count)
+        message = "'(transfer {0} {1})".format(options.new_owner, options.count)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
@@ -107,14 +108,14 @@ def __command_issuer__(state, bindings, pargs) :
     if options.command == 'escrow' :
         extraparams['commit'] = True
         extraparams['wait'] = True
-        message = "'(escrow \"{0}\")".format(options.agent)
+        message = "'(escrow {0})".format(options.agent)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
 
         extraparams['commit'] = False
         extraparams['wait'] = False
         message = "'(escrow-attestation)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
@@ -144,18 +145,15 @@ def do_issuer(self, args) :
     issuer -- invoke methods from the issuer contract
     """
 
-    pargs = shlex.split(self.bindings.expand(args))
-
     try :
+        pargs = self.__arg_parse__(args)
         __command_issuer__(self.state, self.bindings, pargs)
-
     except SystemExit as se :
-        if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-        return
-
+        return self.__arg_error__('issuer', args, se.code)
     except Exception as e :
-        print('An error occurred processing {0}: {1}'.format(args, str(e)))
-        return
+        return self.__error__('issuer', args, str(e))
+
+    return False
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

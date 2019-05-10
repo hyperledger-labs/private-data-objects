@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
+from pdo.client.controller.util import *
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -42,19 +43,19 @@ def __command_exchange__(state, bindings, pargs) :
     subparser = subparsers.add_parser('get_requested_asset')
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-r', '--root', help='key for the root authority for requested issuer', type=str, required=True)
-    subparser.add_argument('-t', '--type_id', help='contract identifier for the requested asset type', type=str, required=True)
-    subparser.add_argument('-o', '--owner', help='identity of the asset owner; ECDSA key', type=str, default="")
+    subparser.add_argument('-r', '--root', help='key for the root authority for requested issuer', type=scheme_string, required=True)
+    subparser.add_argument('-t', '--type_id', help='contract identifier for the requested asset type', type=scheme_string, required=True)
+    subparser.add_argument('-o', '--owner', help='identity of the asset owner; ECDSA key', type=scheme_string, default="")
     subparser.add_argument('-c', '--count', help='amount requested', type=int, required=True)
 
     subparser = subparsers.add_parser('offer')
-    subparser.add_argument('-a', '--asset', help='serialized escrowed asset', type=str, required=True)
+    subparser.add_argument('-a', '--asset', help='serialized escrowed asset', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('claim_offer')
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('exchange')
-    subparser.add_argument('-a', '--asset', help='serialized escrowed asset', type=str, required=True)
+    subparser.add_argument('-a', '--asset', help='serialized escrowed asset', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('claim_exchange')
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
@@ -92,8 +93,8 @@ def __command_exchange__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        asset_request = "(\"{0}\" {1} \"{2}\")".format(options.type_id, options.count, options.owner)
-        message = "'(initialize {0} \"{1}\")".format(asset_request, options.root)
+        asset_request = "({0} {1} {2})".format(options.type_id, options.count, options.owner)
+        message = "'(initialize {0} {1})".format(asset_request, options.root)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
@@ -150,18 +151,15 @@ def do_exchange(self, args) :
     exchange -- invoke methods from the exchange contract
     """
 
-    pargs = shlex.split(self.bindings.expand(args))
-
     try :
+        pargs = self.__arg_parse__(args)
         __command_exchange__(self.state, self.bindings, pargs)
-
     except SystemExit as se :
-        if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-        return
-
+        return self.__arg_error__('exchange', args, se.code)
     except Exception as e :
-        print('An error occurred processing {0}: {1}'.format(args, str(e)))
-        return
+        return self.__error__('exchange', args, str(e))
+
+    return False
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

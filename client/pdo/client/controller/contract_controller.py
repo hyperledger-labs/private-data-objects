@@ -93,8 +93,7 @@ class Bindings(object) :
             return template.substitute(self.__bindings__)
 
         except KeyError as ke :
-            print('missing index variable {0}'.format(ke))
-            return '-h'
+            raise Exception('missing index variable {0}'.format(ke))
 
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -116,8 +115,10 @@ class ContractController(cmd.Cmd) :
         saved_echo = controller.echo
         saved_path = controller.bindings.bind('path', os.path.dirname(os.path.realpath(filename)))
         saved_script = controller.bindings.bind('script', os.path.basename(os.path.realpath(filename)))
+        saved_non_interactive = controller.non_interactive
         try :
             controller.echo = echo
+            controller.non_interactive = True
             cmdlines = ContractController.ParseScriptFile(filename)
             for cmdline in cmdlines :
                 if controller.onecmd(cmdline) :
@@ -131,6 +132,7 @@ class ContractController(cmd.Cmd) :
         controller.echo = saved_echo
         controller.bindings.bind('script', saved_script)
         controller.bindings.bind('path', saved_path)
+        controller.non_interactive = saved_non_interactive
 
         return True
 
@@ -151,15 +153,49 @@ class ContractController(cmd.Cmd) :
         return cmdlines
 
     # -----------------------------------------------------------------
-    def __init__(self, config) :
+    def __init__(self, config, non_interactive=False) :
         cmd.Cmd.__init__(self)
 
         self.echo = False
         self.bindings = Bindings(config.get('Bindings',{}))
         self.state = State(config)
+        self.exit_code = 0
+        self.non_interactive = non_interactive
+
+        self.deferred = 0
+        self.deferred_lines = []
+        self.nesting = []
 
         name = self.state.get(['Client', 'Identity'], "")
         self.prompt = "{0}> ".format(name)
+
+    # -----------------------------------------------------------------
+    def __arg_parse__(self, args) :
+        """parse the command line in a consistent way, preserving the
+        argument separate before binding expansion.
+        """
+        return map(lambda a : self.bindings.expand(a), shlex.split(args))
+
+    # -----------------------------------------------------------------
+    def __arg_error__(self, command, args, code) :
+        """handle errors caused by argument processing
+        """
+
+        # code == 0 --> help was called
+        if code == 0 :
+            return False
+
+        self.exit_code = code
+        return self.non_interactive
+
+    # -----------------------------------------------------------------
+    def __error__(self, command, args, message) :
+        """handle general errors caused by exceptions
+        """
+        print('"{0} {1}": {2}'.format(command, args, message))
+
+        self.exit_code = 1
+        return self.non_interactive
 
     # -----------------------------------------------------------------
     def precmd(self, line) :
@@ -181,33 +217,38 @@ class ContractController(cmd.Cmd) :
         """
         sleep <seconds> -- command to pause processing for a time (seconds).
         """
-
-        pargs = shlex.split(self.bindings.expand(args))
-        if len(pargs) == 0 :
-            print('Time to sleep required: sleep <seconds>')
-            return
+        if self.deferred > 0 : return False
 
         try :
-            tm = int(pargs[0])
-            print("Sleeping for {} seconds".format(tm))
-            time.sleep(tm)
-        except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
+            pargs = self.__arg_parse__(args)
 
+            parser = argparse.ArgumentParser(prog='sleep')
+            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
+            parser.add_argument('-t', '--time', help='time to sleep', type=int, required=True)
+
+            options = parser.parse_args(pargs)
+
+            if not options.quiet :
+                print("Sleeping for {} seconds".format(options.time))
+            time.sleep(options.time)
+
+        except SystemExit as se :
+            return self.__arg_error__('sleep', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('sleep', args, str(e))
+
+        return False
+
 
     # -----------------------------------------------------------------
     def do_set(self, args) :
+        """set -- assign a value to a symbol that can be retrieved with a $expansion
         """
-        set -- assign a value to a symbol that can be retrieved with a $expansion
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
+
             parser = argparse.ArgumentParser(prog='set')
             parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
             parser.add_argument('-s', '--symbol', help='symbol in which to store the identifier', required=True)
@@ -242,31 +283,112 @@ class ContractController(cmd.Cmd) :
             self.bindings.bind(options.symbol,value)
             if not options.quiet :
                 print("${} = {}".format(options.symbol, value))
-            return
-        except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
 
+        except SystemExit as se :
+            return self.__arg_error__('set', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('set', args, str(e))
+
+        return False
+
+    # -----------------------------------------------------------------
+    def do_if(self, args) :
+        """if -- start a conditional section of the script
+        """
+        self.nesting.append('if')
+        if self.deferred > 0:
+            self.deferred += 1
+            return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+
+            parser = argparse.ArgumentParser(prog='if')
+            parser.add_argument('--not', help='inverts the result of the query', action='store_true')
+
+            eparser = parser.add_mutually_exclusive_group(required=True)
+            eparser.add_argument('-z', '--zero', help="true if the argument is 0", type=int)
+            eparser.add_argument('-n', '--null', help="true if the argument is empty string", type=str)
+            eparser.add_argument('-e', '--equal', help="true if the arguments are equivalent", nargs=2)
+            eparser.add_argument('-o', '--ordered', help="true if numbers are ordered", type=int, nargs='+')
+
+            options = parser.parse_args(pargs)
+
+            if options.zero is not None :
+                condition = (options.zero == 0)
+            elif options.null is not None :
+                condition = (options.null == '')
+            elif options.equal is not None :
+                condition = (options.equal[0] == options.equal[1])
+            elif options.ordered is not None :
+                condition = True
+                for i in range(1,len(options.ordered)) :
+                    if options.ordered[i-1] >= options.ordered[i] :
+                        condition = False
+                        break
+            else :
+                condition = False
+
+            if not condition :
+                self.deferred += 1
+
+        except SystemExit as se :
+            return self.__arg_error__('if', args, se.code)
+        except Exception as e :
+            return self.__error__('if', args, str(e))
+
+        return False
+
+    # -----------------------------------------------------------------
+    def do_else(self, args) :
+        """else -- alternative section of the script
+        """
+        if len(self.nesting) == 0 or self.nesting[-1] != 'if' :
+            return self.__error__('else', '', 'else without if')
+
+        if self.deferred == 0 :
+            self.deferred = 1
+        elif self.deferred == 1 :
+            self.deferred = 0
+
+        return False
+
+    # -----------------------------------------------------------------
+    def do_fi(self, args) :
+        """fi -- end a conditional section of the script
+        """
+
+        if len(self.nesting) == 0 or self.nesting[-1] != 'if' :
+            return self.__error__('fi', '', 'fi without if')
+
+        self.nesting.pop()
+
+        if self.deferred > 0:
+            self.deferred -= 1
+
+        return False
 
     # -----------------------------------------------------------------
     def do_echo(self, args) :
+        """echo -- expand local $symbols
         """
-        echo -- expand local $symbols
-        """
-        print(self.bindings.expand(args))
+        if self.deferred > 0 : return False
+
+        try :
+            print(self.bindings.expand(args))
+        except Exception as e :
+            return self.__error__('echo', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_identity(self, args) :
+        """identity -- set the identity and keys to use for transactions
         """
-        identity -- set the identity and keys to use for transactions
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
-
+        if self.deferred > 0 : return False
         try :
+            pargs = self.__arg_parse__(args)
+
             parser = argparse.ArgumentParser(prog='identity')
             parser.add_argument('-n', '--name', help='identity to use for transactions', type=str, required=True)
             parser.add_argument('-f', '--key-file', help='file that contains the private key used for signing', type=str)
@@ -279,25 +401,23 @@ class ContractController(cmd.Cmd) :
             if options.key_file :
                 self.state.set(['Key', 'FileName'], options.key_file)
 
-            return
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('identity', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('identity', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_load_plugin(self, args) :
-        """
-        load -- load a new command processor from a file, the file should
+        """load -- load a new command processor from a file, the file should
         define a function called load_commands
         """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
+
             parser = argparse.ArgumentParser(prog='load_plugin')
             group = parser.add_mutually_exclusive_group(required=True)
             group.add_argument('-c', '--contract-class', help='load contract plugin from data directory', type=str)
@@ -315,38 +435,35 @@ class ContractController(cmd.Cmd) :
                 code = compile(f.read(), plugin_file, 'exec')
                 exec(code, globals())
             load_commands(ContractController)
-            return
-        except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
 
+        except SystemExit as se :
+            return self.__arg_error__('load_plugin', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('load_plugin', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_script(self, args) :
+        """script -- load commands from a file
         """
-        script -- load commands from a file
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
-
+        if self.deferred > 0 : return False
         try :
+            pargs = self.__arg_parse__(args)
+
             parser = argparse.ArgumentParser(prog='script')
             parser.add_argument('-f', '--file', help='file from which to read commands', required=True)
             parser.add_argument('-e', '--echo', help='turn on command echoing', action='store_true')
             options = parser.parse_args(pargs)
 
             ContractController.ProcessScript(self, options.file, options.echo)
-            return
-        except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
 
+        except SystemExit as se :
+            return self.__arg_error__('script', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('script', args, str(e))
+
+        return False
 
     # =================================================================
     # CONTRACT COMMANDS
@@ -354,137 +471,122 @@ class ContractController(cmd.Cmd) :
 
     # -----------------------------------------------------------------
     def do_pservice(self, args) :
+        """pservice -- manage provisioning service list
         """
-        pservice -- manage provisioning service list
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             pservice(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('pservice', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('pservice', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_eservice(self, args) :
+        """eservice -- manage enclave service lists for contract creation
         """
-        eservice -- manage enclave service lists for contract creation
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             eservice(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('eservice', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('eservice', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_eservice_db(self, args) :
+        """eservice_db -- manage enclave service list
         """
-        eservice_db -- manage enclave service list
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             eservice_db(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('eservice_db', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('eservice_db', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_contract(self, args) :
+        """contract -- load contract for use
         """
-        contract -- load contract for use
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             contract(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('contract', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('contract', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_create(self, args) :
+        """create -- create a contract
         """
-        create -- create a contract
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             create(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('contract', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('contract', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_send(self, args) :
+        """send -- send a message to the contract
         """
-        send -- send a message to the contract
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             send(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('send', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('send', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_get_public_key(self, args) :
+        """get_public_key -- get the public key from the current contract
         """
-        get_public_key -- get the public key from the current contract
-        """
-
-        pargs = shlex.split(self.bindings.expand(args))
+        if self.deferred > 0 : return False
 
         try :
+            pargs = self.__arg_parse__(args)
             GetPublicKey.GetPublicKey(self, pargs)
 
         except SystemExit as se :
-            if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-            return
-
+            return self.__arg_error__('get_public_key', args, se.code)
         except Exception as e :
-            print('An error occurred processing {0}: {1}'.format(args, str(e)))
-            return
+            return self.__error__('get_public_key', args, str(e))
 
+        return False
 
     # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -494,6 +596,24 @@ class ContractController(cmd.Cmd) :
         """
         exit -- shutdown the simulator and exit the command loop
         """
+        if self.deferred > 0 : return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+            parser = argparse.ArgumentParser(prog='exit')
+            parser.add_argument('-v', '--value', help='exit code', type=int, default=0)
+            options = parser.parse_args(pargs)
+
+            self.exit_code = options.value
+
+        except SystemExit as se :
+            self.exit_code = 1
+            return True
+
+        except Exception as e :
+            self.exit_code = 1
+            return True
+
         return True
 
     # -----------------------------------------------------------------
@@ -501,4 +621,5 @@ class ContractController(cmd.Cmd) :
         """
         exit -- shutdown the simulator and exit the command loop
         """
+        self.exit_code = 0
         return True

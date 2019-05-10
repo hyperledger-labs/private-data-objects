@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
+from pdo.client.controller.util import *
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -39,13 +40,13 @@ def __command_vetting__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=str, required=True)
+    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=scheme_string, required=True)
 
     subparser = subparsers.add_parser('approve')
-    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=str, required=True)
+    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=scheme_string, required=True)
 
     subparser = subparsers.add_parser('get_authority')
-    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=str, required=True)
+    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=scheme_string, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     options = parser.parse_args(pargs)
@@ -57,31 +58,29 @@ def __command_vetting__(state, bindings, pargs) :
         extraparams['commit'] = False
         message = "'(get-verifying-key)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-
-        message = "'(initialize \"{0}\")".format(options.type_id)
+        message = "'(initialize {0})".format(options.type_id)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'approve' :
-
-        message = "'(add-approved-key \"{0}\")".format(options.issuer)
+        message = "'(add-approved-key {0})".format(options.issuer)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
    # -------------------------------------------------------
     if options.command == 'get_authority' :
         extraparams['commit'] = False
-        message = "'(get-authority \"{0}\")".format(options.issuer)
+        message = "'(get-authority {0})".format(options.issuer)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
@@ -93,18 +92,15 @@ def do_vetting(self, args) :
     vetting -- invoke methods from the vetting contract
     """
 
-    pargs = shlex.split(self.bindings.expand(args))
-
     try :
+        pargs = self.__arg_parse__(args)
         __command_vetting__(self.state, self.bindings, pargs)
-
     except SystemExit as se :
-        if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-        return
-
+        return self.__arg_error__('vetting', args, se.code)
     except Exception as e :
-        print('An error occurred processing {0}: {1}'.format(args, str(e)))
-        return
+        return self.__error__('vetting', args, str(e))
+
+    return False
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

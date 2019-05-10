@@ -14,47 +14,32 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-## This is a pdo-shell script that invokes methods to issue assets
-## for a colored marble exchange.
-
-## The assumption is that the following keys are available:
+## This is a pdo-shell script creates the contract objects required
+## for a colored marble exchange. The assumuption is that there are
+## three keys available:
 ##    ${color}_type -- keys used for the asset type object
 ##    ${color}_vetting -- keys used for the vetting organization
 ##    ${color}_issuer -- keys used for the issuer
 ##
-## The following shell variables are assumed:
-##    color -- the color to use for the marble (default = 'green')
-##    issuee -- name of the issuee, there must be a public key in the path (required)
-##    count -- number of assets to issue (default = 100)
-
-## $ pdo-shell issue.psh -m color <color> -m issuee <identity> -m count <count>
+## Two shell variables are used:
+##    color -- the color to use for the marble
+##    data -- the directory where the contract objects are stored
+##    path -- the directory where the PSH scripts are stored
+##
+## $ pdo-shell -s create.psh -m color <color> -m path <contract path>
 
 set -q --conditional -s data -v .
 set -q --conditional -s save -v .
 script -f ${path}/init.psh
 
-if --null ${color}
-   echo must specify color: '-m color <color>'
-   exit
-fi
-
-if --null ${count}
-   echo must specify count: '-m count <count>'
-   exit
-fi
-
-if --null ${issuee}
-   echo must specify identity for issuance: '-m issuee <identity>'
-   exit
-fi
-
-set -q --conditional -s issuer -v ${color}_issuer
+set -q --conditional -s color -v green
 
 ## =================================================================
-echo issue ${count} ${color} marbles to ${issuee}
+echo create the ${color} marble vetting organization
 ## =================================================================
-identity -n ${issuer}
-set -q -s _issuee_key -i ${issuee}
-issuer -q -w -f ${save}/${color}_issuer.pdo issue -o ${_issuee_key} -c ${count}
+identity -n ${color}_vetting
+asset_type -q -f ${save}/${color}_type.pdo get_identifier -s _type_id
+create -c vetting-organization-contract -s _vetting_organization -f ${save}/${color}_vetting.pdo
+vetting -q -w -f ${save}/${color}_vetting.pdo initialize -t ${_type_id}
 
 exit

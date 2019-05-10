@@ -13,7 +13,9 @@ invocation using the `-m` switch: `-m <variable> <value>`.
 ## init.psh
 
 Simple initialization script that loads the plugins for the exchange
-suite of contracts.
+suite of contracts. This script also creates some enclave service
+and provisioning service groups that are useful for creating contract
+objects.
 
 ## create.psh
 
@@ -39,8 +41,6 @@ This script issues assets to participants for a colored marble exchange.
 
 The assumption is that the following keys are available:
 
-    - `${color}_type` -- keys used for the asset type object
-    - `${color}_vetting` -- keys used for the vetting organization
     - `${color}_issuer` -- keys used for the issuer
     - issuee -- keys for the participant being issued the assets
 
@@ -55,7 +55,7 @@ This can be invoked as follows:
 
 `$ pdo-shell -s issue.psh -m color <color> -m path <contract path> -m issuee <identity> -m count <count>`
 
-## exchange.psh
+## exchange_test.psh
 
 This script demonstrates the fair exchange of assets between two parties
 where the only mediator is the contract object.
@@ -73,7 +73,7 @@ This can be invoked as follows:
 
 `$ pdo-shell -s exchange.psh -m offer_user <identity> -m exchange_user <identity>`
 
-## auction.psh
+## auction_test.psh
 
 This script demonstrates the flow of an auction of assets between
 multiple parties where the only mediator is the contract object.

@@ -60,7 +60,7 @@ def command_eservice_db(state, bindings, pargs) :
 
     if options.command == 'add' :
         if not eservice_db.add_info_to_database(options.name, options.url, ledger_config) :
-            print('failed to add eservice to the database')
+            raise Exception('failed to add eservice {0} to the database'.format(options.name))
         return
 
     if options.command == 'clear' :

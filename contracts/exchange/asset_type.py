@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
+from pdo.client.controller.util import *
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -36,9 +37,9 @@ def __command_asset_type__(state, bindings, pargs) :
     subparsers = parser.add_subparsers(dest='command')
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-d', '--description', help='human readable description', type=str, default='')
-    subparser.add_argument('-n', '--name', help='human readable name', type=str, default='')
-    subparser.add_argument('-l', '--link', help='URL where more information is located', type=str, default='')
+    subparser.add_argument('-d', '--description', help='human readable description', type=scheme_string, default='')
+    subparser.add_argument('-n', '--name', help='human readable name', type=scheme_string, default='')
+    subparser.add_argument('-l', '--link', help='URL where more information is located', type=scheme_string, default='')
 
     subparser = subparsers.add_parser('get_identifier')
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
@@ -50,7 +51,7 @@ def __command_asset_type__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        message = "'(initialize \"{0}\" \"{1}\" \"{2}\")".format(options.name, options.description, options.link)
+        message = "'(initialize {0} {1} {2})".format(options.name, options.description, options.link)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
@@ -74,8 +75,8 @@ def __command_asset_type__(state, bindings, pargs) :
         message = "'(get-link)"
         link = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         print("NAME: {0}".format(name))
-        print("DESC: {1}".format(description))
-        print("LINK: {2}".format(link))
+        print("DESC: {0}".format(description))
+        print("LINK: {0}".format(link))
 
         return
 
@@ -86,18 +87,16 @@ def do_asset_type(self, args) :
     asset_type -- invoke methods from the asset_type contract
     """
 
-    pargs = shlex.split(self.bindings.expand(args))
-
     try :
+        pargs = self.__arg_parse__(args)
         __command_asset_type__(self.state, self.bindings, pargs)
 
     except SystemExit as se :
-        if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-        return
-
+        return self.__arg_error__('asset_type', args, se.code)
     except Exception as e :
-        print('An error occurred processing {0}: {1}'.format(args, str(e)))
-        return
+        return self.__error__('asset_type', args, str(e))
+
+    return False
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

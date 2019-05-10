@@ -30,7 +30,7 @@ def __expand_eservice_names__(names) :
     if names :
         for name in names :
             eservice_info = eservice_db.get_info_by_name(name)
-            logger.info('eservice_info: %s', eservice_info)
+            logger.debug('eservice_info: %s', eservice_info)
             if eservice_info is None :
                 raise Exception('unknown eservice name {0}'.format(name))
             result.add(eservice_info['url'])
@@ -114,7 +114,7 @@ def command_eservice(state, bindings, pargs) :
         if service_url in services :
             state.set(['Service', 'EnclaveServiceGroups', options.group, 'preferred'], service_url)
         else :
-            print('preferred URL not in the service group')
+            raise Exception('preferred URL not in the service group')
         return
 
     if options.command == 'list' :
@@ -129,16 +129,16 @@ def command_eservice(state, bindings, pargs) :
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def get_eservice(state, eservice_url=None, eservice_group="default") :
+def get_eservice(state, eservice_url="default", eservice_group="default") :
     """create an enclave client for the preferred enclave service; assumes
     exception handling by the calling procedure
     """
-    if eservice_url is None :
-        eservice_url = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'preferred'], None)
-        logger.debug('preferred eservice: %s', eservice_url)
 
-        if eservice_url == 'random' or eservice_url is None :
-            eservice_url = random.choice(state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'urls'], []))
+    if eservice_url is 'default' or eservice_url is None :
+        eservice_url = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'preferred'], 'random')
+
+    if eservice_url == 'random' :
+        eservice_url = random.choice(state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'urls'], []))
 
     if eservice_url is None :
         raise Exception('no enclave service specified')

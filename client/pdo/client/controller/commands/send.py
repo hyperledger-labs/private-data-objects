@@ -14,8 +14,9 @@
 
 import argparse
 import random
-import logging
 import sys
+
+import logging
 logger = logging.getLogger(__name__)
 
 from pdo.common.keys import ServiceKeys
@@ -25,7 +26,7 @@ from pdo.client.controller.commands.contract import get_contract
 from pdo.client.controller.commands.eservice import get_eservice
 import pdo.service_client.service_data.eservice as eservice_db
 
-__all__ = ['command_send']
+__all__ = ['command_send', 'send_to_contract']
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -46,7 +47,10 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         raise Exception('unable to load the contract')
 
     # ---------- set up the enclave service ----------
-    if eservice_url and eservice_url != 'random' :
+    if eservice_url is None :
+        eservice_url = 'preferred'
+
+    if eservice_url not in ['random', 'preferred'] :
         try :
             eservice_client = EnclaveServiceClient(eservice_url)
         except Exception as e :
@@ -55,7 +59,11 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         if eservice_client.enclave_id not in contract.provisioned_enclaves :
             raise Exception('requested enclave not provisioned for the contract; %s', eservice_url)
     else :
-        enclave_id = random.choice(contract.provisioned_enclaves)
+        if eservice_url == 'preferred' :
+            enclave_id = contract.extra_data.get('preferred-enclave', random.choice(contract.provisioned_enclaves))
+        else :
+            enclave_id = random.choice(contract.provisioned_enclaves)
+
         eservice_info = eservice_db.get_info_by_id(enclave_id)
         if eservice_info is None :
             raise Exception('attempt to use an unknown enclave; %s', enclave_id)
@@ -69,13 +77,20 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
     try :
         update_request = contract.create_update_request(client_keys, eservice_client, message)
         update_response = update_request.evaluate()
-        if update_response.status :
-            if not quiet : print(update_response.result)
-        else :
-            print('ERROR: {}'.format(update_response.result))
-            return None
     except Exception as e:
-        raise Exception('enclave failed to evaluation expression; {0}'.format(str(e)))
+        raise Exception('enclave failed to evaluate expression; {0}'.format(str(e)))
+
+    if not update_response.status :
+        # not sure if this should throw an exception which would
+        # terminate the script or if it should just return an
+        # empty string that can be tested for later
+        # if not quiet :
+        #     print("FAILED: {0}".format(update_response.result))
+        # return ''
+        raise ValueError(update_response.result)
+
+    if not quiet :
+        print(update_response.result)
 
     data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Sawtooth'])
@@ -104,10 +119,11 @@ def command_send(state, bindings, pargs) :
     """controller command to send a message to a contract
     """
 
-    parser = argparse.ArgumentParser(prog='read')
+    parser = argparse.ArgumentParser(prog='send')
     parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
+    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
     parser.add_argument('message', help='Message to be sent to the contract', type=str)
 
@@ -115,6 +131,12 @@ def command_send(state, bindings, pargs) :
     message = options.message
     waitflag = options.wait
 
-    result = send_to_contract(state, options.save_file, options.message, eservice_url=options.enclave)
+    result = send_to_contract(
+        state,
+        options.save_file,
+        options.message,
+        eservice_url=options.enclave,
+        quiet=options.quiet,
+        wait=options.wait)
     if options.symbol :
         bindings.bind(options.symbol, result)

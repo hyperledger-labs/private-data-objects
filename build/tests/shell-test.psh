@@ -67,22 +67,41 @@ set -q -s contract3 -r 32
 
 identity -n user1
 create -c mock-contract -s _mock-contract -f ${save}/${contract1}.pdo
-send -f ${save}/${contract1}.pdo "'(inc-value)" -s r1
-send -f ${save}/${contract1}.pdo "'(inc-value)" -s r2
-send -f ${save}/${contract1}.pdo "'(inc-value)" -s r3
+send -q -f ${save}/${contract1}.pdo "'(inc-value)"
+send -q -f ${save}/${contract1}.pdo "'(inc-value)"
+send -q -f ${save}/${contract1}.pdo -s value "'(inc-value)"
+if -e ${value} 3
+    echo shell test 1 succeeded
+else
+    echo shell test 1 failed
+    exit -v -1
+fi
 
 identity -n user2
 create -c mock-contract -s _mock-contract -p all -e all -f ${save}/${contract2}.pdo
-send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r4
-send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r5
-send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r6
-send -f ${save}/${contract2}.pdo "'(get-value)" -s r7
+send -q -f ${save}/${contract2}.pdo --wait "'(inc-value)" -e http://localhost:7101
+send -q -f ${save}/${contract2}.pdo --wait "'(inc-value)" -e http://localhost:7102
+send -q -f ${save}/${contract2}.pdo --wait "'(inc-value)" -e random
+send -q -f ${save}/${contract2}.pdo --wait "'(inc-value)" -e random
+send -q -f ${save}/${contract2}.pdo "'(get-value)" -s value
+if -e ${value} 4
+    echo shell test 2 succeeded
+else
+    echo shell test 2 failed
+    exit -v -1
+fi
 
 identity -n user3
 create -c mock-contract -s _mock-contract -p p1 -e e1 -f ${save}/${contract3}.pdo
-send -f ${save}/${contract3}.pdo "'(inc-value)" -s r8
-send -f ${save}/${contract3}.pdo "'(inc-value)" -s r9
-send -f ${save}/${contract3}.pdo "'(inc-value)" -s r10
+send -q -f ${save}/${contract3}.pdo "'(inc-value)" -s r8 -e preferred
+send -q -f ${save}/${contract3}.pdo "'(inc-value)" -s r9 -e random
+send -q -f ${save}/${contract3}.pdo "'(inc-value)" -s r10 -e random
+send -q -f ${save}/${contract3}.pdo "'(get-value)" -s value
+if -e ${value} 3
+    echo shell test 3 succeeded
+else
+    echo shell test 3 failed
+    exit -v -1
+fi
 
-echo shell-test result: ${r1}${r2}${r3}${r4}${r5}${r6}${r7}${r8}${r9}${r10}
 exit
