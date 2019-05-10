@@ -55,14 +55,23 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../../..)"
 KEYGEN=${SRCDIR}/build/__tools__/make-keys
 
-if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
-    yell create keys for the contracts
-    for color in red green blue ; do
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_type --format pem
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_vetting --format pem
-        ${KEYGEN} --keyfile ${PDO_HOME}/keys/${color}_issuer --format pem
-    done
-fi
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+function require-key() {
+    KEYFILE=${PDO_HOME}/keys/$1
+    if [ ! -f ${KEYFILE}_private.pem ]; then
+        echo create key ${KEYFILE}
+        ${KEYGEN} --keyfile ${KEYFILE} --format pem
+    fi
+}
+
+yell ensure that required keys exist
+for i in $(seq 1 20) ; do
+    require-key user${i}
+done
+
+require-key ledger
+require-key auction
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -72,28 +81,34 @@ if [ ! -f ${PDO_HOME}/data/eservice-db.json ]; then
     scripts/create_eservice_db.psh
 fi
 
-yell create the green issuer contracts
-try scripts/create_type.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
-try scripts/create_vetting.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
-try scripts/create_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
-try scripts/approve_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
-try scripts/initialize_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color green
+try scripts/create_ledger.psh -m user ledger
+try scripts/create.psh -m user auction -m key auction -m val 100
 
-yell create the red issuer contracts
-try scripts/create_type.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
-try scripts/create_vetting.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
-try scripts/create_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
-try scripts/approve_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
-try scripts/initialize_issuer.psh --loglevel warn --ledger $PDO_LEDGER_URL -m color red
+# nothing particularly magical about this, want to test values
+# that are not ordered, make sure that MAXVALUE is the largest
+VALUES=(122 133 155 144 166 181 12 113 133 135 199 146 150 161 172 183 14 115 126 17 119)
+MAXVALUE=13
+VALUES[${MAXVALUE}]=200
 
-yell issue green marbles
-for p in $(seq 1 5); do
-    scripts/issue.psh --loglevel warn --ledger $PDO_LEDGER_URL \
-                      -m color green -m issuee user$p -m count $(($p * 10))
+for i in $(seq 1 20); do
+    try scripts/create.psh -m user user${i} -m key key${i} -m val ${VALUES[$i]}
 done
 
-yell issue red marbles
-for p in $(seq 6 10); do
-    scripts/issue.psh --loglevel warn --ledger $PDO_LEDGER_URL \
-                      -m color red -m issuee user$p -m count $(($p * 10))
+try scripts/create_auction.psh -m user auction -m key auction
+
+for i in $(seq 1 20); do
+    try scripts/bid.psh -m user user${i} -m key key${i}
 done
+
+yell ledger state before close
+try scripts/get.psh -m user auction -m key auction
+try scripts/get.psh -m user user${MAXVALUE} -m key key${MAXVALUE}
+
+try scripts/close.psh -m user auction
+
+yell ledger state after close
+try scripts/get.psh -m user user${MAXVALUE} -m key auction
+try scripts/get.psh -m user auction -m key key${MAXVALUE}
+
+yell final ledger state
+try scripts/dump.psh -m user ledger

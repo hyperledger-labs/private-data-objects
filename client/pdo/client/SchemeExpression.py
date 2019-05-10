@@ -213,6 +213,7 @@ class SchemeExpression(object) :
         # final...
         sexpr = element | vexpr | lexpr
 
+        sexpr.keepTabs = True             # this seems to be necessary to fix a problem with pyparsing
         result = sexpr.parseString(source)[0]
         return cls(SchemeExpression._flatten(result))
 

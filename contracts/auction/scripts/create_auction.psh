@@ -14,13 +14,10 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-## This is a pdo-shell script adds a key to an asset ledger contract
-## and uses it to submit a bid to an auction. Run the script as:
+## This is a pdo-shell script creates an asset ledger and
+## and auction. Run the script as:
 ##
-## $ pdo-shell -s bid.psh -m bidkey <key> -m bidval <value> -i <identity>
-##
-## The maps for "bidkey" and "bidval" must be specified to run this
-## script.
+## $ pdo-shell -s create.psh -i <identity>
 
 set -q --conditional -s data -v .
 set -q --conditional -s save -v .
@@ -31,30 +28,22 @@ if --null ${key}
 fi
 
 ## =================================================================
-## check to see if our bid would succeed
+echo create the auction
 ## =================================================================
-auction -q -f ${auction_contract} max_bid -s _maxbid
-integer_key -q -f ${ledger_contract} get -k ${key} -s _keyval
-if -o ${_keyval} ${_maxbid}
-   echo requested bid lower than max bid, ignoring
-   exit
-fi
+create -c integer-key-auction -s _integer-key-auction -f ${auction_contract}
 
 ## =================================================================
-echo submit bit for key ${key}
+echo initialize the auction
 ## =================================================================
+integer_key -q -w -f ${ledger_contract} get_signing_key -s _ikkey
+auction -q -w -f ${auction_contract} initialize -k ${_ikkey}
 
-## escrow requires two commands at this point, one to change
-## the state of the asset and one to get the attestation with
-## its depedencies. the '-s attest' saves the attestation in the
-## bindings map so we can use it later
+## =================================================================
+echo prime the auction with the offered asset
+## =================================================================
 auction -q -w -f ${auction_contract} get_signing_key -s _auckey
 integer_key -q -w -f ${ledger_contract} escrow -k ${key} -a ${_auckey}
 integer_key -q -w -f ${ledger_contract} attestation -k ${key} -s _attest
-
-auction -q -w -f ${auction_contract} submit_bid -a ${_attest}
-
-## this will fail if for some reason the bid was not accepted
-auction -q -f ${auction_contract} check_bid
+auction -q -w -f ${auction_contract} prime -a ${_attest}
 
 exit

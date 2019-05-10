@@ -29,10 +29,16 @@ set -q --conditional -s save -v .
 script -f ${path}/init.psh
 
 ## =================================================================
-echo close bidding
-##  =================================================================
-auction -q -w -f ${auction_contract} close_bidding
-auction -q -w -f ${auction_contract} exchange_attestation -s _attest
+## need to come up with a good way to see if the bid exists, for the
+## moment, the cancel_bid call will fail, terminating the script
+## =================================================================
 
-integer_key -q -w -f ${ledger_contract} exchange -a ${_attest}
+## =================================================================
+## cancel the big
+## =================================================================
+auction -q -f ${auction_contract} cancel_bid
+auction -q -f ${auction_contract} cancel_attestation -s _attest
+
+integer_key -q -f ${ledger_contract} disburse -a ${_attest}
+echo bid cancelled
 exit

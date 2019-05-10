@@ -80,7 +80,7 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
     """Create the initial contract state
     """
 
-    logger.info('Requesting that the enclave initialize the contract...')
+    logger.debug('Requesting that the enclave initialize the contract...')
     initialize_request = contract.create_initialize_request(client_keys, preferred_eservice_client)
     initialize_response = initialize_request.evaluate()
     if not initialize_response.status :
@@ -88,10 +88,7 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 
     contract.set_state(initialize_response.raw_state)
 
-    logger.info('Contract state created successfully')
-
-    logger.info('Saving the initial contract state in the ledger...')
-
+    logger.debug('Saving the initial contract state in the ledger...')
     cclinit_result = initialize_response.submit_initialize_transaction(ledger_config, wait=30.0)
 
 ## -----------------------------------------------------------------
@@ -127,7 +124,7 @@ def command_create(state, bindings, pargs) :
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 
-    logger.info('Loaded contract code for %s', contract_class)
+    logger.debug('Loaded contract code for %s', contract_class)
 
     # ---------- set up the enclave clients ----------
     eservice_clients = get_eservice_list(state, options.eservice_group)
@@ -150,7 +147,7 @@ def command_create(state, bindings, pargs) :
         contract_id = register_contract(
             ledger_config, client_keys, contract_code, provisioning_service_keys)
 
-        logger.info('Registered contract with class %s and id %s', contract_class, contract_id)
+        logger.debug('Registered contract with class %s and id %s', contract_class, contract_id)
         contract_state = ContractState.create_new_state(contract_id)
         contract = Contract(contract_code, contract_state, contract_id, client_keys.identity)
 

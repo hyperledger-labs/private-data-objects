@@ -72,25 +72,25 @@ echo escrow ${offer_color} marbles for ${offer_user} and add to the exchange
 ## =================================================================
 identity -n ${offer_user}
 issuer -q -w -f ${save}/${offer_color}_issuer.pdo escrow -a ${exchange_vk} -s escrow
-exchange -q -w -f ${save}/exch.pdo offer -a '${escrow}'
+exchange -q -w -f ${save}/exch.pdo offer -a ${escrow}
 
 ## =================================================================
 echo escrow ${exchange_color} marbles for ${exchange_user} and add to the exchange
 ## =================================================================
 identity -n ${exchange_user}
 issuer -q -w -f ${save}/${exchange_color}_issuer.pdo escrow -a ${exchange_vk} -s escrow
-exchange -q -w -f ${save}/exch.pdo exchange -a '${escrow}'
+exchange -q -w -f ${save}/exch.pdo exchange -a ${escrow}
 
 ## =================================================================
 echo exchange should be closed, claim ownership of the assets
 ## =================================================================
 identity -n ${offer_user}
 exchange -q -w -f ${save}/exch.pdo claim_exchange -s asset
-issuer -q -w -f ${save}/${exchange_color}_issuer.pdo claim -a '${asset}'
+issuer -q -w -f ${save}/${exchange_color}_issuer.pdo claim -a ${asset}
 
 identity -n ${exchange_user}
 exchange -q -w -f ${save}/exch.pdo claim_offer -s asset
-issuer -q -w -f ${save}/${offer_color}_issuer.pdo claim -a '${asset}'
+issuer -q -w -f ${save}/${offer_color}_issuer.pdo claim -a ${asset}
 
 ## =================================================================
 echo final balances: ${offer_color}, ${exchange_color}

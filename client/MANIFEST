@@ -6,6 +6,7 @@
 ./pdo/client/controller/commands/contract.py
 ./pdo/client/controller/commands/__init__.py
 ./pdo/client/controller/contract_controller.py
+./pdo/client/controller/util.py
 ./pdo/client/controller/__init__.py
 ./pdo/client/SchemeExpression.py
 ./pdo/client/scripts/AuctionTestCLI.py

@@ -328,11 +328,9 @@ for v in $(seq 1 ${n}) ; do
 done
 
 # -----------------------------------------------------------------
+yell test pdo-shell
 # -----------------------------------------------------------------
-${SRCDIR}/build/tests/shell-test.psh --loglevel warning | grep 'shell-test result: 1231233123'
-if [ $? != 0 ]; then
-    die shell test failed
-fi
+try ${SRCDIR}/build/tests/shell-test.psh --loglevel warning
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

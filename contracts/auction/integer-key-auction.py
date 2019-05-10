@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
+from pdo.client.controller.util import *
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -39,24 +40,21 @@ def __command_auction__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-k', '--key', help='public key of the asset contract', type=str, required=True)
+    subparser.add_argument('-k', '--key', help='public key of the asset contract', type=scheme_string, required=True)
 
     subparser = subparsers.add_parser('prime')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=str, required=True)
-    #subparser.add_argument('-b', '--bidinfo', help='information about the asset to auction', type=str, required=True)
-    #subparser.add_argument('-d', '--dependencies', help='proof of escrow dependencies', type=str, nargs='*', default=[])
-    #subparser.add_argument('-s', '--signature', help='signature from the asset contract', type=str, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('submit_bid')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=str, required=True)
-    #subparser.add_argument('-b', '--bidinfo', help='information about the asset to auction', type=str, required=True)
-    #subparser.add_argument('-d', '--dependencies', help='proof of escrow dependencies', type=str, nargs='*', default=[])
-    #subparser.add_argument('-s', '--signature', help='signature from the asset contract', type=str, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_expr, required=True)
 
     subparser = subparsers.add_parser('get_offered_asset')
     subparser = subparsers.add_parser('cancel_bid')
     subparser = subparsers.add_parser('check_bid')
+
     subparser = subparsers.add_parser('max_bid')
+    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
+
     subparser = subparsers.add_parser('close_bidding')
 
     subparser = subparsers.add_parser('exchange_attestation')
@@ -77,7 +75,7 @@ def __command_auction__(state, bindings, pargs) :
         return
 
     if options.command == 'initialize' :
-        message = "'(initialize \"{0}\")".format(options.key)
+        message = "'(initialize {0})".format(options.key)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
@@ -116,7 +114,9 @@ def __command_auction__(state, bindings, pargs) :
 
     if options.command == 'max_bid' :
         message = "'(max-bid)"
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        if options.symbol :
+            bindings.bind(options.symbol, result)
         return
 
     if options.command == 'close_bidding' :
@@ -127,14 +127,14 @@ def __command_auction__(state, bindings, pargs) :
     if options.command == 'cancel_attestation' :
         message = "'(cancel-attestation)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'exchange_attestation' :
         message = "'(exchange-attestation)"
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
@@ -145,18 +145,15 @@ def do_auction(self, args) :
     auction -- invoke integer key commands
     """
 
-    pargs = shlex.split(self.bindings.expand(args))
-
     try :
+        pargs = self.__arg_parse__(args)
         __command_auction__(self.state, self.bindings, pargs)
-
     except SystemExit as se :
-        if se.code > 0 : print('An error occurred processing {0}: {1}'.format(args, str(se)))
-        return
-
+        return self.__arg_error__('auction', args, se.code)
     except Exception as e :
-        print('An error occurred processing {0}: {1}'.format(args, str(e)))
-        return
+        return self.__error__('auction', args, str(e))
+
+    return False
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

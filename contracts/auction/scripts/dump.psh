@@ -14,26 +14,22 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-## This is a pdo-shell script creates an asset ledger and
-## and auction. Run the script as:
+## This is a pdo-shell script closes the auction and executes
+## the asset exchange in the asset ledger. Run the script as:
 ##
-## $ pdo-shell -s create.psh -i <identity>
+## $ pdo-shell -s close.psh -i <identity>
+##
+## After the script executes you will be able to see the
+## transfer of the assets. Note that this script must be run with
+## the same identity used to run the create script, only the creator
+## of the auction is allowed to close the bidding
 
 set -q --conditional -s data -v .
 set -q --conditional -s save -v .
 script -f ${path}/init.psh
 
-if --null ${key}
-   echo no key specified; '-m key <key>'
-fi
-
-if --null ${val}
-   echo no value specified; '-m val <value>'
-fi
-
 ## =================================================================
-echo create a ledger entry for key ${key} with initial value ${val}
-## =================================================================
-integer_key -q -w -f ${ledger_contract} create -k ${key} -v ${val}
-
+## dump ledger state -- must be run by ledger owner
+##  =================================================================
+integer_key -q -f ${ledger_contract} get_state
 exit

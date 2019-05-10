@@ -64,7 +64,7 @@ echo escrow ${auction_color} marbles for ${auction_user} and add to the auction
 identity -n ${auction_user}
 issuer -f ${save}/${auction_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${auction_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo offer -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo offer -a ${escrow}
 
 ## =================================================================
 echo escrow ${bid_color} marbles and submit the bid to the auction
@@ -72,31 +72,31 @@ echo escrow ${bid_color} marbles and submit the bid to the auction
 identity -n ${bidder1}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo submit_bid -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo submit_bid -a ${escrow}
 auction -f ${save}/auction.pdo max_bid
 
 identity -n ${bidder2}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo submit_bid -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo submit_bid -a ${escrow}
 auction -f ${save}/auction.pdo max_bid
 
 identity -n ${bidder3}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo submit_bid -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo submit_bid -a ${escrow}
 auction -f ${save}/auction.pdo max_bid
 
 identity -n ${bidder4}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo submit_bid -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo submit_bid -a ${escrow}
 auction -f ${save}/auction.pdo max_bid
 
 identity -n ${bidder5}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 issuer -q -w -f ${save}/${bid_color}_issuer.pdo escrow -a ${auction_vk} -s escrow
-auction -q -w -f ${save}/auction.pdo submit_bid -a '${escrow}'
+auction -q -w -f ${save}/auction.pdo submit_bid -a ${escrow}
 auction -f ${save}/auction.pdo max_bid
 
 ## =================================================================
@@ -113,38 +113,68 @@ echo claim resources
 ## =================================================================
 identity -n ${auction_user}
 auction -q -w -f ${save}/auction.pdo claim_bid -s asset
-issuer -q -w -f ${save}/${bid_color}_issuer.pdo claim -a '${asset}'
+issuer -q -w -f ${save}/${bid_color}_issuer.pdo claim -a ${asset}
 
 identity -n ${bidder5}
 auction -q -w -f ${save}/auction.pdo claim_offer -s asset
-issuer -q -w -f ${save}/${auction_color}_issuer.pdo claim -a '${asset}'
+issuer -q -w -f ${save}/${auction_color}_issuer.pdo claim -a ${asset}
 
 ## =================================================================
 echo cancel losing bids
 ## =================================================================
 identity -n ${bidder1}
 auction -q -w -f ${save}/auction.pdo cancel_bid -s cancel
-issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a ${cancel}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 
 identity -n ${bidder2}
 auction -q -w -f ${save}/auction.pdo cancel_bid -s cancel
-issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a ${cancel}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 
 identity -n ${bidder3}
 auction -q -w -f ${save}/auction.pdo cancel_bid -s cancel
-issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a ${cancel}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 
 identity -n ${bidder4}
 auction -q -w -f ${save}/auction.pdo cancel_bid -s cancel
-issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a '${cancel}'
+issuer -q -w -f ${save}/${bid_color}_issuer.pdo disburse -a ${cancel}
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
 
-echo attempt to cancel the winning bid, this should fail
-identity -n ${bidder5}
-auction -q -w -f ${save}/auction.pdo cancel_bid -s cancel
+## =================================================================
+echo final balances
+## =================================================================
+identity -n ${auction_user}
+echo ${auction_user} ${bid_color} balance:
 issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder1}
+echo ${bidder1} ${bid_color} balance:
+issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder2}
+echo ${bidder2} ${bid_color} balance:
+issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder3}
+echo ${bidder3} ${bid_color} balance:
+issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder4}
+echo ${bidder4} ${bid_color} balance:
+issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${bidder5}
+echo ${bidder5} ${bid_color} balance:
+issuer -f ${save}/${bid_color}_issuer.pdo get_balance
+
+identity -n ${auction_user}
+echo ${auction_user} ${auction_color} balance:
+issuer -f ${save}/${auction_color}_issuer.pdo get_balance
+
+identity -n ${bidder5}
+echo ${bidder5} ${auction_color} balance:
+issuer -f ${save}/${auction_color}_issuer.pdo get_balance
 
 exit
