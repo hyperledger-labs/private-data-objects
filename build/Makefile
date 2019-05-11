@@ -120,6 +120,10 @@ PSERVICE_CONF := $(ETCDIR)/pservice1.toml
 
 conf : $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
 
+force-conf : 
+	- rm $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
+	${MAKE} conf
+
 $(ESERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
