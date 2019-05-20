@@ -245,7 +245,18 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
             inSerializedRequest, inSerializedRequest + inSerializedRequestSize);
         ContractRequest request(session_key, encrypted_request, worker);
 
-        ContractResponse response(request.process_request());
+        ContractState contract_state(
+            request.is_initialize(),
+            request.state_encryption_key_,
+            request.input_state_hash_,
+            request.contract_id_hash_);
+
+        if(request.is_initialize())
+            request.contract_code_.SaveToState(contract_state);
+        else
+            request.contract_code_.FetchFromState(contract_state, request.code_hash_);
+
+        ContractResponse response(request.process_request(contract_state));
         last_result = response.SerializeAndEncrypt(session_key, enclaveData);
 
         // save the response and return the size of the buffer required for it

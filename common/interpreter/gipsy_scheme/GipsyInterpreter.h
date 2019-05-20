@@ -65,7 +65,7 @@ public:
         const std::string& CreatorID,
         const pc::ContractCode& inContractCode,
         const pc::ContractMessage& inMessage,
-        pdo::state::Basic_KV_Plus* inoutContractState
+        pdo::state::Basic_KV_Plus& inoutContractState
         );
 
     void send_message_to_contract(
@@ -74,7 +74,7 @@ public:
         const pc::ContractCode& inContractCode,
         const pc::ContractMessage& inMessage,
         const pdo::state::StateBlockId& inContractStateHash,
-        pdo::state::Basic_KV_Plus* inoutContractState,
+        pdo::state::Basic_KV_Plus& inoutContractState,
         bool& outStateChangedFlag,
         std::map<string,string>& outDependencies,
         std::string& outMessageResult

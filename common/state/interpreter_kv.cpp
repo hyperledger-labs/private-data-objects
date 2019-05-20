@@ -55,7 +55,7 @@ void pdo::state::Interpreter_KV::Finalize(ByteArray& id)
     kv_.Finalize(id);
 }
 
-ByteArray pdo::state::Interpreter_KV::Get(const ByteArray& key)
+ByteArray pdo::state::Interpreter_KV::Get(const ByteArray& key) const
 {
     return kv_.Get(key);
 }
@@ -73,7 +73,7 @@ void pdo::state::Interpreter_KV::Delete(const ByteArray& key)
 //########## FUNCTION BELOW ARE BASED ON THE ONES
 //ABOVE################################################################
 
-ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key)
+ByteArray pdo::state::Interpreter_KV::PrivilegedGet(const ByteArray& key) const
 {
     ByteArray privileged_key = to_privileged_key(key);
     return Get(privileged_key);

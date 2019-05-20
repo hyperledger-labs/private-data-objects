@@ -34,10 +34,13 @@ public:
 
     pdo::state::StateBlockId input_block_id_;
     pdo::state::StateBlockId output_block_id_;
-    pstate::Interpreter_KV* state_ = NULL;
+    pstate::Interpreter_KV state_;
 
-    ContractState(void);
-    ~ContractState(void);
+    ContractState(
+        const bool is_initialize,
+        const ByteArray& state_encryption_key_,
+        const ByteArray& state_hash,
+        const ByteArray& id_hash);
 
     void Finalize(void);
 

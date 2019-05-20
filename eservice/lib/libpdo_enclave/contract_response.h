@@ -50,12 +50,14 @@ public:
 
     ContractResponse(
         const ContractRequest& request,
+        const ContractState& contract_state,
         const std::map<std::string, std::string>& dependencies,
         const std::string& result,
         const pdo::state::StateBlockId& output_state_hash);
 
     ContractResponse(
         const ContractRequest& request,
+        const ContractState& contract_state,
         const std::string& result);
 
     ByteArray SerializeAndEncrypt(

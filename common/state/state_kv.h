@@ -25,6 +25,7 @@ namespace state
     {
         typedef enum
         {
+            KV_UNINITIALIZED,
             KV_CREATE,
             KV_OPEN
         } kv_start_mode_e;
@@ -32,17 +33,16 @@ namespace state
     protected:
         pdo::state::StateNode rootNode_;
         const ByteArray state_encryption_key_;
-        data_node_io dn_io_;
-        kv_start_mode_e kv_start_mode;
+        mutable data_node_io dn_io_;
+        kv_start_mode_e kv_start_mode = KV_UNINITIALIZED;
 
     public:
-        State_KV(StateBlockId& id);
-        State_KV(const StateBlockId& id, const ByteArray& key);
         State_KV(const ByteArray& key);
+        State_KV(const StateBlockId& id, const ByteArray& key);
 
         void Finalize(ByteArray& id);
 
-        ByteArray Get(const ByteArray& key);
+        ByteArray Get(const ByteArray& key) const;
         void Put(const ByteArray& key, const ByteArray& value);
         void Delete(const ByteArray& key);
     };

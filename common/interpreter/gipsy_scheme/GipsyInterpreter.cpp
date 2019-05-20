@@ -409,7 +409,7 @@ void GipsyInterpreter::create_initial_contract_state(
     const std::string& CreatorID,
     const pc::ContractCode& inContractCode,
     const pc::ContractMessage& inMessage,
-    pdo::state::Basic_KV_Plus* inoutContractState
+    pdo::state::Basic_KV_Plus& inoutContractState
     )
 {
     scheme* sc = interpreter_;
@@ -428,7 +428,7 @@ void GipsyInterpreter::create_initial_contract_state(
 
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
-    scheme_set_external_data(sc, inoutContractState);
+    scheme_set_external_data(sc, &inoutContractState);
 
     pointer _class = scheme_find_symbol(sc, inContractCode.Name.c_str());
     pe::ThrowIf<pe::ValueError>(
@@ -483,7 +483,7 @@ void GipsyInterpreter::create_initial_contract_state(
 
     try {
         ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        inoutContractState->PrivilegedPut(k, intrinsic_state);
+        inoutContractState.PrivilegedPut(k, intrinsic_state);
     }
     catch (std::exception& e) {
         SAFE_LOG_EXCEPTION("save initial contract state");
@@ -501,7 +501,7 @@ void GipsyInterpreter::send_message_to_contract(
     const pc::ContractCode& inContractCode,
     const pc::ContractMessage& inMessage,
     const pdo::state::StateBlockId& inContractStateHash,
-    pdo::state::Basic_KV_Plus* inoutContractState,
+    pdo::state::Basic_KV_Plus& inoutContractState,
     bool& outStateChangedFlag,
     std::map<std::string,std::string>& outDependencies,
     std::string& outMessageResult
@@ -534,12 +534,12 @@ void GipsyInterpreter::send_message_to_contract(
 
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
-    scheme_set_external_data(sc, inoutContractState);
+    scheme_set_external_data(sc, &inoutContractState);
 
     try {
         //Convention: we use the "IntrinsicState" key to store the value
         ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        ByteArray intrinsic_state(inoutContractState->PrivilegedGet(k));
+        ByteArray intrinsic_state(inoutContractState.PrivilegedGet(k));
 
         this->load_contract_state(intrinsic_state);
     }
@@ -623,7 +623,7 @@ void GipsyInterpreter::send_message_to_contract(
 
         try {
             ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            inoutContractState->PrivilegedPut(k, intrinsic_state);
+            inoutContractState.PrivilegedPut(k, intrinsic_state);
         }
         catch (std::exception& e) {
             SAFE_LOG_EXCEPTION("save intrinsic state");

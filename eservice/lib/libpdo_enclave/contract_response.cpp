@@ -36,6 +36,7 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(
     const ContractRequest& request,
+    const ContractState& contract_state,
     const std::map<std::string, std::string>& dependencies,
     const std::string& result,
     const pdo::state::StateBlockId& output_block_id)
@@ -52,10 +53,9 @@ ContractResponse::ContractResponse(
     channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
     contract_initializing_ = request.is_initialize();
 
-    //output_block_id_ = contract_state_.state_hash_;
     if (! contract_initializing_)
     {
-        input_block_id_ = request.contract_state_.input_block_id_;
+        input_block_id_ = contract_state.input_block_id_;
         SAFE_LOG(PDO_LOG_DEBUG,
                  "input state hash: %s",
                  ByteArrayToHexEncodedString(input_block_id_).c_str());
@@ -73,6 +73,7 @@ ContractResponse::ContractResponse(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(
     const ContractRequest& request,
+    const ContractState& contract_state,
     const std::string& result)
 {
 
@@ -90,7 +91,7 @@ ContractResponse::ContractResponse(
 
     if (! contract_initializing_)
     {
-        input_block_id_ = request.contract_state_.input_block_id_;
+        input_block_id_ = contract_state.input_block_id_;
         SAFE_LOG(PDO_LOG_DEBUG,
                  "input state hash: %s",
                  ByteArrayToHexEncodedString(input_block_id_).c_str());
