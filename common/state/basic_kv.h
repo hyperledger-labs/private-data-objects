@@ -29,7 +29,7 @@ namespace state
     public:
         virtual ~Basic_KV() {}
         virtual void Finalize(ByteArray& id) = 0;
-        virtual ByteArray Get(const ByteArray& key) = 0;
+        virtual ByteArray Get(const ByteArray& key) const = 0;
         virtual void Put(const ByteArray& key, const ByteArray& value) = 0;
         virtual void Delete(const ByteArray& key) = 0;
     };
@@ -37,7 +37,7 @@ namespace state
     class Basic_KV_Plus : public Basic_KV
     {
     public:
-        virtual ByteArray PrivilegedGet(const ByteArray& key) = 0;
+        virtual ByteArray PrivilegedGet(const ByteArray& key) const = 0;
         virtual void PrivilegedPut(const ByteArray& key, const ByteArray& value) = 0;
         virtual ByteArray UnprivilegedGet(const ByteArray& key) = 0;
         virtual void UnprivilegedPut(const ByteArray& key, const ByteArray& value) = 0;

@@ -36,7 +36,7 @@ namespace pdo
                 const std::string& inCreatorID,
                 const ContractCode& inContract,
                 const ContractMessage& inMessage,
-                pdo::state::Basic_KV_Plus* inoutContractState
+                pdo::state::Basic_KV_Plus& inoutContractState
                 ) = 0;
 
             virtual void send_message_to_contract(
@@ -45,7 +45,7 @@ namespace pdo
                 const ContractCode& inContractCode,
                 const ContractMessage& inMessage,
                 const pdo::state::StateBlockId& inContractStateHash,
-                pdo::state::Basic_KV_Plus* inoutContractState,
+                pdo::state::Basic_KV_Plus& inoutContractState,
                 bool& outStateChangedFlag,
                 std::map<string,string>& outDependencies,
                 std::string& outMessageResult

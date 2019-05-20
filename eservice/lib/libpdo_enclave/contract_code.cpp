@@ -75,7 +75,7 @@ void ContractCode::FetchFromState(
         {
             std::string str = "ContractCode.Code";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(state.state_->PrivilegedGet(k));
+            ByteArray v(state.state_.PrivilegedGet(k));
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract code missing");
             code_ = ByteArrayToString(v);
@@ -84,7 +84,7 @@ void ContractCode::FetchFromState(
         {
             std::string str = "ContractCode.Name";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(state.state_->PrivilegedGet(k));
+            ByteArray v(state.state_.PrivilegedGet(k));
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract code name missing");
             name_ = ByteArrayToString(v);
@@ -93,7 +93,7 @@ void ContractCode::FetchFromState(
         {
             std::string str = "ContractCode.Nonce";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(state.state_->PrivilegedGet(k));
+            ByteArray v(state.state_.PrivilegedGet(k));
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract code nonce missing");
             nonce_ = ByteArrayToString(v);
@@ -102,7 +102,7 @@ void ContractCode::FetchFromState(
         {
             std::string str = "ContractCode.Hash";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(state.state_->PrivilegedGet(k));
+            ByteArray v(state.state_.PrivilegedGet(k));
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract code hash missing");
             pdo::error::ThrowIf<pdo::error::ValueError>(
@@ -125,27 +125,27 @@ void ContractCode::SaveToState(ContractState& state)
             std::string str = "ContractCode.Code";
             ByteArray k(str.begin(), str.end());
             ByteArray v(code_.begin(), code_.end());
-            state.state_->PrivilegedPut(k, v);
+            state.state_.PrivilegedPut(k, v);
         }
 
         {
             std::string str = "ContractCode.Name";
             ByteArray k(str.begin(), str.end());
             ByteArray v(name_.begin(), name_.end());
-            state.state_->PrivilegedPut(k, v);
+            state.state_.PrivilegedPut(k, v);
         }
 
         {
             std::string str = "ContractCode.Nonce";
             ByteArray k(str.begin(), str.end());
             ByteArray v(nonce_.begin(), nonce_.end());
-            state.state_->PrivilegedPut(k, v);
+            state.state_.PrivilegedPut(k, v);
         }
 
         {
             std::string str = "ContractCode.Hash";
             ByteArray k(str.begin(), str.end());
-            state.state_->PrivilegedPut(k, ComputeHash());
+            state.state_.PrivilegedPut(k, ComputeHash());
         }
     }
     catch (std::exception& e)

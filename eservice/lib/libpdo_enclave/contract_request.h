@@ -40,15 +40,17 @@ protected:
     };
     Operation operation_; /* either "initialize" or "update" */
 
-    ContractResponse process_initialization_request(void);
-    ContractResponse process_update_request(void);
+    ContractResponse process_initialization_request(ContractState& contract_state);
+    ContractResponse process_update_request(ContractState& contract_state);
 
 public:
     std::string contract_id_;
     std::string creator_id_;
     ByteArray state_encryption_key_ = {};
+    ByteArray input_state_hash_ = {};
+    ByteArray contract_id_hash_ = {};
+    ByteArray code_hash_ = {};
 
-    ContractState contract_state_;
     ContractCode contract_code_; /*  */
     ContractMessage contract_message_;
     ContractWorker *worker_ = NULL;
@@ -61,5 +63,5 @@ public:
     bool is_initialize(void) const { return operation_ == op_initialize; };
     bool is_update(void) const { return operation_ == op_update; };
 
-    ContractResponse process_request(void);
+    ContractResponse process_request(ContractState& contract_state);
 };

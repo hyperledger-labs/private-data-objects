@@ -71,6 +71,9 @@ pdo::state::State_KV::State_KV(const StateBlockId& id, const ByteArray& key)
 
 void pdo::state::State_KV::Finalize(ByteArray& outId)
 {
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        kv_start_mode == KV_UNINITIALIZED, "attempt to finalize uninitialized state");
+
     try
     {
         //store the free space collection table IF the kv has been create OR the table has been modified
@@ -108,7 +111,7 @@ void pdo::state::State_KV::Finalize(ByteArray& outId)
     }
 }
 
-ByteArray pstate::State_KV::Get(const ByteArray& key)
+ByteArray pstate::State_KV::Get(const ByteArray& key) const
 {
     // perform operation
     const ByteArray& kvkey = key;

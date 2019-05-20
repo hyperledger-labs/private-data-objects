@@ -50,27 +50,31 @@
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-ContractState::ContractState(void)
-{
-    input_block_id_.resize(STATE_BLOCK_ID_LENGTH, 0);
-    output_block_id_.resize(STATE_BLOCK_ID_LENGTH, 0);
-}
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractState::~ContractState(void)
+ContractState::ContractState(
+    const bool is_initialize,
+    const ByteArray& state_encryption_key_,
+    const ByteArray& state_hash,
+    const ByteArray& id_hash)
+    :
+    input_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    output_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    state_(is_initialize ?
+        /* here the initial state is created */
+        pdo::state::Interpreter_KV(state_encryption_key_) :
+        /* here the existing state is opened */
+        pdo::state::Interpreter_KV(state_hash, state_encryption_key_))
 {
-    if (state_ != NULL)
-        delete state_;
+    if(is_initialize)
+        Initialize(state_encryption_key_, id_hash);
+    else // update step
+        Unpack(state_encryption_key_, state_hash, id_hash);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Finalize(void)
 {
-    pdo::error::ThrowIfNull(state_, "attempt to finalize uninitialized state");
-    state_->Finalize(output_block_id_);
-
-    delete state_;
-    state_ = NULL;
+    state_.Finalize(output_block_id_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -84,7 +88,6 @@ void ContractState::Unpack(
     try
     {
         input_block_id_ = state_hash;
-        state_ = new pdo::state::Interpreter_KV(input_block_id_, state_encryption_key_);
 
         // the contract id stored in state must match the contract id
         // that was given in the request, this ensures that the evaluation
@@ -93,18 +96,13 @@ void ContractState::Unpack(
             std::string str = "IdHash";
             ByteArray k(str.begin(), str.end());
             pdo::error::ThrowIf<pdo::error::ValueError>(
-                id_hash != state_->PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
+                id_hash != state_.PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
         }
     }
     catch (std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
-        if (state_ != NULL)
-        {
-            state_->Finalize(input_block_id_);
-            state_ = NULL;
-        }
-
+        // We do not finalize the state. As there has been an error, no output id need be generated.
         throw;
     }
     catch (...)
@@ -123,27 +121,19 @@ void ContractState::Initialize(
     {
         SAFE_LOG(PDO_LOG_DEBUG, "Initialize new state");
 
-        /* here the initial state is created */
-        state_ = new pdo::state::Interpreter_KV(state_encryption_key_);
-
         // add the contract id into the state so that we can verify
         // that this state belongs to this contract
         {
             std::string str = "IdHash";
             ByteArray k(str.begin(), str.end());
             ByteArray v(id_hash);
-            state_->PrivilegedPut(k, v);
+            state_.PrivilegedPut(k, v);
         }
     }
     catch (std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
-        if (state_ != NULL)
-        {
-            state_->Finalize(input_block_id_);
-            state_ = NULL;
-        }
-
+        // We do not finalize the state. As there has been an error, no output id need be generated.
         throw;
     }
     catch (...)

@@ -27,7 +27,7 @@ namespace state
     protected:
         State_KV kv_;
 
-        ByteArray Get(const ByteArray& key);
+        ByteArray Get(const ByteArray& key) const;
         void Put(const ByteArray& key, const ByteArray& value);
         void Delete(const ByteArray& key);
 
@@ -38,7 +38,7 @@ namespace state
         void Finalize(ByteArray& id);
 
         void PrivilegedPut(const ByteArray& key, const ByteArray& value);
-        ByteArray PrivilegedGet(const ByteArray& key);
+        ByteArray PrivilegedGet(const ByteArray& key) const;
         void PrivilegedDelete(const ByteArray& key);
 
         void UnprivilegedPut(const ByteArray& key, const ByteArray& value);

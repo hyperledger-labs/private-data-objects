@@ -108,9 +108,9 @@ ContractRequest::ContractRequest(
         !pvalue, "invalid request; failed to retrieve ContractID");
     contract_id_.assign(pvalue);
 
-    ByteArray id_hash = Base64EncodedStringToByteArray(contract_id_);
+    contract_id_hash_ = Base64EncodedStringToByteArray(contract_id_);
     pdo::error::ThrowIf<pdo::error::ValueError>(
-        id_hash.size() != SHA256_DIGEST_LENGTH,
+        contract_id_hash_.size() != SHA256_DIGEST_LENGTH,
         "invalid contract id");
 
     pvalue = json_object_dotget_string(request_object, "CreatorID");
@@ -132,10 +132,6 @@ ContractRequest::ContractRequest(
         pdo::error::ThrowIf<pdo::error::ValueError>(
             !pvalue, "invalid request; failed to retrieve ContractCode");
         contract_code_.Unpack(ovalue);
-
-        // create a new state
-        contract_state_.Initialize(state_encryption_key_, id_hash);
-        contract_code_.SaveToState(contract_state_);
     }
     else
     {
@@ -144,9 +140,9 @@ ContractRequest::ContractRequest(
         pdo::error::ThrowIf<pdo::error::ValueError>(
             !pvalue, "invalid request; failed to retrieve ContractCodeHash");
 
-        const ByteArray code_hash = Base64EncodedStringToByteArray(pvalue);
+        code_hash_ = Base64EncodedStringToByteArray(pvalue);
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            code_hash.size() != SHA256_DIGEST_LENGTH,
+            code_hash_.size() != SHA256_DIGEST_LENGTH,
             "invalid contract code hash");
 
         // contract state hash
@@ -154,13 +150,10 @@ ContractRequest::ContractRequest(
         pdo::error::ThrowIf<pdo::error::ValueError>(
             !pvalue, "invalid request; failed to retrieve ContractStateHash");
 
-        ByteArray state_hash = Base64EncodedStringToByteArray(pvalue);
+        input_state_hash_ = Base64EncodedStringToByteArray(pvalue);
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            state_hash.size() != SHA256_DIGEST_LENGTH,
+            input_state_hash_.size() != SHA256_DIGEST_LENGTH,
             "invalid contract state hash");
-
-        contract_state_.Unpack(state_encryption_key_, state_hash, id_hash);
-        contract_code_.FetchFromState(contract_state_, code_hash);
     }
 
     // contract message
@@ -171,7 +164,7 @@ ContractRequest::ContractRequest(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_initialization_request(void)
+ContractResponse ContractRequest::process_initialization_request(ContractState& contract_state)
 {
     // the only reason for the try/catch here is to provide some logging for the error
     try
@@ -193,14 +186,14 @@ ContractResponse ContractRequest::process_initialization_request(void)
             InitializedInterpreter interpreter(worker_);
 
             SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-                     ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
+                     ByteArrayToHexEncodedString(contract_state.input_block_id_).c_str());
 
             interpreter.interpreter_->create_initial_contract_state(
-                contract_id_, creator_id_, code, msg, contract_state_.state_);
+                contract_id_, creator_id_, code, msg, contract_state.state_);
         }
 
-        contract_state_.Finalize();
-        ContractResponse response(*this, dependencies, "", contract_state_.output_block_id_);
+        contract_state.Finalize();
+        ContractResponse response(*this, contract_state, dependencies, "", contract_state.output_block_id_);
 
         return response;
     }
@@ -211,7 +204,7 @@ ContractResponse ContractRequest::process_initialization_request(void)
                  contract_code_.name_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, e.what());
+        ContractResponse response(*this, contract_state, e.what());
         return response;
     }
     catch (pdo::error::Error& e)
@@ -222,7 +215,7 @@ ContractResponse ContractRequest::process_initialization_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, "internal pdo error");
+        ContractResponse response(*this, contract_state, "internal pdo error");
         return response;
     }
     catch(std::exception& e)
@@ -233,13 +226,13 @@ ContractResponse ContractRequest::process_initialization_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, "internal error");
+        ContractResponse response(*this, contract_state, "internal error");
         return response;
     }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_update_request(void)
+ContractResponse ContractRequest::process_update_request(ContractState& contract_state)
 {
     /*
        NOTE: for operations that do not modify state, either because the
@@ -273,32 +266,32 @@ ContractResponse ContractRequest::process_update_request(void)
             InitializedInterpreter interpreter(worker_);
 
             SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-                     ByteArrayToHexEncodedString(contract_state_.input_block_id_).c_str());
+                     ByteArrayToHexEncodedString(contract_state.input_block_id_).c_str());
 
             interpreter.interpreter_->send_message_to_contract(
                 contract_id_,
                 creator_id_,
                 code, msg,
-                contract_state_.input_block_id_,
-                contract_state_.state_,
+                contract_state.input_block_id_,
+                contract_state.state_,
                 state_changed_flag,
                 dependencies,
                 result);
         }
 
-        contract_state_.Finalize();
+        contract_state.Finalize();
 
         // check for operations that did not modify state
         if (state_changed_flag)
         {
-            ContractResponse response(*this, dependencies, result, contract_state_.output_block_id_);
+            ContractResponse response(*this, contract_state, dependencies, result, contract_state.output_block_id_);
             return response;
         }
         else
         {
             // since the state is unchanged, we can just use the input block id as the output block id
             std::map<string, string> dependencies;
-            ContractResponse response(*this, dependencies, result, contract_state_.input_block_id_);
+            ContractResponse response(*this, contract_state, dependencies, result, contract_state.input_block_id_);
 
             response.state_changed_ = false;
             return response;
@@ -312,11 +305,11 @@ ContractResponse ContractRequest::process_update_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        contract_state_.Finalize();
+        contract_state.Finalize();
 
         pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
         std::map<string, string> dependencies;
-        ContractResponse response(*this, dependencies, e.what(), output_block_id);
+        ContractResponse response(*this, contract_state, dependencies, e.what(), output_block_id);
         response.operation_succeeded_ = false;
         return response;
     }
@@ -328,7 +321,7 @@ ContractResponse ContractRequest::process_update_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, "internal pdo error");
+        ContractResponse response(*this, contract_state, "internal pdo error");
         return response;
     }
     catch(std::exception& e)
@@ -339,21 +332,21 @@ ContractResponse ContractRequest::process_update_request(void)
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, "internal error");
+        ContractResponse response(*this, contract_state, "internal error");
         return response;
     }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_request(void)
+ContractResponse ContractRequest::process_request(ContractState& contract_state)
 {
     switch (operation_)
     {
         case op_initialize:
-            return process_initialization_request();
+            return process_initialization_request(contract_state);
 
         case op_update:
-            return process_update_request();
+            return process_update_request(contract_state);
 
         default:
             throw pdo::error::ValueError("unknown operation");
