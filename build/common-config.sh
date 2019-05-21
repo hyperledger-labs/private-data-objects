@@ -27,7 +27,7 @@ var_set() {
 
 	i=0
 
-	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-/}"
+	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-${PDO_SOURCE_ROOT}/tinyscheme-1.41}"
 	env_desc[TINY_SCHEME_SRC]="
 		TINY_SCHEME_SRC points to the installation of the tinyscheme
 		source in order to build the library used to debug and test
