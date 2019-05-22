@@ -48,7 +48,7 @@ PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
 ifndef NO_SGX_RUN_DURING_BUILD
   ifeq ($(SGX_MODE),HW)
-     CONDITIONAL_REGISTER_TARGET=register
+    CONDITIONAL_REGISTER_TARGET=register
   endif
 endif
 
@@ -169,6 +169,7 @@ template : $(PYTHON_DIR)
 
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
+	@ echo registering enclave and IAS public key on the ledger
 	. $(abspath $(DSTDIR)/bin/activate) ; $(SRCDIR)/eservice/bin/register-with-ledger.sh
 
 .PHONY : register

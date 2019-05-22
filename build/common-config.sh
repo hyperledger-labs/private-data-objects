@@ -76,7 +76,11 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_HOME"; i=$i+1; export PDO_HOME=${env_val[PDO_HOME]}
 
-	env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_simulation/}"
+    if [ ${SGX_MODE} == "SIM" ]; then
+        env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_simulation}"
+    else
+        env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_hardware_mode}"
+    fi
 	env_desc[PDO_SGX_KEY_ROOT]="
 		PDO_SGX_KEY_ROOT is the root directory where SGX & IAS related keys are stored.
 		The default points to a directory which contains values which are good
@@ -95,18 +99,6 @@ var_set() {
                 The default path points to a key which is generated during built on-demand.
 	"
 	env_key_sort[$i]="PDO_ENCLAVE_CODE_SIGN_PEM"; i=$i+1; export PDO_ENCLAVE_CODE_SIGN_PEM=${env_val[PDO_ENCLAVE_CODE_SIGN_PEM]}
-
-	env_val[PDO_IAS_KEY_PEM]="${PDO_IAS_KEY_PEM:-${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem}"
-	env_desc[PDO_IAS_KEY_PEM]="
-		The path of the PEM file containing the public key used to verify
-		attestation verification reports from the Intel Attestation Service.
-		Note this is _not_ the IAS root CA's key but directly the key of the
-		signing authority, i.e., the key contained in the first certificate
-		contained in the 'x-iasreport-signing-certificate' header of the
-		response from IAS.
-		Easiest way to get it is from the sawtooth poet git repo as https://raw.githubusercontent.com/hyperledger/sawtooth-poet/master/sgx/packaging/ias_rk_pub.pem
-	"
-	env_key_sort[$i]="PDO_IAS_KEY_PEM"; i=$i+1; export PDO_IAS_KEY_PEM=${env_val[PDO_IAS_KEY_PEM]}
 
 	env_val[PDO_SPID]="${PDO_SPID:-$(cat ${PDO_SGX_KEY_ROOT}/sgx_spid.txt)}"
 	env_desc[PDO_SPID]="

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 Intel Corporation
+# Copyright 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,21 +17,23 @@
 import os
 import sys
 import argparse
+import json
 
+import pdo.common.config as pconfig
 import pdo.common.logger as plogger
 
 import pdo.eservice.pdo_helper as pdo_enclave_helper
+import pdo.eservice.pdo_enclave as pdo_enclave
 
 import logging
 logger = logging.getLogger(__name__)
 
 import time
 
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 
-def LocalMain(spid, save_path) :
-
+def GetBasename(spid, save_path) :
     attempts = 0
     while True :
         try :
@@ -43,7 +45,7 @@ def LocalMain(spid, save_path) :
                 file.write("MRENCLAVE:{0}\n".format(info[0]))
                 file.write("BASENAME:{0}\n".format(info[1]))
 
-            sys.exit(0)
+            return
 
         except SystemError as se:
             # SGX_ERROR_BUSY error is not necessarily fatal, the SGX documentation
@@ -64,27 +66,92 @@ def LocalMain(spid, save_path) :
         logger.info('SGX_BUSY, attempt %s', attempts)
         time.sleep(10)
 
+def GetIasCertificates(config) :
+    # load, initialize and create signup info the enclave library
+    # (signup info are not relevant here)
+    # the creation of signup info includes getting a verification report from IAS
+    try :
+        enclave_config = config['EnclaveModule']
+        pdo_enclave.initialize_with_configuration(enclave_config)
+        nonce = '{0:016X}'.format(123456789)
+        enclave_data = pdo_enclave.create_signup_info(nonce, nonce)
+    except Exception as e :
+        logger.error("unable to initialize a new enclave; %s", str(e))
+        sys.exit(-1)
+
+    # extract the IAS certificates from proof_data
+    pd_dict =  json.loads(enclave_data.proof_data)
+    ias_certificates = pd_dict['certificates']
+
+    # dump the IAS certificates in the respective files
+    with open(IasRootCACertificate_FilePath, "w+") as file :
+        file.write("{0}".format(ias_certificates[1]))
+    with open(IasAttestationVerificationCertificate_FilePathname, "w+") as file :
+        file.write("{0}".format(ias_certificates[0]))
+
+    # do a clean shutdown of enclave
+    pdo_enclave.shutdown()
+    return
+
+def LocalMain(config, spid, save_path) :
+    GetBasename(spid, save_path)
+    GetIasCertificates(config)
+
+    sys.exit(0)
+
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 ## -----------------------------------------------------------------
+ContractHost = os.environ.get("HOSTNAME", "localhost")
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-ContractData = os.environ.get("CONTRACTDATA") or os.path.join(ContractHome, "data")
+ContractEtc = os.path.join(ContractHome, "etc")
+ContractKeys = os.path.join(ContractHome, "keys")
+ContractLogs = os.path.join(ContractHome, "logs")
+ContractData = os.path.join(ContractHome, "data")
+LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
+ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+
+IasKeysPath = os.environ.get("PDO_SGX_KEY_ROOT")
+IasRootCACertificate_FilePath = os.path.join(IasKeysPath, "ias_root_ca.cert")
+IasAttestationVerificationCertificate_FilePathname = os.path.join(IasKeysPath, "ias_signing.cert")
+
+config_map = {
+    'base' : ScriptBase,
+    'data' : ContractData,
+    'etc'  : ContractEtc,
+    'home' : ContractHome,
+    'host' : ContractHost,
+    'keys' : ContractKeys,
+    'logs' : ContractLogs,
+    'ledger' : LedgerURL
+}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def Main() :
-    save_path = os.path.realpath(os.path.join(ContractData, "EServiceEnclaveInfo.tmp"))
-    spid = os.environ.get("PDO_SPID") if "PDO_SPID" in os.environ else "00000000000000000000000000000000"
+    # parse out the configuration file first
+    conffiles = [ 'eservice.toml', 'enclave.toml' ]
+    confpaths = [ ".", "./etc", ContractEtc ]
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--config', help='configuration file', nargs = '+')
+    parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
+    parser.add_argument('--identity', help='Identity to use for the process', required = True, type = str)
     parser.add_argument('--spid', help='SPID to generate enclave basename', type=str)
     parser.add_argument('--save', help='Where to save MR_ENCLAVE and BASENAME', type=str)
+
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
 
     options = parser.parse_args()
+
+    # first process the options necessary to load the default configuration
+    if options.config :
+        conffiles = options.config
+    if options.config_dir :
+        confpaths = options.config_dir
 
     # Location to save MR_ENCLAVE and MR_BASENAME
     if options.save :
@@ -93,24 +160,30 @@ def Main() :
     if options.spid :
         spid = options.spid
 
+    global config_map
+    config_map['identity'] = options.identity
+    try :
+        config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
+    except pconfig.ConfigurationException as e :
+        logger.error(str(e))
+        sys.exit(-1)
 
-    LogConfig = {}
-    LogConfig['Logging'] = {
-        'LogFile' : '__screen__',
-        'LogLevel' : 'INFO'
-    }
-
+    # set up the logging configuration
+    if config.get('Logging') is None :
+        config['Logging'] = {
+            'LogFile' : '__screen__',
+            'LogLevel' : 'INFO'
+        }
     if options.logfile :
-        LogConfig['Logging']['LogFile'] = options.logfile
+        config['Logging']['LogFile'] = options.logfile
     if options.loglevel :
-        LogConfig['Logging']['LogLevel'] = options.loglevel.upper()
-
-    plogger.setup_loggers(LogConfig.get('Logging', {}))
+        config['Logging']['LogLevel'] = options.loglevel.upper()
+    plogger.setup_loggers(config.get('Logging', {}))
     sys.stdout = plogger.stream_to_logger(logging.getLogger('STDOUT'), logging.DEBUG)
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # GO!
-    LocalMain(spid, save_path)
+    LocalMain(config, spid, save_path)
 
 ## -----------------------------------------------------------------
 ## Entry points

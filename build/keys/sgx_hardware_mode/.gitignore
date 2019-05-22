@@ -1,0 +1,3 @@
+ias_root_ca.cert
+ias_signing.cert
+sgx_ias_key.pem
