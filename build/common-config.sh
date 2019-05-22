@@ -176,7 +176,7 @@ If passed the parameter --evalable-export it will
 return a list of export commands of the variables
 instead of directly exporting them to the environment.
 Passing parameter --reset-keys will unset keying variables
-PDO_ENCLAVE_CODE_SIGN_PEM, PDO_IAS_KEY_PEM, PDO_LEDGER_KEY_SKF,
+PDO_ENCLAVE_CODE_SIGN_PEM, PDO_LEDGER_KEY_SKF,
 PDO_SPID and PDO_SPID_API_KEY before setting variables.
 
 The list of variables set (in order they are defined, their defaults
@@ -204,7 +204,6 @@ do
             # depend on those variables
 	    # -----------------------------------------------------------------
 	    unset PDO_ENCLAVE_CODE_SIGN_PEM
-	    unset PDO_IAS_KEY_PEM
 	    unset PDO_LEDGER_KEY_SKF
 	    unset PDO_SPID
 	    unset PDO_SPID_API_KEY

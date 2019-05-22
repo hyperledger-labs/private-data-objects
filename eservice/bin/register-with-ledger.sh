@@ -30,7 +30,7 @@ ESERVICE_IDENTITY=eservice1
 ESERVICE_TOML=${ESERVICE_IDENTITY}.toml
 ENCLAVE_TOML=enclave.toml
 
-PDO_IAS_SIGNING_CERT_PATH=${PDO_SGX_KEY_ROOT}/ias_root_ca.cert
+PDO_IAS_SIGNING_CERT_PATH=${PDO_SGX_KEY_ROOT}/ias_signing.cert
 PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
 
 function yell {
