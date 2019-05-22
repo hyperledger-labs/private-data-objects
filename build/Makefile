@@ -39,7 +39,8 @@ ETCDIR := $(DSTDIR)/opt/pdo/etc/
 KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
 CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
 BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
-VERIFY=$(abspath $(SCRIPTDIR)/__tools__/verify.sh)
+VERIFY_PRE_BUILD=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
+VERIFY_PRE_CONF=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
 CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
 
@@ -52,7 +53,7 @@ ifndef NO_SGX_RUN_DURING_BUILD
   endif
 endif
 
-all: environment template system-keys verify build keys conf $(CONDITIONAL_REGISTER_TARGET)
+all: environment template system-keys verified-build keys verified-conf $(CONDITIONAL_REGISTER_TARGET)
 
 clean : clean-build clean-install
 
@@ -85,11 +86,17 @@ $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
 	mkdir -p $(DSTDIR)
 
-verify :
-	$(VERIFY)
+verify-pre-build :
+	$(VERIFY_PRE_BUILD)
+
+verify-pre-conf :
+	$(VERIFY_PRE_CONF)
 
 build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
+
+verified-build : verify-pre-build
+	${MAKE} build
 
 rebuild : clean-build build $(CONDITIONAL_REGISTER_TARGET)
 
@@ -118,9 +125,12 @@ ESERVICE_CONF := $(ETCDIR)/eservice1.toml
 SSERVICE_CONF := $(ETCDIR)/sservice1.toml
 PSERVICE_CONF := $(ETCDIR)/pservice1.toml
 
+verified-conf : verify-pre-conf
+	${MAKE} conf
+
 conf : $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
 
-force-conf : 
+force-conf : verify-pre-conf
 	- rm $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
 	${MAKE} conf
 
@@ -178,5 +188,5 @@ endif
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTSCRIPT)
 
-.PHONY : all build clean clean-build clean-install conf environment install
-.PHONY : keys rebuild system-keys template test verify
+.PHONY : all build verified-build clean clean-build clean-install conf verified-conf environment
+.PHONY : install keys rebuild system-keys template test verify-pre-build verify-pre-conf
