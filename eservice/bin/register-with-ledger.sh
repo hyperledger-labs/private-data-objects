@@ -23,6 +23,15 @@ fi
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
+DSTDIR=${PDO_INSTALL_ROOT}
+ETCDIR=${DSTDIR}/opt/pdo/etc/
+
+ESERVICE_IDENTITY=eservice1
+ESERVICE_TOML=${ESERVICE_IDENTITY}.toml
+ENCLAVE_TOML=enclave.toml
+
+PDO_IAS_SIGNING_CERT_PATH=${PDO_SGX_KEY_ROOT}/ias_root_ca.cert
+PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
 
 function yell {
     echo "$0: $*" >&2;
@@ -52,6 +61,11 @@ if (( "$#" == 1 )) ; then
     SPID=$1
 fi
 
+function DeriveIasPublicKey {
+    try test -e ${PDO_IAS_SIGNING_CERT_PATH}
+    try openssl x509 -pubkey -noout -in ${PDO_IAS_SIGNING_CERT_PATH} > ${PDO_IAS_KEY_PEM}
+}
+
 # Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
 # Note: an alternative way without any enclave invocations would be the following.
 #
@@ -66,8 +80,16 @@ fi
 # However, getting basename via enclave invocation & quote is somewhat cleaner than below ..
 function Store {
     : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
-    yell Compute the enclave information
-    try eservice-enclave-info --spid ${SPID} --save ${eservice_enclave_info_file} --loglevel warn
+    try test -e ${ETCDIR}/${ESERVICE_TOML}
+    try test -e ${ETCDIR}/${ENCLAVE_TOML}
+    yell Download IAS certificates and Compute the enclave information
+    try eservice-enclave-info \
+        --spid ${SPID} \
+        --save ${eservice_enclave_info_file} \
+        --loglevel warn \
+        --identity ${ESERVICE_IDENTITY} \
+        --config ${ESERVICE_TOML} ${ENCLAVE_TOML} \
+        --config-dir ${ETCDIR}
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
@@ -93,6 +115,7 @@ function Register {
 
 if [ "$SGX_MODE" = "HW" ]; then
     Store
+    DeriveIasPublicKey
     Register
 else
     yell Registration failed! SGX_MODE not set to HW
