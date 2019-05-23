@@ -48,12 +48,17 @@ PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
 ifndef NO_SGX_RUN_DURING_BUILD
+  CONDITIONAL_CONF_TARGET=verified-conf
   ifeq ($(SGX_MODE),HW)
     CONDITIONAL_REGISTER_TARGET=register
   endif
+else
+  ifneq ($(SGX_MODE),HW)
+    CONDITIONAL_CONF_TARGET=verified-conf
+  endif
 endif
 
-all: environment template system-keys verified-build keys verified-conf $(CONDITIONAL_REGISTER_TARGET)
+all: environment template system-keys verified-build keys $(CONDITIONAL_CONF_TARGET) $(CONDITIONAL_REGISTER_TARGET)
 
 clean : clean-build clean-install
 
