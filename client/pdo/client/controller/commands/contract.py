@@ -91,18 +91,23 @@ def load_contract(state, contract_file) :
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
+__contract_cache__ = {}
+
 def get_contract(state, save_file=None) :
     """ Get contract object using the save_file. If there is no save_file, try loading contract using config."""
-   
-    if save_file is not None :
-        return load_contract(state, save_file)
 
-    current_contract = state.get(['Contract', 'Contract'], None)
-    if current_contract is not None :
-        return current_contract
+    global __contract_cache__
 
-    current_save_file = state.get(['Contract', 'SaveFile'], None)
-    if current_save_file is None :
-        raise Exception('no contract specified')
+    if save_file is None :
+        current_contract = state.get(['Contract', 'Contract'], None)
+        if current_contract is not None :
+            return current_contract
 
-    return load_contract(current_save_file)
+        save_file = state.get(['Contract', 'SaveFile'], None)
+        if save_file is None :
+            raise Exception('no contract specified')
+
+    if save_file not in __contract_cache__ :
+        __contract_cache__[save_file] = load_contract(state, save_file)
+
+    return __contract_cache__[save_file]

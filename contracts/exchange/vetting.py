@@ -56,7 +56,7 @@ def __command_vetting__(state, bindings, pargs) :
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
         message = "'(get-verifying-key)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -66,21 +66,21 @@ def __command_vetting__(state, bindings, pargs) :
     if options.command == 'initialize' :
 
         message = "'(initialize \"{0}\")".format(options.type_id)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'approve' :
 
         message = "'(add-approved-key \"{0}\")".format(options.issuer)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
    # -------------------------------------------------------
     if options.command == 'get_authority' :
         extraparams['commit'] = False
         message = "'(get-authority \"{0}\")".format(options.issuer)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return

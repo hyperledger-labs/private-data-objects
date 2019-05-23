@@ -1,0 +1,88 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+set -q --conditional -s data -v .
+set -q --conditional -s save -v .
+
+## create an eservice db with the known enclave services
+eservice_db clear
+eservice_db add --url http://localhost:7101 --name es7101
+eservice_db add --url http://localhost:7102 --name es7102
+eservice_db add --url http://localhost:7103 --name es7103
+eservice_db add --url http://localhost:7104 --name es7104
+eservice_db add --url http://localhost:7105 --name es7105
+eservice_db save --database ${data}/test-db.json
+
+eservice_db clear
+eservice_db load --database ${data}/test-db.json
+
+## default pservice group
+pservice add --url http://localhost:7001
+pservice add --url http://localhost:7002
+pservice add --url http://localhost:7003
+
+## pservice group p1
+pservice --group p1 add --url http://localhost:7003
+pservice --group p1 add --url http://localhost:7004
+pservice --group p1 add --url http://localhost:7005
+
+## pservice group all
+pservice --group all add --url http://localhost:7001
+pservice --group all add --url http://localhost:7002
+pservice --group all add --url http://localhost:7003
+pservice --group all add --url http://localhost:7004
+pservice --group all add --url http://localhost:7005
+
+## default eservice group
+eservice add --url http://localhost:7101
+eservice add --url http://localhost:7102
+eservice add --url http://localhost:7103
+
+## eservice group e1
+eservice --group e1 add --name es7103 es7104 es7105
+eservice --group e1 use --url http://localhost:7105
+
+## eservice group all
+eservice --group all add --url http://localhost:7101
+eservice --group all add --url http://localhost:7102 http://localhost:7103 --name es7104 es7105
+eservice --group all use --name es7104
+
+## create some contracts
+set -q -s contract1 -r 32
+set -q -s contract2 -r 32
+set -q -s contract3 -r 32
+
+identity -n user1
+create -c mock-contract -s _mock-contract -f ${save}/${contract1}.pdo
+send -f ${save}/${contract1}.pdo "'(inc-value)" -s r1
+send -f ${save}/${contract1}.pdo "'(inc-value)" -s r2
+send -f ${save}/${contract1}.pdo "'(inc-value)" -s r3
+
+identity -n user2
+create -c mock-contract -s _mock-contract -p all -e all -f ${save}/${contract2}.pdo
+send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r4
+send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r5
+send -f ${save}/${contract2}.pdo --wait "'(inc-value)" -s r6
+send -f ${save}/${contract2}.pdo "'(get-value)" -s r7
+
+identity -n user3
+create -c mock-contract -s _mock-contract -p p1 -e e1 -f ${save}/${contract3}.pdo
+send -f ${save}/${contract3}.pdo "'(inc-value)" -s r8
+send -f ${save}/${contract3}.pdo "'(inc-value)" -s r9
+send -f ${save}/${contract3}.pdo "'(inc-value)" -s r10
+
+echo shell-test result: ${r1}${r2}${r3}${r4}${r5}${r6}${r7}${r8}${r9}${r10}
+exit

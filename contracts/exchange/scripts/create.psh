@@ -1,3 +1,5 @@
+#! /usr/bin/env pdo-shell
+
 ## Copyright 2018 Intel Corporation
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,46 +23,46 @@
 ##
 ## Two shell variables are used:
 ##    color -- the color to use for the marble
-##    path -- the path where the contract objects are stored
+##    data -- the directory where the contract objects are stored
+##    path -- the directory where the PSH scripts are stored
 ##
 ## $ pdo-shell -s create.psh -m color <color> -m path <contract path>
 
-load_plugin -c asset_type
-load_plugin -c vetting
-load_plugin -c issuer
+set -q --conditional -s data -v .
+set -q --conditional -s save -v .
+script -f ${path}/init.psh
 
-set -q --conditional -s path -v .
 set -q --conditional -s color -v green
 
 ## =================================================================
 echo create the asset type for ${color} marbles
 ## =================================================================
 identity -n ${color}_type
-create -c asset-type-contract -s _asset_type -f ${path}/${color}_type.pdo
-asset_type -q -w -f ${path}/${color}_type.pdo initialize -n "${color} marbles" -d "${color} marble description" -l "http://"
-asset_type -q -f ${path}/${color}_type.pdo get_identifier -s type_id
+create -c asset-type-contract -s _asset_type -f ${save}/${color}_type.pdo
+asset_type -q -w -f ${save}/${color}_type.pdo initialize -n "${color} marbles" -d "${color} marble description" -l "http://"
+asset_type -q -f ${save}/${color}_type.pdo get_identifier -s type_id
 echo created type ${type_id}
 
 ## =================================================================
 echo create the ${color} marble vetting organization
 ## =================================================================
 identity -n ${color}_vetting
-create -c vetting-organization-contract -s _vetting_organization -f ${path}/${color}_vetting.pdo
-vetting -q -w -f ${path}/${color}_vetting.pdo initialize -t ${type_id}
+create -c vetting-organization-contract -s _vetting_organization -f ${save}/${color}_vetting.pdo
+vetting -q -w -f ${save}/${color}_vetting.pdo initialize -t ${type_id}
 echo created the vetting organization
 
 ## =================================================================
 echo create ${color} marble issuers
 ## =================================================================
 identity -n ${color}_issuer
-create -c issuer-contract -s _issuer -f ${path}/${color}_issuer.pdo
-issuer -q -f ${path}/${color}_issuer.pdo get_verifying_key -s issuer_key
+create -c issuer-contract -s _issuer -f ${save}/${color}_issuer.pdo
+issuer -q -f ${save}/${color}_issuer.pdo get_verifying_key -s issuer_key
 
 identity -n ${color}_vetting
-vetting -q -w -f ${path}/${color}_vetting.pdo approve -i ${issuer_key}
+vetting -q -w -f ${save}/${color}_vetting.pdo approve -i ${issuer_key}
 
 identity -n ${color}_issuer
-vetting -q -f ${path}/${color}_vetting.pdo get_authority -i ${issuer_key} -s auth
-issuer -q -w -f ${path}/${color}_issuer.pdo initialize -t ${type_id} -a '${auth}'
+vetting -q -f ${save}/${color}_vetting.pdo get_authority -i ${issuer_key} -s auth
+issuer -q -w -f ${save}/${color}_issuer.pdo initialize -t ${type_id} -a '${auth}'
 
 exit

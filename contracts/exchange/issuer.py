@@ -71,7 +71,7 @@ def __command_issuer__(state, bindings, pargs) :
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
         message = "'(get-verifying-key)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -80,7 +80,7 @@ def __command_issuer__(state, bindings, pargs) :
     if options.command == 'get_balance' :
         extraparams['commit'] = False
         message = "'(get-balance)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -88,19 +88,19 @@ def __command_issuer__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'initialize' :
         message = "'(initialize \"{0}\" {1})".format(options.type_id, options.authority)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'issue' :
         message = "'(issue \"{0}\" {1})".format(options.owner, options.count)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'transfer' :
         message = "'(transfer \"{0}\" {1})".format(options.new_owner, options.count)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
@@ -108,12 +108,12 @@ def __command_issuer__(state, bindings, pargs) :
         extraparams['commit'] = True
         extraparams['wait'] = True
         message = "'(escrow \"{0}\")".format(options.agent)
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
 
         extraparams['commit'] = False
         extraparams['wait'] = False
         message = "'(escrow-attestation)"
-        result = send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -124,7 +124,7 @@ def __command_issuer__(state, bindings, pargs) :
         dependencies = str(attestation.nth(0))
         signature = str(attestation.nth(1))
         message = "'(disburse {0} {1})".format(dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
@@ -134,7 +134,7 @@ def __command_issuer__(state, bindings, pargs) :
         dependencies = str(attestation.nth(1))
         signature = str(attestation.nth(2))
         message = "'(claim {0} {1} {2})".format(old_owner_identity, dependencies, signature)
-        send_to_contract(state, options.save_file, options.enclave, message, **extraparams)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
 ## -----------------------------------------------------------------

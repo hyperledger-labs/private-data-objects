@@ -19,67 +19,68 @@ logger = logging.getLogger(__name__)
 
 from pdo.service_client.provisioning import ProvisioningServiceClient
 
-__all__ = ['command_pservice']
+__all__ = ['command_pservice', 'get_pservice_list']
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def command_pservice(state, bindings, pargs) :
-    """controller command to manage the list of provisioning services
+    """controller command to manage the list of enclave services
     """
-    subcommands = ['add', 'remove', 'set', 'info', 'list']
+    subcommands = ['add', 'remove', 'set', 'list', 'create-group', 'use' ]
 
     parser = argparse.ArgumentParser(prog='pservice')
+    parser.add_argument('--group', help='Name of the pservice group', type=str, default="default")
+
     subparsers = parser.add_subparsers(dest='command')
 
     add_parser = subparsers.add_parser('add')
-    add_parser.add_argument('--url', help='URLs for the provisioning service', type=str, nargs='+', required=True)
+    add_parser.add_argument('--url', help='URLs for provisioning services', type=str, nargs='+', required=True)
 
     remove_parser = subparsers.add_parser('remove')
-    remove_parser.add_argument('--url', help='URLs for the provisioning service', type=str, nargs='+', required=True)
+    remove_parser.add_argument('--url', help='URLs for provisioning services', type=str, nargs='+', required=True)
 
     set_parser = subparsers.add_parser('set')
-    set_parser.add_argument('--url', help='URLs for the provisioning service', type=str, nargs='+', required=True)
-
-    info_parser = subparsers.add_parser('info')
-    info_parser.add_argument('--url', help='URLs for the provisioning service', type=str, nargs='+')
+    set_parser.add_argument('--url', help='URLs for provisioning services', type=str, nargs='+', required=True)
 
     list_parser = subparsers.add_parser('list')
 
     options = parser.parse_args(pargs)
 
     if options.command == 'add' :
-        services = set(state.get(['Service', 'ProvisioningServiceURLs'], []))
+        services = set(state.get(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], []))
         services = services.union(options.url)
-        state.set(['Service', 'ProvisioningServiceURLs'], list(services))
+        state.set(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], list(services))
         return
 
     if options.command == 'remove' :
-        services = set(state.get(['Service', 'ProvisioningServiceURLs'], []))
+        services = set(state.get(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], []))
         services = services.difference(options.url)
-        state.set(['Service', 'ProvisioningServiceURLs'], list(services))
+        state.set(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], list(services))
         return
 
     if options.command == 'set' :
-        state.set(['Service', 'ProvisioningServiceURLs'], options.url)
-        return
-
-    if options.command == 'info' :
-        services = state.get(['Service', 'ProvisioningServiceURLs'], [])
-        if options.url :
-            services = options.url
-
-        for url in services :
-            try :
-                client = ProvisioningServiceClient(url)
-                print("{0} --> {1}".format(url, client.verifying_key))
-            except :
-                print('unable to retreive information from {0}'.format(url))
+        state.set(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], options.url)
         return
 
     if options.command == 'list' :
-        services = set(state.get(['Service', 'ProvisioningServiceURLs'], []))
+        preferred = state.get(['Service', 'ProvisioningServiceGroups', options.group, 'preferred'], '')
+        services = state.get(['Service', 'ProvisioningServiceGroups', options.group, 'urls'], [])
+        print("preferred: {0}".format(preferred))
         for service in services :
             print(service)
         return
 
     raise Exception('unknown subcommand')
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+def get_pservice_list(state, pservice_group="default") :
+    """create a list of pservice clients from the specified pservice group; assumes
+    exception handling by the calling procedure
+    """
+    pservice_url_list = state.get(['Service', 'ProvisioningServiceGroups', pservice_group, 'urls'], [])
+    pservice_client_list = []
+    for pservice_url in pservice_url_list :
+        pservice_client_list.append(ProvisioningServiceClient(pservice_url))
+
+    return pservice_client_list

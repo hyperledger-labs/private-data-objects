@@ -14,22 +14,15 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-load_plugin -c asset_type
-load_plugin -c vetting
-load_plugin -c issuer
-load_plugin -c exchange
-load_plugin -c auction
-
 set -q --conditional -s dbfile -v ${data}/eservice-db.json
-eservice_db load --database ${dbfile}
 
-## default pservice group
-pservice add --url http://localhost:7001 http://localhost:7002 http://localhost:7003
+eservice_db clear
+eservice_db add --url http://localhost:7101 --name es7101
+eservice_db add --url http://localhost:7102 --name es7102
+eservice_db add --url http://localhost:7103 --name es7103
+eservice_db add --url http://localhost:7104 --name es7104
+eservice_db add --url http://localhost:7105 --name es7105
 
-## default eservice group
-eservice add --url http://localhost:7101 http://localhost:7102 http://localhost:7103
-eservice use --url http://localhost:7101
+eservice_db save --database ${dbfile}
 
-## alternate eservice group
-eservice --group altgroup add --url http://localhost:7103 http://localhost:7104 http://localhost:7105
-eservice --group altgroup use --url http://localhost:7105
+exit
