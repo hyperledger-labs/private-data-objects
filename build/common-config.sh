@@ -44,15 +44,6 @@ var_set() {
 	"
 	env_key_sort[$i]="SGX_MODE"; i=$i+1; export SGX_MODE=${env_val[SGX_MODE]}
 
-	env_val[SGX_DEBUG]="${SGX_DEBUG:-1}"
-	env_desc[SGX_DEBUG]="
-		SGX_DEBUG determines whether additional debugging functions
-		will be compiled into the enclaves. Since SGX_DEBUG potentially
-		exposes information about what is happening inside a contract, do
-		not use with confidential contracts.
-	"
-	env_key_sort[$i]="SGX_DEBUG"; i=$i+1; export SGX_DEBUG=${env_val[SGX_DEBUG]}
-
 	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 	env_desc[PDO_LEDGER_URL]="
 		PDO_PDO_LEDGER_URL is the URL is to submit transactions to the

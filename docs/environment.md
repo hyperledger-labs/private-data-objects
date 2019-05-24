@@ -72,6 +72,15 @@ operation. These files include configuration files, data files, compiled
 contracts, contract user keys and service scripts.
 
 <!-- -------------------------------------------------- -->
+### `PDO_DEBUG_BUILD`
+(default: 0)
+
+`PDO_DEBUG_BUILD` builds PDO modules for debugging. This includes
+compile flags, logging statements in the enclave, etc. Since
+`PDO_DEBUG_BUILD` potentially exposes information about what is
+happening inside a contract, do not use with confidential contracts.
+
+<!-- -------------------------------------------------- -->
 ### `TINY_SCHEME_SRC`
 (default: `${PDO_SOURCE_ROOT}/tinyscheme-1.41`)
 
@@ -91,15 +100,6 @@ the contract enclave.
 set to `SIM`, then the SGX enclaves will be compiled for simulator
 mode. When the variable is set to `HW`, the enclaves will be compiled to
 run in a real SGX enclave.
-
-<!-- -------------------------------------------------- -->
-### `SGX_DEBUG`
-(default: 1)
-
-`SGX_DEBUG` determines whether additional debugging functions will be
-compiled into the enclaves. Since `SGX_DEBUG` potentially exposes
-information about what is happening inside a contract, do not use with
-confidential contracts.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_SGX_KEY_ROOT`
