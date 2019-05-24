@@ -48,7 +48,7 @@ list of export commands of the variables instead of directly exporting
 them to the environment.
 
 Passing parameter `--reset-keys` will unset key variables
-`PDO_ENCLAVE_CODE_SIGN_PEM`, `PDO_IAS_KEY_PEM`, `PDO_LEDGER_KEY_SKF`,
+`PDO_ENCLAVE_CODE_SIGN_PEM`, `PDO_LEDGER_KEY_SKF`,
 `PDO_SPID` and `PDO_SPID_KEY_CERT_FILE_PEM` before setting variables.
 
 <!-- -------------------------------------------------- -->
@@ -158,19 +158,6 @@ The default value will work for SGX simulation mode. See
 instructions to create the API key to support SGX hardware mode.
 
 <!-- -------------------------------------------------- -->
-### `PDO_IAS_KEY_PEM`
-(default: `${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`):
-
-**NEED TO UPDATE THIS**
-
-The path of the PEM file containing the public key used by the Sawtooth
-CCL transaction processor to verify attestation verification reports
-from the Intel Attestation Service.  Note this is _not_ the IAS root
-CA's key but the key of the signing authority, i.e., the key contained
-in the first certificate contained in the
-`x-iasreport-signing-certificate` header of the response from IAS.
-
-<!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
 ## Sawtooth Environment Variables
 
@@ -179,7 +166,7 @@ in the first certificate contained in the
 (default: `http://127.0.0.1:8008/`):
 
 `PDO_LEDGER_URL` is the URL used to submit transactions to the Sawtooth
-ledger.
+ledger. This should be the URL for the REST API component.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_STL_KEY_ROOT`
