@@ -12,7 +12,9 @@ the object regardless of where it resides or how often it changes hands. The
 smart contracts policies are enforced through execution in a Trusted Execution
 Environment (TEE).
 
-PDO uses a distributed ledger to ensure that there is a single, authoritative
+PDO uses a distributed ledger, in this case the
+[Hyperledger Sawtooth](httphttps://sawtooth.hyperledger.org/)
+distributed ledger, to ensure that there is a single, authoritative
 instance of the object, and to provide a means of guaranteeing atomicity of
 updates across interacting objects. The long-term goal for PDO is to perform
 contract execution and storage off the blockchain, with only a hash of
@@ -46,7 +48,7 @@ The [usage document](docs/usage.md) describes what you can do with a functional 
 installation.
 
 For more information about how Private Data Objects work, see the
-[SPECIFICATION](docs/SPECIFICATION.md) document.
+[specification document](docs/specification.md).
 
 A paper with a more formal overview of Private Data Objects is available
 [HERE](https://arxiv.org/abs/1807.05686).

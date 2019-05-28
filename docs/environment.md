@@ -49,7 +49,7 @@ them to the environment.
 
 Passing parameter `--reset-keys` will unset key variables
 `PDO_ENCLAVE_CODE_SIGN_PEM`, `PDO_LEDGER_KEY_SKF`,
-`PDO_SPID` and `PDO_SPID_KEY_CERT_FILE_PEM` before setting variables.
+`PDO_SPID` and `PDO_SPID_API_KEY` before setting variables.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
@@ -109,7 +109,7 @@ run in a real SGX enclave.
 are stored. The default points to a directory which contains values
 which are good enough for SGX simulator mode. However, for SGX HW mode
 you should provide your own version, at least for `PDO_SPID` and
-`PDO_SPID_KEY_CERT_FILE_PEM`. See [SGX section](install.md#SGX) of the
+`PDO_SPID_API_KEY`. See [SGX section](install.md#SGX) of the
 [BUILD document](install.md) for more information.
 
 <!-- -------------------------------------------------- -->
