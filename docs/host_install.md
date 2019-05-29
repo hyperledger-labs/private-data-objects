@@ -131,12 +131,13 @@ cd ..
 
 - Set the environment variable for hardware or simulation mode. For
 simulation mode use `export SGX_MODE=SIM`. For hardware mode use `export
-SGX_MODE=HW`.
+SGX_MODE=HW`. Note that to build in hardware and run the tests in hardware
+mode you must have installed the [SGX kernel driver](install.md).
 
 - Compile and install the SGX SSL project.
 ```bash
 cd Linux
-make DESTDIR=/opt/intel/sgxssl all test
+make DESTDIR=/opt/intel/sgxssl all
 sudo make install
 ```
 

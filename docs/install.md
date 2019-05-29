@@ -31,7 +31,7 @@ Ubuntu 16.04.
 
 Private Data Objects services (specifically the enclave service, provisioning
 service, and the client) should be run on Ubuntu 18.04. PDO has been tested on
-Ubuntu 16.04, 17.10, and 18.04.
+Ubuntu 16.04, 17.10, and 18.04 (server and client).
 
 Sawtooth and PDO may run on other Linux distributions, but the installation
 process is likely to be more complicated, and the use of other distributions is
@@ -117,15 +117,20 @@ SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
 hardware support, it is necessary to install the SGX kernel driver. The
 following commands will download and install v2.4 of the SGX kernel
-driver:
+driver (for Ubuntu 18.04 server):
 
 ```bash
+sudo apt-get install libssl-dev libcurl4-openssl-dev libprotobuf-dev
+
 wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/sgx_linux_x64_driver_778dd1f.bin
 sudo /bin/bash sgx_linux_x64_driver_778dd1f.bin
+
+wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
+sudo dpkg -i libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
 ```
 
-**NOTE: if you plan to use Docker to build and run PDO, the kernel
-driver will be installed into your containers automatically. **
+Note that if you update your Linux kernel, you may need to reinstall or
+restart the driver.
 
 ## Configuration
 
