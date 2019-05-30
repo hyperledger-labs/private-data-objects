@@ -22,9 +22,9 @@ Private Data Objects is here:
 # Common library
 
 Information about cryptography components of the project implemented in the
-common library can be found [here](common/docs/crypto.md).
+common library can be found [here](../common/docs/crypto.md).
 
 # Enclave service
 
 More information about how the enclave service works can be found
-[here](eservice/docs/eservice.md).
+[here](../eservice/docs/eservice.md).

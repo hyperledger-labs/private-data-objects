@@ -27,7 +27,7 @@ var_set() {
 
 	i=0
 
-	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-/}"
+	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-${PDO_SOURCE_ROOT}/tinyscheme-1.41}"
 	env_desc[TINY_SCHEME_SRC]="
 		TINY_SCHEME_SRC points to the installation of the tinyscheme
 		source in order to build the library used to debug and test
@@ -43,15 +43,6 @@ var_set() {
 		to run in a real SGX enclave.
 	"
 	env_key_sort[$i]="SGX_MODE"; i=$i+1; export SGX_MODE=${env_val[SGX_MODE]}
-
-	env_val[SGX_DEBUG]="${SGX_DEBUG:-1}"
-	env_desc[SGX_DEBUG]="
-		SGX_DEBUG determines whether additional debugging functions
-		will be compiled into the enclaves. Since SGX_DEBUG potentially
-		exposes information about what is happening inside a contract, do
-		not use with confidential contracts.
-	"
-	env_key_sort[$i]="SGX_DEBUG"; i=$i+1; export SGX_DEBUG=${env_val[SGX_DEBUG]}
 
 	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 	env_desc[PDO_LEDGER_URL]="
