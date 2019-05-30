@@ -60,24 +60,16 @@ function try() {
 
 yell --------------- CONFIG AND ENVIRONMENT PRE-BUILD CHECK ---------------
 
-: "${TINY_SCHEME_SRC:-$(warn Missing environment variable TINY_SCHEME_SRC)}"
+([ ! -z "${TINY_SCHEME_SRC}" ] && [ -f ${TINY_SCHEME_SRC}/scheme.h ] ) || warn "Missing or invalid environment variable TINY_SCHEME_SRC"
 : "${PDO_INSTALL_ROOT:-$(warn Missing environment variable PDO_INSTALL_ROOT)}"
 : "${PDO_HOME:-$(warn Missing environment variable PDO_HOME)}"
 : "${PDO_ENCLAVE_CODE_SIGN_PEM:-$(warn Missing environment variable PDO_ENCLAVE_CODE_SIGN_PEM)}"
-: "${SGX_SSL:-$(warn Missing environment variable SGX_SSL)}"
-: "${SGX_SDK:-$(warn Missing environment variable SGXSDKInstallPath)}"
+([ ! -z "${SGX_SSL}" ] && [ -f ${SGX_SSL}/include/openssl/err.h ] ) || warn "Missing or invalid environment variable SGX_SSL"
+([ ! -z "${SGX_SDK}" ] && [ -f ${SGX_SDK}/include/sgx.h ] ) || warn "Missing or invalid environment variable SGX_SDK"
 : "${SGX_MODE:-$(warn Missing environment variable SGX_MODE, set it to HW or SIM)}"
 : "${PKG_CONFIG_PATH:-$(warn Missing environment variable PKG_CONFIG_PATH)}"
 
-try command -v openssl
-OPENSSL_VERSION=$(openssl version -v | sed 's/.*OpenSSL \([^ ]*\) .*/\1/')
-OPENSSL_VERSION_MAJOR=$(echo ${OPENSSL_VERSION} | cut -d . -f 1)
-OPENSSL_VERSION_MINOR=$(echo ${OPENSSL_VERSION} | cut -d . -f 2)
-OPENSSL_VERSION_BUGFIX=$(echo ${OPENSSL_VERSION} | cut -d . -f 3)
-if [[ ${OPENSSL_VERSION_MAJOR} -lt 1 || ( ${OPENSSL_VERSION_MAJOR} -eq 1  &&  ${OPENSSL_VERSION_MINOR} -lt 1 ) ]]; then
-   warn "WARNING: Openssl version is $OPENSSL_VERSION, should be 1.1.0 or greater"
-   warn "Note: openssl can be a different version as long as libssl and libssl-dev are >= 1.1.0"
-fi
+$(pkg-config --atleast-version=1.1.0g openssl) || warn "WARNING: Openssl version found in PKG_CONFIG_PATH must be 1.1.0g or greater"
 
 try command -v protoc
 PROTOC_VERSION=$(protoc --version | sed 's/libprotoc \([0-9]\).*/\1/')
