@@ -20,24 +20,30 @@ support. Information about supported processors is provided below.
 
 ## Recommended Host System
 
-The recommended host-system configuration for Private Data Objects is to
-separate the Private Data Objects components from the Sawtooth components. This
-means (at least) two different physical systems if using SGX-enabled hardware.
-If running in SGX simulation mode, this could be two virtual machines or
-containers.
+The required host-system configuration for Private Data Objects is to
+separate the Private Data Objects components from the Sawtooth components. 
+This means if you want to run PDO on a single physical host, either PDO or the
+Sawtooth will have to run in a separate VM or container. In particular, to run
+PDO in SGX HW mode, the PDO component has to run in an SGX-enabled environment. 
+Below installation and configuration instructions will make sure that the host 
+and the docker components fullfill this requirement.
 
 Sawtooth (and the PDO transaction processors for Sawtooth) should be run on
 Ubuntu 16.04.
 
 Private Data Objects services (specifically the enclave service, provisioning
-service, and the client) should be run on Ubuntu 18.04. PDO has been tested on
-Ubuntu 16.04, 17.10, and 18.04 (server and client).
+service, and the client) should be run on Ubuntu 18.04  (server or client). 
+PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these configuration
+not all standard libraries match the required versions and you will have to, e.g., 
+install by hand an openssl version >= 1.1.0g (the default libssl-dev on these 
+platforms is still based on 1.0.2)
 
 Sawtooth and PDO may run on other Linux distributions, but the installation
 process is likely to be more complicated, and the use of other distributions is
 not supported by their respective communities at this time.
 
 ## <a name="SGX">Intel Software Guard Extensions (SGX)</a>
+### Overview
 
 Private Data Objects uses the trusted execution capabilities provided by
 Intel SGX to protect integrity and confidentiality. More information
@@ -72,7 +78,9 @@ run Private Data Objects using SGX in hardware mode. Specifically, there
 are steps that must be taken to enable attestation of the hardware
 platform using the Intel Attestation Service (IAS).
 
-### Update the BIOS
+### SGX in Hardware Mode
+
+#### Update the BIOS
 
 It may be advisable to update your BIOS to pick up any recent
 patches. For example, if you want to run PDO on an Intel NUC, you can
@@ -89,7 +97,7 @@ whether to trust an attestation from a platform whose TCB has been
 identified as outdated. Note that PDO will flag this situation with a
 warning.
 
-### Create an IAS Authentication Key
+#### Create an IAS Authentication Key
 
 Access to IAS requires that a service provider create an identity (SPID)
 and a client authentication key. To create the SPID and the key you
@@ -111,7 +119,7 @@ In addition, your SPID can be found on your developer portal profile
 page. Copy the contents of the SPID into the file
 `${PDO_SGX_KEY_ROOT}/sgx_spid.txt`.
 
-### Install the SGX Kernel Driver (Hardware Support)
+#### Install the SGX Kernel Driver (Hardware Support)
 
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
@@ -124,13 +132,22 @@ sudo apt-get install libssl-dev libcurl4-openssl-dev libprotobuf-dev
 
 wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/sgx_linux_x64_driver_778dd1f.bin
 sudo /bin/bash sgx_linux_x64_driver_778dd1f.bin
+```
+
+Note that if you update your Linux kernel, you may need to reinstall the driver.
+
+#### Install SGX Platform Services
+You also need the SGX Platform Services (PSW) so an (HW) enclave can properly be launched and can receive quotes for remote attestation.
+Following commands will download and install PSW:
+
+```bash
+sudo apt-get install libssl-dev libcurl4-openssl-dev libprotobuf-dev
 
 wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
 sudo dpkg -i libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
 ```
 
-Note that if you update your Linux kernel, you may need to reinstall or
-restart the driver.
+If the installation of PSW (and kernel driver) was successfull, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.
 
 ## Configuration
 
