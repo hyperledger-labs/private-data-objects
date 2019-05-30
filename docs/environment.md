@@ -1,0 +1,186 @@
+<!---
+Licensed under Creative Commons Attribution 4.0 International License
+https://creativecommons.org/licenses/by/4.0/
+--->
+# Private Data Objects Environment Variables
+
+Instructions in this document assume the environment variable
+`PDO_SOURCE_ROOT` points to the PDO source directory.
+
+PDO uses a number of environment variables to control build,
+installation and operation. While PDO should build and run with only the
+default values, three variables are commonly set to reflect specifics of
+the installation:
+
+  * [`PDO_INSTALL_ROOT`](#pdo_install_root) -- the path to the directory where PDO is installed
+  * [`PDO_LEDGER_URL`](#pdo_ledger_url) -- the URL for the Sawtooth ledger
+  * [`PDO_STL_KEY_ROOT`](#pdo_stl_key_root) -- the path to a directory containing Sawtooth keys
+
+In addition, if you run in SGX HW mode you will generally define
+`PDO_SGX_KEY_ROOT` as well. See below for information on these variables
+and others you could override from defaults.
+
+<!-- -------------------------------------------------- -->
+<!-- -------------------------------------------------- -->
+## Common Configuration Script
+
+The script
+[build/common-config.sh](../build/common-config.sh)
+can be used to set values for all of the environment variables that are
+used in the build, installation & execution process.
+
+The default usage of this script is to be sourced. For example, local
+configuration file may be constructed as:
+
+```bash
+   export PDO_INSTALL_ROOT=${PDO_SOURCE_ROOT}/build/_dev
+   export PDO_STL_KEY_ROOT=${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth
+   export PDO_LEDGER_URL=http://127.0.0.1:8008
+```
+and before building it you call the configuration script as
+
+```bash
+   source ${PDO_SOURCE_ROOT}/build/common-config.sh
+```
+
+If passed the parameter `--evalable-export` the script will return a
+list of export commands of the variables instead of directly exporting
+them to the environment.
+
+Passing parameter `--reset-keys` will unset key variables
+`PDO_ENCLAVE_CODE_SIGN_PEM`, `PDO_LEDGER_KEY_SKF`,
+`PDO_SPID` and `PDO_SPID_API_KEY` before setting variables.
+
+<!-- -------------------------------------------------- -->
+<!-- -------------------------------------------------- -->
+## Generic Environment Variables
+
+<!-- -------------------------------------------------- -->
+### `PDO_INSTALL_ROOT`
+(default: `${PDO_SOURCE_ROOT}/build/_dev`):
+
+`PDO_INSTALL_ROOT` is the root of the directory in which the virtual
+enviroment will be built; generally `PDO_HOME` will point to
+`PDO_INSTALL_ROOT/opt/pdo`
+
+<!-- -------------------------------------------------- -->
+### `PDO_HOME`
+(default: `${PDO_INSTALL_ROOT}/opt/pdo`):
+
+`PDO_HOME` is the directory where PDO-specific files are stored for
+operation. These files include configuration files, data files, compiled
+contracts, contract user keys and service scripts.
+
+<!-- -------------------------------------------------- -->
+### `PDO_DEBUG_BUILD`
+(default: 0)
+
+`PDO_DEBUG_BUILD` builds PDO modules for debugging. This includes
+compile flags, logging statements in the enclave, etc. Since
+`PDO_DEBUG_BUILD` potentially exposes information about what is
+happening inside a contract, do not use with confidential contracts.
+
+<!-- -------------------------------------------------- -->
+### `TINY_SCHEME_SRC`
+(default: `${PDO_SOURCE_ROOT}/tinyscheme-1.41`)
+
+`TINY_SCHEME_SRC` points to the installation of the tinyscheme source in
+order to build the library used to debug and test contracts outside of
+the contract enclave.
+
+<!-- -------------------------------------------------- -->
+<!-- -------------------------------------------------- -->
+## SGX Environment Variables
+
+<!-- -------------------------------------------------- -->
+### `SGX_MODE`
+(default: `SIM`)
+
+`SGX_MODE` determines the SGX mode of operation. When the variable is
+set to `SIM`, then the SGX enclaves will be compiled for simulator
+mode. When the variable is set to `HW`, the enclaves will be compiled to
+run in a real SGX enclave.
+
+<!-- -------------------------------------------------- -->
+### `PDO_SGX_KEY_ROOT`
+(default: `${PDO_SOURCE_ROOT}/build/keys/sgx_simulation/`):
+
+`PDO_SGX_KEY_ROOT` is the root directory where SGX and IAS related keys
+are stored. The default points to a directory which contains values
+which are good enough for SGX simulator mode. However, for SGX HW mode
+you should provide your own version, at least for `PDO_SPID` and
+`PDO_SPID_API_KEY`. See [SGX section](install.md#SGX) of the
+[BUILD document](install.md) for more information.
+
+<!-- -------------------------------------------------- -->
+### `PDO_ENCLAVE_CODE_SIGN_PEM`
+(default: `${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem`):
+
+`PDO_ENCLAVE_CODE_SIGN_PEM` contains the name of the file containing the
+key used to sign the enclave. If you wish to use PDO for production,
+this key must be white-listed with IAS.  For development, testing, and
+other non-production uses, whether in simulator or hardware mode, the
+key can generated by the command:
+
+```bash
+    openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072.
+```
+
+The default path points to a key which is automatically generated during
+the build.
+
+<!-- -------------------------------------------------- -->
+### `PDO_SPID`
+(default: `DEADBEEF00000000DEADBEEF00000000`)
+
+`PDO_SPID` is the ID that accompanies the certificate registered with
+the Intel Attestation Service. This should be a 32 character hex
+string. If the variable is unset, the configuration script
+`common-config.sh` will pull the value from the file
+`${PDO_SGX_KEY_ROOT}/sgx_spid.txt`.
+
+The default value will work for SGX simulation mode. See
+[SGX section](install.md#SGX) of the [BUILD document](install.md) for
+instructions to create the SPID to support SGX hardware mode.
+
+<!-- -------------------------------------------------- -->
+### `PDO_SPID_API_KEY`
+(default `deadbeef00000000deadbeef00000000`)
+
+`PDO_SPID_API_KEY` is the key used to authenticate IAS client
+requests. This should be a 32 character hex string.
+If the variable is unset, the configuration script
+`common-config.sh` will pull the value from the file
+`${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`.
+
+The default value will work for SGX simulation mode. See
+[SGX section](install.md#SGX) of the [BUILD document](install.md) for
+instructions to create the API key to support SGX hardware mode.
+
+<!-- -------------------------------------------------- -->
+<!-- -------------------------------------------------- -->
+## Sawtooth Environment Variables
+
+<!-- -------------------------------------------------- -->
+### `PDO_LEDGER_URL`
+(default: `http://127.0.0.1:8008/`):
+
+`PDO_LEDGER_URL` is the URL used to submit transactions to the Sawtooth
+ledger. This should be the URL for the REST API component.
+
+<!-- -------------------------------------------------- -->
+### `PDO_STL_KEY_ROOT`
+(default: `${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth`):
+
+`PDO_STL_KEY_ROOT` is the root directory where the system keys are
+stored for Sawtooth integration; files in this directory are not
+automatically generated.
+
+<!-- -------------------------------------------------- -->
+### `PDO_LEDGER_KEY_SKF`
+(default: `${PDO_STL_KEY_ROOT/pdo_validator.priv`)
+
+`PDO_LEDGER_KEY_SKF` is used to update settings in the Sawtooth
+validator. This is the key used by the Sawtooth ledger and is generally
+found in the file `.sawtooth/keys/sawtooth.priv` in the Sawtooth
+installation directory hiearchy.
