@@ -128,8 +128,6 @@ following commands will download and install v2.4 of the SGX kernel
 driver (for Ubuntu 18.04 server):
 
 ```bash
-sudo apt-get install libssl-dev libcurl4-openssl-dev libprotobuf-dev
-
 wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/sgx_linux_x64_driver_778dd1f.bin
 sudo /bin/bash sgx_linux_x64_driver_778dd1f.bin
 ```
