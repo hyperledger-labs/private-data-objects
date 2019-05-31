@@ -188,7 +188,6 @@ class ContractState(object) :
         block_count = len(blocks_to_pull)
         if block_count == 0 :
             logger.debug('no blocks to pull')
-            logger.info("Pulled 0 new blocks after contract update")
             return 0
 
         # it is not in the cache so grab it from the eservice

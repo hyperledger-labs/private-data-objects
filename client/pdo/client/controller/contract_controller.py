@@ -32,7 +32,6 @@ __all__ = ['ContractController']
 
 from pdo.client.controller.commands import *
 from pdo.common.utility import find_file_in_path
-from pdo.contract.response import ContractResponse
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -599,7 +598,6 @@ class ContractController(cmd.Cmd) :
         """
         if self.deferred > 0 : return False
 
-        ContractResponse.exit_commit_workers()
         try :
             pargs = self.__arg_parse__(args)
             parser = argparse.ArgumentParser(prog='exit')
@@ -616,11 +614,12 @@ class ContractController(cmd.Cmd) :
             self.exit_code = 1
             return True
 
+        return True
+
     # -----------------------------------------------------------------
     def do_EOF(self, args) :
         """
         exit -- shutdown the simulator and exit the command loop
         """
-        ContractResponse.exit_commit_workers()
         self.exit_code = 0
         return True

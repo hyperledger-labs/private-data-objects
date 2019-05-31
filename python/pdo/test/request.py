@@ -255,10 +255,10 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     # Decide if the contract uses a fixed enclave or a randomized one for each update. If fixed, we chose here. If random, 
     # will be selected at random during request creation
-    if (use_eservice is False) or (config['Service']['Randomize_Eservice'] is False):
-        enclave_to_use = enclaves[0]
-    else:
+    if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
+    else:
+        enclave_to_use = enclaves[0]
 
     # save the contract info as a pdo file
     contract_save_file = '_' + contract.short_id + '.pdo'
@@ -313,10 +313,10 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
     last_response_committed = None
 
     # Decide if the contract use a fixed enclave or a randomized one for each update. 
-    if (use_eservice is False) or (config['Service']['Randomize_Eservice'] is False):
-        enclave_to_use = enclaves[0]
-    else:
+    if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
+    else:
+        enclave_to_use = enclaves[0]
 
     start_time = time.time()
     for x in range(config['iterations']) :
@@ -492,8 +492,8 @@ def Main() :
     parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
     parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
-    parser.add_argument('--randomize-eservice', help="Say True if eservice must be randomized for each update. \
-        Else, the same eservice (the first one in the list of input eservices) will be used for all udpates.", type=bool, default=False)
+    parser.add_argument('--randomize-eservice', help="Eservice will be randomized for each update. \
+        Else, the same eservice (the first one in the list of input eservices) will be used for all udpates.", action="store_true")
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
@@ -574,7 +574,10 @@ def Main() :
             'EnclaveServiceDatabaseFile' : None
         }
 
-    config['Service']['Randomize_Eservice'] = options.randomize_eservice
+    if options.randomize_eservice:
+        config['Service']['Randomize_Eservice'] = True
+    else:
+        config['Service']['Randomize_Eservice'] = False
     if options.eservice_name:
         use_eservice = True
         config['Service']['EnclaveServiceNames'] = options.eservice_name

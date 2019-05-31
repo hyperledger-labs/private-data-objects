@@ -116,17 +116,14 @@ class Contract(object) :
         assert self.contract_id
         return hex(abs(hash(self.contract_id)))[2:]
 
-
     # -------------------------------------------------------
     def set_replication_parameters(self, num_provable_replicas=1, availability_duration=120):
 
-        replication_params = dict()
-        replication_params['max_num_replicas'] = len(self.enclave_map.keys())
-        replication_params['num_provable_replicas'] = num_provable_replicas
-        replication_params['availability_duration'] = availability_duration #seconds
-        replication_params['service_ids'] = self.enclave_map.keys() #we replicate to storage services associated with all provisioned encalves
-
-        self.replication_params = replication_params
+        self.replication_params = dict()
+        self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())
+        self.replication_params['num_provable_replicas'] = num_provable_replicas
+        self.replication_params['availability_duration'] = availability_duration #seconds
+        self.replication_params['service_ids'] = self.enclave_map.keys() #we replicate to storage services associated with all provisioned encalves
 
     # -------------------------------------------------------
     @property

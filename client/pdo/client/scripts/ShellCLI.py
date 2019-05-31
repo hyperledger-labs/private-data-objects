@@ -33,6 +33,7 @@ def LocalMain(config) :
     # shell will start unless there is an explicit exit in the script
     script_file = config.get("ScriptFile")
     if script_file :
+        logger.info("Processing script file %s", str(script_file))
         if not ContractController.ProcessScript(shell, script_file) :
             ContractResponse.exit_commit_workers()
             sys.exit(shell.exit_code)
@@ -42,7 +43,6 @@ def LocalMain(config) :
 
     ContractResponse.exit_commit_workers()
     sys.exit(shell.exit_code)
-
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

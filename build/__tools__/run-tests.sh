@@ -343,14 +343,14 @@ try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
     --logfile __screen__ --loglevel warn --iterations 10 \
-    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice True
+    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
 say start memory test test with replication 3 eservices 2 replicas needed before txn
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
     --logfile __screen__ --loglevel warn \
-    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice True
+    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
