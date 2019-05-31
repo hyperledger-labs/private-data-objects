@@ -12,7 +12,9 @@ the object regardless of where it resides or how often it changes hands. The
 smart contracts policies are enforced through execution in a Trusted Execution
 Environment (TEE).
 
-PDO uses a distributed ledger to ensure that there is a single, authoritative
+PDO uses a distributed ledger, in this case the
+[Hyperledger Sawtooth](httphttps://sawtooth.hyperledger.org/)
+distributed ledger, to ensure that there is a single, authoritative
 instance of the object, and to provide a means of guaranteeing atomicity of
 updates across interacting objects. The long-term goal for PDO is to perform
 contract execution and storage off the blockchain, with only a hash of
@@ -40,13 +42,16 @@ Documentation
 -------------
 
 Instructions for installing/building Hyperledger Private Data Objects can be
-found in the [BUILD](BUILD.md) documentation.
+found in the [build documentation](docs/install.md).
 
-The [USAGE](USAGE.md) document describes what you can do with a functional PDO
+The [usage document](docs/usage.md) describes what you can do with a functional PDO
 installation.
 
 For more information about how Private Data Objects work, see the
-[SPECIFICATION](SPECIFICATION.md) document.
+[specification document](docs/specification.md).
+
+A paper with a more formal overview of Private Data Objects is available
+[HERE](https://arxiv.org/abs/1807.05686).
 
 A presentation about Private Data Objects is available
 [HERE](https://docs.google.com/presentation/d/16V0kK9M_z86WwI-PfdltY5plXnkOdFuK84sWFaExH_k).
@@ -67,9 +72,11 @@ Initial Committers
 * Abdulkareem Adesokan (aaadesok - abdulkareem.adesokan@intel.com)
 * Bruno Vavala (bvavala - bruno.vavala@intel.com)
 * Byron Marohn (byron-marohn - byron.marohn@intel.com)
-* Mic Bowman (cmickeyb - cmickeyb@gmail.com)
 * Eugene Yarmosh (EugeneYYY - yevgeniy.y.yarmosh@intel.com)
 * Holly Harmon (harmonh - holly.harmon@intel.com)
+* Mic Bowman (cmickeyb - cmickeyb@gmail.com)
+* Michael Steiner (g2flyer - michael.steiner@intel.com)
+* Prakash Narayana Moorthy (prakashngit - prakash.narayana.moorthy@intel.com)
 * Tom Barnes (TomBarnes - thomas.j.barnes@intel.com)
 
 Sponsor

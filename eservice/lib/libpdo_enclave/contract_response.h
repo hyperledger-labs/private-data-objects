@@ -23,7 +23,7 @@
 #include "contract_request.h"
 #include "contract_state.h"
 #include "enclave_data.h"
-#include "state.h"
+#include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

@@ -26,14 +26,12 @@
 #include "packages/base64/base64.h"
 #include "parson.h"
 #include "types.h"
-#include "state.h"
+#include "interpreter_kv.h"
 
 #include "enclave_utils.h"
 
 #include "contract_request.h"
 #include "contract_secrets.h"
-
-#include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //

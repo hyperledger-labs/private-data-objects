@@ -24,7 +24,7 @@
 #include "jsonvalue.h"
 #include "packages/base64/base64.h"
 #include "parson.h"
-#include "state.h"
+#include "interpreter_kv.h"
 #include "types.h"
 
 #include "enclave_utils.h"
