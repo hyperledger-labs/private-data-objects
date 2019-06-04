@@ -86,6 +86,8 @@ class Contract(object) :
                 enclave['contract_enclave_id'],
                 enclave['encrypted_contract_state_encryption_key'])
 
+        obj.set_replication_parameters(contract_info['num_provable_replicas'], contract_info['availability_duration'])
+
         return obj
 
     # -------------------------------------------------------
@@ -97,8 +99,8 @@ class Contract(object) :
         self.contract_id = contract_id
         self.creator_id = creator_id
         self.extra_data = kwargs.get('extra_data', {})
-
         self.enclave_map = kwargs.get('enclave_map',{})
+        self.set_replication_parameters()
 
     # -------------------------------------------------------
     def set_state_encryption_key(self, enclave_id, encrypted_state_encryption_key) :
@@ -106,13 +108,22 @@ class Contract(object) :
 
     # -------------------------------------------------------
     def get_state_encryption_key(self, enclave_id) :
-        return self.enclave_map[enclave_id];
+        return self.enclave_map[enclave_id]
 
     # -------------------------------------------------------
     @property
     def short_id(self) :
         assert self.contract_id
         return hex(abs(hash(self.contract_id)))[2:]
+
+    # -------------------------------------------------------
+    def set_replication_parameters(self, num_provable_replicas=1, availability_duration=120):
+
+        self.replication_params = dict()
+        self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())
+        self.replication_params['num_provable_replicas'] = num_provable_replicas
+        self.replication_params['availability_duration'] = availability_duration #seconds
+        self.replication_params['service_ids'] = self.enclave_map.keys() #we replicate to storage services associated with all provisioned encalves
 
     # -------------------------------------------------------
     @property
@@ -125,7 +136,7 @@ class Contract(object) :
         self.contract_state.update_state(state)
 
     # -------------------------------------------------------
-    def create_initialize_request(self, request_originator_keys, enclave_service) :
+    def create_initialize_request(self, request_originator_keys, enclave_service='random') :
         """create a request to initialize the state of the contract
 
         :param request_originator_keys: object of type ServiceKeys
@@ -134,11 +145,11 @@ class Contract(object) :
         return ContractRequest(
             'initialize',
             request_originator_keys,
-            enclave_service,
-            self)
+            self,
+            enclave_service=enclave_service)
 
     # -------------------------------------------------------
-    def create_update_request(self, request_originator_keys, enclave_service, expression) :
+    def create_update_request(self, request_originator_keys, expression, enclave_service='random') :
         """create a request to update the state of the contract
 
         :param request_originator_keys: object of type ServiceKeys
@@ -148,8 +159,8 @@ class Contract(object) :
         return ContractRequest(
             'update',
             request_originator_keys,
-            enclave_service,
             self,
+            enclave_service=enclave_service,
             expression = expression)
 
     # -------------------------------------------------------
@@ -170,6 +181,10 @@ class Contract(object) :
             enclaves_info.append(enclave_info)
 
         serialized['enclaves_info'] = enclaves_info
+
+        # add replication params
+        serialized['num_provable_replicas'] = self.replication_params['num_provable_replicas']
+        serialized['availability_duration'] = self.replication_params['availability_duration']
 
         filename = putils.build_file_name(basename, data_dir, self.__path__, self.__extension__)
 

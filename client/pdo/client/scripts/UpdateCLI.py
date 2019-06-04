@@ -26,6 +26,7 @@ from pdo.contract import Contract
 from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
 import pdo.service_client.service_data.eservice as db
+from pdo.contract.response import ContractResponse
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -70,6 +71,15 @@ def LocalMain(config, message) :
         logger.error('missing configuration section %s', str(ke))
         sys.exit(-1)
 
+    # ---------- load the eservice database ----------
+    if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
+        logger.info('loading eservice database')
+        try:
+            db.load_database(service_config['EnclaveServiceDatabaseFile'])
+        except Exception as e:
+            logger.error('Error loading eservice database %s', str(e))
+            sys.exit(-1)
+
     # ---------- load the contract information file ----------
     try:
         save_file = contract_config['SaveFile']
@@ -101,20 +111,13 @@ def LocalMain(config, message) :
         logger.info('Using eservice database to look up service URL for the contract enclave')
         try:
             eservice_to_use = random.choice(service_config['EnclaveServiceNames'])
-            # load the eservice database
-            if os.path.exists(service_config['EnclaveServiceDatabaseFile']):
-                try:
-                    db.load_database(service_config['EnclaveServiceDatabaseFile'])
-                except Exception as e:
-                    logger.error('Error loading eservice database %s', str(e))
-                    sys.exit(-1)
             enclave_client = db.get_client_by_name(eservice_to_use)
         except Exception as e:
-            logger.error('Unable to get the eservice client using the eservice database: %s', str(e)) 
-            sys.exit(-1)   
+            logger.error('Unable to get the eservice client using the eservice database: %s', str(e))
+            sys.exit(-1)
     else:
         try:
-            enclave_url = service_config['PreferredEnclaveService'] 
+            enclave_url = service_config['PreferredEnclaveService']
         except Exception as e:
             logger.error('missing configuration parameter %s', str(ke))
             sys.exit(-1)
@@ -123,7 +126,7 @@ def LocalMain(config, message) :
         except Exception as e :
             logger.error('unable to connect to enclave service; %s', str(e))
             sys.exit(-1)
-        
+
     logger.info('contact enclave service at %s', enclave_client.ServiceURL)
 
     try :
@@ -140,6 +143,7 @@ def LocalMain(config, message) :
     else :
         mlist = InputIterator(config.get('Identity', '') + "> ")
 
+    last_response_committed = None
     for msg in mlist :
         if not msg :
             continue
@@ -147,7 +151,7 @@ def LocalMain(config, message) :
         logger.info('send message <%s> to contract', msg)
 
         try :
-            update_request = contract.create_update_request(contract_invoker_keys, enclave_client, msg)
+            update_request = contract.create_update_request(contract_invoker_keys, msg, enclave_client)
             update_response = update_request.evaluate()
             if update_response.status :
                 print(update_response.result)
@@ -168,16 +172,33 @@ def LocalMain(config, message) :
         if not update_response.state_changed :
             continue
 
-        try :
-            logger.debug("sending to ledger")
-            txnid = update_response.submit_update_transaction(ledger_config)
-        except Exception as e :
-            logger.error('failed to save the new state; %s', str(e))
+        contract.set_state(update_response.raw_state)
+
+        # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+        try:
+            update_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=True)
+            last_response_committed = update_response
+        except Exception as e:
+            logger.error('failed to submit commit: %s', str(e))
+            ContractResponse.exit_commit_workers()
             sys.exit(-1)
 
-        contract.set_state(update_response.raw_state)
         contract.contract_state.save_to_cache(data_dir = data_directory)
 
+    if last_response_committed is not None:
+        # wait for the last commit to finish
+        try:
+            txn_id = last_response_committed.wait_for_commit()
+            if txn_id is None:
+                logger.error("Did not receive txn id for the final commit")
+                ContractResponse.exit_commit_workers()
+                sys.exit(-1)
+        except Exception as e:
+            logger.error("Error while waiting for final commit: %s", str(e))
+            ContractResponse.exit_commit_workers()
+            sys.exit(-1)
+
+    ContractResponse.exit_commit_workers()
     sys.exit(0)
 
 
@@ -292,18 +313,18 @@ def Main() :
             'ProvisioningServiceURLs' : [],
             'EnclaveServiceDatabaseFile' : None
         }
-    
+
     if options.eservice_name:
         config['Service']['EnclaveServiceNames'] = options.eservice_name
     if options.eservice_db:
-        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db    
+        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.enclave :
         if options.enclave == 'random' :
             options.enclave = random.choice(config['Service'].get('EnclaveServiceURLs',['http://localhost:7001']))
         config['Service']['PreferredEnclaveService'] = options.enclave
         # we will not use database
         config['Service']['EnclaveServiceNames'] = []
-    
+
     # set up the key search paths
     if config.get('Key') is None :
         config['Key'] = {

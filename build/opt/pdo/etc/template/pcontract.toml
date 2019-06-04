@@ -52,6 +52,13 @@ ProvisioningServiceURLs = [
     "http://127.0.0.1:7003"
 ]
 
+#--------------------------------------------------
+#Replication -- to maintain state availability
+#-------------------------------------------------
+[Replication]
+NumProvableReplicas=2
+Duration=120 #seconds
+
 # --------------------------------------------------
 # Contract -- Contract configuration
 # --------------------------------------------------
