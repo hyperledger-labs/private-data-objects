@@ -45,9 +45,10 @@ for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo stopping storage service $IDENTITY
 
-    url="$(get_url_base $IDENTITY)/shutdown" || { echo "no url found for storage service"; exit 1; }
-    resp=$(curl -sL -w "%{http_code}\\n" ${url} -o /dev/null)
-    if [ $? != 0 ]; then # shutdown results in 500 error, so do not test also || [ $resp != "200" ]
+    if [ -f ${F_LOGDIR}/${IDENTITY}.pid ]; then
+        kill -SIGTERM $(cat ${F_LOGDIR}/${IDENTITY}.pid)
+        rm -f ${F_LOGDIR}/${IDENTITY}.pid
+    else
 	echo "storage service $IDENTITY not running or not properly shut down"
 	rc=1
     fi

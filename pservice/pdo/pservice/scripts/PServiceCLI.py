@@ -19,15 +19,14 @@ Provisioning service
 
 """
 
-import os, sys
-import sysconfig
-import traceback
-import logging
+import os
+import sys
 import argparse
+
 import json
-import errno
 import hashlib
-import socket
+import signal
+import traceback
 
 from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
 from sawtooth.helpers.pdo_connect import PdoRegistryHelper
@@ -41,7 +40,7 @@ import pdo.common.utility as putils
 import pdo.pservice.pdo_helper as pdo_enclave_helper
 import pdo.pservice.pdo_enclave as pdo_enclave
 
-
+import logging
 logger = logging.getLogger(__name__)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -233,10 +232,6 @@ class ProvisioningServer(resource.Resource):
             request.setHeader(b"content-type", b"text/plain")
             request.setResponseCode(http.OK)
             return "I'm up and running ..".encode("ascii")
-        if request.uri == b'/shutdown' :
-            logger.warn('shutdown request received')
-            reactor.callLater(1, reactor.stop)
-            return ""
 
         return self.ErrorResponse(request, http.BAD_REQUEST, 'unsupported')
 
@@ -287,6 +282,12 @@ class ProvisioningServer(resource.Resource):
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def __shutdown__(*args) :
+    logger.warn('shutdown request received')
+    reactor.callLater(1, reactor.stop)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def RunProvisioningService(config, enclave) :
     try :
         http_port = config['ProvisioningService']['HttpPort']
@@ -299,6 +300,9 @@ def RunProvisioningService(config, enclave) :
     logger.info('verifying_key: %s', enclave.verifying_key)
     logger.info('encryption_key: %s', enclave.encryption_key)
     logger.info('enclave_id: %s', enclave.enclave_id)
+
+    signal.signal(signal.SIGQUIT, __shutdown__)
+    signal.signal(signal.SIGTERM, __shutdown__)
 
     root = ProvisioningServer(config, enclave)
     site = server.Site(root)
