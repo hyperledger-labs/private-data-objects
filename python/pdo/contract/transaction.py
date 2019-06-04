@@ -190,11 +190,8 @@ def __transaction_worker__():
                 if txn_id:
                     logger.info("Submitted transaction for request number %d", request_number)
                     submitted_any = True
-                    # add the commit_id to completed list, notify any waiting thread
+                    # add the commit_id to completed list.
                     transaction_request.mark_as_completed()
-                    __condition_variable_for_completed_transactions__.acquire()
-                    __condition_variable_for_completed_transactions__.notify()
-                    __condition_variable_for_completed_transactions__.release()
                 else:
                     logger.error("Did not get a transaction id after transaction submission,  request nunmber %d", request_number)
                     __set_of_failed_transactions__.add((contract_id, response.new_state_hash))
@@ -360,12 +357,12 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
 # -----------------------------------------------------------------
 class TransactionRequest(object):
 
-    def __init__(self, ledger_config, commit_id, wait = 30,
+    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = 30,
         external_dependencies_txn_ids=[], commit_dependencies=[], check_implicit_commit=True):
 
         self.ledger_config = ledger_config
         self.commit_id = commit_id
-        self.wait = wait
+        self.wait = wait_parameter_for_ledger
         self.external_dependencies_txn_ids = external_dependencies_txn_ids
         self.commit_dependencies = commit_dependencies
         self.check_implicit_commit = check_implicit_commit
@@ -374,7 +371,11 @@ class TransactionRequest(object):
 
     # -----------------------------------------------------------------
     def mark_as_completed(self):
+        __condition_variable_for_completed_transactions__.acquire()
         self.is_completed = True
+        #notify parent thread (if waiting)
+        __condition_variable_for_completed_transactions__.notify()
+        __condition_variable_for_completed_transactions__.release()
 
     # -----------------------------------------------------------------
     def mark_as_failed(self):
@@ -388,7 +389,7 @@ class TransactionRequest(object):
         release_lock = False
         while self.is_completed is False:
             __condition_variable_for_completed_transactions__.acquire()
-            __condition_variable_for_completed_transactions__.wait(timeout=1.0)
+            __condition_variable_for_completed_transactions__.wait()
             release_lock = True
 
         if release_lock:

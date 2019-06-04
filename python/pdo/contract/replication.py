@@ -63,10 +63,10 @@ def __set_up_worker__(service_id):
     __pending_replication_tasks_workers_queues__[service_id] = queue.Queue()
     condition_variable_for_setup = threading.Condition()
     for i in range(num_threads_per_storage_service):
+        condition_variable_for_setup.acquire()
         __replication_workers_executor__[service_id].submit(__replication_worker__, service_id, __pending_replication_tasks_workers_queues__[service_id], \
             condition_variable_for_setup)
         #wait for the thread to initialize
-        condition_variable_for_setup.acquire()
         condition_variable_for_setup.wait()
         condition_variable_for_setup.release()
 
@@ -133,7 +133,7 @@ def __replication_manager__():
         logger.info("Replication Manager exception %s", str(e))
 
 # -----------------------------------------------------------------
-def __replication_worker__(service_id, pending_taks_queue, condition_variable_for_setup):
+def __replication_worker__(service_id, pending_tasks_queue, condition_variable_for_setup):
     """ Worker thread that replicates to a specific storage service"""
     # set up the service client
     try:
@@ -160,7 +160,7 @@ def __replication_worker__(service_id, pending_taks_queue, condition_variable_fo
 
             # wait for a new task, task is the response object
             try:
-                response = pending_taks_queue.get(timeout=1.0)
+                response = pending_tasks_queue.get(timeout=1.0)
             except:
                 # check for termination signal
                 if __stop_service__:
@@ -254,12 +254,12 @@ class ReplicationRequest(object):
 
     # -----------------------------------------------------------------
     def wait_for_completion(self):
-        """ Returns after successful completion of the replication request. Raises exception if the request failed"""
+        """ Returns after successful completion of the replication request. Raises exception if the request failed."""
 
         release_lock = False
         while self.is_completed is False:
             __condition_variable_for_completed_tasks__.acquire()
-            __condition_variable_for_completed_tasks__.wait(timeout=1.0)
+            __condition_variable_for_completed_tasks__.wait()
             release_lock = True
 
         if release_lock:

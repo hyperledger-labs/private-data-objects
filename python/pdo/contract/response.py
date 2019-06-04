@@ -111,7 +111,7 @@ class ContractResponse(object) :
             return None
 
     # -------------------------------------------------------
-    def commit_asynchronously(self, ledger_config, wait, external_dependencies_txn_ids=[],
+    def commit_asynchronously(self, ledger_config, wait_parameter_for_ledger, external_dependencies_txn_ids=[],
             commit_dependencies=[], use_ledger=True, check_implicit_commit=True):
         """Commit includes two steps: First, replicate the change set to all provisioned encalves. Second,
         commit the transaction to the ledger. In this method, we add a job to the replication queue to enable the first step. The job will
@@ -128,7 +128,7 @@ class ContractResponse(object) :
         if self.enable_transaction_submission:
             if self.request_number==0 or self.operation == 'initialize' :
                 check_implicit_commit = False
-            self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait, \
+            self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait_parameter_for_ledger, \
                 external_dependencies_txn_ids, commit_dependencies, check_implicit_commit)
 
         add_replication_task(self)
