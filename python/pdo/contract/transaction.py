@@ -386,14 +386,11 @@ class TransactionRequest(object):
     def wait_for_completion(self):
         """ wait until completion of transaction. If success, return txn_id, else raise Exception"""
 
-        release_lock = False
+        __condition_variable_for_completed_transactions__.acquire()
         while self.is_completed is False:
-            __condition_variable_for_completed_transactions__.acquire()
             __condition_variable_for_completed_transactions__.wait()
-            release_lock = True
 
-        if release_lock:
-            __condition_variable_for_completed_transactions__.release()
+        __condition_variable_for_completed_transactions__.release()
 
         if self.is_failed:
             raise Exception("Transaction submission failed for request number %d", self.commit_id[2])

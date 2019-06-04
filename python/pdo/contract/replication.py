@@ -256,14 +256,11 @@ class ReplicationRequest(object):
     def wait_for_completion(self):
         """ Returns after successful completion of the replication request. Raises exception if the request failed."""
 
-        release_lock = False
+        __condition_variable_for_completed_tasks__.acquire()
         while self.is_completed is False:
-            __condition_variable_for_completed_tasks__.acquire()
             __condition_variable_for_completed_tasks__.wait()
-            release_lock = True
 
-        if release_lock:
-            __condition_variable_for_completed_tasks__.release()
+        __condition_variable_for_completed_tasks__.release()
 
         if self.is_failed:
             raise Exception("Replication task failed for request number %s", str(self.commit_id[2]))
