@@ -101,7 +101,7 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
 
         # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
         try:
-            update_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=True)
+            update_response.commit_asynchronously(ledger_config)
         except Exception as e:
             raise Exception('failed to submit commit: %s', str(e))
 

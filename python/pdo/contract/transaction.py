@@ -56,10 +56,6 @@ class Dependencies(object) :
         k = self.__key(contractid, statehash)
         return self.__depcache.get(k)
 
-    ##--------------------------------------------------------
-    def FindDependencyLocally(self, contractid, statehash):
-        return self.__get(contractid, statehash)
-
     ## -------------------------------------------------------
     def FindDependency(self, ledger_config, contractid, statehash) :
         logger.debug('find dependency for %s, %s', contractid, statehash)
@@ -90,7 +86,8 @@ class Dependencies(object) :
         self.__set(contractid, statehash, txnid)
 
 # -----------------------------------------------------------------
-__external_dependencies_txn_ids__ = Dependencies()
+__dependencies__ = Dependencies()
+__lock_for_dependencies__ = threading.RLock()
 
 # -----------------------------------------------------------------
 def start_transaction_processing_service():
@@ -120,64 +117,56 @@ def __transaction_worker__():
         Transactions will be submitted for all pending commits whose commit dependecies are met"""
 
         nonlocal rep_completed_but_txn_not_submitted_updates
-
         submitted_any = False
-
         pending_requests_numbers = list(rep_completed_but_txn_not_submitted_updates[contract_id].keys())
         pending_requests_numbers.sort()
+
         for request_number in pending_requests_numbers:
 
             response = rep_completed_but_txn_not_submitted_updates[contract_id][request_number]
             transaction_request = response.transaction_request
-            txn_dependencies = []
+            ledger_config = transaction_request.ledger_config
 
-            # Check for implicit dependency: (check to ensure that the transaction corresponding to the old_state_hash
-            # was submitted (if committed by the same client)). Don't have to add them to txn_dependencies, this will be added by submitter
-            if transaction_request.check_implicit_commit:
+            # Check for depedencies:
+            if response.operation != 'initialize' :
+                txn_dependencies = []
 
-                # first check that the implicit dependency did not fail, if so mark the current transaction as failed
-                if (contract_id, response.old_state_hash) in __set_of_failed_transactions__:
-                    logger.info("Aborting transaction for request %d since old state commit failed", request_number)
-                    __set_of_failed_transactions__.add((contract_id, response.new_state_hash))
+                #First check if transaction for old state is successful
+                txnid = __dependencies__.FindDependency(ledger_config, contract_id, crypto.byte_array_to_base64(response.old_state_hash))
+                if txnid is 'pending': # yet to complete the transaction (commit attempted by the same client)
+                    break
+                elif txnid is None: # either dependency failed or not found (even in ledger)
+                    logger.error("Aborting transaction for request %d : unable to find transaction details for old state", request_number)
                     transaction_request.mark_as_failed()
                     del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
                     break
-
-                # Ok the implicit did not fail, but did it complete yet? if not, no more transactions can be submitted for this conract_id
-                txnid = __external_dependencies_txn_ids__.FindDependencyLocally(contract_id, crypto.byte_array_to_base64(response.old_state_hash))
-                if txnid is None:
-                    break
-
-            # check for explicit dependencies: (specfied by the client during the commit call)
-            fail_explit_commit_dependencies = False
-            for commit_id_temp in transaction_request.commit_dependencies:
-
-                # check if the transaction for commit_id_temp failed, if so mark the current transaction as failed
-                if (commit_id_temp[0], commit_id_temp[1]) in __set_of_failed_transactions__:
-                    logger.info("Aborting transaction for request %d since one or more dependencies have failed", request_number)
-                    __set_of_failed_transactions__.add((contract_id, response.new_state_hash))
-                    transaction_request.mark_as_failed()
-                    del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
-                    fail_explit_commit_dependencies = True
-                    break
-
-                # Ok the explicit did not fail, but did it complete yet? if not, no more transactions can be submitted for this conract_id
-                txnid = __external_dependencies_txn_ids__.FindDependencyLocally(commit_id_temp[0], crypto.byte_array_to_base64(commit_id_temp[1]))
-                if txnid :
-                    txn_dependencies.append(txnid)
                 else:
-                    fail_explit_commit_dependencies = True
+                    txn_dependencies.append(txnid) # we have a valid tx_id, add it to the set of dependencies
+
+                # Next, check for other dependencies mentioned in the response
+                fail_dependencies = False
+                for dependency in response.dependencies :
+                    contract_id_dep = dependency['contract_id']
+                    state_hash_dep = dependency['state_hash']
+                    txnid = __dependencies__.FindDependency(ledger_config, contract_id_dep, state_hash_dep)
+                    if txnid is 'pending': # yet to complete the transaction (commit attempted by the same client)
+                        fail_dependencies = True
+                        break
+                    elif txnid is None: # either dependency failed or not found (even in ledger)
+                        logger.error("Aborting transaction for request %d : unable to find transaction details for dependency mentioned in response", \
+                            request_number)
+                        transaction_request.mark_as_failed()
+                        del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
+                        fail_dependencies = True
+                        break
+                    else:
+                        txn_dependencies.append(txnid) # we have a valid tx_id, add it to the set of dependencies
+
+                if fail_dependencies:
                     break
 
-            if fail_explit_commit_dependencies:
-                break
-
-            # OK, all commit dependencies are met. Add any transaction dependecies explicitly specified by client durind the commit call.
-            # (transactions can come from other clients). These will be checked by the submitter
-            for txn_id in transaction_request.external_dependencies_txn_ids:
-                txn_dependencies.append(txn_id)
-
-            # submit txn
+            # all ready to submit txn. First remove the task from the pending list
+            del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
             try:
                 if response.operation != 'initialize' :
                     txn_id =  __submit_update_transaction__(response, transaction_request.ledger_config, wait=transaction_request.wait, \
@@ -185,21 +174,16 @@ def __transaction_worker__():
                 else:
                     txn_id = __submit_initialize_transaction__(response, transaction_request.ledger_config, wait=transaction_request.wait)
 
-                del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
-
                 if txn_id:
-                    logger.info("Submitted transaction for request number %d", request_number)
+                    logger.info("Submitted transaction for request %d", request_number)
                     submitted_any = True
-                    # add the commit_id to completed list.
                     transaction_request.mark_as_completed()
                 else:
-                    logger.error("Did not get a transaction id after transaction submission,  request nunmber %d", request_number)
-                    __set_of_failed_transactions__.add((contract_id, response.new_state_hash))
+                    logger.error("Did not get a transaction id after transaction submission for request %d", request_number)
                     transaction_request.mark_as_failed()
                     break
             except Exception as e:
                 logger.error("Transaction submission failed for request number %d: %s", request_number, str(e))
-                __set_of_failed_transactions__.add((contract_id, response.new_state_hash))
                 transaction_request.mark_as_failed()
                 break
 
@@ -211,36 +195,38 @@ def __transaction_worker__():
 
     while True:
 
-        # wait for a new task. Task is the reponse object for the update
-        try:
-            response = __pending_transactions_queue__.get(timeout=1.0)
-        except:
-            # check for termination signal
-            if __stop_service__:
-                logger.info("Exiting transaction submission thread")
-                break
+        try:# wait for a new task. Task is the reponse object for the update
+            try:
+                response = __pending_transactions_queue__.get(timeout=1.0)
+            except:
+                # check for termination signal
+                if __stop_service__:
+                    logger.info("Exiting transaction submission thread")
+                    break
+                else:
+                    continue
+
+            contract_id = response.commit_id[0]
+            request_number = response.commit_id[2]
+            logger.info('received transaction request for request %d', request_number)
+            if rep_completed_but_txn_not_submitted_updates.get(contract_id):
+                rep_completed_but_txn_not_submitted_updates[contract_id][request_number] =  response
             else:
-                continue
+                rep_completed_but_txn_not_submitted_updates[contract_id] = dict({request_number: response})
 
-        contract_id = response.commit_id[0]
-        request_number = response.commit_id[2]
+            # submit as many transactions as possible for the contract_id just added
+            submitted_any = submit_doable_transactions_for_contract(contract_id)
 
-        if rep_completed_but_txn_not_submitted_updates.get(contract_id):
-            rep_completed_but_txn_not_submitted_updates[contract_id][request_number] =  response
-        else:
-            rep_completed_but_txn_not_submitted_updates[contract_id] = dict({request_number: response})
-
-        # submit as many transactions as possible for the contract_id just added
-        submitted_any = submit_doable_transactions_for_contract(contract_id)
-
-        # loop over all contracts_ids. For each check contract_id, submit as many transactions as possible.
-        # Continue looping until no transaction can be submitted for any conrtract_id
-        if submitted_any and len(rep_completed_but_txn_not_submitted_updates.keys()) > 1:
-            loop_again = True
-            while loop_again:
-                loop_again = False
-                for contract_id in rep_completed_but_txn_not_submitted_updates.keys():
-                    loop_again = loop_again or submit_doable_transactions_for_contract(contract_id)
+            # loop over all contracts_ids. For each check contract_id, submit as many transactions as possible.
+            # Continue looping until no transaction can be submitted for any conrtract_id
+            if submitted_any and len(rep_completed_but_txn_not_submitted_updates.keys()) > 1:
+                loop_again = True
+                while loop_again:
+                    loop_again = False
+                    for contract_id in rep_completed_but_txn_not_submitted_updates.keys():
+                        loop_again = loop_again or submit_doable_transactions_for_contract(contract_id)
+        except Exception as e:
+            logger.info("transaction submission failed %s", str(e))
 
 # -------------------------------------------------------
 def __submit_initialize_transaction__(response, ledger_config, **extra_params):
@@ -281,7 +267,9 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         **extra_params)
 
     if txnid :
-        __external_dependencies_txn_ids__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __lock_for_dependencies__.acquire()
+        __dependencies__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __lock_for_dependencies__.release()
 
     return txnid
 
@@ -305,29 +293,10 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
     b64_new_state_hash = crypto.byte_array_to_base64(response.new_state_hash)
     b64_old_state_hash = crypto.byte_array_to_base64(response.old_state_hash)
 
-    # convert contract dependencies into transaction dependencies
-    # to ensure that the sawtooth validator does not attempt to
-    # re-order the transactions since it is unaware of the semantics
-    # of the contract dependencies
+    # get transaction dependency list from the input
     txn_dependencies = set()
     if extra_params.get('transaction_dependency_list') :
         txn_dependencies.update(extra_params['transaction_dependency_list'])
-
-    txnid = __external_dependencies_txn_ids__.FindDependency(ledger_config, response.contract_id, b64_old_state_hash)
-    if txnid :
-        txn_dependencies.add(txnid)
-
-    for dependency in response.dependencies :
-        contract_id = dependency['contract_id']
-        state_hash = dependency['state_hash']
-        txnid = __external_dependencies_txn_ids__.FindDependency(ledger_config, contract_id, state_hash)
-        if txnid :
-            txn_dependencies.add(txnid)
-        else :
-            raise Exception('failed to find dependency; {0}:{1}'.format(contract_id, state_hash))
-
-    if txn_dependencies :
-        extra_params['transaction_dependency_list'] = list(txn_dependencies)
 
     raw_state = response.raw_state
     try :
@@ -350,35 +319,53 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
         **extra_params)
 
     if txnid :
-        __external_dependencies_txn_ids__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __lock_for_dependencies__.acquire()
+        __dependencies__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __lock_for_dependencies__.release()
 
     return txnid
 
 # -----------------------------------------------------------------
 class TransactionRequest(object):
 
-    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = 30,
-        external_dependencies_txn_ids=[], commit_dependencies=[], check_implicit_commit=True):
+    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = 30):
 
         self.ledger_config = ledger_config
         self.commit_id = commit_id
         self.wait = wait_parameter_for_ledger
-        self.external_dependencies_txn_ids = external_dependencies_txn_ids
-        self.commit_dependencies = commit_dependencies
-        self.check_implicit_commit = check_implicit_commit
+
         self.is_completed = False
         self.is_failed = False
+        self.txn_id = None
+
+        # add a pending status corresponding to the transaction in the dependency cache
+        __lock_for_dependencies__.acquire()
+        __dependencies__.SaveDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]), 'pending')
+        __lock_for_dependencies__.release()
 
     # -----------------------------------------------------------------
     def mark_as_completed(self):
         __condition_variable_for_completed_transactions__.acquire()
         self.is_completed = True
+
+        # add a transaction id field that the application may query for
+        if not self.is_failed:
+            self.txn_id = __dependencies__.FindDependency(self.ledger_config, self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
+        else:
+            self.txn_id = None
+
         #notify parent thread (if waiting)
         __condition_variable_for_completed_transactions__.notify()
         __condition_variable_for_completed_transactions__.release()
 
     # -----------------------------------------------------------------
     def mark_as_failed(self):
+        # mark txn_id as None in the dependency cache
+        __lock_for_dependencies__.acquire()
+        __dependencies__.SaveDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]), None)
+        __lock_for_dependencies__.release()
+
+        # mark as failed in the request itself so that the application may query the status. Also, mark the task as completed
         self.is_failed = True
         self.mark_as_completed()
 
@@ -395,8 +382,5 @@ class TransactionRequest(object):
         if self.is_failed:
             raise Exception("Transaction submission failed for request number %d", self.commit_id[2])
 
-        contract_id = self.commit_id[0]
-        state_hash = self.commit_id[1]
-        txn_id = __external_dependencies_txn_ids__.FindDependencyLocally(contract_id, crypto.byte_array_to_base64(state_hash))
-
+        txn_id = __dependencies__.FindDependency(self.ledger_config, self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
         return txn_id

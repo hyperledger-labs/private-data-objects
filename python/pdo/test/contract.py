@@ -285,7 +285,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
     try:
-        initialize_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=use_ledger)
+        initialize_response.commit_asynchronously(ledger_config)
     except Exception as e:
         logger.exception('failed to asynchronously start replication and transaction submission:' + str(e))
         ErrorShutdown()
@@ -359,7 +359,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
                 # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
                 try:
                     logger.info("asynchronously replicate change set and submit transaction in the background")
-                    update_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=use_ledger)
+                    update_response.commit_asynchronously(ledger_config)
                     last_response_committed = update_response
                 except Exception as e:
                     logger.error('failed to submit commit: %s', str(e))
@@ -570,6 +570,9 @@ def Main() :
         }
     if options.ledger :
         config['Sawtooth']['LedgerURL'] = options.ledger
+    if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
+        use_ledger = False
+        config.pop('Sawtooth', None)
 
     # set up the key search paths
     if config.get('Key') is None :
@@ -634,11 +637,6 @@ def Main() :
         }
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
-
-    # set up the ledger configuration
-    if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
-        use_ledger = False
-        config.pop('Sawtooth', None)
 
     config['secrets'] = options.secret_count
 

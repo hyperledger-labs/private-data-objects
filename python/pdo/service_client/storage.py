@@ -43,7 +43,7 @@ class StorageServiceClient(GenericServiceClient) :
     """A class to wrap calls to the storage service.
     """
 
-    default_timeout = 1.0
+    default_timeout = 10.0
 
     # -----------------------------------------------------------------
     def __init__(self, url) :
