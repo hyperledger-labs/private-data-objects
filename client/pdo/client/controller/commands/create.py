@@ -92,7 +92,7 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 
     # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
     try:
-        initialize_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=True)
+        initialize_response.commit_asynchronously(ledger_config)
     except Exception as e:
         raise Exception('failed to submit commit: %s', str(e))
 

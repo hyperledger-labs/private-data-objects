@@ -176,7 +176,7 @@ def LocalMain(config, message) :
 
         # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
         try:
-            update_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=True)
+            update_response.commit_asynchronously(ledger_config)
             last_response_committed = update_response
         except Exception as e:
             logger.error('failed to submit commit: %s', str(e))

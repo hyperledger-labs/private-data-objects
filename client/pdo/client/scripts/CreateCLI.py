@@ -92,7 +92,7 @@ def CreateContract(ledger_config, client_keys, enclaveclients, contract) :
 
     # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
     try:
-        initialize_response.commit_asynchronously(ledger_config, wait_parameter_for_ledger=30, use_ledger=True)
+        initialize_response.commit_asynchronously(ledger_config)
     except Exception as e:
         logger.error('failed to submit commit: %s', str(e))
         ContractResponse.exit_commit_workers()

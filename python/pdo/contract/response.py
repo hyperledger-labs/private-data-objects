@@ -99,8 +99,7 @@ class ContractResponse(object) :
 
             # compute ids of blocks in the change set (used for replication)
             self.new_state_object.compute_ids_of_newblocks(request.contract_state.component_block_ids)
-            self.replication_request = ReplicationRequest(request.replication_params, \
-                self.contract_id, self.new_state_object.changed_block_ids, self.commit_id)
+            self.replication_params = request.replication_params
 
     # -------------------------------------------------------
     @property
@@ -111,8 +110,7 @@ class ContractResponse(object) :
             return None
 
     # -------------------------------------------------------
-    def commit_asynchronously(self, ledger_config, wait_parameter_for_ledger, external_dependencies_txn_ids=[],
-            commit_dependencies=[], use_ledger=True, check_implicit_commit=True):
+    def commit_asynchronously(self, ledger_config=None, wait_parameter_for_ledger=30):
         """Commit includes two steps: First, replicate the change set to all provisioned encalves. Second,
         commit the transaction to the ledger. In this method, we add a job to the replication queue to enable the first step. The job will
         be picked by a replication worker thead. A call_back_after_replication function (see below) is automatically invoked to add a task for the second step """
@@ -124,13 +122,17 @@ class ContractResponse(object) :
             start_transaction_processing_service()
             ContractResponse.__start_commit_service__ = False
 
-        self.enable_transaction_submission = use_ledger
-        if self.enable_transaction_submission:
-            if self.request_number==0 or self.operation == 'initialize' :
-                check_implicit_commit = False
-            self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait_parameter_for_ledger, \
-                external_dependencies_txn_ids, commit_dependencies, check_implicit_commit)
+        #create the replication request
+        self.replication_request = ReplicationRequest(self.replication_params, self.contract_id, \
+            self.new_state_object.changed_block_ids, self.commit_id)
 
+        #create the transaction request if ledger is enabled
+        if ledger_config:
+            self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait_parameter_for_ledger)
+        else:
+            self.transaction_request = None
+
+        #submit the replication task
         add_replication_task(self)
 
     # -------------------------------------------------------
@@ -138,7 +140,7 @@ class ContractResponse(object) :
         """this is the call back function after replication. Currently, the call-back's role is to add a new task to the pending transactions queue,
         which will be processed by a "submit transaction" thread whose job is to submit transactions corresponding to completed replication tasks
         """
-        if self.enable_transaction_submission:
+        if self.transaction_request:
             add_transaction_task(self)
 
     # -------------------------------------------------------
@@ -152,7 +154,7 @@ class ContractResponse(object) :
             raise Exception(str(e))
 
         # wait for the completion of the transaction processing if ledger is in use
-        if self.enable_transaction_submission:
+        if self.transaction_request:
             try:
                 txn_id = self.transaction_request.wait_for_completion()
             except Exception as e:
