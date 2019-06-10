@@ -31,6 +31,11 @@ SWIG_SOURCES = \
 SWIG_FILES = $(addprefix pdo/pservice/enclave/,$(SWIG_SOURCES))
 SWIG_TARGET = pdo/pservice/enclave/pdo_enclave_internal.py
 
+SCRIPTS = \
+	bin/ps-start.sh \
+	bin/ps-stop.sh \
+	bin/ps-status.sh
+
 PYTHON_FILES = \
 	pdo/pservice/enclave/__init__.py \
 	pdo/pservice/pdo_helper.py \
@@ -49,7 +54,7 @@ ENCLAVE_FILES = $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE) $(wildcard lib/libpdo_encla
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
-$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES)
+$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
 	python setup.py bdist_egg
 

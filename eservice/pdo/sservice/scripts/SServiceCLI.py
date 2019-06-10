@@ -22,10 +22,7 @@ import os
 import sys
 import argparse
 
-import base64
-import hashlib
-import json
-import time
+import signal
 
 from pdo.sservice.block_store_manager import BlockStoreManager
 from pdo.common.wsgi import AppWrapperMiddleware
@@ -74,22 +71,6 @@ def ErrorResponse(request, error_code, msg) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class ShutdownResource(Resource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self) :
-        Resource.__init__(self)
-
-    ## -----------------------------------------------------------------
-    def render_GET(self, request) :
-        logger.warn('shutdown request received')
-        reactor.callLater(1, reactor.stop)
-
-        return ErrorResponse(request, http.NO_CONTENT, "shutdown")
-
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 def GarbageCollector(block_store) :
     logger.debug('run the garbage collector')
     try :
@@ -104,6 +85,10 @@ def StartGarbageCollector(block_store, gcinterval) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def __shutdown__(*args) :
+    logger.warn('shutdown request received')
+    reactor.callLater(1, reactor.stop)
+
 def StartStorageService(config, block_store) :
     try :
         http_port = config['StorageService']['HttpPort']
@@ -128,7 +113,6 @@ def StartStorageService(config, block_store) :
     block.putChild(b'check', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(CheckBlocksApp(block_store))))
 
     root = Resource()
-    root.putChild(b'shutdown', ShutdownResource())
     root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(block_store))))
     root.putChild(b'block', block)
 
@@ -136,6 +120,9 @@ def StartStorageService(config, block_store) :
     site.displayTracebacks = True
 
     reactor.suggestThreadPoolSize(reactor_threads)
+
+    signal.signal(signal.SIGQUIT, __shutdown__)
+    signal.signal(signal.SIGTERM, __shutdown__)
 
     endpoint = TCP4ServerEndpoint(reactor, http_port, backlog=32, interface=http_host)
     endpoint.listen(site)

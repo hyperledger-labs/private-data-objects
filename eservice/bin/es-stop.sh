@@ -45,11 +45,12 @@ for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo stopping enclave service $IDENTITY
 
-    url="$(get_url_base $IDENTITY)/shutdown" || { echo "no url found for enclave service"; exit 1; }
-    resp=$(curl -sL -w "%{http_code}\\n" ${url} -o /dev/null)
-    if [ $? != 0 ]; then # shutdown results in 500 error, so do not test also || [ $resp != "200" ]
-	echo "enclave service $IDENTITY not running or not properly shut down"
-	rc=1
+    if [ -f ${F_LOGDIR}/${IDENTITY}.pid ]; then
+        kill -SIGTERM $(cat ${F_LOGDIR}/${IDENTITY}.pid)
+        rm -f ${F_LOGDIR}/${IDENTITY}.pid
+    else
+        echo "enclave service ${IDENTITY} not running or not properly shut down"
+        rc=1
     fi
 done
 exit $rc

@@ -22,6 +22,8 @@ import os
 import sys
 import argparse
 
+import signal
+
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
 import pdo.common.logger as plogger
@@ -66,21 +68,11 @@ def ErrorResponse(request, error_code, msg) :
 
     return request
 
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class ShutdownResource(Resource) :
-    isLeaf = True
-
-    ## -----------------------------------------------------------------
-    def __init__(self) :
-        Resource.__init__(self)
-
-    ## -----------------------------------------------------------------
-    def render_GET(self, request) :
-        logger.warn('shutdown request received')
-        reactor.callLater(1, reactor.stop)
-
-        return ErrorResponse(request, http.NO_CONTENT, "shutdown")
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def __shutdown__(*args) :
+    logger.warn('shutdown request received')
+    reactor.callLater(1, reactor.stop)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -106,7 +98,6 @@ def StartEnclaveService(config, enclave) :
     reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
     root = Resource()
-    root.putChild(b'shutdown', ShutdownResource())
     root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(enclave, storage_url))))
     root.putChild(b'invoke', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InvokeApp(enclave))))
     root.putChild(b'verify', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(VerifyApp(enclave))))
@@ -115,6 +106,9 @@ def StartEnclaveService(config, enclave) :
     site.displayTracebacks = True
 
     reactor.suggestThreadPoolSize(reactor_threads)
+
+    signal.signal(signal.SIGQUIT, __shutdown__)
+    signal.signal(signal.SIGTERM, __shutdown__)
 
     endpoint = TCP4ServerEndpoint(reactor, http_port, backlog=32, interface=http_host)
     endpoint.listen(site)
