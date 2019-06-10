@@ -57,34 +57,28 @@ if [ $? == 0 ] ; then
     exit 1
 fi
 
-# (2) prepare output
-if [ "$F_OUTPUTDIR" != "" ] ; then
-    mkdir -p $F_OUTPUTDIR
-    rm -f $F_OUTPUTDIR/*
-else
-    EFILE=/dev/null
-    OFILE=/dev/null
-fi
-
-# (3) start services asynchronously
+# (2) start services asynchronously
 for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo start storage service $IDENTITY
 
-    rm -f $F_LOGDIR/$IDENTITY.log
+    rm -f $F_LOGDIR/$IDENTITY.log $F_LOGDIR/$IDENTITY.pid
 
     if [ "$F_OUTPUTDIR" != "" ]  ; then
         EFILE="$F_OUTPUTDIR/$IDENTITY.err"
         OFILE="$F_OUTPUTDIR/$IDENTITY.out"
         rm -f $EFILE $OFILE
+    else
+        EFILE=/dev/null
+        OFILE=/dev/null
     fi
 
     sservice --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
              --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
-
+    echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 done
 
-# (4) wait for successfull start of the services
+# (3) wait for successfull start of the services
 for index in `seq 1 $F_COUNT` ; do
     IDENTITY="${F_BASENAME}$index"
     echo waiting for startup completion of storage service $IDENTITY
