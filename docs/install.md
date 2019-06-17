@@ -110,8 +110,7 @@ to create the client authentication key. The key will be available from
 your profile page.
 
 Assuming that existing keys are found in `${PDO_SGX_KEY_ROOT}` (which
-defaults to the directory
-`${PDO_SOURCE_ROOT}/build/keys/sgx_simulation`),
+defaults to the directory `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}`),
 copy the key from your profile page into a file called
 `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`.
 

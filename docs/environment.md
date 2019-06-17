@@ -103,7 +103,7 @@ run in a real SGX enclave.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_SGX_KEY_ROOT`
-(default: `${PDO_SOURCE_ROOT}/build/keys/sgx_simulation/`):
+(default: `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}/`):
 
 `PDO_SGX_KEY_ROOT` is the root directory where SGX and IAS related keys
 are stored. The default points to a directory which contains values

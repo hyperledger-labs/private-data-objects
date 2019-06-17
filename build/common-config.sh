@@ -67,11 +67,7 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_HOME"; i=$i+1; export PDO_HOME=${env_val[PDO_HOME]}
 
-    if [ ${SGX_MODE} == "SIM" ]; then
-        env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_simulation}"
-    else
-        env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_hardware_mode}"
-    fi
+    env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_mode_${SGX_MODE,,}}"
 	env_desc[PDO_SGX_KEY_ROOT]="
 		PDO_SGX_KEY_ROOT is the root directory where SGX & IAS related keys are stored.
 		The default points to a directory which contains values which are good
