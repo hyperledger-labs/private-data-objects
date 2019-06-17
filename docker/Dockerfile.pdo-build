@@ -49,7 +49,7 @@
 #     default PDO_LEDGER_URL (http://rest-api:8008). If these are different at runtime, e.g.,
 #     because the ledger changes and/or you run in SGX HW mode and your sgx keys are at a
 #     different place and not mapped via docker volumes to the default location
-#     '/project/pdo/src/private-data-objects/build/keys/sgx_simulation'
+#     '/project/pdo/src/private-data-objects/build/keys/sgx_mode_${SGX_MODE,,}'
 #     you will have to
 #     - PDO_SGX_KEY_ROOT env var pointing to the directory with the actual files and/or
 #       PDO_LEDGER_URL properly configured ..
