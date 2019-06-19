@@ -129,15 +129,22 @@ keys : $(ESERVICE_SKF) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
 ESERVICE_CONF := $(ETCDIR)/eservice1.toml
 SSERVICE_CONF := $(ETCDIR)/sservice1.toml
 PSERVICE_CONF := $(ETCDIR)/pservice1.toml
+ENCLAVE_CONF := $(ETCDIR)/enclave.toml
+CONTRACT_CONF := $(ETCDIR)/pcontract.toml
+GENERATED_CONF_FILES := $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
 
 verified-conf : verify-pre-conf
 	${MAKE} conf
 
-conf : $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
+conf : $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
 
 force-conf : verify-pre-conf
 	- rm $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
 	${MAKE} conf
+
+$(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
+	@ echo copy site.psh
+	@ cp $(SCRIPTDIR)/opt/pdo/etc/template/site.psh $(ETCDIR)/site.psh
 
 $(ESERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
@@ -160,14 +167,14 @@ $(PSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pservice.toml
 			--output-directory $(dir $@) \
 			multiple --file-base $(basename $(notdir $<)) --count 5
 
-$(ETCDIR)/enclave.toml : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
+$(ENCLAVE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
 	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
-$(ETCDIR)/pcontract.toml : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
+$(CONTRACT_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
 	@ echo create configuration files for $(basename $(notdir $<))
 	@ . $(abspath $(DSTDIR)/bin/activate) ; \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \

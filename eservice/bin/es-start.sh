@@ -21,80 +21,12 @@ if [[ $PY3_VERSION -lt 5 ]]; then
 fi
 
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-source ${F_SERVICEHOME}/bin/common.sh
+source ${F_SERVICEHOME}/bin/lib/common.sh
+source ${F_SERVICEHOME}/bin/lib/common_service.sh
 
-F_USAGE='-c|--count services -b|--base name --ledger url -o|--output dir --clean -l|--loglevel [debug|info|warn]'
-F_COUNT=1
+
 F_BASENAME='eservice'
-F_LEDGERURL=''
-F_OUTPUTDIR=''
-F_CLEAN='no'
-F_LOGLEVEL='info'
+F_SERVICE_CMD='eservice'
+F_SERVICE_NAME='enclave'
 
-# -----------------------------------------------------------------
-# Process command line arguments
-# -----------------------------------------------------------------
-TEMP=`getopt -o b:c:l:o: --long base:,clean,count:,help,loglevel:,output:,ledger: \
-     -n 'es-start.sh' -- "$@"`
-
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
-
-eval set -- "$TEMP"
-while true ; do
-    case "$1" in
-        -b|--base) F_BASENAME="$2" ; shift 2 ;;
-        --clean) F_CLEAN="yes" ; shift 1 ;;
-        -c|--count) F_COUNT="$2" ; shift 2 ;;
-        --ledger) F_LEDGERURL="--ledger $2" ; shift 2 ;;
-        -l|--loglevel) F_LOGLEVEL="$2" ; shift 2 ;;
-        -o|--output) F_OUTPUTDIR="$2" ; shift 2 ;;
-        --help) echo $F_USAGE ; exit 1 ;;
-	--) shift ; break ;;
-	*) echo "Internal error!" ; exit 1 ;;
-    esac
-done
-
-# (1) do not start if service already running
-pgrepf  "\beservice .* --config ${F_BASENAME}[0-9].toml\b"
-if [ $? == 0 ] ; then
-    echo existing enclave services detected, please shutdown first
-    exit 1
-fi
-
-# (2) start services asynchronously
-for index in `seq 1 $F_COUNT` ; do
-    IDENTITY="${F_BASENAME}$index"
-    echo start enclave service $IDENTITY
-
-    if [ "${F_CLEAN}" == "yes" ]; then
-        rm -f "${F_SERVICEHOME}/data/${IDENTITY}.enc"
-    fi
-
-    rm -f $F_LOGDIR/$IDENTITY.log $F_LOGDIR/$IDENTITY.pid
-
-    if [ "$F_OUTPUTDIR" != "" ]  ; then
-        EFILE="$F_OUTPUTDIR/$IDENTITY.err"
-        OFILE="$F_OUTPUTDIR/$IDENTITY.out"
-        rm -f $EFILE $OFILE
-    else
-        EFILE=/dev/null
-        OFILE=/dev/null
-    fi
-
-    eservice --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
-             --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
-    echo $! > ${F_LOGDIR}/${IDENTITY}.pid
-done
-
-# (3) wait for successfull start of the services
-for index in `seq 1 $F_COUNT` ; do
-    IDENTITY="${F_BASENAME}$index"
-    echo waiting for startup completion of enclave service $IDENTITY
-
-    url="$(get_url_base $IDENTITY)/info" || { echo "no url found for enclave service"; exit 1; }
-    resp=$(${CURL_CMD} ${url})
-    if [ $? != 0 ] || [ $resp != "200" ]; then
-	echo "enclave service $IDENTITY not properly running"
-	exit 1
-    fi
-done
+service_start "$@"

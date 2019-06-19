@@ -23,7 +23,9 @@ fi
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
-# --------------- COMMON ---------------
+source ${SRCDIR}/bin/lib/common.sh
+
+yell --------------- COMMON ---------------
 cd $SRCDIR/common/crypto/verify_ias_report
 rm -f ias-certificates.cpp
 
@@ -33,25 +35,29 @@ rm -f package.h package.scm
 cd $SRCDIR/common
 rm -rf build
 
-# --------------- PYTHON ---------------
+yell --------------- BIN ---------------
+cd $SRCDIR/bin
+make clean
+
+yell --------------- PYTHON ---------------
 cd $SRCDIR/python
 make clean
 
-# --------------- ESERVICE ---------------
+yell --------------- ESERVICE ---------------
 cd $SRCDIR/eservice
 make clean
 
-# --------------- PSERVICE ---------------
+yell --------------- PSERVICE ---------------
 cd $SRCDIR/pservice/lib/libpdo_enclave
 rm -f contract_enclave_mrenclave.cpp
 
 cd $SRCDIR/pservice
 make clean
 
-# --------------- CLIENT ---------------
+yell --------------- CLIENT ---------------
 cd $SRCDIR/client
 make clean
 
-# --------------- CONTRACTS ---------------
+yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
 make clean

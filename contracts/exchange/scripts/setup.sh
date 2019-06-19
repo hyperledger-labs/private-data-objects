@@ -15,46 +15,11 @@
 # limitations under the License.
 
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-cred=`tput setaf 1`
-cgrn=`tput setaf 2`
-cblu=`tput setaf 4`
-cmag=`tput setaf 5`
-cwht=`tput setaf 7`
-cbld=`tput bold`
-bred=`tput setab 1`
-bgrn=`tput setab 2`
-bblu=`tput setab 4`
-bwht=`tput setab 7`
-crst=`tput sgr0`
-
-function recho () {
-    echo "${cbld}${cred}" $@ "${crst}" >&2
-}
-
-function becho () {
-    echo "${cbld}${cblu}" $@ "${crst}" >&2
-}
-
-function yell() {
-    becho "$(basename $0): $*" >&2
-}
-
-function die() {
-    recho "$(basename $0): $*" >&2
-    exit 111
-}
-
-function try() {
-    "$@" || die "test failed: $*"
-}
-
-SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../../..)"
-KEYGEN=${SRCDIR}/build/__tools__/make-keys
 
+source ${SRCDIR}/bin/lib/common.sh
+
+KEYGEN=${SRCDIR}/build/__tools__/make-keys
 if [ ! -f ${PDO_HOME}/keys/red_type_private.pem ]; then
     yell create keys for the contracts
     for color in red green blue ; do

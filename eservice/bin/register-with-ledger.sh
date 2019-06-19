@@ -33,20 +33,9 @@ ENCLAVE_TOML=enclave.toml
 PDO_IAS_SIGNING_CERT_PATH=${PDO_SGX_KEY_ROOT}/ias_signing.cert
 PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
 
-function yell {
-    echo "$0: $*" >&2;
-}
-
-function die {
-    yell "$*"
-    exit 111
-}
-
-function try {
-    "$@" || die "operation failed: $*"
-}
-
 eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+
+source ${SRCDIR}/bin/lib/common.sh
 
 function cleanup {
     yell "Clean up temporary files"
