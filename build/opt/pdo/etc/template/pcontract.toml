@@ -63,22 +63,14 @@ Duration=120 #seconds
 # Contract -- Contract configuration
 # --------------------------------------------------
 [Contract]
-# Name is the basename of the file where contract
-# information is stored; this may be a full path
-# with or without the pdo extension
-Name = "${contract}"
 DataDirectory = "${data}"
-
-SourceFile = "_${contract}.scm"
 SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
-
-SaveFile = "${contract}.pdo"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging
 # --------------------------------------------------
 [Logging]
-LogLevel = "INFO"
+LogLevel = "WARN"
 LogFile  = "__screen__"
 
 # --------------------------------------------------
@@ -97,3 +89,4 @@ data = "${data}"
 save = "${data}/__contract_cache__"
 home = "${home}"
 base = "${base}"
+identity = "${identity}"

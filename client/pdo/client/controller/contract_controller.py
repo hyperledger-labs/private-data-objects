@@ -169,6 +169,9 @@ class ContractController(cmd.Cmd) :
         name = self.state.get(['Client', 'Identity'], "")
         self.prompt = "{0}> ".format(name)
 
+        # save the identity so we can use it programmatically in scripts
+        self.bindings.bind('identity', name)
+
     # -----------------------------------------------------------------
     def __arg_parse__(self, args) :
         """parse the command line in a consistent way, preserving the
@@ -397,6 +400,9 @@ class ContractController(cmd.Cmd) :
             self.prompt = "{0}> ".format(options.name)
             self.state.set(['Client', 'Identity'], options.name)
             self.state.set(['Key', 'FileName'], "{0}_private.pem".format(options.name))
+
+            # save the identity so we can use it programmatically in scripts
+            self.bindings.bind('identity', options.name)
 
             if options.key_file :
                 self.state.set(['Key', 'FileName'], options.key_file)

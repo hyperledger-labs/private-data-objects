@@ -9,10 +9,7 @@
 ./pdo/client/controller/util.py
 ./pdo/client/controller/__init__.py
 ./pdo/client/SchemeExpression.py
-./pdo/client/scripts/AuctionTestCLI.py
 ./pdo/client/scripts/ShellCLI.py
-./pdo/client/scripts/UpdateCLI.py
-./pdo/client/scripts/CreateCLI.py
 ./pdo/client/scripts/__init__.py
 ./pdo/client/__init__.py
 ./pdo/__init__.py

@@ -78,13 +78,12 @@ def Main() :
     conffiles = [ 'pcontract.toml' ]
     confpaths = [ ".", "./etc", ContractEtc ]
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
 
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='directories to search for the configuration file', nargs = '+')
 
     parser.add_argument('-i', '--identity', help='Identity to use for the process', type=str)
-    parser.add_argument('-c', '--contract', help='Name of the contract', type = str)
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
@@ -98,9 +97,8 @@ def Main() :
     parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
 
     parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
-    parser.add_argument('script', help='File from which to read script', type=str, nargs='?')
 
-    options = parser.parse_args()
+    options, script = parser.parse_known_args()
 
     # first process the options necessary to load the default configuration
     if options.config :
@@ -113,7 +111,6 @@ def Main() :
     config_map['identity'] = '__unknown__'
     if options.identity :
         config_map['identity'] = options.identity
-    config_map['contract'] = '__unknown__'
     if options.data_dir :
         config_map['data'] = options.data_dir
         ContractData = options.data_dir
@@ -177,8 +174,21 @@ def Main() :
 
     putils.set_default_data_directory(config['Contract']['DataDirectory'])
 
-    if options.script :
-        config["ScriptFile"] = options.script
+    if script :
+        config["ScriptFile"] = script.pop(0)
+
+        varmap = config.get("Bindings", {})
+        while script :
+            try :
+                key = script.pop(0)
+                val = script.pop(0)
+            except ValueError :
+                logger.error('unable to process script arguments')
+                sys.exit(1)
+
+            key = key.lstrip('-')
+            varmap[key] = val
+        config["Bindings"] = varmap
 
     # this sets the initial bindings available in the script
     if options.mapvar :

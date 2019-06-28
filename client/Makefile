@@ -23,7 +23,7 @@ all : $(EGG_FILE)
 install: $(EGG_FILE)
 	easy_install $<
 
- $(EGG_FILE) : $(PYTHON_SOURCE)
+$(EGG_FILE) : $(PYTHON_SOURCE) bin/pdo-invoke.psh bin/pdo-create.psh
 	@echo Build Distribution
 	python setup.py bdist_egg
 
