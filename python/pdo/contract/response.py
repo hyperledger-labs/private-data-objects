@@ -133,7 +133,10 @@ class ContractResponse(object) :
             self.transaction_request = None
 
         #submit the replication task
-        add_replication_task(self)
+        try:
+            add_replication_task(self)
+        except Exception as e:
+            raise Exception from e
 
     # -------------------------------------------------------
     def call_back_after_replication(self):
