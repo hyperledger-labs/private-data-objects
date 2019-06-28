@@ -255,7 +255,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
     #add replication information to contract
     AddReplicationParamsToContract(config, enclaves, contract)
 
-    # Decide if the contract use a fixed enclave or a randomized one for each update. 
+    # Decide if the contract use a fixed enclave or a randomized one for each update.
     if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
     else:
@@ -313,7 +313,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
     ledger_config = config.get('Sawtooth')
     contract_invoker_id = contract_invoker_keys.identity
 
-    # Decide if the contract use a fixed enclave or a randomized one for each update. 
+    # Decide if the contract use a fixed enclave or a randomized one for each update.
     if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
     else:
@@ -515,7 +515,7 @@ def Main() :
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
-    parser.add_argument('--contract', help='Name of the contract to use', default='integer-key')
+    parser.add_argument('--contract', help='Name of the contract to use', default='mock-contract')
     parser.add_argument('--expressions', help='Name of a file to read for expressions', default=None)
 
     parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)
@@ -539,7 +539,6 @@ def Main() :
         config_map['data'] = options.data_dir
 
     config_map['contract'] = options.contract
-
 
     # parse the configuration file
     try :
@@ -622,6 +621,10 @@ def Main() :
             'DataDirectory' : ContractData,
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
+
+    if config['Contract'].get('Name') is None :
+        config['Contract']['Name'] = options.contract
+        config['Contract']['SourceFile'] = '_{0}.scm'.format(options.contract)
 
     if options.data_dir :
         config['Contract']['DataDirectory'] = options.data_dir

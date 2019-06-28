@@ -253,7 +253,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
     # add replication information to contract
     AddReplicationParamsToContract(config, enclaves, contract)
 
-    # Decide if the contract uses a fixed enclave or a randomized one for each update. If fixed, we chose here. If random, 
+    # Decide if the contract uses a fixed enclave or a randomized one for each update. If fixed, we chose here. If random,
     # will be selected at random during request creation
     if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
@@ -312,7 +312,7 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
     contract_invoker_id = contract_invoker_keys.identity
     last_response_committed = None
 
-    # Decide if the contract use a fixed enclave or a randomized one for each update. 
+    # Decide if the contract use a fixed enclave or a randomized one for each update.
     if use_eservice and config['Service']['Randomize_Eservice']:
         enclave_to_use = 'random'
     else:
@@ -523,9 +523,6 @@ def Main() :
     if options.data_dir :
         config_map['data'] = options.data_dir
 
-    config_map['contract'] = 'mock-contract'
-
-
     # parse the configuration file
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
@@ -607,6 +604,9 @@ def Main() :
             'DataDirectory' : ContractData,
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
+
+    config['Contract']['Name'] = 'mock-contract'
+    config['Contract']['SourceFile'] = '_mock-contract.scm'
 
     if options.data_dir :
         config['Contract']['DataDirectory'] = options.data_dir
