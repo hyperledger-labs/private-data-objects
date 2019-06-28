@@ -137,7 +137,8 @@ def __replication_worker__(service_id, pending_tasks_queue, condition_variable_f
     """ Worker thread that replicates to a specific storage service"""
     # set up the service client
     try:
-        service_client = service_db.get_client_by_id(service_id)
+        einfo = service_db.get_by_enclave_id(service_id)
+        service_client = einfo.client
         init_sucess = True
     except:
         logger.info("Failed to set up service client for service id %s", str(service_id))

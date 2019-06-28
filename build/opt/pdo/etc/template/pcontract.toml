@@ -28,29 +28,7 @@ LedgerURL = "${ledger}"
 # Service -- Information about enclave/provisioning services
 # --------------------------------------------------
 [Service]
-
-PreferredEnclaveService = "http://127.0.0.1:7101"
-
 EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
-
-EnclaveServiceNames = [
-    "e1",
-    "e2",
-    "e3"
-]
-
-
-EnclaveServiceURLs = [
-    "http://127.0.0.1:7101",
-    "http://127.0.0.1:7102",
-    "http://127.0.0.1:7103"
-]
-
-ProvisioningServiceURLs = [
-    "http://127.0.0.1:7001",
-    "http://127.0.0.1:7002",
-    "http://127.0.0.1:7003"
-]
 
 #--------------------------------------------------
 #Replication -- to maintain state availability

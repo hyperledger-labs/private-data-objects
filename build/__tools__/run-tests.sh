@@ -35,6 +35,7 @@ SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 : "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
 
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+ESDB_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
@@ -42,7 +43,7 @@ function cleanup {
     ${PDO_HOME}/bin/ps-stop.sh --count ${NUM_SERVICES} > /dev/null
     ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
     ${PDO_HOME}/bin/ss-stop.sh --count ${NUM_SERVICES} > /dev/null
-    rm -f ${SAVE_FILE}
+    rm -f ${SAVE_FILE} ${ESDB_FILE}
 }
 
 trap cleanup EXIT
@@ -113,14 +114,20 @@ yell start tests with provisioning and enclave services
 say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
 try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
-    --eservice-db $PDO_HOME/data/db-test.json --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ --ledger ${PDO_LEDGER_URL}
-try rm $PDO_HOME/data/db-test.json
+    --eservice-db ${ESDB_FILE} \
+    --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
+    --ledger ${PDO_LEDGER_URL}
+try rm -f ${ESDB_FILE}
 
 cd ${SRCDIR}/build
 
 say create the eservice database using database CLI
-# add all enclaves listed in pcontract.toml
-try pdo-eservicedb --logfile $PDO_HOME/logs/client.log --loglevel info create
+try pdo-eservicedb --loglevel warn reset
+try pdo-eservicedb --loglevel warn add -u http://localhost:7101 -n es7101
+try pdo-eservicedb --loglevel warn add -u http://localhost:7102 -n es7102
+try pdo-eservicedb --loglevel warn add -u http://localhost:7103 -n es7103
+try pdo-eservicedb --loglevel warn add -u http://localhost:7104 -n es7104
+try pdo-eservicedb --loglevel warn add -u http://localhost:7105 -n es7105
 
 say start storage service test
 try pdo-test-storage --url http://localhost:7201 --loglevel warn --logfile __screen__
@@ -238,14 +245,6 @@ ${PDO_HOME}/bin/pdo-invoke.psh --identity user2 --pdo_file ${SAVE_FILE} --expr "
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
-
-#-----------------------------------------
-yell run tests with the eservice database
-#------------------------------------------
-
-say run various pdo scripts - test-request, test-contract, create, update, shell - using database
-try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info
-try pdo-test-contract --contract integer-key --eservice-name e2 --logfile $PDO_HOME/logs/client.log --loglevel info
 
 # -----------------------------------------------------------------
 yell test pdo-shell

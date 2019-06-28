@@ -56,9 +56,10 @@ class ContractRequest(object) :
         if self.enclave_service == 'random':
             enclave_id = random.choice(list(contract.enclave_map.keys()))
             try: #use the eservice database to get the client
-                self.enclave_service = eservice_db.get_client_by_id(enclave_id)
+                einfo = eservice_db.get_by_enclave_id(enclave_id)
+                self.enclave_service = einfo.client
             except Exception as e:
-                raise Exception('unable to assign eservice for the conrtract: Failed to get enclave client using database: %s', str(e))
+                raise Exception('failed to get enclave client using database: %s', str(e))
 
         self.encrypted_state_encryption_key = contract.get_state_encryption_key(self.enclave_service.enclave_id)
         self.originator_keys = request_originator_keys
