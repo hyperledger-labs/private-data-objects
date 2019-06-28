@@ -22,8 +22,9 @@ before logging is enabled.
 import os
 import errno
 import pdo.common.crypto as crypto
-import socket
-from urllib.parse import urlparse
+
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = [
     'set_default_data_directory',
@@ -35,6 +36,23 @@ __all__ = [
     ]
 
 __DefaultDataDirectory__ = './data'
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+import inspect
+import functools
+
+def deprecated(func):
+    """decorator to mark functions as deprecated, logs a warning
+    with information about the function and the caller
+    """
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        stack = inspect.stack()
+        logger.warn('invocation of deprecated function %s by %s in file %s', func.__name__, stack[1][3], stack[1][1])
+        return func(*args, **kwargs)
+
+    return new_func
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -121,14 +139,17 @@ def from_transaction_signature_to_id(transaction_signature) :
 
 #--------------------------------------------------------------------
 #--------------------------------------------------------------------
+import socket
+from urllib.parse import urlparse
+
 def are_the_urls_same(url1, url2):
-    """Though not a perfect comparison, we make make sure that 
-    http://127.0.0.1:7101/ and http://localhost:7101 are considered the same. 
+    """Though not a perfect comparison, we make make sure that
+    http://127.0.0.1:7101/ and http://localhost:7101 are considered the same.
     It would be good to first check  if the input is a valid url itself."""
 
     if url1 is None or url2 is None:
         return False
-    
+
     if (url1 == url2):
         return True
 

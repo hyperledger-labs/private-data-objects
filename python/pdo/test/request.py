@@ -148,6 +148,7 @@ def CreateAndRegisterEnclave(config) :
     """
 
     global enclave
+    ledger_config = config.get('Sawtooth')
 
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
@@ -155,7 +156,10 @@ def CreateAndRegisterEnclave(config) :
         enclaveclients = []
         try :
             for url in config['Service']['EnclaveServiceURLs'] :
-                enclaveclients.append(db.get_client_by_url(url))
+                # need to add this to the database so the replication
+                # module can find it later
+                einfo = db.add_by_url(ledger_config, url)
+                enclaveclients.append(einfo.client)
         except Exception as e :
             logger.error('unable to setup enclave services; %s', str(e))
             sys.exit(-1)
@@ -180,7 +184,6 @@ def CreateAndRegisterEnclave(config) :
         sys.exit(-1)
 
     try :
-        ledger_config = config.get('Sawtooth')
         if use_ledger :
             txnid = enclave.register_enclave(ledger_config)
             logger.info('enclave registration successful')
@@ -380,22 +383,6 @@ def LocalMain(config) :
     # keys of the contract creator
     contract_creator_keys = keys.ServiceKeys.create_service_keys()
 
-    # load the eservice database if the file is found
-    if os.path.exists(config['Service']['EnclaveServiceDatabaseFile']):
-        try:
-            db.load_database(config['Service']['EnclaveServiceDatabaseFile'])
-            logger.info('Loading the eservice database from json file %s', str(config['Service']['EnclaveServiceDatabaseFile']))
-        except Exception as e:
-            logger.error('Error loading eservice database %s', str(e))
-            sys.exit(-1)
-
-        #convert any eservice names to urls using the database
-        if config['Service'].get('EnclaveServiceNames'):
-            config['Service']['EnclaveServiceURLs'] = []
-            for name in  config['Service']['EnclaveServiceNames']:
-                info = db.get_info_by_name(name)
-                config['Service']['EnclaveServiceURLs'].append(info['url'])
-
     # --------------------------------------------------
     logger.info('create and register the enclaves')
     # --------------------------------------------------
@@ -489,11 +476,9 @@ def Main() :
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
-    parser.add_argument('--eservice-db', help='json file for eservice database', type=str)
-    parser.add_argument('--eservice-name', help='List of enclave services to use. Give names as in database', nargs='+')
     parser.add_argument('--eservice-url', help='List of enclave service URLs to use', nargs='+')
-    parser.add_argument('--randomize-eservice', help="Eservice will be randomized for each update. \
-        Else, the same eservice (the first one in the list of input eservices) will be used for all udpates.", action="store_true")
+    parser.add_argument('--randomize-eservice', help="Randomize eservice used for each update", action="store_true")
+
     parser.add_argument('--pservice-url', help='List of provisioning service URLs to use', nargs='+')
 
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
@@ -568,26 +553,19 @@ def Main() :
     # set up the service configuration
     if config.get('Service') is None :
         config['Service'] = {
-            'EnclaveServiceNames' : [],
             'EnclaveServiceURLs' : [],
             'ProvisioningServiceURLs' : [],
-            'EnclaveServiceDatabaseFile' : None
+            'EnclaveServiceDatabaseFile' : None,
+            'Randomize_Eservice' : False
         }
 
     if options.randomize_eservice:
         config['Service']['Randomize_Eservice'] = True
     else:
         config['Service']['Randomize_Eservice'] = False
-    if options.eservice_name:
-        use_eservice = True
-        config['Service']['EnclaveServiceNames'] = options.eservice_name
-    if options.eservice_db:
-        config['Service']['EnclaveServiceDatabaseFile'] = options.eservice_db
     if options.eservice_url :
         use_eservice = True
         config['Service']['EnclaveServiceURLs'] = options.eservice_url
-        # if url is provided, we will not use database
-        config['Service']['EnclaveServiceNames'] = []
     if options.pservice_url :
         use_pservice = True
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
