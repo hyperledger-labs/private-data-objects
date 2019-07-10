@@ -157,8 +157,6 @@ def CreateAndRegisterEnclave(config) :
         enclaveclients = []
         try :
             for url in config['Service']['EnclaveServiceURLs'] :
-                # need to add this to the database so the replication
-                # module can find it later
                 einfo = db.add_by_url(ledger_config, url)
                 enclaveclients.append(einfo.client)
         except Exception as e :

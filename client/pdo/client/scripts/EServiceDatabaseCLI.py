@@ -42,10 +42,14 @@ def _load_database_(config, create=False) :
     if create and not os.path.exists(database_file) :
         _save_database_(config)
 
+    loaded = False
     try :
-        eservice_db.load_database(database_file, merge = False)
+        loaded = eservice_db.load_database(database_file, merge = False)
     except Exception as e :
-        logger.error('unable to load eservice data from %s; %s', database_file, str(e))
+        pass
+
+    if not loaded :
+        logger.error('unable to load eservice data from %s', database_file)
         sys.exit(-1)
 
 # -----------------------------------------------------------------
