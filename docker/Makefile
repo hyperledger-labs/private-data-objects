@@ -16,6 +16,7 @@
 DOCKER_BUILD_OPTS=
 DOCKER_COMPOSE_COMMAND=docker-compose
 DOCKER_COMPOSE_FILES=
+DOCKER_COMPOSE_OPTS=
 
 # optionally allow local overriding defaults
 -include make.loc
@@ -23,6 +24,8 @@ DOCKER_COMPOSE_FILES=
 DOCKER_COMPOSE_FILES += sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES += sawtooth-pdo.sgx.yaml
+   SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx" ]; then echo "/dev/sgx"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
+   DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
 endif
 ifdef http_proxy
    DOCKER_BUILD_OPTS += --build-arg http_proxy=${http_proxy}
@@ -46,7 +49,7 @@ endif
 ifdef PDO_DEBUG_BUILD
    DOCKER_COMPOSE_FILES += sawtooth-pdo.debugging.yaml
 endif
-DOCKER_COMPOSE_OPTS=$(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
+DOCKER_COMPOSE_OPTS += $(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
 
 all:
 
