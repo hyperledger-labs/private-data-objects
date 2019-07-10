@@ -64,12 +64,12 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         else :
             enclave_id = random.choice(contract.provisioned_enclaves)
 
-        eservice_info = eservice_db.get_info_by_id(enclave_id)
+        eservice_info = eservice_db.get_by_enclave_id(enclave_id)
         if eservice_info is None :
             raise Exception('attempt to use an unknown enclave; %s', enclave_id)
 
         try :
-            eservice_client = EnclaveServiceClient(eservice_info['url'])
+            eservice_client = EnclaveServiceClient(eservice_info.url)
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 

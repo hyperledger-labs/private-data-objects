@@ -21,288 +21,388 @@ import copy
 import shutil
 import datetime
 
+import hashlib
+
 import logging
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    'clear_all_data',
+    'load_database',
+    'save_database',
+    'add_by_url',
+    'remove_by_name',
+    'remove_by_enclave_id',
+    'rename_enclave',
+    'get_enclave_ids',
+    'get_enclave_names',
+    'get_by_name',
+    'get_by_enclave_id',
+    ]
 
 from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
 from sawtooth.helpers.pdo_connect import ClientConnectException
 from pdo.service_client.enclave import EnclaveServiceClient
-from pdo.common.utility import are_the_urls_same
+from pdo.common.utility import deprecated
 import pdo.common.keys as keys
 
-# primary
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class enclave_info(object) :
+    """The enclave_info class holds information about an enclave
+    including the identity, a human readable name given by the user,
+    the URL of the eservice that hosts the enclave, and the time when
+    the enclave information was last verified.
+    """
+
+    @classmethod
+    def deserialize(cls, serialized) :
+        enclave_id = serialized['enclave_id']
+        name = serialized['name']
+        url = serialized['url']
+        last_verified_time = serialized['last_verified_time']
+        return cls(enclave_id, name, url, last_verified_time)
+
+    @staticmethod
+    def __hashed_identity__(enclave_id) :
+        return hashlib.sha256(enclave_id.encode('utf8')).hexdigest()[:16]
+
+    def __init__(self, enclave_id, name = "", url = "", last_verified_time = "", client = None) :
+        self.enclave_id = enclave_id
+        self.name = name
+        self.url = url
+        self.last_verified_time = last_verified_time
+
+        if self.name == '' :
+            self.name = enclave_info.__hashed_identity__(self.enclave_id)
+
+        self.__eservice_client__ = client
+
+    @property
+    def client(self) :
+        if self.__eservice_client__ is None :
+            self.__eservice_client__ = EnclaveServiceClient(self.url)
+        return self.__eservice_client__
+
+    @client.setter
+    def client(self, c) :
+        self.__eservice_client__ = c
+
+    def verify(self, ledger_config) :
+        """ensure that the eservice still exists and hosts the enclave, and
+        ensure that the enclave is registered with the ledger
+        """
+
+        # first check: make sure the enclave hosted by the eservice is
+        # the one we expect to be hosted
+        try :
+            if self.client.enclave_id != self.enclave_id :
+                logger.info('mismatched enclave ids')
+                self.last_verified_time = None
+                return False
+        except Exception as e :
+            logger.info('failed to retrieve information from the hosting eservice; %s', str(e))
+            self.last_verified_time = ""
+            return False
+
+        # second check: make sure the ledger has an entry for the enclave
+        try :
+            txn_keys = keys.TransactionKeys()
+            sawtooth_client = PdoClientConnectHelper(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
+            enclave_state = sawtooth_client.get_enclave_dict(self.enclave_id)
+        except Exception as e :
+            logger.info('failed to verify enclave registration with the ledger; %s', str(e))
+            self.last_verified_time = ""
+            return False
+
+        self.last_verified_time = str(datetime.datetime.now())
+        return True
+
+    def serialize(self) :
+        """convert the object into a dictionary
+        """
+        serialized = dict()
+        serialized['enclave_id'] = self.enclave_id
+        serialized['name'] = self.name
+        serialized['url'] = self.url
+        serialized['last_verified_time'] = self.last_verified_time
+
+        return serialized
+
+# -----------------------------------------------------------------
+# __data__ is the primary data storage for the in-memory eservice
+# database; it maps enclave_id to the corresponding enclave info
+# object
+# -----------------------------------------------------------------
 __data__ = dict()
-# dervived 
-__url_by_name__ = dict()
-__id_by_name__ = dict()
-__name_by_url__ = dict()
-__name_by_id__ = dict()
 
+# -----------------------------------------------------------------
+# __enclave_name_map__ is the secondary key for the in-memory
+# eservice database; it maps a name to an enclave_id
+# -----------------------------------------------------------------
+__enclave_name_map__ = dict()
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def __remove_einfo_object__(einfo) :
+    """guarantee that the enclave_id and name mappings are clear
+    for the enclave
+    """
+
+    global __data__, __enclave_name_map__
+
+    try :
+        # we use the old information because the name may change
+        # in the new enclave (though the enclave_id will not)
+        old_einfo = __data__[einfo.enclave_id]
+        __data__.pop(einfo.enclave_id, None)
+        __enclave_name_map__.pop(old_einfo.name, None)
+    except :
+        pass
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def __add_einfo_object__(einfo, update=False) :
+    """add an enclave_info object to the in memory database and update
+    the name mappings as appropriate
+    """
+
+    global __data__, __enclave_name_map__
+
+    if update :
+        # this convoluted check ensures that the name of the new enclave
+        # is not already being used to identify an existing enclave that
+        # is different than the one being added, this update is prohibited
+        if __enclave_name_map__.get(einfo.name, einfo.enclave_id) != einfo.enclave_id :
+            raise Exception('attempt to rename existing enclave')
+
+        __remove_einfo_object__(einfo)
+
+    # this is not quite guaranteed if update because the name may be
+    # used for a different enclave so it must always be checked
+    if einfo.enclave_id in __data__ or einfo.name in __enclave_name_map__ :
+        raise Exception('duplicate eservice entry; {0}'.format(einfo.name))
+
+    __data__[einfo.enclave_id] = einfo
+    __enclave_name_map__[einfo.name] = einfo.enclave_id
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def clear_all_data():
-    """ clear all dictonaries. Useful to create a fresh database."""
-   
-    global __data__
+    """Clear the in-memory database and all secondary indexes. Useful
+    to create a fresh database.
+    """
+
+    global __data__, __enclave_name_map__
 
     __data__ = dict()
-    update_dictionaries(__data__, merge=False)
+    __enclave_name_map__ = dict()
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def load_database(filename, merge = True):
-    
-    global __data__
-    
-    if os.path.exists(filename):
-        try:
-            with open(filename, 'r') as fp:
-                new_data = json.load(fp)
-        except Exception as e:
-            logger.exception('Failed to load json file for service database: %s', str(e))
-            raise Exception from e
-    else:
-        raise Exception('Cannot load service database: File does not exist')
+    """Load enclave information into the in-memory database from
+    a file that contains json serialization of enclave_info objects.
 
-    if not isinstance(new_data, dict) or not are_entries_unique(new_data.values()):
-        raise Exception('Cannot load database: File %s corresponds to an invalid database', str(filename))
-                
-    if merge:
-        # if there are  common names, check that the corresponding infos are the same, else raise conflict during merge
-        names_curr = set(__data__.keys())
-        common_names = names_curr.intersection(set(new_data.keys()))
-        for name in common_names:
-            if not is_info_same(__data__[name], new_data[name]):
-                raise Exception('Cannot load database: Conflict during merge')
-            
-        # do a temp merge and ensure that no two names contain the same id or url
-        temp_merged_data = copy.deepcopy(__data__)
-        temp_merged_data.update(new_data)
-        if not are_entries_unique(temp_merged_data.values()):
-            raise Exception('Cannot load database: Conflicts during merge')
-        
-        # all good, merge
-        __data__.update(new_data)
-    else:
-        __data__ = dict()
-        __data__.update(new_data)
+    The function returns True, if the load succeeds or False if it
+    fails. On failure the old database is restored.
+    """
+    global __data__, __enclave_name_map__
 
-    # update the derived data structures
-    update_dictionaries(new_data, merge)
+    try :
+        with open(filename, 'r') as fp:
+            serialized_einfo_list = json.load(fp)
+    except Exception as e :
+        logger.error('failed to load the database from file %s', filename)
+        return False
 
-#--------------------------------------------
-#--------------------------------------------
+    original_data = __data__.copy()
+    original_enclave_name_map = __enclave_name_map__.copy()
 
+    if not merge :
+        clear_all_data()
+
+    try :
+        for serialized_einfo in serialized_einfo_list :
+            einfo_object = enclave_info.deserialize(serialized_einfo)
+            __add_einfo_object__(einfo_object, update=merge)
+    except Exception as e :
+        logger.error('failed to add enclave info from the database file %s; %s', filename, str(e))
+        __data__ = original_data
+        __enclave_name_map__ = original_enclave_name_map
+        return False
+
+    return True
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def save_database(filename, overwrite = False):
-    """ Save the dictionary as a json file. If no new_file_name is provided, the json file used for init will be overwritten"""
-    
+    """Serialize the in-memory enclave information database and write
+    it to a file. Data will be serialized as JSON.
+    """
+
     if os.path.exists(filename) and overwrite is False:
-        raise Exception('Cannot save database to file. File already present')
-    
+        logger.error('Cannot save database to file. File already present')
+        return False
+
+    serialized_einfo_list = []
+    for enclave_id, einfo in __data__.items() :
+        serialized_einfo = einfo.serialize()
+        serialized_einfo_list.append(serialized_einfo)
+
     # dump json to temporary file, if write succeeds move to desired file
     temp_filename = filename + '_temp'
     try:
         with open(temp_filename, 'w') as fp:
-            json.dump(__data__, fp)
-        shutil.copyfile(temp_filename, filename)
+            json.dump(serialized_einfo_list, fp)
+        shutil.move(temp_filename, filename)
     except Exception as e:
         raise Exception('Failed to save service database info as a json file: %s', str(e))
-    
-    try:
-        os.remove(temp_filename)
-    except Exception as e:
-        logger.exception('failed to remove the temporary file, continuing with the execution however...')
-    
-#--------------------------------------------
-#--------------------------------------------
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def add_by_url(ledger_config, url, name='', update=False) :
+    """add to the in-memory database information about the enclave
+    hosted by an eservice at the provided url.
+    """
+    try :
+        client = EnclaveServiceClient(url)
+    except Exception as e :
+        logger.error('unable to connect to enclave service; %s', str(e))
+        return None
+
+    einfo = enclave_info(client.enclave_id, name=name, url=url, client=client)
+    try :
+        if not einfo.verify(ledger_config) :
+            logger.info('enclave verification failed for url %s', url)
+            return None
+
+        __add_einfo_object__(einfo, update)
+        return einfo
+
+    except Exception as e :
+        pass
+
+    return None
+
+@deprecated
 def add_info_to_database(name,  url, ledger_config):
-    """ Name, url and ledger_config are mandatory, id is automatically found fom the eservice. 
-    Return True if add succeeds, else return False"""
-    
-    global __data__
-    
-    try :
-        client = get_client_by_url(url)
-    except Exception as e :
-        logger.info('Cannot add info to database: %s', str(e))
-        return False
-    
-    id = client.enclave_id
+    return add_by_url(ledger_config, url, name, update=False)
 
-    #make sure that the new entry does not conflict with an existing entry
-    if (get_info_by_name(name) is not None) or (get_info_by_url(url) is not None) or (get_info_by_id(id) is not None):
-        logger.info('Cannot add info to database: new entry conflicts with existing database')
-        return False
-    
-    #verify that the enclave has been registered with the ledger 
-    try:
-        is_info_valid, time_of_verification = verify_info(url, ledger_config, id, txn_keys = None, client = client)
-        if is_info_valid:
-            logger.info('Adding a new entry to eservice database')
-            __data__[name] = {'url': url, 'id': id, 'last_verified_time': time_of_verification}
-        else:
-            logger.info('Cannot add info to database: Verification with ledger failed')
-            return False
-    except Exception as e:
-        logger.info('Cannot add info to database: Unknown error while verifying with ledger: %s', str(e))
-        return False
-
-    update_dictionaries({name:__data__[name]}, merge = True)
-    return True
-
-#--------------------------------------------
-#--------------------------------------------
-
+@deprecated
 def update_info_in_database(name, url, ledger_config):
-    """ Update the entry corresponding to name. Replace url with incoming url. 
-    Return True if udpate succeeds, else retrun False. If no entry with name is found, 
-    return False"""
+    return add_by_url(ledger_config, url, name, update=True)
 
-    
-    global __data__
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def remove_by_name(name) :
+    try :
+        einfo = get_by_name(name)
+        __remove_einfo_object__(einfo)
+        return True
+    except :
+        pass
 
-    if not __data__.get(name):
+    return False
+
+def remove_by_enclave_id(enclave_id) :
+    try :
+        einfo = get_by_enclave_id(enclave_id)
+        __remove_einfo_object__(einfo)
+        return True
+    except :
+        pass
+
+    return False
+
+@deprecated
+def remove_info_from_database(name = '', enclave_id = None, url = None):
+    """ Remove entries corresponding to name & id & url. Return the number of entries removed"""
+    if name :
+        return remove_by_name(name)
+
+    if enclave_id :
+        return remove_by_enclave_id(enclave_id)
+
+    logger.info('failed to remove enclave for url %s', url)
+    return False
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def rename_enclave(old_name, new_name) :
+    einfo = get_by_name(old_name)
+    if einfo is None :
         return False
 
     try :
-        client = get_client_by_url(url)
+        # update the object and add the new enclave info mapping, the
+        # the update flag will ensure that the old version of the
+        # enclave_info will be removed
+        einfo.name = new_name
+        __add_einfo_object__(einfo, update=True)
     except Exception as e :
-        logger.info('Cannot update info in database: %s', str(e))
-        return False
-    
-    id = client.enclave_id
-
-    #make sure that the update info does not conflict with an existing entry. if url is already present, it must be against the same name
-    info_by_url = get_info_by_url(url)
-    if info_by_url is not None:
-        if info_by_url['name'] != name:
-            logger.info('Cannot update info in database: new info conflicts with existing database')
-            return False    
-    
-    # if the id is present, it must be against the same name (if so there is nothing to update)
-    info_by_id = get_info_by_id(id)
-    if info_by_id is not None:
-        if info_by_id['name'] == name:
-            logger.info('Nothing to update. url and id for name have not changed')
-            return True
-        else:
-            logger.info('Cannot update info in database: new info conflicts with existing database')
-            return False
-    
-    # Ok, we now have a new id, first verify that the id has been registered with the ledger 
-    try:
-        is_info_valid, time_of_verification = verify_info(url, ledger_config, id, txn_keys = None, client = client)
-        if is_info_valid:
-            logger.info('Updating entry corresponding to %s in eservice database', str(name))
-            __data__[name] = {'url': url, 'id': id, 'last_verified_time': time_of_verification}
-        else:
-            logger.info('Cannot update info in database: Verification with ledger failed')
-            return False
-    except Exception as e:
-        logger.info('Cannot update info in database: Unknown error while verifying with ledger: %s', str(e))
+        logger.info('failed to rename enclave %s to %s', old_name, new_name)
         return False
 
-    update_dictionaries({name:__data__[name]}, merge = True)
     return True
-#--------------------------------------------
-#--------------------------------------------
 
-def remove_info_from_database(name = None, id = None, url = None):
-    """ Remove entries corresponding to name & id & url. Return the number of entries removed"""
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def get_enclave_ids() :
+    return __data__.keys()
 
-    def remove(info):
-        global __url_by_name__
-        global __id_by_name__
-        global __name_by_url__
-        global __name_by_id__
-        global __data__
-        
-        __data__.pop(info['name'])
-        __id_by_name__.pop(info['name'])
-        __url_by_name__.pop(info['name'])
-        __name_by_id__.pop(info['id'])
-        __name_by_url__.pop(info['url'])
+def get_enclave_names() :
+    return __enclave_name_map__.keys()
 
-    num_removed = 0
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def get_by_name(name) :
+    enclave_id = __enclave_name_map__.get(name)
+    return get_by_enclave_id(enclave_id)
 
-    # remove by name
-    info = get_info_by_name(name)
-    if info is not None:
-        remove(info)
-        num_removed+=1
-        
-    # remove by id
-    info = get_info_by_id(id)
-    if info is not None:
-        remove(info)
-        num_removed+=1
+def get_by_enclave_id(enclave_id) :
+    return __data__.get(enclave_id)
 
-    # remove by url
-    info = get_info_by_url(url)
-    if info is not None:
-        remove(info)
-        num_removed+=1
-
-    logger.info('Removed %d entries from the database', num_removed)
-    return num_removed
-
-#--------------------------------------------
-#--------------------------------------------
-
+@deprecated
 def get_info_by_name(name):
     """ Get service info as present in database using name. Returns a dictonary with four fields:
     name, id, url, last_verified_time. Return None if there is no matching entry. """
 
-    if __data__.get(name):
-        info = copy.deepcopy(__data__[name])
-        info['name'] = name
-        return info
-    else:
-        return None
+    einfo = get_by_name(name)
+    if einfo :
+        return einfo.serialize()
 
-#--------------------------------------------
-#--------------------------------------------
-    
-def get_info_by_id(id):
+    return None
+
+@deprecated
+def get_info_by_id(enclave_id):
     """ Get service info as present in database using id. Returns a dictonary with four fields:
     name, id, url, last_verified_time. Return None if there is no matching entry. """
 
-    if __name_by_id__.get(id):
-        name = __name_by_id__[id]
-        info = copy.deepcopy(__data__[name])
-        info['name'] = name
-        return info
-    else:
-        return None
+    einfo = get_by_enclave_id(enclave_id)
+    if einfo :
+        return einfo.serialize()
 
-#--------------------------------------------
-#--------------------------------------------
+    return None
 
+@deprecated
 def get_info_by_url(url):
     """ Get service info as present in database using url. Returns a dictonary with four fields:
     name, id, url, last_verified_time. Return None if there is no matching entry. """
-    
-    for url_in_db in __name_by_url__.keys():
-        if are_the_urls_same(url_in_db, url):
-            name = __name_by_url__[url_in_db]
-            info = copy.deepcopy(__data__[name])
-            info['name'] = name
-            return info
-    
+
     return None
 
-#--------------------------------------------
-#--------------------------------------------
-
+@deprecated
 def get_client_by_name(name):
     """ get client for eservice identified by name"""
 
-    try:
-        return get_client_by_url(__url_by_name__[name])
-    except Exception as e:
-        raise Exception('Cannot generate client for eservice %s: %s', str(name), str(e))
+    einfo = get_by_name(name)
+    if einfo :
+        return einfo.client
 
-#--------------------------------------------
-#--------------------------------------------
+    return None
 
+@deprecated
 def get_client_by_url(url):
     """ get client for eservice@url"""
 
@@ -310,99 +410,13 @@ def get_client_by_url(url):
         return EnclaveServiceClient(url)
     except Exception as e :
         raise Exception('Cannot generate client for eservice at %s: %s', str(url), str(e))
-        
 
-#--------------------------------------------
-#--------------------------------------------
-
-def get_client_by_id(id):
+@deprecated
+def get_client_by_id(enclave_id):
     """ get client for eservice identified by id"""
 
-    try:
-        return get_client_by_url(__url_by_name__[__name_by_id__[id]])
-    except Exception as e:
-        raise Exception('Cannot generate client for eservice id %s: %s', str(id), str(e))
+    einfo = get_by_enclave_id(enclave_id)
+    if einfo :
+        return einfo.client
 
-#--------------------------------------------
-#--------------------------------------------
-
-def verify_info(url, ledger_config, id, txn_keys = None, client = None):
-    """Verify two things: 1. Check that the eservice@url hosts the id. This check is performed only if client is None. 
-    2. Verify that id is registered with DL. Return the pair (True/Falase, verification_time).  verification_time is None for false verifcation"""
-    
-    if client is None:
-        try :
-            client = EnclaveServiceClient(url)
-        except Exception as e :
-            raise Exception('failed to contact enclave service; %s', str(e))
-
-        # match id with eservice id
-        if id != client.enclave_id: 
-            logger.info('Failed to verify enclave. Database info does match with info from eservice')
-            return (False, None)
-    
-    # check againt ledger info
-    try:
-        if txn_keys is None:
-            txn_keys = keys.TransactionKeys()
-        sawtooth_client = PdoClientConnectHelper(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
-        enclave_state = sawtooth_client.get_enclave_dict(client.enclave_id)
-    except ClientConnectException as ce :
-        logger.info('failed to verify enclave registration with the ledger; %s', str(ce))
-        return (False, None)
-    except:
-        raise Exception('unknown error occurred while verifying enclave registration with ledger')
-    
-    return (True, str(datetime.datetime.now()))
-    
-#--------------------------------------------
-#--------------------------------------------
-def is_info_same(info1, info2):
-    """ Check is both infos are the same. Return True/False """
-
-    return (info1['id'] == info2['id']) and (info1['last_verified_time'] == info2['last_verified_time']) and are_the_urls_same(info1['url'], info2['url'])
-
-
-def are_entries_unique(infos):
-    """ Check if all urls and ids are distinct in the infos. Return True/False"""
-
-    urls = set()
-    ids = set()
-    
-    for info in infos:
-        
-        add_url = True
-        for url in urls:
-            if are_the_urls_same(url, info['url']):
-                add_url = False
-                break
-        if add_url:
-            urls.add(info['url'])
-
-        ids.add(info['id'])
-
-    return 2*len(infos) == len(urls) + len(ids)
-
-#--------------------------------------------
-#--------------------------------------------
-
-def update_dictionaries(new_data, merge = True):
-    """ Update the derived dictonaries."""
-    
-    global __url_by_name__
-    global __id_by_name__
-    global __name_by_url__
-    global __name_by_id__
-    
-    if merge is False:
-        __url_by_name__ = dict()
-        __id_by_name__ = dict()
-        __name_by_url__ = dict()
-        __name_by_id__ = dict()
-
-    for name, info in new_data.items():
-        __url_by_name__[name] = info['url']
-        __id_by_name__[name] = info['id']
-        __name_by_url__[info['url']] = name
-        __name_by_id__[info['id']] = name
-
+    return None

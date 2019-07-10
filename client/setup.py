@@ -62,7 +62,7 @@ setup(name='pdo_client',
       entry_points = {
           'console_scripts': [
               'pdo-shell = pdo.client.scripts.ShellCLI:Main',
-              'pdo-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Main'
+              'pdo-eservicedb = pdo.client.scripts.EServiceDatabaseCLI:Main'
           ]
       }
 )

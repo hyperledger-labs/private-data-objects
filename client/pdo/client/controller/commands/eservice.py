@@ -29,11 +29,10 @@ def __expand_eservice_names__(names) :
     result = set()
     if names :
         for name in names :
-            eservice_info = eservice_db.get_info_by_name(name)
-            logger.debug('eservice_info: %s', eservice_info)
+            eservice_info = eservice_db.get_by_name(name)
             if eservice_info is None :
                 raise Exception('unknown eservice name {0}'.format(name))
-            result.add(eservice_info['url'])
+            result.add(eservice_info.url)
 
     return result
 
@@ -107,8 +106,10 @@ def command_eservice(state, bindings, pargs) :
         if options.url :
             service_url = options.url
         if options.name :
-            service_info = eservice_db.get_info_by_name(options.name)
-            service_url = service_info['url']
+            service_info = eservice_db.get_by_name(options.name)
+            if service_info is None :
+                raise Exception('unknown eservice name; %s', options.name)
+            service_url = service_info.url
 
         services = state.get(['Service', 'EnclaveServiceGroups', options.group, 'urls'], [])
         if service_url in services :
