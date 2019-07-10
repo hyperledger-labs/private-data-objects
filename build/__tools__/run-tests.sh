@@ -165,10 +165,9 @@ if [ ! -f ${CONTRACT_FILE} ]; then
 fi
 
 say create the contract
-try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-     --logfile __screen__ --loglevel warn \
-    --identity user1 --save-file ${SAVE_FILE} \
-    --contract mock-contract --source _mock-contract.scm
+try ${PDO_HOME}/bin/pdo-create.psh \
+    --identity user1 --ps_group default --es_group all \
+    --pdo_file ${SAVE_FILE} --source _mock-contract.scm --class mock-contract
 
 # this will invoke the increment operation 5 times on each enclave round robin
 # fashion; the objective of this test is to ensure that the client touches
@@ -178,11 +177,9 @@ declare -i n=$((NUM_SERVICES*pcontract_es)) e v value
 say increment the value with a simple expression ${n} times, querying enclaves in round robin
 for v in $(seq 1 ${n}) ; do
     e=$((v % pcontract_es + 1))
-    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                       --enclave "http://localhost:710${e}" \
-                       --logfile __screen__ --loglevel warn \
-                       --identity user1 --save-file ${SAVE_FILE} \
-                       "'(inc-value)")
+    value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                       --enclave "http://localhost:710${e}" --identity user1 \
+                       --pdo_file ${SAVE_FILE} --expr "'(inc-value)")
     if [ $value != $v ]; then
         die "contract has the wrong value ($value instead of $v) for enclave $e"
     fi
@@ -190,22 +187,18 @@ done
 
 say increment the value with a evaluated expression
 v=$((v+1)); e=$((v % pcontract_es + 1))
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                   --enclave "http://localhost:710${e}" \
-                   --logfile __screen__ --loglevel warn \
-                   --identity user1 --save-file ${SAVE_FILE} \
-                   "(list 'inc-value)")
+value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                   --enclave "http://localhost:710${e}" --identity user1 \
+                   --pdo_file ${SAVE_FILE} --expr "(list 'inc-value)")
 if [ $value != $((n+1)) ]; then
     die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
 fi
 
 say get the value and check it
 v=$((v+1)); e=$((v % pcontract_es + 1))
-value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                   --enclave "http://localhost:710${e}" \
-                   --logfile __screen__ --loglevel warn \
-                   --identity user1 --save-file ${SAVE_FILE} \
-                   "'(get-value)")
+value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                   --enclave "http://localhost:710${e}" --identity user1 \
+                   --pdo_file ${SAVE_FILE} --expr "'(get-value)")
 if [ $value != $((n+1)) ]; then
     die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
 fi
@@ -229,28 +222,19 @@ if [ $? == 0 ]; then
 fi
 
 say invalid method, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-           --logfile __screen__ --loglevel warn \
-           --identity user1 --save-file ${SAVE_FILE} \
-           "'(no-such-method)"
+${PDO_HOME}/bin/pdo-invoke.psh --identity user1 --pdo_file ${SAVE_FILE} --expr "'(no-such-method)"
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
 say invalid expression, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-           --logfile __screen__ --loglevel warn \
-           --identity user1 --save-file ${SAVE_FILE} \
-           "'(no-such-method"
+${PDO_HOME}/bin/pdo-invoke.psh --identity user1 --pdo_file ${SAVE_FILE} --expr "'(no-such-method"
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
 say policy violation with identity, this should fail
-pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-           --logfile __screen__ --loglevel warn \
-           --identity user2 --save-file ${SAVE_FILE} \
-           "'(get-value)"
+${PDO_HOME}/bin/pdo-invoke.psh --identity user2 --pdo_file ${SAVE_FILE} --expr "'(get-value)"
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
@@ -262,39 +246,6 @@ yell run tests with the eservice database
 say run various pdo scripts - test-request, test-contract, create, update, shell - using database
 try pdo-test-request --eservice-name e1 --logfile $PDO_HOME/logs/client.log --loglevel info
 try pdo-test-contract --contract integer-key --eservice-name e2 --logfile $PDO_HOME/logs/client.log --loglevel info
-
-# make sure we have the necessary files in place
-CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
-if [ ! -f ${CONFIG_FILE} ]; then
-    die missing client configuration file, ${CONFIG_FILE}
-fi
-
-CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
-if [ ! -f ${CONTRACT_FILE} ]; then
-    die missing contract source file, ${CONTRACT_FILE}
-fi
-
-try pdo-create --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-     --logfile __screen__ --loglevel warn \
-    --identity user1 --save-file ${SAVE_FILE} \
-    --contract mock-contract --source _mock-contract.scm --eservice-name e1 e2 e3
-
-# this will invoke the increment operation 5 times on each enclave round robin
-# fashion; the objective of this test is to ensure that the client touches
-# multiple, independent enclave services and pushes missing state correctly
-declare -i pcontract_es=3 #.see ../opt/pdo/etc/template/pcontract.toml
-declare -i n=$((NUM_SERVICES*pcontract_es)) e v value
-for v in $(seq 1 ${n}) ; do
-    e=$((v % pcontract_es + 1))
-    value=$(pdo-update --config ${CONFIG_FILE} --ledger ${PDO_LEDGER_URL} \
-                       --eservice-name e${e} \
-                       --logfile __screen__ --loglevel warn \
-                       --identity user1 --save-file ${SAVE_FILE} \
-                       "'(inc-value)")
-    if [ $value != $v ]; then
-        die "contract has the wrong value ($value instead of $v) for enclave $e"
-    fi
-done
 
 # -----------------------------------------------------------------
 yell test pdo-shell

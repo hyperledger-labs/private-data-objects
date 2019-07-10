@@ -37,6 +37,7 @@ log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
 data_files = [
+    (bin_dir, [ 'bin/pdo-create.psh', 'bin/pdo-invoke.psh' ]),
     (etc_dir, [ 'etc/auction-test.toml', 'etc/sample_client.toml' ])
 ]
 
@@ -60,10 +61,6 @@ setup(name='pdo_client',
       data_files = data_files,
       entry_points = {
           'console_scripts': [
-              'pdo-auction-test = pdo.client.scripts.AuctionTestCLI:Main',
-              'pdo-create = pdo.client.scripts.CreateCLI:Create',
-              'pdo-add-enclave = pdo.client.scripts.CreateCLI:AddEnclave',
-              'pdo-update = pdo.client.scripts.UpdateCLI:Main',
               'pdo-shell = pdo.client.scripts.ShellCLI:Main',
               'pdo-eservicedb = pdo.client.scripts.eservicedatabaseCLI:Main'
           ]

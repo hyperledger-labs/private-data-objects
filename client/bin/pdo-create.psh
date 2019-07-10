@@ -1,0 +1,67 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## This is a pdo-shell script creates a contract object.
+##
+## Several shell variables are used:
+## Optional:
+##    psgroup -- the provisioning service group as defined in site.psh
+##    esgroup -- the enclave service group as defined in site.psh
+##    save -- directory where the pdo file will be saved
+##
+## Required:
+##    class -- the contract class defined in the source
+##    source -- the name of the contract source code file
+##    identity -- the identity of the contract creator
+##
+## $ ./create_contract.psh -m class <class> -m source <source> -m identity <identity>
+
+set -q --conditional -s data -v .
+set -q --conditional -s save -v .
+script -f ${home}/etc/site.psh
+
+## create a random string that uniquely identifies the contract
+## that we are going to create
+set -q -s random_id -r 32
+
+set -q --conditional -s psgroup -v default
+set -q --conditional -s esgroup -v default
+set -q --conditional -s pdo_file -v ${save}/${random_id}.pdo
+
+## class
+## source
+## identity
+
+if -e ${identity} '__unknown__'
+   echo missing required parameter, identity
+   exit
+fi
+
+if -n ${class}
+   echo missing required parameter, class
+   exit
+fi
+
+if -n ${source}
+   echo missing required parameter, source
+   exit
+fi
+
+identity -n ${identity}
+create -c ${class} -s ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup}
+
+echo contract saved to file ${pdo_file}
+exit
