@@ -122,7 +122,7 @@ try rm -f ${ESDB_FILE}
 cd ${SRCDIR}/build
 
 say create the eservice database using database CLI
-try pdo-eservicedb --loglevel warn reset
+try pdo-eservicedb --loglevel warn reset --create
 try pdo-eservicedb --loglevel warn add -u http://localhost:7101 -n es7101
 try pdo-eservicedb --loglevel warn add -u http://localhost:7102 -n es7102
 try pdo-eservicedb --loglevel warn add -u http://localhost:7103 -n es7103

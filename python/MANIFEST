@@ -13,6 +13,7 @@
 ./pdo/contract/request.py
 ./pdo/contract/response.py
 ./pdo/contract/state.py
+./pdo/contract/transaction.py
 ./pdo/service_client/__init__.py
 ./pdo/service_client/enclave.py
 ./pdo/service_client/generic.py
