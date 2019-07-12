@@ -19,8 +19,8 @@
 #  Configuration (build) paramaters
 #  - proxy configuration: 	https_proxy http_proxy ftp_proxy, no_proxy  (default: undefined)
 #  - ubuntu base image to use: 	UBUNTU_VERSION (default: bionic)
-#  - sgx sdk version: 		SGX_SDK (default: sgx_2.4)
-#  - openssl version: 		OPENSSL (default: 1.1.0j)
+#  - sgx sdk version: 		SGX_SDK (default: sgx_2.6)
+#  - openssl version: 		OPENSSL (default: 1.1.0k)
 #  - sgxssl version: 		SGXSSL  (default: v2.4.1)
 #  - additional apt packages:	ADD_APT_PKGS (default: )
 
@@ -56,8 +56,8 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG UBUNTU_VERSION=bionic
 # for bizare docker reason, we have to redefine it here ...
 
-ARG SGX_SDK=sgx_2.4
-ARG OPENSSL=1.1.0j
+ARG SGX_SDK=sgx_2.6
+ARG OPENSSL=1.1.0k
 ARG SGXSSL=v2.4.1
 
 ARG ADD_APT_PKGS=
