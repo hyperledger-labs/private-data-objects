@@ -21,21 +21,21 @@ support. Information about supported processors is provided below.
 ## Recommended Host System
 
 The required host-system configuration for Private Data Objects is to
-separate the Private Data Objects components from the Sawtooth components. 
+separate the Private Data Objects components from the Sawtooth components.
 This means if you want to run PDO on a single physical host, either PDO or the
 Sawtooth will have to run in a separate VM or container. In particular, to run
-PDO in SGX HW mode, the PDO component has to run in an SGX-enabled environment. 
-Below installation and configuration instructions will make sure that the host 
+PDO in SGX HW mode, the PDO component has to run in an SGX-enabled environment.
+Below installation and configuration instructions will make sure that the host
 and the docker components fullfill this requirement.
 
 Sawtooth (and the PDO transaction processors for Sawtooth) should be run on
 Ubuntu 16.04.
 
 Private Data Objects services (specifically the enclave service, provisioning
-service, and the client) should be run on Ubuntu 18.04  (server or client). 
+service, and the client) should be run on Ubuntu 18.04  (server or client).
 PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these configuration
-not all standard libraries match the required versions and you will have to, e.g., 
-install by hand an openssl version >= 1.1.0g (the default libssl-dev on these 
+not all standard libraries match the required versions and you will have to, e.g.,
+install by hand an openssl version >= 1.1.0g (the default libssl-dev on these
 platforms is still based on 1.0.2)
 
 Sawtooth and PDO may run on other Linux distributions, but the installation
@@ -49,7 +49,7 @@ Private Data Objects uses the trusted execution capabilities provided by
 Intel SGX to protect integrity and confidentiality. More information
 about SGX can be found on the
 [Intel SGX website](https://software.intel.com/en-us/sgx) including
-[detailed installation instructions](https://download.01.org/intel-sgx/linux-2.4/docs/Intel_SGX_Installation_Guide_Linux_2.4_Open_Source.pdf).
+[detailed installation instructions](https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_DCAP_Linux_SW_Installation_Guide.pdf).
 
 SGX can operate in either simulation mode or hardware mode. Simulation
 mode does not require any processor support for SGX and can be useful
@@ -66,8 +66,21 @@ SGX hardware mode uses capabilities for trusted execution in the
 processor to protect confidentiality and integrity of computation. SGX
 hardware mode requires processor support for SGX
 ([commonly available on recent Intel processors](https://ark.intel.com/content/www/us/en/ark/search/featurefilter.html)).
+
+Note: Our installation is based on the Intel Data Center Attestation
+Primitives (DCAP) software. To use all features of DCAP, e.g.,
+ECDSA-based Third-Party Attestation, you also would need hardware which
+supports Flexible Launch Control (FLC) and FLC does not exist on all
+parts yet. See [An update on 3rd
+Party Attestation](https://software.intel.com/en-us/blogs/2018/12/09/an-update-on-3rd-party-attestation)
+for more information on this. EPID-based attestation, on which
+PDO software relies on right now, is supported by DCAP, though, on all
+SGX-enabled Hardware and, hence, you do not require FLC-enabled HW to
+run PDO.
+
 To use SGX in hardware mode set the `SGX_MODE` environment variable to
 `HW`:
+
 
 ```bash
 export SGX_MODE=HW
@@ -123,25 +136,45 @@ page. Copy the contents of the SPID into the file
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
 hardware support, it is necessary to install the SGX kernel driver. The
-following commands will download and install v2.4 of the SGX kernel
-driver (for Ubuntu 18.04 server):
+following commands will download and install the DCAP v1.2 version of
+the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/sgx_linux_x64_driver_778dd1f.bin
-sudo /bin/bash sgx_linux_x64_driver_778dd1f.bin
-```
+apt-get install dkms
 
-Note that if you update your Linux kernel, you may need to reinstall the driver.
+DCAP_VERSION=1.2
+UBUNTU_VERSION=ubuntuServer18.04
+DRIVER_REPO=https://download.01.org/intel-sgx/dcap-${DCAP_VERSION}/linux/dcap_installers/${UBUNTU_VERSION}/
+DRIVER_FILE=$(cd /tmp; wget --spider -r --no-parent $DRIVER_REPO 2>&1 | perl  -ne 'if (m|'${DRIVER_REPO}'(.*driver.*)|) { print "$1\n"; }')
+
+wget ${DRIVER_REPO}/${DRIVER_FILE}
+chmod 777 ./${DRIVER_FILE}
+sudo ./${DRIVER_FILE}
+```
+<!--
+   Note: docu 'apt install build-essential ocaml automake autoconf
+   libtool wget python libssl-dev' all of which are not necessary
+   but omits necessary 'kms' ..
+-->
+
 
 #### Install SGX Platform Services
+
 You also need the SGX Platform Services (PSW) so an (HW) enclave can properly be launched and can receive quotes for remote attestation.
 Following commands will download and install PSW:
 
 ```bash
-sudo apt-get install libssl-dev libcurl4-openssl-dev libprotobuf-dev
+echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
+wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
+apt-get update
 
-wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
-sudo dpkg -i libsgx-enclave-common_2.4.100.48163-bionic1_amd64.deb
+apt-get install -y libsgx-enclave-common libsgx-dcap-ql
+```
+
+if you want to debug and/or develop, also install following packages
+```bash
+apt-get install -y libsgx-enclave-common-dbgsym libsgx-dcap-ql-dbg libsgx-enclave-common-dev libsgx-dcap-ql-dev
+
 ```
 
 If the installation of PSW (and kernel driver) was successfull, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.

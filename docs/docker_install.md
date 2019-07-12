@@ -70,13 +70,19 @@ request as it is easiest way to robustly check your commits. Doing so
 doesn't require any deeper understanding of docker or docker-compose
 and should run out-of the box.
 
-By default it will build and run tests only in SGX simulator mode but
-the makefile does honor
-the `SGX_MODE` environment variable if you want to test in SGX HW
-mode (in which case, though, you will have to put proper sgx attestation info
-files (`sgx_spid.txt`,  `sgx_spid_api_key`, `sgx_ias_key.pem`) into the
-sgx sub-directory or define the `PDO_SGX_KEY_ROOT` environment variable to
-point to a suiteable destination.
+By default it will build and run tests only in SGX simulator mode.
+However, assuming the host is [SGX-enabled](install.md#SGX), you can
+run tests also in HW mode: 
+
+- put proper sgx attestation info files (`sgx_spid.txt`,
+  `sgx_spid_api_key`,  `sgx_ias_key.pem`) into the sgx sub-directory
+  or define the `PDO_SGX_KEY_ROOT` environment variable to point to a
+  suiteable destination.
+
+- The makefile does honor the `SGX_MODE` environment variable, so just
+  make sure `SGX_MODE=HW` is defined before calling corresponding make
+  commands and tests will work in hardware mode.
+
 See `../build/common-config.sh --help` for more information on
 `PDO_SGX_KEY_ROOT` and related settings.
 

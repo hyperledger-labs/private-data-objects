@@ -75,8 +75,14 @@ SDK. When asked for the installation directory, we suggest that you install
 the SDK into the directory `/opt/intel`.
 
 ```bash
-wget https://download.01.org/intel-sgx/linux-2.4/ubuntu18.04-server/sgx_linux_x64_sdk_2.4.100.48163.bin -P /tmp
-sudo /bin/bash /tmp/sgx_linux_x64_sdk_2.4.100.48163.bin
+DCAP_VERSION=1.2
+UBUNTU_VERSION=ubuntuServer18.04
+DRIVER_REPO=https://download.01.org/intel-sgx/dcap-${DCAP_VERSION}/linux/dcap_installers/${UBUNTU_VERSION}/
+SDK_FILE=$(cd /tmp; wget --spider -r --no-parent $DRIVER_REPO 2>&1 | perl  -ne 'if (m|'${DRIVER_REPO}'(.*sdk.*)|) { print "$1\n"; }')
+
+wget ${DRIVER_REPO}/${SDK_FILE}
+chmod 777 ./${SDK_FILE}
+echo -e "no\n/opt/intel" | ./${SDK_FILE}
 ```
 
 The installer includes a file that sets environment variables to
@@ -125,7 +131,7 @@ SGX SSL install:
 
 ```bash
 cd openssl_source
-wget 'https://www.openssl.org/source/openssl-1.1.0j.tar.gz'
+wget 'https://www.openssl.org/source/openssl-1.1.0k.tar.gz'
 cd ..
 ```
 
