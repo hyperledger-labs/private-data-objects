@@ -36,7 +36,7 @@ void ContractWorker::InitializeInterpreter(void)
     if (current_state_ == INTERPRETER_DONE)
     {
         if (interpreter_ == NULL) {
-            interpreter_ = new GipsyInterpreter();
+            interpreter_ = new CreateGipsyInterpreter();
         } else {
             interpreter_->Initialize();
         }
@@ -67,7 +67,7 @@ void ContractWorker::WaitForCompletion(void)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-GipsyInterpreter* ContractWorker::GetInitializedInterpreter(void)
+pdo::contracts::ContractInterpreter* ContractWorker::GetInitializedInterpreter(void)
 {
     sgx_thread_mutex_lock(&mutex_);
 

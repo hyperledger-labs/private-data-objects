@@ -50,7 +50,12 @@ namespace pdo
                 std::map<string,string>& outDependencies,
                 std::string& outMessageResult
                 ) = 0;
+
+            virtual void Finalize(void) = 0;
+            virtual void Initialize(void) = 0;
         };
     }
 
 }
+
+extern pdo::contracts::ContractInterpreter* CreateGipsyInterpreter(void);
