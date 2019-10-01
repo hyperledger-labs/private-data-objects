@@ -1,0 +1,11 @@
+{ "method" : "inc_value" }, 1
+{ "method" : "inc_value" }, 2
+{ "method" : "inc_value" }, 3
+{ "method" : "inc_value" }, 4
+{ "method" : "inc_value" }, 5
+{ "method" : "inc_value" }, 6
+{ "method" : "inc_value" }, 7
+{ "method" : "inc_value" }, 8
+{ "method" : "inc_value" }, 9
+{ "method" : "inc_value" }, 10
+{ "method" : "get_value" }, 10

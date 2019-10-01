@@ -1,0 +1,3 @@
+{ "method" : "ecdsa_test"\, "message" : "hello there" }
+{ "method" : "aes_test"\, "message" : "hello there" }
+{ "method" : "rsa_test" }
