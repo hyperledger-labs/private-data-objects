@@ -33,9 +33,6 @@
 
 #include "enclave_utils.h"
 
-#include "interpreter/ContractInterpreter.h"
-#include "interpreter/gipsy_scheme/GipsyInterpreter.h"
-
 #include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

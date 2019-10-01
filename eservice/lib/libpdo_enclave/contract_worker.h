@@ -21,7 +21,6 @@
 #include "enclave_utils.h"
 
 #include "interpreter/ContractInterpreter.h"
-#include "interpreter/gipsy_scheme/GipsyInterpreter.h"
 
 class ContractWorker
 {
@@ -39,7 +38,7 @@ protected:
     sgx_thread_cond_t ready_cond_ = SGX_THREAD_COND_INITIALIZER;
     sgx_thread_cond_t done_cond_ = SGX_THREAD_COND_INITIALIZER;
 
-    GipsyInterpreter *interpreter_ = NULL;
+    pdo::contracts::ContractInterpreter *interpreter_ = NULL;
 
 public:
 
@@ -53,7 +52,7 @@ public:
 
     void InitializeInterpreter(void);
     void WaitForCompletion(void);
-    GipsyInterpreter *GetInitializedInterpreter(void);
+    pdo::contracts::ContractInterpreter *GetInitializedInterpreter(void);
     void MarkInterpreterDone(void);
 };
 
@@ -62,7 +61,7 @@ class InitializedInterpreter
 
 public:
     ContractWorker *worker_ = NULL;
-    GipsyInterpreter *interpreter_ = NULL;
+    pdo::contracts::ContractInterpreter *interpreter_ = NULL;
 
     InitializedInterpreter(ContractWorker* worker)
     {

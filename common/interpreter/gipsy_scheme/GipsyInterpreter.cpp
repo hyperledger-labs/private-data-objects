@@ -57,6 +57,13 @@ namespace pstate = pdo::state;
 
 #define strvalue(p)      ((p)->_object._string._svalue)
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pc::ContractInterpreter* CreateGipsyInterpreter(void)
+{
+    return new GipsyInterpreter();
+}
+
 extern "C" {
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

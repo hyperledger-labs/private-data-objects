@@ -39,8 +39,11 @@ namespace state
     public:
         virtual ByteArray PrivilegedGet(const ByteArray& key) const = 0;
         virtual void PrivilegedPut(const ByteArray& key, const ByteArray& value) = 0;
+        virtual void PrivilegedDelete(const ByteArray& key) = 0;
+
         virtual ByteArray UnprivilegedGet(const ByteArray& key) = 0;
         virtual void UnprivilegedPut(const ByteArray& key, const ByteArray& value) = 0;
+        virtual void UnprivilegedDelete(const ByteArray& key) = 0;
     };
 }
 }
