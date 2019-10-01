@@ -40,7 +40,15 @@ if(NOT UNTRUSTED_ONLY)
 endif()
 
 ################################################################################
-# Gipsy subdirectory
+# Interpreter subdirectories
 ################################################################################
 
-ADD_SUBDIRECTORY (gipsy_scheme)
+IF ($ENV{PDO_INTERPRETER} STREQUAL "gipsy")
+  ADD_DEFINITIONS(-DUSE_GIPSY_INTERPRETER)
+  ADD_SUBDIRECTORY (gipsy_scheme)
+ELSEIF ($ENV{PDO_INTERPRETER} STREQUAL "wawaka")
+  ADD_DEFINITIONS(-DUSE_WAWAKA_INTERPRETER)
+  ADD_SUBDIRECTORY (wawaka_wasm)
+ELSE()
+  MESSAGE(FATAL_ERROR "Unknown PDO_CONTRACT_INTERPRETER, $ENV{PDO_CONTRACT_INTERPRETER}!")
+ENDIF()

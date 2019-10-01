@@ -16,13 +16,17 @@ SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
 
-BASEPACKAGES := alist.scm comlist.scm hash.scm hashtab.scm
-CONTRACTPACKAGES := contract-base.scm counter.scm escrow-counter.scm key-store.scm
-PACKAGES := $(BASEPACKAGES) $(CONTRACTPACKAGES)
-PACKAGES := $(addprefix packages/, $(PACKAGES))
-
 TARGETS := all clean debug install test
-CONTRACTS := auction exchange integer-key test-contracts
+
+ifeq ($(PDO_INTERPRETER),gipsy)
+    CONTRACTS := auction exchange integer-key test-contracts
+else
+ifeq ($(PDO_INTERPRETER),wawaka)
+    CONTRACTS := wawaka
+else
+$(error Incomplete configuration, PDO_INTERPRETER is not defined)
+endif
+endif
 
 $(TARGETS): $(CONTRACTS)
 

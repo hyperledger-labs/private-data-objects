@@ -35,6 +35,22 @@ var_set() {
 	"
 	env_key_sort[$i]="TINY_SCHEME_SRC"; i=$i+1; export TINY_SCHEME_SRC=${env_val[TINY_SCHEME_SRC]};
 
+	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/wasm}"
+	env_desc[WASM_SRC]="
+		WASM_SRC points to the installation of the micro-wasm
+		source in order to build the wasm interpreter
+	"
+	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
+
+	env_val[PDO_INTERPRETER]="${PDO_INTERPRETER:-gipsy}"
+	env_desc[PDO_INTERPRETER]="
+		PDO_INTERPRETER contains the name of the interpreter to use
+                for processing contracts. 'gipsy' is the default and is the Scheme-based,
+                functional language. 'wawaka' is an experimental interpreter that executes
+                WASM-based contracts.
+	"
+	env_key_sort[$i]="PDO_INTERPRETER"; i=$i+1; export PDO_INTERPRETER=${env_val[PDO_INTERPRETER]};
+
 	env_val[SGX_MODE]="${SGX_MODE:-SIM}"
 	env_desc[SGX_MODE]="
 		SGX_MODE determines the SGX mode of operation. When the variable is
@@ -138,14 +154,14 @@ print_export() {
 help() {
     echo 'common-config.sh -[--reset-keys|-r] [--evalable-export|-e] [--help|-h|-?]
 
-This script can be used to set the environment variables that are
-used in the build, installation & execution process. While the build should
-progress with only the default values specified, commonly four
-variables are set and then this file is evaluated. These four
-variables are: TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT,
-and PDO_STL_KEY_ROOT. In case you run in SGX HW mode you usally
-will define PDO_SGX_KEY_ROOT. See further down information on these
-variables and others you could override from defaults.
+This script can be used to set the environment variables that are used
+in the build, installation & execution process. While the build should
+progress with only the default values specified, commonly five variables
+are set and then this file is evaluated. These five variables are:
+WASM_SRC, TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
+PDO_STL_KEY_ROOT. In case you run in SGX HW mode you usally will define
+PDO_SGX_KEY_ROOT. See further down information on these variables and
+others you could override from defaults.
 
 The default usage of this script is to be sourced. For example,
 local configuration file may be constructed as:
@@ -154,6 +170,7 @@ local configuration file may be constructed as:
    export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
    export PDO_LEDGER_URL=http://127.0.0.1:8008
    export TINY_SCHEME_SRC=${HOME}/tinyscheme-1.41
+   export WASM_SRC=${HOME}/wasm
 
 and before buidling it you call script as
 

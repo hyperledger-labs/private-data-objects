@@ -28,9 +28,13 @@ SOURCE_GROUP("Source" FILES ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDL}
 SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
-INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include ${PDO_TOP_DIR}/common ${PDO_TOP_DIR}/common/crypto ${PDO_TOP_DIR}/common/packages/parson)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/state state)
+INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/crypto)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/state)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/interpreter)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/parson)
+INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme)
 INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/block_store)
 
 # If are compiling for Linux, then we have special linking for the trusted
@@ -69,6 +73,17 @@ ELSE()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
   ADD_DEFINITIONS(-DPDO_DEBUG_BUILD=0)
 ENDIF()
+
+IF ($ENV{PDO_INTERPRETER} STREQUAL "gipsy")
+  ADD_DEFINITIONS(-DUSE_GIPSY_INTERPRETER)
+  SET(INTERPRETER_LIBS "-lgipsy -ltinyscheme")
+ELSEIF ($ENV{PDO_INTERPRETER} STREQUAL "wawaka")
+  ADD_DEFINITIONS(-DUSE_WAWAKA_INTERPRETER)
+  SET(INTERPRETER_LIBS "-liwasm -lwwasm")
+ELSE()
+  MESSAGE(FATAL_ERROR "Unknown PDO_CONTRACT_INTERPRETER, $ENV{PDO_CONTRACT_INTERPRETER}!")
+ENDIF()
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpie")
@@ -112,7 +127,7 @@ ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJ
 SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lgipsy -lpdo_contracts -ltinyscheme -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common ${INTERPRETER_LIBS} -lpdo_contracts -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
 TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
 
 ADD_CUSTOM_COMMAND(

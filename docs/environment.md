@@ -64,6 +64,15 @@ enviroment will be built; generally `PDO_HOME` will point to
 `PDO_INSTALL_ROOT/opt/pdo`
 
 <!-- -------------------------------------------------- -->
+### `PDO_INTERPRETER`
+(default: `gipsy`):
+
+`PDO_INTERPRETER` contains the name of the interpreter to use for
+processing contracts. `gipsy` is the default and is the Scheme-based,
+functional language. `wawaka` is an experimental interpreter that
+executes WASM-based contracts.
+
+<!-- -------------------------------------------------- -->
 ### `PDO_HOME`
 (default: `${PDO_INSTALL_ROOT}/opt/pdo`):
 
@@ -87,6 +96,14 @@ happening inside a contract, do not use with confidential contracts.
 `TINY_SCHEME_SRC` points to the installation of the tinyscheme source in
 order to build the library used to debug and test contracts outside of
 the contract enclave.
+
+<!-- -------------------------------------------------- -->
+### `WASM_SRC`
+(default: `${PDO_SOURCE_ROOT}/wasm`)
+
+`WASM_SRC` points to the installation of the micro-wasm source. This
+is used to build the WASM interpreter for the wawaka contract interpreter.
+Clone the micro-wasm source from https://github.com/intel/wasm-micro-runtime
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
