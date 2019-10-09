@@ -59,6 +59,8 @@ private:
         std::map<std::string,std::string>& outDependencies
         );
 public:
+    // Identity of the interpreter returned in enclave information
+    static const std::string identity_;
 
     void create_initial_contract_state(
         const std::string& ContractID,

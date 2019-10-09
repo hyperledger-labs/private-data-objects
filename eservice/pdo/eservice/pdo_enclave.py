@@ -277,6 +277,7 @@ def create_signup_info(originator_public_key_hash, nonce):
     #
     # Start building up the signup info dictionary we will serialize
     signup_info = {
+        'interpreter' : signup_data['interpreter'],
         'verifying_key': signup_data['verifying_key'],
         'encryption_key': signup_data['encryption_key'],
         'proof_data': 'Not present',

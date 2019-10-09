@@ -59,7 +59,14 @@ namespace pstate = pdo::state;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pc::ContractInterpreter* CreateGipsyInterpreter(void)
+const std::string GipsyInterpreter::identity_ = "gipsy";
+
+std::string pdo::contracts::GetInterpreterIdentity(void)
+{
+    return GipsyInterpreter::identity_;
+}
+
+pc::ContractInterpreter* pdo::contracts::CreateInterpreter(void)
 {
     return new GipsyInterpreter();
 }

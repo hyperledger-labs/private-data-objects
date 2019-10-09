@@ -54,6 +54,7 @@ class EnclaveServiceClient(GenericServiceClient) :
         self.request_identifier = 0
 
         enclave_info = self.get_enclave_public_info()
+        self.interpreter = enclave_info['interpreter']
         self.enclave_keys = EnclaveKeys(enclave_info['verifying_key'], enclave_info['encryption_key'])
 
         self.storage_service_url = enclave_info['storage_service_url']

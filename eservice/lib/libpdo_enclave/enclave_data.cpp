@@ -29,6 +29,7 @@
 #include "parson.h"
 
 #include "enclave_data.h"
+#include "interpreter/ContractInterpreter.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -45,7 +46,7 @@ EnclaveData::EnclaveData(void)
 
     // generate private encryption key
     private_encryption_key_.Generate();
- 
+
     // create the public encryption key
     public_encryption_key_ = private_encryption_key_.GetPublicKey();
 
@@ -205,6 +206,12 @@ void EnclaveData::SerializePublicData(void)
 
     JSON_Object* dataObject = json_value_get_object(dataValue);
     pdo::error::ThrowIfNull(dataObject, "Failed to retrieve serialization object");
+
+    // interpreter
+    const std::string interpreter = pdo::contracts::GetInterpreterIdentity();
+    jret = json_object_dotset_string(dataObject, "Interpreter", interpreter.c_str());
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        jret != JSONSuccess, "enclave data serialization failed on interpreter identity");
 
     // public signing key
     std::string b64_public_signing_key = public_signing_key_.Serialize();

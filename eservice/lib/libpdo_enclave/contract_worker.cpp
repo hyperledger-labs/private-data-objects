@@ -21,6 +21,8 @@
 #include "sgx_thread.h"
 #include "contract_worker.h"
 
+#include "interpreter/ContractInterpreter.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractWorker::ContractWorker(long thread_id)
 {
@@ -36,13 +38,7 @@ void ContractWorker::InitializeInterpreter(void)
     if (current_state_ == INTERPRETER_DONE)
     {
         if (interpreter_ == NULL) {
-#if defined( USE_GIPSY_INTERPRETER )
-            interpreter_ = CreateGipsyInterpreter();
-#elif defined( USE_WAWAKA_INTERPRETER )
-            interpreter_ = CreateWawakaInterpreter();
-#else
-#error No contract interpreter
-#endif
+            interpreter_ = pdo::contracts::CreateInterpreter();
         } else {
             interpreter_->Initialize();
         }
