@@ -151,6 +151,8 @@ def CreateAndRegisterEnclave(config) :
     global txn_dependencies
     ledger_config = config.get('Sawtooth')
 
+    interpreter = config['Contract']['Interpreter']
+
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
@@ -158,6 +160,14 @@ def CreateAndRegisterEnclave(config) :
         try :
             for url in config['Service']['EnclaveServiceURLs'] :
                 einfo = db.add_by_url(ledger_config, url)
+                if einfo is None :
+                    logger.error("unable to connect to enclave service; %s", url)
+                    sys.exit(-1)
+
+                if einfo.client.interpreter != interpreter :
+                    logger.error('contract and enclave expect different interpreters; <%s> != <%s>', einfo.client.interpreter, interpreter)
+                    sys.exit(-1)
+
                 enclaveclients.append(einfo.client)
         except Exception as e :
             logger.error('unable to setup enclave services; %s', str(e))
@@ -178,10 +188,20 @@ def CreateAndRegisterEnclave(config) :
     try :
         enclave_helper.initialize_enclave(config)
         enclave = enclave_helper.Enclave.create_new_enclave()
+    except Exception as e :
+        logger.exception('failed to initialize the enclave; %s', str(e))
+        block_store.close()
+        sys.exit(-1)
+
+    if enclave.interpreter != interpreter :
+        logger.error('contract and enclave expect different interpreters; %s != %s', enclave.interpreter, interpreter)
+        ErrorShutdown()
+
+    try :
         enclave.attach_block_store(block_store)
     except Exception as e :
-        logger.error('failed to initialize the enclave; %s', str(e))
-        sys.exit(-1)
+        logger.exception('failed to attach block store; %s', str(e))
+        ErrorShutdown()
 
     try :
         ledger_config = config.get('Sawtooth')
@@ -213,7 +233,8 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         contract_class = config['Contract']['Name']
         contract_source = config['Contract']['SourceFile']
         source_path = config['Contract']['SourceSearchPath']
-        contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_class, contract_source, source_path)
+        interpreter = config['Contract']['Interpreter']
+        contract_code = contract_helper.ContractCode.create_from_file(contract_class, contract_source, source_path, interpreter=interpreter)
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 
@@ -500,6 +521,7 @@ def Main() :
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--contract', help='Name of the contract to use', default='mock-contract')
+    parser.add_argument('--interpreter', help='Name of the contract to to require', default='gipsy')
     parser.add_argument('--expressions', help='Name of a file to read for expressions', default=None)
 
     parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)
@@ -601,7 +623,9 @@ def Main() :
 
     if config['Contract'].get('Name') is None :
         config['Contract']['Name'] = options.contract
-        config['Contract']['SourceFile'] = '_{0}.scm'.format(options.contract)
+        config['Contract']['SourceFile'] = '_{0}'.format(options.contract)
+
+    config['Contract']['Interpreter'] = options.interpreter
 
     if options.data_dir :
         config['Contract']['DataDirectory'] = options.data_dir

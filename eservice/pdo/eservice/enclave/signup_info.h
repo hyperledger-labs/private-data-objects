@@ -40,6 +40,7 @@ public:
     std::string sealed_signup_data;
     std::string proof_data;
     std::string enclave_persistent_id;
+    std::string interpreter;
 
 protected:
     pdo_err_t DeserializeSignupInfo(

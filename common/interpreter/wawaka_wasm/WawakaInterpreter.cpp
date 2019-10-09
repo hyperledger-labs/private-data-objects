@@ -45,7 +45,7 @@ std::string pdo::contracts::GetInterpreterIdentity(void)
     return WawakaInterpreter::identity_;
 }
 
-pdo::contracts::ContractInterpreter* pdo::contracts::CreateInterpreter(void)
+pc::ContractInterpreter* pdo::contracts::CreateInterpreter(void)
 {
     return new WawakaInterpreter();
 }

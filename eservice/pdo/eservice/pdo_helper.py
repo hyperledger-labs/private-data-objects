@@ -118,6 +118,7 @@ class Enclave(object) :
         try :
             assert 'nonce' in enclave_info
             assert 'sealed_data' in enclave_info
+            assert 'interpreter' in enclave_info
             assert 'verifying_key' in enclave_info
             assert 'encryption_key' in enclave_info
             assert 'proof_data' in enclave_info
@@ -159,6 +160,7 @@ class Enclave(object) :
         enclave_info = dict()
         enclave_info['nonce'] = nonce
         enclave_info['sealed_data'] = enclave_data.sealed_signup_data
+        enclave_info['interpreter'] = enclave_data.interpreter
         enclave_info['verifying_key'] = enclave_data.verifying_key
         enclave_info['encryption_key'] = enclave_data.encryption_key
         enclave_info['enclave_id'] = enclave_data.verifying_key
@@ -177,6 +179,7 @@ class Enclave(object) :
         try :
             self.nonce = enclave_info['nonce']
             self.sealed_data = enclave_info['sealed_data']
+            self.interpreter = enclave_info['interpreter']
             self.verifying_key = enclave_info['verifying_key']
             self.encryption_key = enclave_info['encryption_key']
             self.proof_data = enclave_info['proof_data']

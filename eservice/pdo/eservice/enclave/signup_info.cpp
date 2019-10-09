@@ -48,6 +48,12 @@ pdo_err_t SignupInfo::DeserializeSignupInfo(
         JSON_Object* data_object = json_value_get_object(parsed);
         pdo::error::ThrowIfNull(data_object, "invalid serialized signup info; missing root object");
 
+        // --------------- interpreter ---------------
+        pvalue = json_object_dotget_string(data_object, "interpreter");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing interpreter");
+
+        interpreter.assign(pvalue);
+
         // --------------- verifying key ---------------
         pvalue = json_object_dotget_string(data_object, "verifying_key");
         pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing verifying_key");
@@ -113,6 +119,7 @@ SignupInfo* deserialize_signup_info(
 // the parallel serialization is in enclave_data.cpp
 static pdo_err_t DeserializePublicEnclaveData(
     const std::string& public_enclave_data,
+    std::string& interpreter,
     std::string& verifying_key,
     std::string& encryption_key
     )
@@ -129,6 +136,12 @@ static pdo_err_t DeserializePublicEnclaveData(
 
         JSON_Object* data_object = json_value_get_object(parsed);
         pdo::error::ThrowIfNull(data_object, "invalid public enclave data; missing root object");
+
+        // --------------- interpreter ---------------
+        pvalue = json_object_dotget_string(data_object, "Interpreter");
+        pdo::error::ThrowIfNull(pvalue, "invalid serialized signup info; missing interpreter");
+
+        interpreter.assign(pvalue);
 
         // --------------- verifying key ---------------
         pvalue = json_object_dotget_string(data_object, "VerifyingKey");
@@ -184,17 +197,20 @@ std::map<std::string, std::string> create_enclave_data(
     SAFE_LOG(PDO_LOG_DEBUG, public_enclave_data.str().c_str());
 
     // parse the json and save the verifying and encryption keys
+    std::string interpreter;
     std::string verifying_key;
     std::string encryption_key;
 
     presult = DeserializePublicEnclaveData(
         public_enclave_data.str(),
+        interpreter,
         verifying_key,
         encryption_key);
     ThrowPDOError(presult);
 
     // save the information
     std::map<std::string, std::string> result;
+    result["interpreter"] = interpreter;
     result["verifying_key"] = verifying_key;
     result["encryption_key"] = encryption_key;
     result["sealed_enclave_data"] = sealed_enclave_data;
@@ -217,16 +233,19 @@ std::map<std::string, std::string> unseal_enclave_data(
     ThrowPDOError(presult);
 
     // parse the json and save the verifying and encryption keys
+    std::string interpreter;
     std::string verifying_key;
     std::string encryption_key;
 
     presult = DeserializePublicEnclaveData(
         public_enclave_data.str(),
+        interpreter,
         verifying_key,
         encryption_key);
     ThrowPDOError(presult);
 
     std::map<std::string, std::string> result;
+    result["interpreter"] = interpreter;
     result["verifying_key"] = verifying_key;
     result["encryption_key"] = encryption_key;
 

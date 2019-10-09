@@ -150,6 +150,8 @@ def CreateAndRegisterEnclave(config) :
     global enclave
     ledger_config = config.get('Sawtooth')
 
+    interpreter = config['Contract']['Interpreter']
+
     # if we are using the eservice then there is nothing to register since
     # the eservice has already registered the enclave
     if use_eservice :
@@ -157,6 +159,8 @@ def CreateAndRegisterEnclave(config) :
         try :
             for url in config['Service']['EnclaveServiceURLs'] :
                 einfo = db.add_by_url(ledger_config, url)
+                logger.debug('interpreter is %s', einfo.client.interpreter)
+                assert einfo.client.interpreter == interpreter
                 enclaveclients.append(einfo.client)
         except Exception as e :
             logger.error('unable to setup enclave services; %s', str(e))
@@ -175,11 +179,20 @@ def CreateAndRegisterEnclave(config) :
     try :
         enclave_helper.initialize_enclave(config)
         enclave = enclave_helper.Enclave.create_new_enclave()
+    except Exception as e :
+        logger.exception('failed to initialize the enclave; %s', str(e))
+        block_store.close()
+        sys.exit(-1)
+
+    if enclave.interpreter != interpreter :
+        logger.error('contract and enclave expect different interpreters; %s != %s', enclave.interpreter, interpreter)
+        ErrorShutdown()
+
+    try :
         enclave.attach_block_store(block_store)
     except Exception as e :
-        block_store.close()
-        logger.error('failed to initialize the enclave; %s', str(e))
-        sys.exit(-1)
+        logger.exception('failed to attach block store; %s', str(e))
+        ErrorShutdown()
 
     try :
         if use_ledger :
@@ -209,7 +222,8 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         contract_class = config['Contract']['Name']
         contract_source = config['Contract']['SourceFile']
         source_path = config['Contract']['SourceSearchPath']
-        contract_code = contract_helper.ContractCode.create_from_scheme_file(contract_class, contract_source, source_path)
+        interpreter = config['Contract']['Interpreter']
+        contract_code = contract_helper.ContractCode.create_from_file(contract_class, contract_source, source_path, interpreter=interpreter)
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 
@@ -581,8 +595,9 @@ def Main() :
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
 
+    config['Contract']['Interpreter'] = 'gipsy'
     config['Contract']['Name'] = 'mock-contract'
-    config['Contract']['SourceFile'] = '_mock-contract.scm'
+    config['Contract']['SourceFile'] = '_mock-contract'
 
     if options.data_dir :
         config['Contract']['DataDirectory'] = options.data_dir

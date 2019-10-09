@@ -40,6 +40,7 @@ class InfoApp(object) :
             response['verifying_key'] = self.enclave.verifying_key
             response['encryption_key'] = self.enclave.encryption_key
             response['enclave_id'] = self.enclave.enclave_id
+            response['interpreter'] = self.enclave.interpreter
             response['storage_service_url'] = self.storage_url
 
             result = json.dumps(response).encode()
