@@ -13,8 +13,22 @@
  * limitations under the License.
  */
 
-#pragma once
+#include <malloc.h>
+#include <stdint.h>
 
-#include "Value.h"
+#include <new>
 
-typedef ww::value::Object Message;
+void * operator new(size_t sz) throw(std::bad_alloc)
+{
+    return malloc(sz);
+}
+
+void * operator new[](size_t sz) throw(std::bad_alloc)
+{
+    return malloc(sz);
+}
+
+void operator delete(void *ptr) _NOEXCEPT
+{
+    free(ptr);
+}

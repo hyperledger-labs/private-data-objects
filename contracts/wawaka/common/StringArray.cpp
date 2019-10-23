@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include <malloc.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -46,7 +45,7 @@ StringArray::StringArray(const size_t size)
 StringArray::StringArray(const uint8_t* buffer, size_t size)
 {
     size_ = size;
-    value_ = (uint8_t*)malloc(size_);
+    value_ = new uint8_t[size_];
     if (value_ == NULL)
         return;
 
@@ -68,7 +67,7 @@ StringArray::StringArray(const char* buffer)
 StringArray::StringArray(const StringArray& value)
 {
     size_ = value.size_;
-    value_ = (uint8_t*)malloc(size_);
+    value_ = new uint8_t[size_];
     if (value_ == NULL)
         return;
 
@@ -79,17 +78,17 @@ StringArray::StringArray(const StringArray& value)
 StringArray::~StringArray(void)
 {
     if (value_ != NULL)
-        free(value_);
+        delete value_;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool StringArray::resize(const size_t size)
 {
     if (value_ != NULL)
-        free(value_);
+        delete value_;
 
     size_ = size;
-    value_ = (uint8_t *)malloc(size);
+    value_ = new uint8_t[size_];
     if (value_ == NULL)
         return false;
 
@@ -100,7 +99,7 @@ bool StringArray::resize(const size_t size)
 bool StringArray::clear(void)
 {
     if (value_ != NULL)
-        free(value_);
+        delete value_;
 
     size_ = 0;
     value_ = NULL;
@@ -169,7 +168,7 @@ bool StringArray::take(uint8_t* buffer, size_t size)
         return false;
 
     if (value_ != NULL)
-        free(value_);
+        delete value_;
 
     size_ = size;
     value_ = buffer;

@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "Value.h"
+
 class Response
 {
 private:
@@ -24,7 +26,6 @@ private:
     // something about dependencies
 
 public:
-
     Response(void);
     ~Response(void);
 
@@ -34,4 +35,30 @@ public:
     void mark_state_unmodified(void) { state_changed_ = false; };
 
     char *serialize(void);
+
+    bool success(bool changed)
+    {
+        state_changed_ = changed;
+
+        ww::value::Boolean v(true);
+        set_result(v.serialize());
+
+        return true;
+    };
+
+    bool value(const ww::value::Value& v, bool changed)
+    {
+        state_changed_ = changed;
+        set_result(v.serialize());
+
+        return true;
+    };
+
+    bool error(const char* msg)
+    {
+        state_changed_ = false;
+        set_error_result(msg);
+
+        return false;
+    };
 };
