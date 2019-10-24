@@ -2,3 +2,4 @@
 *.wasm
 *.map
 *.wast
+build
