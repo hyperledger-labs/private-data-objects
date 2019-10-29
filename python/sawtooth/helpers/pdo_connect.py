@@ -296,7 +296,14 @@ class PdoClientConnectHelper(PdoRegistryHelper):
                     if verbose:
                         self._dbg_dump.dump_str("Transaction status: '{}'".format(status))
                     if status != "COMMITTED" and exception_type:
-                       raise exception_type("Transaction submission failed with status '{}'".format(status))
+                        # this is a temporary fix for the fact that Sawtooth  may return INVALID status for a short while after submitting batch for commit
+                        # FIX: if total wait time < 10 (ad hoc), and we get INVALID, we wait for 0.1s before checking the status again
+                        if wait_time < 10 and wait_time < wait:
+                            LOGGER.info("Unexpected status {}. Waiting for 0.1s before rechecking status".format(status))
+                            time.sleep(0.1)
+                            continue
+                        else:
+                            raise exception_type("Transaction submission failed with status '{}'".format(status))
 
                     return response, signature
 
