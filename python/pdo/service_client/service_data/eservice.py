@@ -106,14 +106,17 @@ class enclave_info(object) :
             return False
 
         # second check: make sure the ledger has an entry for the enclave
-        try :
-            txn_keys = keys.TransactionKeys()
-            sawtooth_client = PdoClientConnectHelper(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
-            enclave_state = sawtooth_client.get_enclave_dict(self.enclave_id)
-        except Exception as e :
-            logger.info('failed to verify enclave registration with the ledger; %s', str(e))
-            self.last_verified_time = ""
-            return False
+        if ledger_config and ledger_config.get('LedgerURL') :
+            try :
+                txn_keys = keys.TransactionKeys()
+                sawtooth_client = PdoClientConnectHelper(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
+                enclave_state = sawtooth_client.get_enclave_dict(self.enclave_id)
+            except Exception as e :
+                logger.info('failed to verify enclave registration with the ledger; %s', str(e))
+                self.last_verified_time = ""
+                return False
+        else :
+            logger.info('skipping ledger verification, no ledger specified')
 
         self.last_verified_time = str(datetime.datetime.now())
         return True
@@ -281,6 +284,7 @@ def add_by_url(ledger_config, url, name='', update=False) :
         return einfo
 
     except Exception as e :
+        logger.exception('add_by_url')
         pass
 
     return None
