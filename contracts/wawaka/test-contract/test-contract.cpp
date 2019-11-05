@@ -42,7 +42,7 @@ const StringArray private_decrypt_key("rsa-private-key");
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // NAME: initialize
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool initialize(const Message& msg, const Environment& env, Response& rsp)
+bool initialize_contract(const Environment& env, Response& rsp)
 {
     // ---------- Save owner information ----------
     const StringArray owner_val(env.creator_id_);
@@ -225,7 +225,6 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
-    CONTRACT_METHOD(initialize),
     CONTRACT_METHOD(ecdsa_test),
     CONTRACT_METHOD(aes_test),
     CONTRACT_METHOD(rsa_test),

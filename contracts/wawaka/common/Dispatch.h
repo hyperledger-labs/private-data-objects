@@ -27,6 +27,7 @@ typedef struct
     contract_method_t method_code;
 } contract_method_reference_t;
 
+extern bool initialize_contract(const Environment& env, Response& rsp);
 extern contract_method_reference_t contract_method_dispatch_table[];
 
 #define CONTRACT_METHOD(m) { #m, m }

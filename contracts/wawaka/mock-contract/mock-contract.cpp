@@ -31,7 +31,7 @@
 static KeyValueStore value_store("values");
 const StringArray test_key("test");
 
-bool initialize(const Message& msg, const Environment& env, Response& rsp)
+bool initialize_contract(const Environment& env, Response& rsp)
 {
     const uint32_t value = 0;
 
@@ -66,7 +66,6 @@ bool get_value(const Message& msg, const Environment& env, Response& rsp)
 }
 
 contract_method_reference_t contract_method_dispatch_table[] = {
-    CONTRACT_METHOD(initialize),
     CONTRACT_METHOD(inc_value),
     CONTRACT_METHOD(get_value),
     { NULL, NULL }

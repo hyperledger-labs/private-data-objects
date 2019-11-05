@@ -52,6 +52,9 @@ private:
     void load_contract_code(
         const std::string& code);
 
+    int32 initialize_contract(
+        const std::string& env);
+
     int32 evaluate_function(
         const std::string& args,
         const std::string& env);

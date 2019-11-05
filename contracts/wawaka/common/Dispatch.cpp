@@ -65,13 +65,31 @@ static char *dispatch_wrapper(const char *message, const char *environment)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static char *initialize_wrapper(const char *environment)
+{
+    Environment env;
+    if (! env.deserialize(environment))
+        return NULL;
+
+    Response rsp;
+
+    initialize_contract(env, rsp);
+    return rsp.serialize();
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 #ifdef __cplusplus
 extern "C" {
 #endif
-char *dispatch(const char *message, const char *environment)
+char *ww_dispatch(const char *message, const char *environment)
 {
     return dispatch_wrapper(message, environment);
+}
+
+char *ww_initialize(const char *environment)
+{
+    return initialize_wrapper(environment);
 }
 
 #ifdef __cplusplus
