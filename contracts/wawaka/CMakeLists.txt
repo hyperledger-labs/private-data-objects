@@ -18,7 +18,7 @@ IF(NOT EXISTS $ENV{PDO_HOME})
   MESSAGE(FATAL "PDO_HOME environment variable not defined")
 ENDIF()
 
-SET(CONTRACT_EXPORTS "['_dispatch']")
+SET(CONTRACT_EXPORTS "\"['_ww_dispatch', '_ww_initialize']\"")
 
 SET(EMCC_BUILD_OPTIONS)
 LIST(APPEND EMCC_BUILD_OPTIONS "-s WASM=1")

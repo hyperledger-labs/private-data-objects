@@ -202,6 +202,39 @@ void WawakaInterpreter::load_contract_code(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // current expects marshalled data
+int32 WawakaInterpreter::initialize_contract(
+    const std::string& env)
+{
+    char *buffer;
+    wasm_function_inst_t wasm_func = NULL;
+
+    wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_initialize", "(i32)i32");
+    pe::ThrowIfNull(wasm_func, "Unable to locate the initialize function");
+
+    // might need to add a null terminator
+    uint32 argv[1];
+    argv[0] = (int32)wasm_runtime_module_malloc(wasm_module_inst, env.length() + 1);
+
+    buffer = (char*)wasm_runtime_addr_app_to_native(wasm_module_inst, argv[0]);
+    memcpy(buffer, env.c_str(), env.length());
+    buffer[env.length()] = '\0';
+
+    if (! wasm_runtime_call_wasm(wasm_module_inst, wasm_exec_env, wasm_func, 1, argv)) {
+        SAFE_LOG(PDO_LOG_ERROR, "execution failed for some reason");
+
+        const char *exception = wasm_runtime_get_exception(wasm_module_inst);
+        if (exception != NULL)
+            SAFE_LOG(PDO_LOG_ERROR, "exception=%s", exception);
+
+        return 0;
+    }
+
+    SAFE_LOG(PDO_LOG_DEBUG, "RESULT=%u", argv[0]);
+    return argv[0];
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// current expects marshalled data
 int32 WawakaInterpreter::evaluate_function(
     const std::string& args,
     const std::string& env)
@@ -209,7 +242,7 @@ int32 WawakaInterpreter::evaluate_function(
     char *buffer;
     wasm_function_inst_t wasm_func = NULL;
 
-    wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_dispatch", "(i32i32)i32");
+    wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_dispatch", "(i32i32)i32");
     pe::ThrowIfNull(wasm_func, "Unable to locate the dispatch function");
 
     // might need to add a null terminator
@@ -317,8 +350,7 @@ void WawakaInterpreter::create_initial_contract_state(
     create_environment_string(ContractID, CreatorID, inMessage, initialStateHash, env);
 
     // invoke the initialize function, later we can allow this to be passed with args
-    const std::string message("{\"method\" : \"initialize\"}");
-    int32 result_app = evaluate_function(message, env);
+    int32 result_app = initialize_contract(env);
 
     std::string outMessageResult;
     bool outStateChangedFlag;
