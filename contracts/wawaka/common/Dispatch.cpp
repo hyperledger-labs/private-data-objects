@@ -30,6 +30,8 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static char *dispatch_wrapper(const char *message, const char *environment)
 {
+    // CONTRACT_SAFE_LOG(3, "dispatch_wrapper");
+
     Message msg;
     if (! msg.deserialize(message))
         return NULL;

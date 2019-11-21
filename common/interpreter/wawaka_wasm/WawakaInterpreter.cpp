@@ -186,6 +186,7 @@ void WawakaInterpreter::load_contract_code(
     char error_buf[128];
     ByteArray binary_code = Base64EncodedStringToByteArray(code);
 
+    SAFE_LOG(PDO_LOG_DEBUG, "initialize the wasm interpreter");
     wasm_module = wasm_runtime_load((uint8*)binary_code.data(), binary_code.size(), error_buf, sizeof(error_buf));
     if (wasm_module == NULL)
         SAFE_LOG(PDO_LOG_CRITICAL, "load failed with error <%s>", error_buf);
@@ -208,6 +209,7 @@ int32 WawakaInterpreter::initialize_contract(
     char *buffer;
     wasm_function_inst_t wasm_func = NULL;
 
+    SAFE_LOG(PDO_LOG_DEBUG, "wasm initialize_contract");
     wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_initialize", "(i32)i32");
     pe::ThrowIfNull(wasm_func, "Unable to locate the initialize function");
 
@@ -241,6 +243,8 @@ int32 WawakaInterpreter::evaluate_function(
 {
     char *buffer;
     wasm_function_inst_t wasm_func = NULL;
+
+    SAFE_LOG(PDO_LOG_DEBUG, "evalute_function");
 
     wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_dispatch", "(i32i32)i32");
     pe::ThrowIfNull(wasm_func, "Unable to locate the dispatch function");
