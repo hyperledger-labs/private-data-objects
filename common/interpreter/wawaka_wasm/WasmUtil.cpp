@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <string>
+
 #include "bh_platform.h"
 #include "wasm_export.h"
 #include "lib_export.h"

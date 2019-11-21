@@ -32,6 +32,8 @@ LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/state")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/interpreter")
 
 SET(SGX_INCLUDE_DIRS "${SGX_SDK}/include")
+LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/tlibc")
+LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/libcxx")
 
 ################################################################################
 SET(IWASM_STATIC_NAME iwasm)
@@ -48,24 +50,38 @@ ADD_DEFINITIONS(-DOPS_INPUT_OUTPUT=1)
 ADD_DEFINITIONS(-DOPS_UNSAFE_BUFFERS=1)
 ADD_DEFINITIONS(-DWASM_ENABLE_LOG=0)
 ADD_DEFINITIONS(-Dbh_printf=bh_printf_sgx)
+ADD_DEFINITIONS(-Dvprintf=bh_vprintf_sgx)
 
 IF (NOT ("$ENV{VALGRIND}" STREQUAL "YES"))
   ADD_DEFINITIONS(-DNVALGRIND)
 ENDIF ()
 
 # Currently build as 64-bit by default.
-SET(BUILD_AS_64BIT_SUPPORT "YES")
-
 IF (CMAKE_SIZEOF_VOID_P EQUAL 8)
-  IF (${BUILD_AS_64BIT_SUPPORT} STREQUAL "YES")
-    # Add -fPIC flag if build as 64-bit
-    SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    SET (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS} -fPIC")
-  ELSE ()
-    ADD_DEFINITIONS(-m32)
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m32")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
-  ENDIF ()
+  # Build as X86_64 by default in 64-bit platform
+  SET (BUILD_TARGET "X86_64")
+  ADD_DEFINITIONS(-DBUILD_TARGET_X86_64)
+  SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+  SET (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS} -fPIC")
+ELSE ()
+  # Build as X86_32 by default in 32-bit platform
+  SET (BUILD_TARGET "X86_32")
+  ADD_DEFINITIONS(-DBUILD_TARGET_X86_32)
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m32")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
+ENDIF ()
+
+IF (NOT DEFINED WASM_ENABLE_WASI)
+  # Disable wasi support by default
+  SET (WASM_ENABLE_WASI 0)
+ENDIF ()
+
+IF (WASM_ENABLE_WASI EQUAL 1)
+  ADD_DEFINITIONS(-DWASM_ENABLE_WASI=1)
+  ADD_DEFINITIONS(-D_GNU_SOURCE)
+  MESSAGE ("-- WASI enabled")
+ELSE ()
+  MESSAGE ("-- WASI disabled")
 ENDIF ()
 
 IF (NOT CMAKE_BUILD_TYPE)
@@ -74,18 +90,24 @@ ENDIF (NOT CMAKE_BUILD_TYPE)
 
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -Wall -Wno-unused-parameter -Wno-pedantic")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdinc -fvisibility=hidden -fpie")
 
 SET(WASM_IWASM_ROOT ${WASM_SRC}/core/iwasm)
 SET(WASM_SHARED_LIB_ROOT ${WASM_SRC}/core/shared-lib)
 
 ENABLE_LANGUAGE(ASM)
 
+#################################################################
+# Pull in all the WASM makefiles
+#################################################################
 INCLUDE(${WASM_IWASM_ROOT}/runtime/platform/${PLATFORM}/platform.cmake)
 INCLUDE(${WASM_IWASM_ROOT}/runtime/utils/utils.cmake)
 INCLUDE(${WASM_IWASM_ROOT}/runtime/vmcore-wasm/vmcore.cmake)
+INCLUDE(${WASM_IWASM_ROOT}/lib/native/libc/wasmtime-wasi-c/wasi.cmake)
 INCLUDE(${WASM_IWASM_ROOT}/lib/native/libc/wasm_libc.cmake)
 INCLUDE(${WASM_SHARED_LIB_ROOT}/platform/${PLATFORM}/shared_platform.cmake)
 INCLUDE(${WASM_SHARED_LIB_ROOT}/mem-alloc/mem_alloc.cmake)
+INCLUDE(${WASM_SHARED_LIB_ROOT}/utils/shared_utils.cmake)
 
 #################################################################
 # MicroWasm Library
@@ -127,11 +149,11 @@ TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${WASM_IWASM_ROOT}/runti
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${WASM_SHARED_LIB_ROOT}/include)
 
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SGX_INCLUDE_DIRS})
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC "${SGX_SDK}/include/tlibc")
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC "${SGX_SDK}/include/libcxx")
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC "${SGX_SSL}/include")
 
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
+#TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fvisibility=hidden")
+#TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fpie")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-nostdinc")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-nostdinc++")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fno-builtin-printf")
