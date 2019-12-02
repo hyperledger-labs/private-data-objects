@@ -54,6 +54,7 @@ services:
         PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
         SGX_MODE: SIM
+        PDO_INTERPRETER: ${PDO_INTERPRETER:-gipsy}
     container_name: sawtooth-pdo-sim-build
     hostname: sawtooth-pdo-build
     depends_on:

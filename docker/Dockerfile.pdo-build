@@ -24,6 +24,7 @@
 #  - pdo repo to use:				PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
+#  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -97,9 +98,14 @@ ENV SGX_MODE=${SGX_MODE}
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
+ARG PDO_INTERPRETER=gipsy
+ENV PDO_INTERPRETER=${PDO_INTERPRETER}
+
 RUN \
-# read pdo environmentexplicitly as build shell doesn't do automatically (aargh ..). see comment in Dockerfile.pdo-dev
-     . /etc/profile.d/pdo.sh \
+# as we added now PDO source, also define PDO_SOURCE_ROOT to pdo env, ..
+ echo "export PDO_SOURCE_ROOT=/project/pdo/src/private-data-objects" >> /etc/profile.d/pdo.sh \
+# .. read pdo environment explicitly as build shell doesn't do automatically (aargh ..). see comment in Dockerfile.pdo-dev
+ && . /etc/profile.d/pdo.sh \
 # .. and overwrite auto-detection of SGX_MODE with whatever we compile below ...
  && echo "export SGX_MODE=${SGX_MODE}" >> /etc/profile.d/pdo.sh \
 # finally set up other env variables via config script based on

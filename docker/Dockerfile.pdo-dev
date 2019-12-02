@@ -169,7 +169,10 @@ RUN git clone  --branch ${SGXSSL} https://github.com/intel/intel-sgx-ssl.git \
  && rm -rf /tmp/intel-sgx-ssl \
  && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 
-# Install Tinyscheme
+# Install contract interpreter related stuff
+
+# - tinyscheme
+#   Install Tinyscheme
 RUN mkdir -p /opt/tinyscheme
 WORKDIR /opt/tinyscheme
 RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
@@ -178,6 +181,25 @@ RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinysch
  && cd tinyscheme-1.41  \
  && make FEATURES='-DUSE_DL=1 -DUSE_PLIST=1' \
  && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
+
+# - web-assembly/wasm/wawaka
+#   - Get WAMR code
+RUN mkdir -p /project/wasm/src/
+WORKDIR /project/wasm/src
+RUN git clone https://github.com/intel/wasm-micro-runtime \
+ && cd wasm-micro-runtime \
+ && echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
+
+#   - get emscripten tooling
+RUN cd /project/wasm/src \
+ && git clone https://github.com/emscripten-core/emsdk.git \
+ && cd emsdk \
+ && ./emsdk install latest-fastcomp \
+ && ./emsdk activate latest-fastcomp \
+ && echo 'cd /project/wasm/src/emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
+# Note: above convoluted BASH_SOURCE hack is necessary as (a) emsdk_env.sh 
+#   assumes we run in bash but (b) as we build we actually run in sh
+
 
 # environment setup as required by PDO
 # Note
