@@ -24,7 +24,7 @@ enclave with Wawaka enabled, you will need to do the following:
   * Install and configure [emscripten](https://emscripten.org/)
   * Clone the WAMR source code
   * Set the `WASM_SRC` environment variable to the directory where you cloned WAMR
-  * Set the `PDO_CONTRACT_INTERPRETER` environment variable to `wawaka`
+  * Set the `PDO_INTERPRETER` environment variable to `wawaka`
 
 ### Install emscripten ###
 
@@ -37,8 +37,8 @@ cd ${PDO_SOURCE_ROOT}
 git clone https://github.com/emscripten-core/emsdk.git
 cd ${PDO_SOURCE_ROOT}/emsdk
 
-emsdk install latest-fastcomp
-emsdk activate latest-fastcomp
+./emsdk install latest-fastcomp
+./emsdk activate latest-fastcomp
 
 source ./emsdk_env.sh
 ```
@@ -55,11 +55,11 @@ git clone https://github.com/intel/wasm-micro-runtime.git wasm
 
 ### Set the environment variables ###
 
-By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (the directory where you downloaded the WAMR source) and `PDO_CONTRACT_INTERPRETER` (the name of the contract interpreter to use.
+By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (the directory where you downloaded the WAMR source) and `PDO_INTERPRETER` (the name of the contract interpreter to use.
 
 ```bash
 export WASM_SRC=${PDO_SOURCE_ROOT}/wasm
-export PDO_CONTRACT_INTERPRETER=wawaka
+export PDO_INTERPRETER=wawaka
 ```
 
 ### Build PDO ###
