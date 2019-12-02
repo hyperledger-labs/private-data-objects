@@ -1,0 +1,30 @@
+# Copyright Intel Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+dist: bionic
+language: minimal
+
+sudo: required
+services:
+  docker
+
+addons:
+  apt:
+    packages:
+
+env:
+  global:
+
+before_install:
+
+script:
+  # travis doesn't check out the branch itself but for our make to work we
+  # need a branch or alike. So check create a local one ...
+  - git checkout -b we-need-a-branch-for-below-to-work
+  # do integration tests for all available interpreters (in SGX_MODE=SIM mode,
+  # though, only ...)
+  # - gipsy/scheme
+  - PDO_INTERPRETER=gipsy make -C docker test
+  # - wawaka/wasm
+  - PDO_INTERPRETER=wawaka make -C docker test-env-setup # replace with test once integration tests also work with wawaka
