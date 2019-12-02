@@ -70,7 +70,9 @@ enviroment will be built; generally `PDO_HOME` will point to
 `PDO_INTERPRETER` contains the name of the interpreter to use for
 processing contracts. `gipsy` is the default and is the Scheme-based,
 functional language. `wawaka` is an experimental interpreter that
-executes WASM-based contracts.
+executes WASM-based contracts. For more information on configuration
+and use of `wawaka`, see the interpreter
+[README](../common/interpreter/wawaka/README.md).
 
 <!-- -------------------------------------------------- -->
 ### `PDO_HOME`

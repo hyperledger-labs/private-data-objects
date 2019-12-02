@@ -23,6 +23,12 @@ source ${SRCDIR}/bin/lib/common.sh
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+if [ "${PDO_INTERPRETER}" == "wawaka" ]; then
+    die automated tests not enabled for the wawaka interpreter
+fi
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     die activate python3 first
