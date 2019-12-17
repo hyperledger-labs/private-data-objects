@@ -18,6 +18,8 @@ IF(NOT EXISTS $ENV{PDO_HOME})
   MESSAGE(FATAL "PDO_HOME environment variable not defined")
 ENDIF()
 
+SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../")
+
 SET(CONTRACT_EXPORTS "\"['_ww_dispatch', '_ww_initialize']\"")
 
 SET(EMCC_BUILD_OPTIONS)
@@ -42,13 +44,13 @@ SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
 FILE(GLOB COMMON_SOURCE common/*.cpp)
 
-SET(LIBRARY_SOURCE $ENV{PDO_SOURCE_ROOT}/common/packages/parson/parson.cpp)
+SET(LIBRARY_SOURCE ${PDO_TOP_DIR}/common/packages/parson/parson.cpp)
 
 SET(PACKAGE_INCLUDES
-  $ENV{PDO_SOURCE_ROOT}/contracts/wawaka/common
-  $ENV{PDO_SOURCE_ROOT}/common/interpreter/wawaka_wasm
-  $ENV{PDO_SOURCE_ROOT}/common/packages/parson
-  $ENV{PDO_SOURCE_ROOT}/common)
+  ${PDO_TOP_DIR}/contracts/wawaka/common
+  ${PDO_TOP_DIR}/common/interpreter/wawaka_wasm
+  ${PDO_TOP_DIR}/common/packages/parson
+  ${PDO_TOP_DIR}/common)
 
 INCLUDE_DIRECTORIES(
   ${PACKAGE_INCLUDES}

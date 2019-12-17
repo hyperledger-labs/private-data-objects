@@ -467,6 +467,7 @@ ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
+ContractInterpreter = os.environ.get("PDO_INTERPRETER", "gipsy")
 LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
@@ -476,6 +477,7 @@ config_map = {
     'etc'  : ContractEtc,
     'home' : ContractHome,
     'host' : ContractHost,
+    'interpreter' : ContractInterpreter,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
     'ledger' : LedgerURL
@@ -521,7 +523,7 @@ def Main() :
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
     parser.add_argument('--contract', help='Name of the contract to use', default='mock-contract')
-    parser.add_argument('--interpreter', help='Name of the contract to to require', default='gipsy')
+    parser.add_argument('--interpreter', help='Name of the contract to to require', default=ContractInterpreter)
     parser.add_argument('--expressions', help='Name of a file to read for expressions', default=None)
 
     parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)

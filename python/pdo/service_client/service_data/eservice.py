@@ -285,7 +285,6 @@ def add_by_url(ledger_config, url, name='', update=False) :
 
     except Exception as e :
         logger.exception('add_by_url')
-        pass
 
     return None
 
