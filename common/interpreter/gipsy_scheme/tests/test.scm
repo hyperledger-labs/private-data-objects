@@ -12,10 +12,6 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(load-extension "pcontract")
-(load "../packages/init-package.scm")
-(load "../packages/catch-package.scm")
-
 (define pdo-util
   (package
    (define (error-wrap result)
@@ -45,3 +41,4 @@
 (load "aes.scm")
 (load "ecdsa.scm")
 (load "rsa.scm")
+(load "json.scm")

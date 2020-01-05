@@ -17,9 +17,12 @@
 #include <string>
 
 #include "packages/base64/base64.h"
+#include "packages/parson/parson.h"
 #include "crypto.h"
 #include "error.h"
 #include "interpreter_kv.h"
+#include "jsonvalue.h"
+#include "pdo_error.h"
 #include "types.h"
 
 #include "scheme.h"
@@ -42,6 +45,7 @@
 #define intvalue(sc, p) ((sc)->vptr->ivalue(p))
 
 namespace pcrypto = pdo::crypto;
+namespace pe = pdo::error;
 
 const std::string pdo_error_symbol = "**pdo-error**";
 
@@ -1048,6 +1052,312 @@ static pointer key_value_close(scheme *sc, pointer args)
 
 /* ----------------------------------------------------------------- */
 /* ----------------------------------------------------------------- */
+static pointer json_to_expression_r(scheme* sc, JSON_Value* value)
+{
+    JSON_Array *array = NULL;
+    JSON_Object *object = NULL;
+    const char* str = NULL;
+    size_t i = 0;
+    size_t count = 0;
+    double num = 0.0;
+
+    pointer s_pointer = NULL;
+
+    pe::ThrowIfNull(value, "invalid json expression (null)");
+
+    switch (json_value_get_type(value))
+    {
+    case JSONArray:
+        array = json_value_get_array(value);
+        count = json_array_get_count(array);
+
+        s_pointer = sc->vptr->mk_vector(sc, count);
+
+        for (i = 0; i < count; i++) {
+            sc->vptr->set_vector_elem(s_pointer, i, json_to_expression_r(sc, json_array_get_value(array, i)));
+        }
+        return s_pointer;
+
+    case JSONObject:
+        object = json_value_get_object(value);
+        count  = json_object_get_count(object);
+        s_pointer = sc->NIL;
+
+        for (i = 0; i < count; i++) {
+            str = json_object_get_name(object, i);
+            pointer s_key = sc->vptr->mk_string(sc, str);
+            pointer s_value = json_to_expression_r(sc, json_object_get_value(object, str));
+            s_value = sc->vptr->cons(sc, s_value, sc->NIL);
+            s_pointer = sc->vptr->cons(sc, sc->vptr->cons(sc, s_key, s_value), s_pointer);
+        }
+        return s_pointer;
+
+    case JSONString:
+        str = json_value_get_string(value);
+        return (sc->vptr->mk_string(sc, str));
+
+    case JSONBoolean:
+      if (json_value_get_boolean(value))
+          return sc->T;
+      else
+          return sc->F;
+
+    case JSONNumber:
+        num = json_value_get_number(value);
+        if (num == ((double)(int)num)) /*  check if num is integer */
+            return sc->vptr->mk_integer(sc, (long)num);
+
+        return sc->vptr->mk_real(sc, num);
+
+    case JSONNull:
+        return sc->NIL;
+
+    case JSONError:
+    default:
+        pe::ThrowIf<pe::RuntimeError>(true, "unknown error in JSON processing");
+    }
+
+    // should never reach here
+    return sc->NIL;
+}
+
+/* ----------------------------------------------------------------- */
+/* ----------------------------------------------------------------- */
+static pointer json_to_expression(scheme* sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // ---------- message ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; json string");
+
+    pointer m = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(m))
+        return scheme_return_error(sc, "parameter must be a string");
+
+    std::string message = strvalue(sc, m);
+
+    // Parse the contract request
+    try {
+        JsonValue parsed(json_parse_string(message.c_str()));
+        pe::ThrowIfNull(parsed.value, "failed to parse JSON expression");
+
+        return json_to_expression_r(sc, parsed);
+    }
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error(sc, "conversion from JSON failed");
+}
+
+/* ----------------------------------------------------------------- */
+/* ----------------------------------------------------------------- */
+static JSON_Value *expression_to_json_r(scheme *sc, pointer expr)
+{
+    JSON_Value *j_value = NULL;
+    JSON_Value *j_value_elem = NULL;
+    JSON_Array *j_array = NULL;
+    JSON_Object *j_object = NULL;
+    JSON_Status jret;
+
+    try {
+        // '(("key" value) ...)
+        if (sc->vptr->is_list(sc, expr))
+        {
+            j_value = json_value_init_object();
+            j_object = json_value_get_object(j_value);
+
+            for (pointer next = expr; next != sc->NIL; next = sc->vptr->pair_cdr(next))
+            {
+                pointer elem = sc->vptr->pair_car(next);
+                int length = sc->vptr->list_length(sc, elem);
+                pe::ThrowIf<pe::RuntimeError>(length != 2, "invalid JSON object representation");
+
+                pointer key = sc->vptr->pair_car(elem);
+                pointer val = sc->vptr->pair_car(sc->vptr->pair_cdr(elem));
+                pe::ThrowIf<pe::RuntimeError>(! sc->vptr->is_string(key), "invalid JSON object key representation");
+
+                std::string key_string(strvalue(sc, key));
+                j_value_elem = expression_to_json_r(sc, val);
+                pe::ThrowIfNull(j_value_elem, "failed to parse element");
+
+                jret = json_object_set_value(j_object, key_string.c_str(), j_value_elem);
+                pe::ThrowIf<pe::RuntimeError>(jret != JSONSuccess, "failed to add tag to JSON object");
+
+                j_value_elem = NULL; // need to reset this so we know when to free it correctly
+            }
+
+            return j_value;
+        }
+        else if (sc->vptr->is_vector(expr))
+        {
+            j_value = json_value_init_array();
+            j_array = json_value_get_array(j_value);
+
+            const size_t length = sc->vptr->vector_length(expr);
+            for (size_t i = 0; i < length; i++)
+            {
+                pointer elem = sc->vptr->vector_elem(expr, i);
+
+                j_value_elem = expression_to_json_r(sc, elem);
+                pe::ThrowIfNull(j_value_elem, "failed to parse vector element");
+
+                jret = json_array_append_value(j_array, j_value_elem);
+                pe::ThrowIf<pe::RuntimeError>(jret != JSONSuccess, "failed to add element to JSON array");
+
+                j_value_elem = NULL; // need to reset this so we know when to free it correctly
+            }
+
+            return j_value;
+        }
+        else if (expr == sc->NIL)
+        {
+            j_value = json_value_init_null();
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else if (expr == sc->T)
+        {
+            j_value = json_value_init_boolean(1);
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else if (expr == sc->F)
+        {
+            j_value = json_value_init_boolean(0);
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else if (sc->vptr->is_integer(expr))
+        {
+            j_value = json_value_init_number(sc->vptr->ivalue(expr));
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else if (sc->vptr->is_real(expr))
+        {
+            j_value = json_value_init_number(sc->vptr->rvalue(expr));
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else if (sc->vptr->is_string(expr))
+        {
+            const char* s = sc->vptr->string_value(expr);
+            j_value = json_value_init_string(s);
+            pe::ThrowIfNull(j_value, "failed to create JSON node");
+            return j_value;
+        }
+        else
+        {
+            pe::ThrowIf<pe::RuntimeError>(true, "unknown expression type");
+        }
+    }
+    catch (...) {
+        if (j_value != NULL)
+            json_value_free(j_value);
+
+        if (j_value_elem != NULL)
+            json_value_free(j_value_elem);
+
+        throw;
+    }
+
+    return NULL;
+}
+
+
+/* ----------------------------------------------------------------- */
+/* ----------------------------------------------------------------- */
+static pointer expression_to_json(scheme* sc, pointer args)
+{
+    if (! sc->vptr->is_pair(args))
+        return sc->F;
+    pointer expr = sc->vptr->pair_car(args);
+
+    try {
+        JSON_Value *j_value = expression_to_json_r(sc, expr);
+        pe::ThrowIfNull(j_value, "invalid expression");
+
+        JsonValue j_expr(j_value);
+
+        // serialize the resulting json
+        size_t serialized_size = json_serialization_size(j_expr);
+        ByteArray serialized_response;
+        serialized_response.resize(serialized_size);
+
+        JSON_Status jret = json_serialize_to_buffer(
+            j_expr,
+            reinterpret_cast<char*>(&serialized_response[0]),
+            serialized_response.size());
+        pe::ThrowIf<pe::RuntimeError>(jret != JSONSuccess, "failed to serialize expression");
+
+        std::string result = ByteArrayToString(serialized_response);
+        return sc->vptr->mk_string(sc, result.c_str());
+    }
+
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error(sc, "conversion to JSON failed");
+}
+
+/* ----------------------------------------------------------------- */
+/* ----------------------------------------------------------------- */
+static pointer validate_json(scheme* sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // ---------- message ----------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; json string");
+
+    pointer m = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(m))
+        return scheme_return_error(sc, "parameter must be a string");
+
+    std::string message = strvalue(sc, m);
+
+    // ---------- schema ----------
+    rest = sc->vptr->pair_cdr(rest);
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; json schema");
+
+    pointer s = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(s))
+        return scheme_return_error(sc, "schema must be a string");
+
+    std::string schema = strvalue(sc, s);
+
+    // Parse the contract request
+    try {
+        JsonValue parsed_message(json_parse_string(message.c_str()));
+        pe::ThrowIfNull(parsed_message.value, "failed to parse JSON expression");
+
+        JsonValue parsed_schema(json_parse_string(schema.c_str()));
+        pe::ThrowIfNull(parsed_schema.value, "failed to parse JSON schema");
+
+        JSON_Status jret = json_validate(parsed_schema, parsed_message);
+        return (jret == JSONSuccess ? sc->T : sc->F);
+    }
+    catch (pdo::error::Error& e) {
+        return scheme_return_error_s(sc, format_error_message(e));
+    }
+    catch (...) {
+    }
+
+    return scheme_return_error(sc, "conversion from JSON failed");
+}
+
+/* ----------------------------------------------------------------- */
+/* ----------------------------------------------------------------- */
 void scheme_load_extensions(scheme *sc)
 {
     // initialize the openssl library, this really not the right
@@ -1144,6 +1454,17 @@ void scheme_load_extensions(scheme *sc)
 
 #endif
 
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "json-to-expression"),
+                  sc->vptr->mk_foreign_func(sc, json_to_expression));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "expression-to-json"),
+                  sc->vptr->mk_foreign_func(sc, expression_to_json));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "validate-json"),
+                  sc->vptr->mk_foreign_func(sc, validate_json));
 }
 
 extern "C" void init_pcontract(scheme *sc)
