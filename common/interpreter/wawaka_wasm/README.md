@@ -50,7 +50,7 @@ will be built for use with Intel SGX. The source for the WAMR interpreter is dis
 
 ```bash
 cd ${PDO_SOURCE_ROOT}
-git clone https://github.com/intel/wasm-micro-runtime.git wasm
+git clone --branch tag-11-28-2019 https://github.com/intel/wasm-micro-runtime.git wasm
 ```
 
 ### Set the environment variables ###
