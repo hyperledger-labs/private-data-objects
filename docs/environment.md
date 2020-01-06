@@ -105,7 +105,8 @@ the contract enclave.
 
 `WASM_SRC` points to the installation of the micro-wasm source. This
 is used to build the WASM interpreter for the wawaka contract interpreter.
-Clone the micro-wasm source from https://github.com/intel/wasm-micro-runtime
+Clone branch/tag 'tag-11-28-2019' of the micro-wasm source from 
+https://github.com/intel/wasm-micro-runtime
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
