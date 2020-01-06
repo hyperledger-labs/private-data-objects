@@ -1136,7 +1136,8 @@ static pointer json_to_expression_r(scheme* sc, JSON_Value* value)
         pe::ThrowIf<pe::RuntimeError>(true, "unknown error in JSON processing");
     }
 
-    // should never reach here
+    // should never reach here, place holder to avoid warning
+    return sc->NIL;
 }
 
 /* ----------------------------------------------------------------- */
@@ -1193,7 +1194,7 @@ static JSON_Value *expression_to_json_r(scheme *sc, pointer expr)
             {
                 pointer elem = sc->vptr->pair_car(next);
                 int length = sc->vptr->list_length(sc, elem);
-                pe::ThrowIf<pe::RuntimeError>(length != 2, "invalid JSON object representation");
+                pe::ThrowIf<pe::RuntimeError>(length != 2, "unable to convert s-expression to JSON, unsupported structure");
 
                 pointer key = sc->vptr->pair_car(elem);
                 pointer val = sc->vptr->pair_car(sc->vptr->pair_cdr(elem));
@@ -1284,7 +1285,8 @@ static JSON_Value *expression_to_json_r(scheme *sc, pointer expr)
         throw;
     }
 
-    // should never reach here
+    // should never reach here, place holder to avoid warning
+    return NULL;
 }
 
 
