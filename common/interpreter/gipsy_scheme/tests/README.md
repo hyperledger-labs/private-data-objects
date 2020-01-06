@@ -13,6 +13,6 @@ for the Gipsy contract interpreter.
 From the tests directory, the tests can be run with the following
 command:
 
-`${PDO_SOURCE_ROOT}/contracts/bin/gipsyscheme.sh test.scm`
+`${PDO_SOURCE_ROOT}/contracts/bin/gipsyscheme test.scm`
 
 The file `test.scm` loads the environment, aes, ecdsa, rsa and json tests.

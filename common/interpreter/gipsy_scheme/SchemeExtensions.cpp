@@ -1050,6 +1050,23 @@ static pointer key_value_close(scheme *sc, pointer args)
 }
 #endif
 
+/* ----------------------------------------------------------------- *
+ JSON Extensions -- the following functions implement conversions between
+ Scheme s-expressions and JSON. Since s-expressions are more expressive
+ structurally (specifically there is a difference between a vector and
+ a list) there are expressions that cannot be converted to JSON. The following
+ conventions are used:
+    - scheme number <--> JSON number
+    - scheme boolean <--> JSON boolean
+    - scheme string <--> JSON string
+    - scheme NIL <--> JSON Null
+    - scheme vector <--> JSON array
+    - scheme assoc list <--> JSON object
+ Note that the last imposes several additional restrictions: keys must be
+ strings, all elements of the assoc list must be exactly length 2, and the
+ cadr of the element must be an expression that can be converted to JSON
+ * ----------------------------------------------------------------- */
+
 /* ----------------------------------------------------------------- */
 /* ----------------------------------------------------------------- */
 static pointer json_to_expression_r(scheme* sc, JSON_Value* value)
@@ -1083,8 +1100,10 @@ static pointer json_to_expression_r(scheme* sc, JSON_Value* value)
         count  = json_object_get_count(object);
         s_pointer = sc->NIL;
 
-        for (i = 0; i < count; i++) {
-            str = json_object_get_name(object, i);
+        // reverse the order to make sure that the expression is in the
+        // same order as the fields in the JSON object
+        for (i = count; 0 < i; i--) {
+            str = json_object_get_name(object, i-1);
             pointer s_key = sc->vptr->mk_string(sc, str);
             pointer s_value = json_to_expression_r(sc, json_object_get_value(object, str));
             s_value = sc->vptr->cons(sc, s_value, sc->NIL);
@@ -1118,7 +1137,6 @@ static pointer json_to_expression_r(scheme* sc, JSON_Value* value)
     }
 
     // should never reach here
-    return sc->NIL;
 }
 
 /* ----------------------------------------------------------------- */
@@ -1266,7 +1284,7 @@ static JSON_Value *expression_to_json_r(scheme *sc, pointer expr)
         throw;
     }
 
-    return NULL;
+    // should never reach here
 }
 
 
