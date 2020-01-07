@@ -36,32 +36,7 @@
 #include "interpreter_kv.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Request format for create and send methods
-//
-// {
-//     "Operation" : "<string>",
-//     "ContractID" : "<string>",
-//     "CreatorID" : "<string>",
-//     "EncryptedStateEncryptionKey" : "<base64 encoded encrypted state encryption key>",
-//     "Contract" :
-//     {
-//         "Code" : "<string>",
-//         "Name" : "<string>"
-//         "Nonce" : "<string>"
-//     },
-//     "Message" :
-//     {
-//         "Expression" : "<string>",
-//         "OriginatorPublicKey" : "<serialized verifying key>",
-//         "ChannelPublicKey" : "<serialized verifying key>",
-//         "Nonce" : "<string>",
-//         "Signature" : "<base64 encoded signature>"
-//     },
-//     "ContractState" :
-//     {
-//         "EncryptedState" : ""
-//     }
-// }
+// See ${PDO_SOURCE_ROOT}/eservice/docs/contract.json for format
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

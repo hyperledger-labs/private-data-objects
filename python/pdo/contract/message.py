@@ -14,6 +14,7 @@
 import os
 
 import pdo.common.crypto as crypto
+from pdo.common.utility import deprecated
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,33 +30,50 @@ class ContractMessage(object) :
         self.__request_originator_keys = request_originator_keys
         self.__channel_keys = channel_keys
 
-        self.expression = kwargs.get('expression', '');
+        self.invocation_request = kwargs.get('invocation_request', '');
+        if kwargs.get('expression') :
+            logger.warn('deprecated use of expression parameter')
+            self.invocation_request = kwargs.get('expression', '')
+
         self.nonce = crypto.byte_array_to_hex(crypto.random_bit_string(16))
 
+    # -------------------------------------------------------
+    @property
+    @deprecated
+    def expression(self) :
+        return self.invocation_request
+
+    # -------------------------------------------------------
     @property
     def originator_verifying_key(self) :
         return self.__request_originator_keys.identity
 
+    # -------------------------------------------------------
     @property
     def channel_verifying_key(self) :
         return self.__channel_keys.txn_public
 
+    # -------------------------------------------------------
     def serialize_for_signing(self) :
-        return self.expression + self.channel_verifying_key + self.nonce
+        return self.invocation_request + self.channel_verifying_key + self.nonce
 
+    # -------------------------------------------------------
     def serialize_for_hash(self) :
-        return self.expression + self.nonce
+        return self.invocation_request + self.nonce
 
+    # -------------------------------------------------------
     @property
     def signature(self) :
         return self.__request_originator_keys.sign(self.serialize_for_signing(), encoding='b64')
 
+    # -------------------------------------------------------
     def compute_hash(self) :
         return crypto.compute_message_hash(crypto.string_to_byte_array(self.serialize_for_hash()))
 
+    # -------------------------------------------------------
     def serialize(self) :
         result = dict()
-        result['Expression'] = self.expression
+        result['InvocationRequest'] = self.invocation_request
         result['OriginatorVerifyingKey'] = self.originator_verifying_key
         result['ChannelVerifyingKey'] = self.channel_verifying_key
         result['Nonce'] = self.nonce

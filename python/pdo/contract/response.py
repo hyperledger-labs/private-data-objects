@@ -20,6 +20,7 @@ import threading
 
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
+from pdo.common.utility import deprecated
 
 from pdo.contract.state import ContractState
 from pdo.contract.replication import ReplicationRequest, start_replication_service, stop_replication_service, add_replication_task
@@ -54,7 +55,7 @@ class ContractResponse(object) :
         :param response: diction containing the response from the enclave
         """
         self.status = response['Status']
-        self.result = response['Result']
+        self.invocation_response = response['InvocationResponse']
         self.state_changed = response['StateChanged']
         self.new_state_object = request.contract_state
         #if the new state is same as the old state, then change set is empty
@@ -103,6 +104,12 @@ class ContractResponse(object) :
 
     # -------------------------------------------------------
     @property
+    @deprecated
+    def result(self):
+        return self.invocation_response
+
+    # -------------------------------------------------------
+    @property
     def commit_id(self):
         if self.status and self.state_changed:
             return (self.contract_id, self.new_state_hash, self.request_number)
@@ -111,9 +118,13 @@ class ContractResponse(object) :
 
     # -------------------------------------------------------
     def commit_asynchronously(self, ledger_config=None, wait_parameter_for_ledger=30):
-        """Commit includes two steps: First, replicate the change set to all provisioned encalves. Second,
-        commit the transaction to the ledger. In this method, we add a job to the replication queue to enable the first step. The job will
-        be picked by a replication worker thead. A call_back_after_replication function (see below) is automatically invoked to add a task for the second step """
+        """Commit includes two steps: First, replicate the change set to
+        all provisioned encalves. Second, commit the transaction to the
+        ledger. In this method, we add a job to the replication queue to
+        enable the first step. The job will be picked by a replication
+        worker thead. A call_back_after_replication function (see below)
+        is automatically invoked to add a task for the second step
+        """
 
         #start threads for commiting response if not done before
         if ContractResponse.__start_commit_service__:
@@ -137,15 +148,20 @@ class ContractResponse(object) :
 
     # -------------------------------------------------------
     def call_back_after_replication(self):
-        """this is the call back function after replication. Currently, the call-back's role is to add a new task to the pending transactions queue,
-        which will be processed by a "submit transaction" thread whose job is to submit transactions corresponding to completed replication tasks
+        """this is the call back function after replication. Currently,
+        the call-back's role is to add a new task to the pending
+        transactions queue, which will be processed by a "submit
+        transaction" thread whose job is to submit transactions
+        corresponding to completed replication tasks
         """
         if self.transaction_request:
             add_transaction_task(self)
 
     # -------------------------------------------------------
     def wait_for_commit(self):
-        """ Wait for completion of the commit task corresponding to the response. Return transaction id if ledger is used, else return None"""
+        """Wait for completion of the commit task corresponding to the
+        response. Return transaction id if ledger is used, else return
+        None"""
 
         # wait for the completion of the replication task
         try:

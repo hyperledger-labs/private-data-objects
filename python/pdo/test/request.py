@@ -286,7 +286,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         initialize_request = contract.create_initialize_request(contract_creator_keys, enclave_to_use)
         initialize_response = initialize_request.evaluate()
         if initialize_response.status is False :
-            logger.error('contract initialization failed: %s', initialize_response.result)
+            logger.error('contract initialization failed: %s', initialize_response.invocation_response)
             ErrorShutdown()
 
         contract.set_state(initialize_response.raw_state)
@@ -347,10 +347,10 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
             update_response = update_request.evaluate()
 
             if update_response.status is False :
-                logger.info('failed: {0} --> {1}'.format(expression, update_response.result))
+                logger.info('failed: {0} --> {1}'.format(expression, update_response.invocation_response))
                 continue
 
-            logger.info('{0} --> {1}'.format(expression, update_response.result))
+            logger.info('{0} --> {1}'.format(expression, update_response.invocation_response))
 
         except Exception as e:
             logger.error('enclave failed to evaluation expression; %s', str(e))

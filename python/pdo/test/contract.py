@@ -295,7 +295,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         initialize_request = contract.create_initialize_request(contract_creator_keys, enclave_to_use)
         initialize_response = initialize_request.evaluate()
         if initialize_response.status is False :
-            logger.error('contract initialization failed: %s', initialize_response.result)
+            logger.error('contract initialization failed: %s', initialize_response.invocation_response)
             ErrorShutdown()
 
         contract.set_state(initialize_response.raw_state)
@@ -352,13 +352,16 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
                                 fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', skipinitialspace=True)
 
         for test in reader :
-            expression = test["expression"]
+            expression = test['expression']
 
             try :
                 total_tests += 1
                 update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
                 update_response = update_request.evaluate()
-                result = update_response.result[:15] + (len(update_response.result) >= 15 and "..." or "")
+
+                result = update_response.invocation_response[:15]
+                if len(update_response.invocation_response) >= 15 :
+                    result += "..."
 
                 if update_response.status is False :
                     logger.info('failed: {0} --> {1}'.format(expression, result))
@@ -369,7 +372,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 
                 logger.info('{0} --> {1}'.format(expression, result))
 
-                if test['expected'] and not re.match(test['expected'], update_response.result) :
+                if test['expected'] and not re.match(test['expected'], update_response.invocation_response) :
                     total_failed += 1
                     logger.warn('test failed: %s instead of %s', result, test['expected'])
 
@@ -379,7 +382,8 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 
             # if this operation did not change state then there is nothing to commit
             if update_response.state_changed :
-                # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+                # asynchronously submit the commit task: (a commit task replicates
+                # change-set and submits the corresponding transaction)
                 try:
                     logger.info("asynchronously replicate change set and submit transaction in the background")
                     update_response.commit_asynchronously(ledger_config)

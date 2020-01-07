@@ -4,12 +4,17 @@
     "id": "http://tradenet.org/pdo/eservice/contract/requests#",
     "definitions": {
         "ContractRequest": {
-            "id": "#initRequest",
-            "description": "a request to create a new instance of a contract state associated with the contract identifier",
+            "id": "#ContractRequest",
+            "description": [
+                "a request to create a new instance of a contract state",
+                "associated with the contract identifier"
+            ],
             "type": "object",
             "properties": {
                 "Operation": {
-                    "description": "field describing the type of the request",
+                    "description": [
+                        "field describing the type of the request"
+                    ],
                     "type": "string",
                     "enum": [
                         "initialize",
@@ -17,62 +22,181 @@
                     ],
                     "required": true
                 },
-                "ContractState": {
-                    "$ref": "#/pdo/basetypes/contract-state",
+                "ContractID": {
+                    "description": [
+                        "encoded contract id"
+                    ],
+                    "$ref": "#/pdo/basetypes/contract-id",
+                    "required": true
+                },
+                "CreatorID": {
+                    "description": [
+                        "contract creator identifier"
+                    ],
+                    "$ref": "#/pdo/basetypes/transactor-id",
+                    "required": true
+                },
+                "EncryptedStateEncryptionKey": {
+                    "description": [
+                        "encrypted state encryption key"
+                    ],
+                    "$ref": "#/pdo/basetypes/state-encryption-key",
                     "required": true
                 },
                 "ContractCode": {
-                    "$ref": "#/pdo/basetypes/contract-code",
-                    "required": true
+                    "description": [
+                        "contract code",
+                        "required for initialize operation"
+                    ],
+                    "type": "object",
+                    "properties": {
+                        "Code": {
+                            "description": [
+                                "the contract code"
+                            ],
+                            "type": "string",
+                            "maxLength": 65535,
+                            "required": true
+                        },
+                        "Name": {
+                            "description": [
+                                "the name of the contract class in the code"
+                            ],
+                            "type": "string",
+                            "maxLength": 32,
+                            "required": true
+                        },
+                        "Nonce": {
+                            "description": [
+                                "random string to facilitate randomness code hash"
+                            ],
+                            "type": "string",
+                            "maxLength": 32,
+                            "required": true
+                        }
+                    },
+                    "required": false
+                },
+                "ContractCodeHash": {
+                    "description": [
+                        "hash of the contract code",
+                        "required for update operations"
+                    ],
+                    "$ref": "#/pdo/basetypes/encoded-hash",
+                    "required": false
+                },
+                "ContractStateHash": {
+                    "description": [
+                        "hash of the contract state",
+                        "required for update operation"
+                    ],
+                    "$ref": "#/pdo/basetypes/encoded-hash",
+                    "required": false
                 },
                 "ContractMessage": {
-                    "$ref": "#/pdo/basetypes/contract-message",
+                    "description": [
+                        ""
+                    ],
+                    "type": "object",
+                    "properties": {
+                        "InvocationRequest": {
+                            "description": [
+                                "the message to be sent to the contract",
+                                "see invocation api for format"
+                            ],
+                            "type": "string",
+                            "maxLength": 65535,
+                            "required": true
+                        },
+                        "OriginatorVerifyingKey": {
+                            "description": [
+                                "identifier for the transactor requesting the method invocation"
+                            ],
+                            "$ref": "#transactor-id",
+                            "required": true
+                        },
+                        "ChannelVerifyingKey": {
+                            "description": [
+                                "public key for the channel key pair"
+                            ],
+                            "$ref": "#transactor-id",
+                            "required": true
+                        },
+                        "Nonce": {
+                            "description": [
+                                "random string to facilitate randomness in the message"
+                            ],
+                            "type": "string",
+                            "maxLength": 32,
+                            "required": true
+                        },
+                        "Signature": {
+                            "description": [
+                                "signature over the expression"
+                            ],
+                            "$ref": "#escda-signature",
+                            "required": true
+                        }
+                    },
                     "required": true
                 }
             }
         },
         "ContractResponse": {
             "id": "#ContractResponse",
-            "description": "General schema for responses from the contract enclave",
+            "description": [
+                "General schema for responses from the contract enclave"
+            ],
             "type": "object",
             "properties": {
-                "Contract-State": {
-                    "description": "state resulting from the evaluation of the method",
-                    "$ref": "#/pdo/basetypes/contract-state",
+                "Status": {
+                    "description": [
+                        "flag to indicate success/failure of the invocation"
+                    ],
+                    "type": "boolean",
                     "required": true
                 },
-                "Dependencies": {
-                    "description": "List of dependent contract commits",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "minItems": 0,
-                        "uniqueItems": true,
-                        "default": [],
-                        "properties": {
-                            "ContractID": {
-                                "$ref": "#/pdo/basetypes/contractid",
-                                "required": true
-                            },
-                            "StateHash": {
-                                "description": "hash of the state that must be committed",
-                                "type": "string",
-                                "format": "base64 urlsafe encoded sha256 hash without padding",
-                                "minLength": 22,
-                                "maxLength": 22,
-                                "required": true
-                            }
-                        }
-                    }
+                "StateChanged": {
+                    "description": [
+                        "flag to indicate that state was changed"
+                    ],
+                    "type": "boolean",
+                    "required": true
                 },
-                "Result": {
-                    "description": "the value returned from method evaluation",
-                    "$ref": "#/pdo/basetypes/s-expression",
+                "InvocationResponse": {
+                    "description": [
+                        "the value returned from method evaluation",
+                        "see invocation api for format"
+                    ],
+                    "type": "string",
+                    "maxLength": 65535,
                     "required": true
                 },
                 "Signature": {
-                    "description": "signature of the request/response",
-                    "$ref": "#/pdo/basetypes/signature",
+                    "description": [
+                        "signature of the request/response"
+                    ],
+                    "$ref": "#/pdo/basetypes/ecdsa-signature",
+                    "required": true
+                },
+                "StateHash": {
+                    "description": [
+                        "hash of the state that must be committed"
+                    ],
+                    "$ref": "#/pdo/basetypes/encoded-hash",
+                    "required": true
+                },
+                "Dependencies": {
+                    "description": [
+                        "List of dependent contract commits"
+                    ],
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/pdo/basetypes/state-reference",
+                        "minItems": 0,
+                        "uniqueItems": true,
+                        "default": []
+                    },
                     "required": true
                 }
             }

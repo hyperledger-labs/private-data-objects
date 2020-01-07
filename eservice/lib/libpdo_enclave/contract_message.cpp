@@ -27,16 +27,7 @@
 #include "contract_message.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Request format for create and send methods
-//
-//     "Message" :
-//     {
-//         "Expression" : "<string>",
-//         "OriginatorPublicKey" : "<serialized verifying key>",
-//         "ChannelPublicKey" : "<serialized verifying key>",
-//         "Nonce" : "<string>",
-//         "Signature" : "<base64 encoded signature>"
-//     }
+// See ${PDO_SOURCE_ROOT}/eservice/docs/contract.json for format
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -58,9 +49,9 @@ void ContractMessage::Unpack(const JSON_Object* object)
     JSON_Object* ovalue = nullptr;
 
     // contract message
-    pvalue = json_object_dotget_string(object, "Expression");
+    pvalue = json_object_dotget_string(object, "InvocationRequest");
     pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve Expression");
+        !pvalue, "invalid request; failed to retrieve Request");
     expression_.assign(pvalue);
 
     pvalue = json_object_dotget_string(object, "OriginatorVerifyingKey");

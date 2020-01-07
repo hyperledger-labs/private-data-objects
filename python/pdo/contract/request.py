@@ -41,8 +41,11 @@ class InvocationException(Exception) :
 class ContractRequest(object) :
     __ops__ = { 'initialize' : True, 'update' : True }
 
-    __request_number__ = 0 # a monotonic counter used locally by the client to identify all its requests.
-                         # Every (contract_id, statehash) pair maps to a unique request_number. The converse is not true (if the request failed)
+    # a monotonic counter used locally by the client to identify all its
+    # requests. every (contract_id, statehash) pair maps to a unique
+    # request_number. the converse is not true (if the request failed)
+    __request_number__ = 0
+
 
     # -------------------------------------------------------
     def __init__(self, operation, request_originator_keys, contract, **kwargs) :
