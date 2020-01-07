@@ -123,7 +123,9 @@ class Contract(object) :
         self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())
         self.replication_params['num_provable_replicas'] = num_provable_replicas
         self.replication_params['availability_duration'] = availability_duration #seconds
-        self.replication_params['service_ids'] = self.enclave_map.keys() #we replicate to storage services associated with all provisioned encalves
+
+        # we replicate to storage services associated with all provisioned encalves
+        self.replication_params['service_ids'] = self.enclave_map.keys()
 
     # -------------------------------------------------------
     @property
@@ -161,7 +163,7 @@ class Contract(object) :
             request_originator_keys,
             self,
             enclave_service=enclave_service,
-            expression = expression)
+            invocation_request = expression)
 
     # -------------------------------------------------------
     def save_to_file(self, basename, data_dir = None) :

@@ -85,12 +85,12 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         # terminate the script or if it should just return an
         # empty string that can be tested for later
         # if not quiet :
-        #     print("FAILED: {0}".format(update_response.result))
+        #     print("FAILED: {0}".format(update_response.invocation_response))
         # return ''
-        raise ValueError(update_response.result)
+        raise ValueError(update_response.invocation_response)
 
     if not quiet :
-        print(update_response.result)
+        print(update_response.invocation_response)
 
     data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Sawtooth'])
@@ -99,15 +99,19 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
 
         contract.set_state(update_response.raw_state)
 
-        # asynchronously submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
+        # asynchronously submit the commit task: (a commit task replicates
+        # change-set and submits the corresponding transaction)
         try:
             update_response.commit_asynchronously(ledger_config)
         except Exception as e:
             raise Exception('failed to submit commit: %s', str(e))
 
         # wait for the commit to finish.
-        # TDB: 1. make wait_for_commit a separate shell command. 2. Add a provision to specify commit dependencies as input to send command.
-        # 3. Return commit_id after send command back to shell so as to use as input commit_dependency in a future send command
+        # TDB:
+        # 1. make wait_for_commit a separate shell command.
+        # 2. Add a provision to specify commit dependencies as input to send command.
+        # 3. Return commit_id after send command back to shell so as to use as input
+        #    commit_dependency in a future send command
         try:
             txn_id = update_response.wait_for_commit()
             if txn_id is None:
@@ -120,7 +124,7 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         except Exception as e :
             logger.exception('failed to save the new state in the cache')
 
-    return update_response.result
+    return update_response.invocation_response
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------

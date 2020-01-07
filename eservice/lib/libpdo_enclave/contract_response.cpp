@@ -34,6 +34,10 @@
 #include "enclave_data.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// See ${PDO_SOURCE_ROOT}/eservice/docs/contract.json for format
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractResponse::ContractResponse(
     const ContractRequest& request,
     const ContractState& contract_state,
@@ -204,7 +208,7 @@ ByteArray ContractResponse::SerializeAndEncrypt(
         jret != JSONSuccess, "failed to serialize the state_changed");
 
     // --------------- result ---------------
-    jret = json_object_dotset_string(contract_response_object, "Result", result_.c_str());
+    jret = json_object_dotset_string(contract_response_object, "InvocationResponse", result_.c_str());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the result");
 
