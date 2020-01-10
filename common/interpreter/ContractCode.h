@@ -29,6 +29,7 @@ namespace pdo
         public:
             std::string Code;
             std::string Name;
+            std::string CodeHash;
 
             ContractCode(void);
         };

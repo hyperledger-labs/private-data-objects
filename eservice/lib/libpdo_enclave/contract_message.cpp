@@ -76,12 +76,14 @@ void ContractMessage::Unpack(const JSON_Object* object)
 
     pdo::error::ThrowIf<pdo::error::ValueError>(
         !VerifySignature(decoded_signature), "unable to verify the source of the message");
+
+    ComputeHash(message_hash_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractMessage::ComputeHash(void) const
+void ContractMessage::ComputeHash(ByteArray& message_hash) const
 {
     std::string serialized = expression_ + nonce_;
     ByteArray message(serialized.begin(), serialized.end());
-    return pdo::crypto::ComputeMessageHash(message);
+    message_hash = pdo::crypto::ComputeMessageHash(message);
 }

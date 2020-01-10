@@ -29,6 +29,7 @@ namespace pdo
         public:
             string Message;
             string OriginatorID;
+            string MessageHash;
 
             ContractMessage(void);
         };

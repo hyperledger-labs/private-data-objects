@@ -28,11 +28,13 @@ class ContractCode
 {
 protected:
     ByteArray SerializeForHashing(void) const;
+    void ComputeHash(ByteArray& code_hash) const;
 
 public:
     std::string code_;
     std::string name_;
     std::string nonce_;
+    ByteArray code_hash_;
 
     ContractCode(void){};
 
@@ -40,6 +42,4 @@ public:
 
     void FetchFromState(const ContractState& state, const ByteArray& code_hash);
     void SaveToState(ContractState& state);
-
-    ByteArray ComputeHash(void) const;
 };
