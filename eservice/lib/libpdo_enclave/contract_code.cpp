@@ -26,14 +26,7 @@
 #include "contract_state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Request format used when initializing a new contract
-//
-//     "ContractCode" :
-//     {
-//         "Code" : "<string>",
-//         "Name" : "<string>"
-//         "Nonce" : "<string>"
-//     }
+// See ${PDO_SOURCE_ROOT}/eservice/docs/contract.json for format
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -57,6 +50,8 @@ void ContractCode::Unpack(const JSON_Object* object)
         pdo::error::ThrowIf<pdo::error::ValueError>(
             !pvalue, "invalid request; failed to retrieve Nonce");
         nonce_.assign(pvalue);
+
+        ComputeHash(code_hash_);
     }
     catch (std::exception& e)
     {
@@ -107,6 +102,7 @@ void ContractCode::FetchFromState(
                 v.size() == 0, "contract code hash missing");
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v != code_hash, "mismatched contract code hash");
+            code_hash_ = v;
         }
     }
     catch (std::exception& e)
@@ -145,7 +141,7 @@ void ContractCode::SaveToState(ContractState& state)
         {
             std::string str = "ContractCode.Hash";
             ByteArray k(str.begin(), str.end());
-            state.state_.PrivilegedPut(k, ComputeHash());
+            state.state_.PrivilegedPut(k, code_hash_);
         }
     }
     catch (std::exception& e)
@@ -168,7 +164,7 @@ ByteArray ContractCode::SerializeForHashing(void) const
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractCode::ComputeHash(void) const
+void ContractCode::ComputeHash(ByteArray& code_hash) const
 {
-    return pdo::crypto::ComputeMessageHash(SerializeForHashing());
+    code_hash = pdo::crypto::ComputeMessageHash(SerializeForHashing());
 }

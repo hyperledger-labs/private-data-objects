@@ -1,0 +1,114 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "PDO Contract Interpreter Invocation Interface",
+    "id": "http://tradenet.org/pdo/contract/invocation#",
+    "definitions": {
+        "InvocationRequest": {
+            "id": "#invocation-request",
+            "type": "object",
+            "description" : [
+                "invocation request passed into the contract interpreter"
+            ],
+            "properties": {
+                "Method": {
+                    "description": [ "name of the method to invoke" ],
+                    "type": "string",
+                    "required": true
+                },
+                "PositionalParameters" : {
+                    "description": [ "array of parameters passed by position" ],
+                    "type": "array",
+                    "items": {
+                        "type": ["number","string","boolean","object","array"],
+                        "minItems": 0,
+                        "uniqueItems": false,
+                        "default": []
+                    },
+                    "required": true
+                },
+                "KeywordParameters" : {
+                    "description": [ "key/value parameters passed to the method" ],
+                    "type": "object",
+                    "required": true
+                }
+            }
+        },
+        "InvocationResponse" : {
+            "id" : "#invocation-response",
+            "description" : [
+                "encoded response returned from processing the invocation request"
+            ],
+            "type" : "object",
+            "properties" : {
+                "Status" : {
+                    "description" : [ "success or failure of the method invocation" ],
+                    "type" : "boolean",
+                    "required" : true
+                },
+                "Response" : {
+                    "description" : [ "value returned from the invocation" ],
+                    "type": ["number","string","boolean","object","array"],
+                    "required" : true
+                },
+                "StateChanged" : {
+                    "description" : [ "flag to indicate that the state was modified" ],
+                    "type" : "boolean",
+                    "required" : true
+                },
+                "Dependencies": {
+                    "description": [ "List of dependent contract commits" ],
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/pdo/basetypes/state-reference",
+                        "minItems": 0,
+                        "uniqueItems": true,
+                        "default": []
+                    },
+                    "required" : true
+                }
+            }
+        },
+        "InvocationEnvironment" : {
+            "id" : "#environment",
+            "description" : [ "encoded enviroment information" ],
+            "type" : "object",
+            "properties" : {
+                "ContractID" : {
+                    "description" : [ "encoded contract id" ],
+                    "$ref": "#/pdo/basetypes/contract-id",
+                    "required" : true
+                },
+                "CreatorID" : {
+                    "description" : [ "contract creator identifier" ],
+                    "$ref": "#/pdo/basetypes/transactor-id",
+                    "required" : true
+                },
+                "OriginatorID" : {
+                    "description" : [ "method invoker identifier" ],
+                    "$ref": "#/pdo/basetypes/transactor-id",
+                    "required" : true
+                },
+                "StateHash" : {
+                    "description": [ "hash of the state that must be committed" ],
+                    "$ref": "#/pdo/basetypes/encoded-hash",
+                    "required": true
+                },
+                "MessageHash" : {
+                    "description": [ "hash of the message in the invocation" ],
+                    "$ref": "#/pdo/basetypes/encoded-hash",
+                    "required": true
+                },
+                "ContractCodeName" : {
+                    "description" : [ "name of the contract class" ],
+                    "type" : "string",
+                    "required" : true
+                },
+                "ContractCodeHash" : {
+                    "description" : [ "base64 encoded hash of the contract code" ],
+                    "$ref" : "#/pdo/basetypes/encoded-hash",
+                    "required" : true
+                }
+            }
+        }
+    }
+}

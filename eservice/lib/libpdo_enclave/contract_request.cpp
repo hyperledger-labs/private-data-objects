@@ -144,10 +144,12 @@ ContractResponse ContractRequest::process_initialization_request(ContractState& 
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
+        code.CodeHash = ByteArrayToBase64EncodedString(contract_code_.code_hash_);
 
         pdo::contracts::ContractMessage msg;
         msg.Message = contract_message_.expression_;
         msg.OriginatorID = contract_message_.originator_verifying_key_;
+        msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
 
         std::map<string, string> dependencies;
 
@@ -218,14 +220,15 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
     // the only reason for the try/catch here is to provide some logging for the error
     try
     {
-
         pdo::contracts::ContractCode code;
         code.Code = contract_code_.code_;
         code.Name = contract_code_.name_;
+        code.CodeHash = ByteArrayToBase64EncodedString(contract_code_.code_hash_);
 
         pdo::contracts::ContractMessage msg;
         msg.Message = contract_message_.expression_;
         msg.OriginatorID = contract_message_.originator_verifying_key_;
+        msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
 
         std::map<string, string> dependencies;
         std::string result;

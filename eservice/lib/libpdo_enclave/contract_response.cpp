@@ -52,8 +52,8 @@ ContractResponse::ContractResponse(
     operation_succeeded_ = true;
     state_changed_ = true;
 
-    contract_code_hash_ = request.contract_code_.ComputeHash();
-    contract_message_hash_ = request.contract_message_.ComputeHash();
+    contract_code_hash_ = request.contract_code_.code_hash_;
+    contract_message_hash_ = request.contract_message_.message_hash_;
     channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
     contract_initializing_ = request.is_initialize();
 
@@ -88,8 +88,8 @@ ContractResponse::ContractResponse(
     operation_succeeded_ = false;
     state_changed_ = false;
 
-    contract_code_hash_ = request.contract_code_.ComputeHash();
-    contract_message_hash_ = request.contract_message_.ComputeHash();
+    contract_code_hash_ = request.contract_code_.code_hash_;
+    contract_message_hash_ = request.contract_message_.message_hash_;
     channel_verifying_key_ = request.contract_message_.channel_verifying_key_;
     contract_initializing_ = request.is_initialize();
 

@@ -26,15 +26,15 @@ class ContractMessage
 {
 protected:
     bool VerifySignature(const ByteArray& signature) const;
+    void ComputeHash(ByteArray& message_hash) const;
 
 public:
     std::string expression_;
     std::string originator_verifying_key_;
     std::string channel_verifying_key_;
     std::string nonce_;
+    ByteArray message_hash_;
 
     ContractMessage(void){};
     void Unpack(const JSON_Object* object);
-
-    ByteArray ComputeHash(void) const;
 };
