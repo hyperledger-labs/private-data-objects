@@ -42,8 +42,11 @@ Environment::~Environment(void)
 {
     SAFE_FREE_STRING(contract_id_);
     SAFE_FREE_STRING(creator_id_);
-    SAFE_FREE_STRING(message_id_);
+    SAFE_FREE_STRING(originator_id_);
     SAFE_FREE_STRING(state_hash_);
+    SAFE_FREE_STRING(message_hash_);
+    SAFE_FREE_STRING(contract_code_name_);
+    SAFE_FREE_STRING(contract_code_hash_);
 }
 
 bool Environment::deserialize(
@@ -61,8 +64,11 @@ bool Environment::deserialize(
 
     SAFE_GET_STRING(parsed_object, "ContractID", contract_id_);
     SAFE_GET_STRING(parsed_object, "CreatorID", creator_id_);
-    SAFE_GET_STRING(parsed_object, "MessageID", message_id_);
+    SAFE_GET_STRING(parsed_object, "OriginatorID", originator_id_);
     SAFE_GET_STRING(parsed_object, "StateHash", state_hash_);
+    SAFE_GET_STRING(parsed_object, "MessageHash", message_hash_);
+    SAFE_GET_STRING(parsed_object, "ContractCodeName", contract_code_name_);
+    SAFE_GET_STRING(parsed_object, "ContractCodeHash", contract_code_hash_);
 
     return true;
 }

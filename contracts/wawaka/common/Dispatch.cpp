@@ -42,33 +42,49 @@ static char *dispatch_wrapper(const char *message, const char *environment)
 
     Response rsp;
 
-    const char* method_name = msg.get_string("method");
+    const char* method_name = msg.get_string("Method");
     if (method_name == NULL)
     {
-        rsp.set_error_result("no function specified");
+        rsp.error("no function specified");
         return rsp.serialize();
     }
 
-    // CONTRACT_SAFE_LOG(3, "method: %s", method_name);
+    ww::value::Object kparams;
+    if (! msg.get_value("KeywordParameters", kparams))
+    {
+        rsp.error("missing required parameter, KeywordParameters");
+        return rsp.serialize();
+    }
+
+    ww::value::Array pparams;
+    if (! msg.get_value("PositionalParameters", pparams))
+    {
+        rsp.error("missing required parameter, PositionalParameters");
+        return rsp.serialize();
+    }
+
+    //CONTRACT_SAFE_LOG(3, "method: %s", method_name);
 
     contract_method_reference_t* mptr = contract_method_dispatch_table;
     while (mptr->method_name)
     {
         if (strcmp(method_name, mptr->method_name) == 0)
         {
-            (void) (*mptr->method_code)(msg, env, rsp);
+            (void) (*mptr->method_code)(kparams, env, rsp);
             return rsp.serialize();
         }
         mptr++;
     }
 
-    rsp.set_error_result(method_name);
+    rsp.error(method_name);
     return rsp.serialize();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static char *initialize_wrapper(const char *environment)
 {
+    //CONTRACT_SAFE_LOG(3, "initialize_wrapper");
+
     Environment env;
     if (! env.deserialize(environment))
         return NULL;

@@ -15,7 +15,10 @@
 
 #include <stdlib.h>
 
+#include "parson.h"
+
 #include "Value.h"
+#include "WasmExtensions.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Class: pdo.Value.Value

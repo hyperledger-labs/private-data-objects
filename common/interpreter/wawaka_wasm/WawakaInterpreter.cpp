@@ -36,6 +36,9 @@ namespace pc = pdo::contracts;
 namespace pe = pdo::error;
 namespace pstate = pdo::state;
 
+#define INVOCATION_REQUEST_SCHEMA "{\"Method\":\"\", \"PositionalParameters\":[], \"KeywordParameters\":{}}"
+#define INVOCATION_RESPONSE_SCHEMA "{\"Status\":true, \"Response\":\"\", \"StateChanged\":true, \"Dependencies\":[{\"ContractID\":\"\", \"StateHash\":\"\"}]}"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 const std::string WawakaInterpreter::identity_ = "wawaka";
@@ -75,24 +78,31 @@ void wasm_printer(const char *msg)
 } /* extern "C" */
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void WawakaInterpreter::parse_result_string(
-    int32 result_app,
+void WawakaInterpreter::parse_response_string(
+    int32 response_app,
     std::string& outResult,
-    bool& outStateChanged)
+    bool& outStateChanged,
+    std::map<std::string,std::string>& outDependencies)
 {
-    int32 result_app_beg, result_app_end;
+    // Convert the wasm address for the result string into an
+    // address in the native code
+    int32 response_app_beg, response_app_end;
 
     pe::ThrowIf<pe::RuntimeError>(
-        ! wasm_runtime_get_app_addr_range(wasm_module_inst, result_app, &result_app_beg, &result_app_end),
+        ! wasm_runtime_get_app_addr_range(wasm_module_inst, response_app, &response_app_beg, &response_app_end),
         report_interpreter_error("invalid result pointer", "out of range"));
 
-    char *result = (char*)wasm_runtime_addr_app_to_native(wasm_module_inst, result_app);
-    const char *result_end = result + (result_app_end - result_app);
+    char *result = (char*)wasm_runtime_addr_app_to_native(wasm_module_inst, response_app);
+    const char *result_end = result + (response_app_end - response_app);
 
+    // Not the most performant way to do this, but with no assumptions
+    // about the size of the string, we have to walk the entire string
     for (char *p = result; (*p) != '\0'; p++)
         pe::ThrowIf<pe::RuntimeError>(
             p == result_end,
             report_interpreter_error("invalid result pointer", "unterminated string"));
+
+    SAFE_LOG(PDO_LOG_DEBUG, "response string: %s", result);
 
     // Parse the contract request
     JsonValue parsed(json_parse_string(result));
@@ -100,18 +110,44 @@ void WawakaInterpreter::parse_result_string(
         parsed.value,
         report_interpreter_error("invalid result pointer", "invalid JSON"));
 
-    JSON_Object* parsed_object = json_value_get_object(parsed);
+    // Verify that the response matches the expected schema
+    JsonValue schema(json_parse_string(INVOCATION_RESPONSE_SCHEMA));
+    pe::ThrowIf<pe::RuntimeError>(
+        json_validate(schema.value, parsed.value) != JSONSuccess,
+        "invalid invocation response; does not match required format");
+
+    const JSON_Object* parsed_object = json_value_get_object(parsed);
     pe::ThrowIfNull(
         parsed_object,
         report_interpreter_error("invalid result pointer", "missing result object"));
 
-    outResult.assign(json_object_dotget_string(parsed_object, "Result"));
-    outStateChanged = (json_object_dotget_boolean(parsed_object, "StateChanged") == 1);
+    const char* response_string = json_object_dotget_string(parsed_object, "Response");
+    pe::ThrowIfNull(
+        response_string,
+        report_interpreter_error("invalid result string", "Response"));
+    outResult.assign(response_string);
 
     int status = json_object_dotget_boolean(parsed_object, "Status");
     pe::ThrowIf<pe::ValueError>(
         status < 1,
         report_interpreter_error("operation failed", outResult.c_str()));
+
+    // dependencies
+    const JSON_Array *dependency_array = json_object_dotget_array(parsed_object, "Dependencies");
+    pe::ThrowIfNull(
+        dependency_array,
+        report_interpreter_error("invalid result string", "Dependencies"));
+
+    size_t dependency_count = json_array_get_count(dependency_array);
+    for (size_t i = 0; i < dependency_count; i++)
+    {
+        const JSON_Object* dependency = json_array_get_object(dependency_array, i);
+        const char* contract_id = json_object_dotget_string(dependency, "ContractID");
+        const char* state_hash = json_object_dotget_string(dependency, "StateHash");
+        outDependencies[contract_id] = state_hash;
+    }
+
+    outStateChanged = (json_object_dotget_boolean(parsed_object, "StateChanged") == 1);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -121,6 +157,7 @@ void WawakaInterpreter::parse_result_string(
 static void create_environment_string(
     const std::string& ContractID,
     const std::string& CreatorID,
+    const pc::ContractCode& inContractCode,
     const pc::ContractMessage& inMessage,
     const pstate::StateBlockId& inContractStateHash,
     std::string& outEnvironment
@@ -144,9 +181,9 @@ static void create_environment_string(
     pe::ThrowIf<pe::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the CreatorID");
 
-    jret = json_object_dotset_string(contract_environment_object, "MessageID", inMessage.OriginatorID.c_str());
+    jret = json_object_dotset_string(contract_environment_object, "OriginatorID", inMessage.OriginatorID.c_str());
     pe::ThrowIf<pe::RuntimeError>(
-        jret != JSONSuccess, "failed to serialize the CreatorID");
+        jret != JSONSuccess, "failed to serialize the OriginatorID");
 
     //the hash is the hash of the encrypted state, in our case it's the root hash given in input
     const Base64EncodedString state_hash = ByteArrayToBase64EncodedString(inContractStateHash);
@@ -154,6 +191,18 @@ static void create_environment_string(
     jret = json_object_dotset_string(contract_environment_object, "StateHash", state_hash.c_str());
     pe::ThrowIf<pe::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the StateHash");
+
+    jret = json_object_dotset_string(contract_environment_object, "MessageHash", inMessage.MessageHash.c_str());
+    pe::ThrowIf<pe::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the MessageHash");
+
+    jret = json_object_dotset_string(contract_environment_object, "ContractCodeName", inContractCode.Name.c_str());
+    pe::ThrowIf<pe::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the ContractCodeName");
+
+    jret = json_object_dotset_string(contract_environment_object, "ContractCodeHash", inContractCode.CodeHash.c_str());
+    pe::ThrowIf<pe::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the ContractCodeName");
 
     // serialize the resulting json
     size_t serializedSize = json_serialization_size(contract_environment);
@@ -245,6 +294,14 @@ int32 WawakaInterpreter::evaluate_function(
     wasm_function_inst_t wasm_func = NULL;
 
     SAFE_LOG(PDO_LOG_DEBUG, "evalute_function");
+
+    {
+        JsonValue schema(json_parse_string(INVOCATION_REQUEST_SCHEMA));
+        JsonValue request(json_parse_string(args.c_str()));
+        pe::ThrowIf<pe::RuntimeError>(
+            json_validate(schema.value, request.value) != JSONSuccess,
+            "invalid invocation request; does not match required format");
+    }
 
     wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_dispatch", "(i32i32)i32");
     pe::ThrowIfNull(wasm_func, "Unable to locate the dispatch function");
@@ -351,14 +408,15 @@ void WawakaInterpreter::create_initial_contract_state(
 
     // serialize the environment parameter for the method
     std::string env;
-    create_environment_string(ContractID, CreatorID, inMessage, initialStateHash, env);
+    create_environment_string(ContractID, CreatorID, inContractCode, inMessage, initialStateHash, env);
 
     // invoke the initialize function, later we can allow this to be passed with args
-    int32 result_app = initialize_contract(env);
+    int32 response_app = initialize_contract(env);
 
     std::string outMessageResult;
     bool outStateChangedFlag;
-    parse_result_string(result_app, outMessageResult, outStateChangedFlag);
+    std::map<std::string,std::string> outDependencies;
+    parse_response_string(response_app, outMessageResult, outStateChangedFlag, outDependencies);
 
     // this should be in finally... later...
     wasm_runtime_set_custom_data(wasm_module_inst, NULL);
@@ -389,24 +447,11 @@ void WawakaInterpreter::send_message_to_contract(
 
     // serialize the environment parameter for the method
     std::string env;
-    create_environment_string(ContractID, CreatorID, inMessage, inContractStateHash, env);
+    create_environment_string(ContractID, CreatorID, inContractCode, inMessage, inContractStateHash, env);
 
-    int32 result_app = evaluate_function(inMessage.Message, env);
-    parse_result_string(result_app, outMessageResult, outStateChangedFlag);
+    int32 response_app = evaluate_function(inMessage.Message, env);
+    parse_response_string(response_app, outMessageResult, outStateChangedFlag, outDependencies);
 
     // this should be in finally... later...
     wasm_runtime_set_custom_data(wasm_module_inst, NULL);
 }
-
-// syntax of the response expected from the contract method
-// {
-//     "Status" : bool,
-//     "StateChanged" : bool,
-//     "Result" : string,
-//     "Dependencies" : [
-//         {
-//             "ContractID" : string,
-//             "StateHash" : string
-//         }
-//     ]
-// }

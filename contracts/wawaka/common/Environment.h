@@ -20,8 +20,11 @@ class Environment
 public :
     char *contract_id_;
     char *creator_id_;
-    char *message_id_;
+    char *originator_id_;
     char *state_hash_;
+    char *message_hash_;
+    char *contract_code_name_;
+    char *contract_code_hash_;
 
     Environment(void);
     ~Environment(void);
