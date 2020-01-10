@@ -40,10 +40,11 @@ private:
     wasm_module_inst_t wasm_module_inst = NULL;
     wasm_exec_env_t wasm_exec_env = NULL;
 
-    void parse_result_string(
-        int32 result_app,
+    void parse_response_string(
+        int32 response_app,
         std::string& outResult,
-        bool& outStateChanged);
+        bool& outStateChanged,
+        std::map<string,string>& outDependencies);
 
     const char* report_interpreter_error(
         const char* message,

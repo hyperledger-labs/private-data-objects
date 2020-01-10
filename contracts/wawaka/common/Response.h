@@ -17,47 +17,39 @@
 
 #include "Value.h"
 
-class Response
+class Response : public ww::value::Object
 {
-private:
-    bool status_;
-    bool state_changed_;
-    char *result_;
-    // something about dependencies
-
 public:
     Response(void);
-    ~Response(void);
 
-    void set_result(const char* result);
-    void set_error_result(const char* result);
-    void mark_state_modified(void) { state_changed_ = true; };
-    void mark_state_unmodified(void) { state_changed_ = false; };
+    bool set_response(const ww::value::Value& response);
+    bool set_state_changed(bool state_changed);
+    bool set_status(bool status);
+    bool add_dependency(const char* contract_id, const char* state_hash);
 
-    char *serialize(void);
-
-    bool success(bool changed)
+    bool value(const ww::value::Value& v, bool changed)
     {
-        state_changed_ = changed;
-
-        ww::value::Boolean v(true);
-        set_result(v.serialize());
+        set_status(true);
+        set_state_changed(changed);
+        set_response(v);
 
         return true;
     };
 
-    bool value(const ww::value::Value& v, bool changed)
+    bool success(bool changed)
     {
-        state_changed_ = changed;
-        set_result(v.serialize());
+        ww::value::Boolean response(true);
+        value(response, changed);
 
         return true;
     };
 
     bool error(const char* msg)
     {
-        state_changed_ = false;
-        set_error_result(msg);
+        ww::value::String response(msg);
+        set_status(false);
+        set_state_changed(false);
+        set_response(response);
 
         return false;
     };

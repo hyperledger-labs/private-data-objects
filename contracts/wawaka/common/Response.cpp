@@ -24,74 +24,62 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 Response::Response(void)
 {
-    status_ = false;
-    state_changed_ = false;
-    result_ = NULL;
+    value_ = json_value_init_object();
+    expected_value_type_ = (value_ == NULL ? JSONError : json_value_get_type(value_));
+
+    ww::value::Boolean status(true);
+    ww::value::Boolean response(true);
+    ww::value::Boolean state_changed(false);
+    ww::value::Array dependencies;
+
+    set_value("Status", status);
+    set_value("Response", response);
+    set_value("StateChanged", state_changed);
+    set_value("Dependencies", dependencies);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-Response::~Response(void)
+bool Response::set_response(const ww::value::Value& response)
 {
-    if (result_ != NULL)
-        free(result_);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void Response::set_result(const char* result)
-{
-    result_ = strdup(result);
-    status_ = true;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void Response::set_error_result(const char* result)
-{
-    result_ = strdup(result);
-    status_ = false;
-    state_changed_ = false;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-char *Response::serialize(void)
-{
-    // Create the response structure
-    JsonValue contract_response_value(json_value_init_object());
-    if (! contract_response_value.value)
-        return NULL;
-
-    JSON_Object* contract_response_object = json_value_get_object(contract_response_value);
-    if (contract_response_object == NULL)
-        return NULL;
-
-    JSON_Status jret;
-
-    // --------------- status ---------------
-    jret = json_object_dotset_boolean(contract_response_object, "Status", status_);
-    if (jret != JSONSuccess)
-        return NULL;
-
-    // --------------- state updated ---------------
-    jret = json_object_dotset_boolean(contract_response_object, "StateChanged", state_changed_);
-    if (jret != JSONSuccess)
-        return NULL;
-
-    // --------------- result ---------------
-    jret = json_object_dotset_string(contract_response_object, "Result", result_);
-    if (jret != JSONSuccess)
-        return NULL;
-
-    // serialize the result
-    size_t serialized_size = json_serialization_size(contract_response_value);
-    char *serialized_response = (char *)malloc(serialized_size + 1);
+    char* serialized_response = response.serialize();
     if (serialized_response == NULL)
-        return NULL;
+        return false;
 
-    jret = json_serialize_to_buffer(contract_response_value, serialized_response, serialized_size + 1);
-    if (jret != JSONSuccess)
-    {
-        free(serialized_response);
-        return NULL;
-    }
+    ww::value::String v(serialized_response);
+    free(serialized_response);
 
-    return serialized_response;
+    return set_value("Response", v);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool Response::set_state_changed(bool state_changed)
+{
+    ww::value::Boolean v(state_changed);
+    return set_value("StateChanged", v);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool Response::set_status(bool status)
+{
+    ww::value::Boolean v(status);
+    return set_value("Status", v);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool Response::add_dependency(const char* contract_id, const char* state_hash)
+{
+    ww::value::Object d;
+    ww::value::String contract_id_value(contract_id);
+    ww::value::String state_hash_value(state_hash);
+
+    d.set_value("ContractID", contract_id_value);
+    d.set_value("StateHash", state_hash_value);
+
+    ww::value::Array a;
+    if (! get_value("Dependencies", a))
+        return false;
+
+    a.append_value(d);
+
+    return set_value("Dependencies", a);
 }
