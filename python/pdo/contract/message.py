@@ -11,13 +11,79 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import os
 
 import pdo.common.crypto as crypto
 from pdo.common.utility import deprecated
+from pdo.client.SchemeExpression import SchemeExpression
 
 import logging
 logger = logging.getLogger(__name__)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class InvocationRequest(dict):
+    """Invocation Request that encodes requests in the format
+    specified in the interpreter inovcation documentation.
+    """
+    def __init__(self, method, *args, **kwargs) :
+        super(InvocationRequest, self).__init__(**kwargs)
+
+        self.__method__ = method;
+        self.__positional_parameters__ = args
+
+    def __repr__(self) :
+        return self.serialize()
+
+    def serialize(self) :
+        request = dict()
+        request['Method'] = self.__method__
+        request['PositionalParameters'] = self.__positional_parameters__
+        request['KeywordParameters'] = self
+        return json.dumps(request)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class GipsyInvocationRequest(InvocationRequest) :
+    """Invocation Request that encodes requests as a Scheme
+    s-expression. Assumes that all strings have been fully escaped
+    in the parameter lists.
+    """
+
+    @staticmethod
+    def scheme_expr(s) :
+        """conversion function for parameters that are Scheme expressions
+        """
+        try :
+            expr = SchemeExpression.ParseExpression(str(s))
+            return str(expr)
+        except :
+            raise RuntimeError('invalid scheme expression; {0}'.format(s))
+
+    def __init__(self, method, *args, **kwargs) :
+        super(GipsyInvocationRequest, self).__init__(method, *args, **kwargs)
+
+    def serialize(self) :
+        """construct an s-expression from positional and keyword parameters,
+        the expression will have the form '(method pp1 pp2 ... (kw1 v1) (kw2 v2) ..)
+        """
+        pparms = ""
+        for p in self.__positional_parameters__ :
+            pparms += " {0}".format(GipsyInvocationRequest.scheme_expr(p))
+
+        kparms = ""
+        for (k, v) in self :
+            kparms += " ({0} {1})".format(k, GipsyInvocationRequest.scheme_expr(v))
+
+        return "'({0} {1} {2})".format(self.__method__, pparms, kparms)
+
+# -----------------------------------------------------------------
+def invocation_request(method, *args, **kwargs) :
+    if os.environ.get("PDO_INTERPRETER", "gipsy") :
+        return GipsyInvocationRequest(method, *args, **kwargs)
+
+    return InvocationRequest(method, *args, **kwargs)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -30,10 +96,18 @@ class ContractMessage(object) :
         self.__request_originator_keys = request_originator_keys
         self.__channel_keys = channel_keys
 
-        self.invocation_request = kwargs.get('invocation_request', '');
-        if kwargs.get('expression') :
-            logger.warn('deprecated use of expression parameter')
-            self.invocation_request = kwargs.get('expression', '')
+        # remove this when we are convinced that we've converted
+        # all forms to use InvocationRequest
+        invocation_request = kwargs.get('invocation_request')
+        if invocation_request :
+            if not issubclass(type(invocation_request), InvocationRequest) :
+                logger.warn("not an InvocationRequest: %s", str(invocation_request))
+
+        self.invocation_request = str(kwargs.get('invocation_request', ''));
+
+        # remove this when we are convinced that we've removed
+        # all forms expressing the message through 'expression'
+        assert kwargs.get('expression') is None
 
         self.nonce = crypto.byte_array_to_hex(crypto.random_bit_string(16))
 

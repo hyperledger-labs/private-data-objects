@@ -33,7 +33,7 @@ __all__ = [
 
 from pdo.contract.code import ContractCode
 from pdo.contract.contract import Contract, register_contract, add_enclave_to_contract
-from pdo.contract.message import ContractMessage
+from pdo.contract.message import ContractMessage, invocation_request
 from pdo.contract.request import ContractRequest
 from pdo.contract.response import ContractResponse
 from pdo.contract.state import ContractState
