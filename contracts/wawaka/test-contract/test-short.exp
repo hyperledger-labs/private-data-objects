@@ -4,3 +4,4 @@
 { "Method" : "env_test"\, "PositionalParameters": []\, "KeywordParameters": {} }
 { "Method" : "msg_test"\, "PositionalParameters": []\, "KeywordParameters": { "message": "hello there" } }
 { "Method" : "dependency_test"\, "PositionalParameters": []\, "KeywordParameters": {} }
+{ "Method" : "fail_test"\, "PositionalParameters": []\, "KeywordParameters": {} },this test should fail,fail

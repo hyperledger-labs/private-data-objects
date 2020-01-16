@@ -271,6 +271,13 @@ bool dependency_test(const Message& msg, const Environment& env, Response& rsp)
     return rsp.success(false);
 }
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// NAME: fail_test
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool fail_test(const Message& msg, const Environment& env, Response& rsp)
+{
+    return rsp.error("this test should fail");
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -281,5 +288,6 @@ contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(env_test),
     CONTRACT_METHOD(msg_test),
     CONTRACT_METHOD(dependency_test),
+    CONTRACT_METHOD(fail_test),
     { NULL, NULL }
 };

@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include <string>
+#pragma once
 
-using namespace std;
+#include <string>
 
 namespace pdo
 {
@@ -27,9 +27,9 @@ namespace pdo
         class ContractMessage
         {
         public:
-            string Message;
-            string OriginatorID;
-            string MessageHash;
+            std::string Message;
+            std::string OriginatorID;
+            std::string MessageHash;
 
             ContractMessage(void);
         };
