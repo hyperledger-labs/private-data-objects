@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.SchemeExpression import SchemeExpression
 
-
-__all__ = ['scheme_expr' , 'scheme_string']
+__all__ = ['scheme_expr' , 'scheme_string', 'convert_scheme_expr']
 
 # -----------------------------------------------------------------
 def scheme_string(s) :
@@ -29,6 +28,8 @@ def scheme_string(s) :
     elif s[0] == '"' :
         return s
     else :
+        # force escape of all special characters
+        s = s.encode('unicode_escape').decode('utf8')
         return f'"{s}"'
 
 # -----------------------------------------------------------------
@@ -37,6 +38,16 @@ def scheme_expr(s) :
     """
     try :
         expr = SchemeExpression.ParseExpression(s)
-        return str(expr)
+        return expr
+        #return str(expr)
     except :
         raise RuntimeError('invalid scheme expression; {0}'.format(s))
+
+# -----------------------------------------------------------------
+def convert_scheme_expr(expr) :
+    if expr.type == 'symbol' :
+        s = str(expr)
+        s = s.encode('unicode_escape').decode('utf8')
+        return f'"{s}"'
+
+    return str(expr)

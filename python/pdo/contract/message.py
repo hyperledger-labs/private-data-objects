@@ -52,11 +52,20 @@ class GipsyInvocationRequest(InvocationRequest) :
     """
 
     @staticmethod
-    def scheme_expr(s) :
+    def convert_sexpression(expr) :
         """conversion function for parameters that are Scheme expressions
         """
         try :
-            expr = SchemeExpression.ParseExpression(str(s))
+            sexpr = SchemeExpression.ParseExpression(str(expr))
+            if sexpr.type == 'string' or sexpr.type == 'symbol' :
+                s = str(sexpr)
+                if len(s) == 0 :
+                    return '""'
+                elif s[0] == '"' :
+                    return s
+                else :
+                    s = s.encode('unicode_escape').decode('utf8')
+                    return f'"{s}"'
             return str(expr)
         except :
             raise RuntimeError('invalid scheme expression; {0}'.format(s))
@@ -70,11 +79,13 @@ class GipsyInvocationRequest(InvocationRequest) :
         """
         pparms = ""
         for p in self.__positional_parameters__ :
-            pparms += " {0}".format(GipsyInvocationRequest.scheme_expr(p))
+            pparms += " {0}".format(GipsyInvocationRequest.convert_sexpression(p))
 
         kparms = ""
-        for (k, v) in self :
-            kparms += " ({0} {1})".format(k, GipsyInvocationRequest.scheme_expr(v))
+        for k in self.keys() :
+            kp_key = GipsyInvocationRequest.convert_sexpression(k)
+            kp_val = GipsyInvocationRequest.convert_sexpression(self[k])
+            kparms += " ({0} {1})".format(kp_key, kp_val)
 
         return "'({0} {1} {2})".format(self.__method__, pparms, kparms)
 

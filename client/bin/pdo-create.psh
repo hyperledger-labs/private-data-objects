@@ -27,7 +27,7 @@
 ##    source -- the name of the contract source code file
 ##    identity -- the identity of the contract creator
 ##
-## $ ./create_contract.psh -m class <class> -m source <source> -m identity <identity>
+## $ ./pdo-create.psh -m class <class> -m source <source> -m identity <identity>
 
 set -q --conditional -s data -v .
 set -q --conditional -s save -v .

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import ast
 import random
 import sys
 
@@ -25,6 +26,8 @@ from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.client.controller.commands.contract import get_contract
 from pdo.client.controller.commands.eservice import get_eservice
 import pdo.service_client.service_data.eservice as eservice_db
+from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 __all__ = ['command_send', 'send_to_contract']
 
@@ -138,16 +141,40 @@ def command_send(state, bindings, pargs) :
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
-    parser.add_argument('message', help='Message to be sent to the contract', type=str)
+
+    parser.add_argument('-k', '--kwarg',
+                        help='add a keyword argument to the invocation',
+                        nargs=2, type=scheme_expr, action='append')
+
+    parser.add_argument('method',
+                        help='message to be sent to the contract',
+                        type=str)
+
+    parser.add_argument('positional_params',
+                        help='positional parameters sent to the invocation',
+                        type=scheme_expr, nargs='*')
 
     options = parser.parse_args(pargs)
-    message = options.message
     waitflag = options.wait
+    method = options.method
+
+    pparams = []
+    if options.positional_params :
+        pparams = list(map(lambda p : convert_scheme_expr(p), options.positional_params))
+
+    kparams = dict()
+    if options.kwarg :
+        for (k, v) in options.kwarg :
+            if k.type != 'string' and k.type != 'symbol' :
+                raise RuntimeError('expecting string key; {0}'.format(str(k)))
+            kparams[str(k)] = convert_scheme_expr(v)
+
+    message = invocation_request(method, *pparams, **kparams)
 
     result = send_to_contract(
         state,
         options.save_file,
-        options.message,
+        message,
         eservice_url=options.enclave,
         quiet=options.quiet,
         wait=options.wait)

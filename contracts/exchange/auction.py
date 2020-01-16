@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -79,7 +80,7 @@ def __command_auction__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
-        message = "'(get-verifying-key)"
+        message = invocation_request('get-verifying-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -88,34 +89,34 @@ def __command_auction__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_offered_asset' :
         extraparams['commit'] = False
-        message = "'(examine-offered-asset)"
+        message = invocation_request('examine-offered-asset')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_requested_asset' :
         extraparams['commit'] = False
-        message = "'(examine-requested-asset)"
+        message = invocation_request('examine-requested-asset')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
         asset_request = "({0} {1} {2})".format(options.type_id, options.count, options.owner)
-        message = "'(initialize {0} {1})".format(asset_request, options.root)
+        message = invocation_request('initialize', asset_request, options.root)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'offer' :
-        message = "'(offer-asset {0})".format(options.asset)
+        message = invocation_request('offer-asset', options.asset)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_offer' :
         extraparams['commit'] = False
-        message = "'(claim-offer)"
+        message = invocation_request('claim-offer')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -123,11 +124,11 @@ def __command_auction__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'cancel_auction' :
-        message = "'(cancel-auction)"
+        message = invocation_request('cancel-auction')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result == "#t" :
             extraparams['commit'] = False
-            message = "'(cancel-auction-attestation)"
+            message = invocation_request('cancel-auction-attestation')
             send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
             if result and options.symbol :
                 bindings.bind(options.symbol, result)
@@ -135,40 +136,40 @@ def __command_auction__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'close_auction' :
-        message = "'(close-auction)"
+        message = invocation_request('close-auction')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'confirm_close' :
-        message = "'(confirm-close)"
+        message = invocation_request('confirm-close')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'submit_bid' :
-        message = "'(submit-bid {0})".format(options.asset)
+        message = invocation_request('submit-bid', options.asset)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'max_bid' :
         extraparams['commit'] = False
-        message = "'(max-bid)"
+        message = invocation_request('max-bid')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'check_bid' :
         extraparams['commit'] = False
-        message = "'(check-bid)"
+        message = invocation_request('check-bid')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_bid' :
         extraparams['commit'] = False
-        message = "'(claim-bid)"
+        message = invocation_request('claim-bid')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -176,11 +177,11 @@ def __command_auction__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'cancel_bid' :
-        message = "'(cancel-bid)"
+        message = invocation_request('cancel-bid')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result == "#t" :
             extraparams['commit'] = False
-            message = "'(cancel-bid-attestation)"
+            message = invocation_request('cancel-bid-attestation')
             result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
             if result and options.symbol :
                 bindings.bind(options.symbol, result)

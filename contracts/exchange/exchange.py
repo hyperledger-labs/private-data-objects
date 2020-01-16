@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -71,7 +72,7 @@ def __command_exchange__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
-        message = "'(get-verifying-key)"
+        message = invocation_request('get-verifying-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -80,34 +81,34 @@ def __command_exchange__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_offered_asset' :
         extraparams['commit'] = False
-        message = "'(examine-offered-asset)"
+        message = invocation_request('examine-offered-asset')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_requested_asset' :
         extraparams['commit'] = False
-        message = "'(examine-requested-asset)"
+        message = invocation_request('examine-requested-asset')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
         asset_request = "({0} {1} {2})".format(options.type_id, options.count, options.owner)
-        message = "'(initialize {0} {1})".format(asset_request, options.root)
+        message = invocation_request('initialize', asset_request, options.root)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'offer' :
-        message = "'(offer-asset {0})".format(options.asset)
+        message = invocation_request('offer-asset', options.asset)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_offer' :
         extraparams['commit'] = False
-        message = "'(claim-offer)"
+        message = invocation_request('claim-offer')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -115,14 +116,14 @@ def __command_exchange__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'exchange' :
-        message = "'(exchange-asset {0})".format(options.asset)
+        message = invocation_request('exchange-asset', options.asset)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim_exchange' :
         extraparams['commit'] = False
-        message = "'(claim-exchange)"
+        message = invocation_request('claim-exchange')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -130,14 +131,14 @@ def __command_exchange__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'cancel' :
-        message = "'(cancel)"
+        message = invocation_request('cancel')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'cancel_attestation' :
         extraparams['commit'] = False
-        message = "'(cancel-attestation)"
+        message = invocation_request('cancel-attestation')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)

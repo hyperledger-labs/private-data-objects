@@ -129,12 +129,12 @@ single counter.
    (creator (get ':message 'originator))
    (value 0)))
 
-(define-method mock-contract (get-value)
+(define-method mock-contract (get_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can get the value"))
   value)
 
-(define-method mock-contract (inc-value)
+(define-method mock-contract (inc_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (instance-set! self 'value (+ value 1))
@@ -164,9 +164,9 @@ expression file used will match the contract name with a '.exp'
 extension.
 
 ```scheme
-'(inc-value)
-'(inc-value)
-'(get-value)
+'(inc_value)
+'(inc_value)
+'(get_value)
 ```
 
 ## Examples ##
