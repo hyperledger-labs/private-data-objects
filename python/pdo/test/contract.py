@@ -21,6 +21,7 @@ import argparse
 import random
 import csv
 import re
+import json
 
 import pdo.test.helpers.secrets as secret_helper
 
@@ -346,54 +347,76 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
     total_tests = 0
     total_failed = 0
 
-    with open(config['expressions'], "r") as efile :
-        fieldnames = ['expression', 'expected', 'invert']
-        reader = csv.DictReader(filter(lambda row: row[0] != '#', efile),
-                                fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', skipinitialspace=True)
+    test_list = []
+    test_file = config['expressions']
+    with open(test_file, "r") as efile :
+        if test_file.endswith('.exp') :
+            fieldnames = ['expression', 'expected', 'invert']
+            reader = csv.DictReader(filter(lambda row: row[0] != '#', efile),
+                                    fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', skipinitialspace=True)
 
-        for test in reader :
-            expression = test['expression']
+            test_list = list(reader)
 
-            try :
-                total_tests += 1
-                update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
-                update_response = update_request.evaluate()
+        elif test_file.endswith('.json') :
+            reader = json.load(efile)
+            for test in reader :
+                method = test['MethodName']
+                pparms = test.get('PositionalParameters',[])
+                kparms = test.get('KeywordParameters',{})
+                test['expression'] = contract_helper.invocation_request(method, *pparms, **kparms)
+                test_list.append(test)
+        else :
+            logger.error('unknown test file format; %s', test_file)
+            ErrorShutdown()
 
-                result = update_response.invocation_response[:15]
-                if len(update_response.invocation_response) >= 15 :
-                    result += "..."
+    for test in test_list :
+        expression = test['expression']
 
-                if update_response.status is False :
-                    logger.info('failed: {0} --> {1}'.format(expression, result))
-                    if test['invert'] is None or test['invert'] != 'fail' :
-                        total_failed += 1
-                        logger.warn('inverted test failed: %s instead of %s', result, test['expected'])
-                    continue
+        try :
+            total_tests += 1
+            update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
+            update_response = update_request.evaluate()
 
-                logger.info('{0} --> {1}'.format(expression, result))
+            result = update_response.invocation_response[:15]
+            if len(update_response.invocation_response) >= 15 :
+                result += "..."
+
+            if update_response.status is False :
+                logger.info('failed: {0} --> {1}'.format(expression, result))
+                if test['invert'] is None or test['invert'] != 'fail' :
+                    total_failed += 1
+                    logger.warn('inverted test failed: %s instead of %s', result, test['expected'])
 
                 if test['expected'] and not re.match(test['expected'], update_response.invocation_response) :
                     total_failed += 1
                     logger.warn('test failed: %s instead of %s', result, test['expected'])
 
+                continue
+
+            logger.info('{0} --> {1}'.format(expression, result))
+
+            if test['expected'] and not re.match(test['expected'], update_response.invocation_response) :
+                total_failed += 1
+                logger.warn('test failed: %s instead of %s', result, test['expected'])
+
+        except Exception as e:
+            logger.error('enclave failed to evaluation expression; %s', str(e))
+            ErrorShutdown()
+
+        # if this operation did not change state then there is nothing to commit
+        if update_response.state_changed :
+            # asynchronously submit the commit task: (a commit task replicates
+            # change-set and submits the corresponding transaction)
+            try:
+                logger.info("asynchronously replicate change set and submit transaction in the background")
+                update_response.commit_asynchronously(ledger_config)
+                last_response_committed = update_response
             except Exception as e:
-                logger.error('enclave failed to evaluation expression; %s', str(e))
+                logger.error('failed to submit commit: %s', str(e))
                 ErrorShutdown()
 
-            # if this operation did not change state then there is nothing to commit
-            if update_response.state_changed :
-                # asynchronously submit the commit task: (a commit task replicates
-                # change-set and submits the corresponding transaction)
-                try:
-                    logger.info("asynchronously replicate change set and submit transaction in the background")
-                    update_response.commit_asynchronously(ledger_config)
-                    last_response_committed = update_response
-                except Exception as e:
-                    logger.error('failed to submit commit: %s', str(e))
-                    ErrorShutdown()
-
-                logger.debug('update state')
-                contract.set_state(update_response.raw_state)
+            logger.debug('update state')
+            contract.set_state(update_response.raw_state)
 
     if total_failed > 0:
         logger.warn('failed %d of %d tests', total_failed, total_tests)
