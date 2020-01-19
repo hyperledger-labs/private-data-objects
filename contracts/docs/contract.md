@@ -17,9 +17,9 @@ contract development.
 
 A contract is an object defined using the [object-oriented extensions](#Object-Oriented Extensions)
 provided by Gipsy. Methods defined by the contract object handle messages sent to the contract. For
-example, the ``simple-contract`` class shown below defines handlers for two messages: ``get-value``
-and ``inc-value``. A client can send a message to the contract like ``'(inc-value)`` or
-``'(get-value)``.  The contract enforces a policy that only the creator of the contract may perform
+example, the ``simple-contract`` class shown below defines handlers for two messages: ``get_value``
+and ``inc_value``. A client can send a message to the contract like ``'(inc_value)`` or
+``'(get_value)``.  The contract enforces a policy that only the creator of the contract may perform
 either operation.
 
 ```scheme
@@ -28,12 +28,12 @@ either operation.
    (creator (get ':message 'originator))
    (value 0)))
 
-(define-method simple-contract (get-value)
+(define-method simple-contract (get_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can get the value"))
   value)
 
-(define-method simple-contract (inc-value)
+(define-method simple-contract (inc_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (instance-set! self 'value (+ value 1))

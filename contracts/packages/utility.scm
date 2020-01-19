@@ -22,6 +22,17 @@
 (define utility-package
   (package
 
+   ;; coerce an associative list that may contain strings
+   ;; as keys into an alist that can be used for variable
+   ;; bindings in an object
+   (define (coerce-binding-list binding-list)
+     (map (lambda (binding)
+            (let ((k (car binding)) (v (cadr binding)))
+              (cond ((symbol? k) (list k v))
+                    ((string? k) (list (string->symbol k) v))
+                    (else (error "unable to convert key" k)))))
+          binding-list))
+
    (define (coerce-number value)
      (if (number? value) value (string->number value)))
 

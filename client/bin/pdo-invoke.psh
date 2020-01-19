@@ -25,7 +25,7 @@
 ##    expr -- expression to be evaluated
 ##    identity -- the identity of the contract creator
 ##
-## $ ./create_contract.psh -m contract <contract> -expr <expression> -m identity <identity>
+## $ ./pdo-invoke.psh -m contract <contract> -expr <expression> -m identity <identity>
 
 set -q --conditional -s data -v .
 script -f ${home}/etc/site.psh
@@ -46,6 +46,6 @@ if -n ${expr}
 fi
 
 identity -n ${identity}
-send -f ${pdo_file} "${expr}"
+send -f ${pdo_file} ${expr}
 
 exit

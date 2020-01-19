@@ -18,9 +18,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -37,9 +37,9 @@ def __command_asset_type__(state, bindings, pargs) :
     subparsers = parser.add_subparsers(dest='command')
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-d', '--description', help='human readable description', type=scheme_string, default='')
-    subparser.add_argument('-n', '--name', help='human readable name', type=scheme_string, default='')
-    subparser.add_argument('-l', '--link', help='URL where more information is located', type=scheme_string, default='')
+    subparser.add_argument('-d', '--description', help='human readable description', type=str, default='')
+    subparser.add_argument('-n', '--name', help='human readable name', type=str, default='')
+    subparser.add_argument('-l', '--link', help='URL where more information is located', type=str, default='')
 
     subparser = subparsers.add_parser('get_identifier')
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
@@ -51,14 +51,14 @@ def __command_asset_type__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        message = "'(initialize {0} {1} {2})".format(options.name, options.description, options.link)
+        message = invocation_request('initialize', options.name, options.description, options.link)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_identifier' :
         extraparams['commit'] = False
-        message = "'(get-identifier)"
+        message = invocation_request('get-identifier')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
@@ -68,11 +68,11 @@ def __command_asset_type__(state, bindings, pargs) :
     if options.command == 'get_description' :
         extraparams['quiet'] = True
         extraparams['commit'] = False
-        message = "'(get-name)"
+        message = invocation_request('get-name')
         name = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        message = "'(get-description)"
+        message = invocation_request('get-description')
         description = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
-        message = "'(get-link)"
+        message = invocation_request('get-link')
         link = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         print("NAME: {0}".format(name))
         print("DESC: {0}".format(description))

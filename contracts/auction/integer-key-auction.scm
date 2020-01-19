@@ -21,6 +21,7 @@
 
 (require-when (member "debug" *args*) "debug.scm")
 
+(require "utility.scm")
 (require "contract-base.scm")
 (require "escrow-counter.scm")
 (require "indexed-key-store.scm")
@@ -125,7 +126,7 @@
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
 (define-method integer-key-auction (prime-auction* bidinfo dependencies signature)
-  (let ((initial-bid (make-instance* escrow-counter bidinfo)))
+  (let ((initial-bid (make-instance* escrow-counter (utility-package::coerce-binding-list bidinfo))))
     (send self 'prime-auction initial-bid dependencies signature)))
 
 (define-method integer-key-auction (prime-auction initial-bid dependencies signature)
@@ -176,7 +177,7 @@
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
 (define-method integer-key-auction (submit-bid* bidinfo dependencies signature)
-  (let ((initial-bid (make-instance* escrow-counter bidinfo)))
+  (let ((initial-bid (make-instance* escrow-counter (utility-package::coerce-binding-list bidinfo))))
     (send self 'submit-bid initial-bid dependencies signature)))
 
 (define-method integer-key-auction (submit-bid bid dependencies signature)
