@@ -288,7 +288,7 @@ GipsyInterpreter::GipsyInterpreter(void)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::save_dependencies(
-    map<string,string>& outDependencies
+    std::map<std::string,std::string>& outDependencies
     )
 {
     scheme* sc = interpreter_;

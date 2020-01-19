@@ -151,7 +151,7 @@ ContractResponse ContractRequest::process_initialization_request(ContractState& 
         msg.OriginatorID = contract_message_.originator_verifying_key_;
         msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
 
-        std::map<string, string> dependencies;
+        std::map<std::string, std::string> dependencies;
 
         // Push this into a block to ensure that the interpreter is deallocated
         // and frees its memory before finalizing the state update
@@ -230,7 +230,7 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
         msg.OriginatorID = contract_message_.originator_verifying_key_;
         msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
 
-        std::map<string, string> dependencies;
+        std::map<std::string, std::string> dependencies;
         std::string result;
 
         bool state_changed_flag;
@@ -265,7 +265,7 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
         else
         {
             // since the state is unchanged, we can just use the input block id as the output block id
-            std::map<string, string> dependencies;
+            std::map<std::string, std::string> dependencies;
             ContractResponse response(*this, contract_state, dependencies, result, contract_state.input_block_id_);
 
             response.state_changed_ = false;
@@ -283,7 +283,7 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
         contract_state.Finalize();
 
         pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
-        std::map<string, string> dependencies;
+        std::map<std::string, std::string> dependencies;
         ContractResponse response(*this, contract_state, dependencies, e.what(), output_block_id);
         response.operation_succeeded_ = false;
         return response;

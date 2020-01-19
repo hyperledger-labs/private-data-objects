@@ -78,7 +78,7 @@ public:
         const pdo::state::StateBlockId& inContractStateHash,
         pdo::state::Basic_KV_Plus& inoutContractState,
         bool& outStateChangedFlag,
-        std::map<string,string>& outDependencies,
+        std::map<std::string,std::string>& outDependencies,
         std::string& outMessageResult
         );
 
