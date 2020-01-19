@@ -1,0 +1,49 @@
+[
+    {
+        "MethodName": "create",
+        "PositionalParameters": ["a", 0],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "inc",
+        "PositionalParameters": ["a", 1],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "inc",
+        "PositionalParameters": ["a", 5],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "dec",
+        "PositionalParameters": ["a", 2],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "get-value",
+        "PositionalParameters": ["a"],
+        "expected": "4"
+    },
+    {
+        "MethodName": "create",
+        "PositionalParameters": ["b", 5],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "escrow",
+        "PositionalParameters": [
+            "b",
+            "-----BEGIN PUBLIC KEY-----\\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEz9s2L5K+0ikrWbh0JrzdkYyOPnqZb/Ui\\n/3CKAAxrBVeZ/As6fBCiGjOdtq5Nlwk17+rc/EcDWrskGtb7YvzMIw==\\n-----END PUBLIC KEY-----"
+        ],
+        "expected": "#t"
+    },
+    {
+        "MethodName": "escrow-attestation",
+        "PositionalParameters": ["b"],
+        "expected": "\\(\\(\\(key \"b\"\\) \\(value 5\\) \\(owner \"[^\"]+\"\\)\\) \\(\\(\"[^\"]+\" \"[^\"]+\"\\)\\) \"[^\"]+\"\\)"
+    },
+    {
+        "MethodName": "get-state",
+        "expected": "\\(\\(\"b\" \\(key \"b\"\\) \\(value 5\\) \\(owner \"[^\"]+\"\\) \\(active #f\\) \\(escrow-key \"[^\"]+\"\\)\\) \\(\"a\" \\(key \"a\"\\) \\(value 4\\) \\(owner \"[^\"]+\"\\) \\(active #t\\) \\(escrow-key \"\"\\)\\)\\)"
+    }
+]

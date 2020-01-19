@@ -99,18 +99,22 @@ fi
 
 say start integer-key contract test
 try pdo-test-contract --no-ledger --contract integer-key \
+    --expressions integer-key.json \
     --logfile __screen__ --loglevel warn
 
 say start mock-contract contract test
 try pdo-test-contract --no-ledger --contract mock-contract \
+    --expressions mock-contract.json \
     --logfile __screen__ --loglevel warn
 
 say start key value store test
 try pdo-test-contract --no-ledger --contract key-value-test \
+    --expressions key-value-test.json \
     --logfile __screen__ --loglevel warn
 
 say start memory test
 try pdo-test-contract --no-ledger --contract memory-test \
+    --expressions memory-test.json \
     --logfile __screen__ --loglevel warn
 
 ## -----------------------------------------------------------------
@@ -146,18 +150,21 @@ try pdo-test-request --ledger ${PDO_LEDGER_URL} \
 
 say start integer-key contract test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
+    --expressions integer-key.json \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start key value store test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract key-value-test \
+    --expressions key-value-test.json \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
 say start memory test
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
+    --expressions memory-test.json \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
@@ -212,6 +219,7 @@ yell test failure conditions to ensure they are caught
 ## -----------------------------------------------------------------
 say start mock contract test with ledger, this should fail dependency check
 pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract mock-contract \
+    --expressions mock-contract.json \
     --logfile __screen__ --loglevel warn
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
@@ -219,7 +227,7 @@ fi
 
 say start broken contract test, this should fail
 pdo-test-contract --no-ledger --contract mock-contract-bad \
-    --expressions mock-contract.exp \
+    --expressions mock-contract.json \
     --logfile __screen__ --loglevel warn
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
@@ -256,6 +264,7 @@ try pdo-test-request --ledger ${PDO_LEDGER_URL} \
 
 say start memory test test with replication 3 eservices 2 replicas needed before txn
 try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
+    --expressions memory-test.json \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
     --logfile __screen__ --loglevel warn \
