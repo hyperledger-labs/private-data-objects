@@ -52,7 +52,7 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (big-state dimension . args)
      (assert (and (integer? dimension) (< 0 dimension)) "second parameter must be a positive integer")
-     (let ((value (utility-package::get-with-default 'value string? args memory-test-package::default-value)))
+     (let ((value (utility-package::get-with-default "value" string? args memory-test-package::default-value)))
        (instance-set! self '_value (make-vector dimension (make-vector dimension value))))
      #t)
 
@@ -70,9 +70,9 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (fill-vector . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
-            (first (utility-package::get-with-default 'first integer? args 0))
-            (last (utility-package::get-with-default 'last integer? args (- vector-size 1)))
-            (value (utility-package::get-with-default 'value integer? args 1)))
+            (first (utility-package::get-with-default "first" integer? args 0))
+            (last (utility-package::get-with-default "last" integer? args (- vector-size 1)))
+            (value (utility-package::get-with-default "value" integer? args 1)))
        (assert (and (<= 0 first) (<= first last)) "invalid positional parameters" first last)
        (if (<= vector-size last)
            (send _persistent_vector 'extend (+ last 1)))
@@ -90,8 +90,8 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (dump-vector . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
-            (first (utility-package::get-with-default 'first integer? args 0))
-            (last (utility-package::get-with-default 'last integer? args (- vector-size 1))))
+            (first (utility-package::get-with-default "first" integer? args 0))
+            (last (utility-package::get-with-default "last" integer? args (- vector-size 1))))
        (assert (and (<= 0 first) (<= first last) (< last vector-size)) "invalid positional parameters" first last)
 
        ;; dump the values in the vector
@@ -105,9 +105,9 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (clear-vector . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
-            (first (utility-package::get-with-default 'first integer? args 0))
-            (last (utility-package::get-with-default 'last integer? args (- vector-size 1)))
-            (skip (utility-package::get-with-default 'skip integer? args 4)))
+            (first (utility-package::get-with-default "first" integer? args 0))
+            (last (utility-package::get-with-default "last" integer? args (- vector-size 1)))
+            (skip (utility-package::get-with-default "skip" integer? args 4)))
        (assert (and (<= 0 first) (<= first last) (< last vector-size)) "invalid positional parameters" first last)
        (assert (< 0 skip) "skip must be positive integer" skip)
        (let loop ((index first))
@@ -149,8 +149,8 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (many-keys count . args)
      (assert (and (integer? count) (< 0 count)) "second parameter must be a positive integer")
-     (let ((key-base (utility-package::get-with-default 'key-base string? args memory-test-package::default-key))
-           (value (utility-package::get-with-default 'value string? args memory-test-package::default-value)))
+     (let ((key-base (utility-package::get-with-default "key-base" string? args memory-test-package::default-key))
+           (value (utility-package::get-with-default "value" string? args memory-test-package::default-value)))
        (let loop ((i 0))
          (if (< i count)
              (let ((key (string-append key-base (number->string i))))
@@ -171,8 +171,8 @@
    ;; -----------------------------------------------------------------
    (define-method memory-test (big-value size . args)
      (assert (and (integer? size) (< 0 size)) "second parameter must be a positive integer")
-     (let ((key (utility-package::get-with-default 'key string? args memory-test-package::default-key))
-           (value-base (utility-package::get-with-default 'value-base string? args memory-test-package::default-value)))
+     (let ((key (utility-package::get-with-default "key" string? args memory-test-package::default-key))
+           (value-base (utility-package::get-with-default "value-base" string? args memory-test-package::default-value)))
        (assert (= (string-length value-base) 1) "value base must be a one character string")
        (let ((big-string (make-string size (string-ref value-base 0))))
          (safe-kv-put key big-string)
