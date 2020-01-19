@@ -12,31 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+from pdo.client.SchemeExpression import SchemeExpression
+
 import logging
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
-
-
-__all__ = ['scheme_expr' , 'scheme_string']
+__all__ = ['invocation_parameter', 'scheme_parameter']
 
 # -----------------------------------------------------------------
-def scheme_string(s) :
-    """conversion function for parameters that are Scheme strings
-    """
-    if len(s) == 0 :
-        return '""'
-    elif s[0] == '"' :
-        return s
-    else :
-        return f'"{s}"'
-
-# -----------------------------------------------------------------
-def scheme_expr(s) :
-    """conversion function for parameters that are Scheme expressions
+def invocation_parameter(s) :
+    """argparse parameter conversion function for invocation request
+    parameters, basically these parameters are JSON expressions
     """
     try :
-        expr = SchemeExpression.ParseExpression(s)
-        return str(expr)
+        expr = json.loads(s)
+        return expr
     except :
-        raise RuntimeError('invalid scheme expression; {0}'.format(s))
+        return str(s)
+
+# -----------------------------------------------------------------
+def scheme_parameter(s) :
+    """argparse parameter conversion function for scheme objects
+    that need to be parsed before being re-used
+    """
+    try :
+        sexpr = SchemeExpression.ParseExpression(str(s))
+        return sexpr.value
+    except Exception as e:
+        return str(s)

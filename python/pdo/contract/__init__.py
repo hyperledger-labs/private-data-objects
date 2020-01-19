@@ -19,23 +19,34 @@ __all__ = [
     "ContractMessage",
     "ContractResponse",
     "ContractRequest",
-    "register_contract",
-    "add_enclave_to_contract",
     "ReplicationRequest",
-    "start_replication_service",
-    "stop_replication_service",
-    "add_replication_task",
     "TransactionRequest",
+    "add_enclave_to_contract",
+    "add_replication_task",
+    "add_transaction_task",
+    "invocation_request",
+    "register_contract",
+    "start_replication_service",
     "start_transaction_processing_service",
+    "stop_replication_service",
     "stop_transacion_processing_service",
-    "add_transaction_task"
 ]
 
 from pdo.contract.code import ContractCode
-from pdo.contract.contract import Contract, register_contract, add_enclave_to_contract
+from pdo.contract.contract import Contract
+from pdo.contract.contract import add_enclave_to_contract
+from pdo.contract.contract import register_contract
+from pdo.contract.invocation import invocation_request
 from pdo.contract.message import ContractMessage
 from pdo.contract.request import ContractRequest
 from pdo.contract.response import ContractResponse
 from pdo.contract.state import ContractState
-from pdo.contract.replication import ReplicationRequest, start_replication_service, stop_replication_service, add_replication_task
-from pdo.contract.transaction import TransactionRequest, start_transaction_processing_service, stop_transacion_processing_service, add_transaction_task
+
+from pdo.contract.replication import ReplicationRequest
+from pdo.contract.replication import start_replication_service
+from pdo.contract.replication import stop_replication_service
+from pdo.contract.replication import add_replication_task
+from pdo.contract.transaction import TransactionRequest
+from pdo.contract.transaction import start_transaction_processing_service
+from pdo.contract.transaction import stop_transacion_processing_service
+from pdo.contract.transaction import add_transaction_task
