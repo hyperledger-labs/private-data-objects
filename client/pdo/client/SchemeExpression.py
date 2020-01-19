@@ -14,7 +14,7 @@
 
 import logging
 from pyparsing import Forward, Group, Literal, OneOrMore, Or, Word, ZeroOrMore, Keyword
-from pyparsing import alphanums, nums, dblQuotedString
+from pyparsing import alphanums, nums, dblQuotedString, QuotedString
 from pyparsing import ParseResults
 
 logger = logging.getLogger(__name__)
@@ -33,12 +33,45 @@ class SchemeExpression(object) :
 
     # -----------------------------------------------------------------
     @classmethod
-    def make_list(cls, *exprlist) :
+    def make_expression(cls, expr) :
+        """Convert a python expression into an SchemeExpression
+        """
+        if isinstance(expr, SchemeExpression) :
+            return expr
+
+        if type(expr) is dict :
+            result = []
+            for k, v in expr.items() :
+                result.append([cls.make_expression(k).expression, cls.make_expression(v).expression])
+            return cls.make_list(result)
+        if type(expr) is list :
+            result = []
+            for e in expr :
+                result.append(cls.make_expression(e).expression)
+            return cls.make_list(result)
+        elif type(expr) is tuple :
+            result = []
+            for e in expr :
+                result.append(cls.make_expression(e).expression)
+            return cls.make_vector(result)
+        elif type(expr) is str :
+            return cls.make_string(expr)
+        elif type(expr) is int :
+            return cls.make_integer(expr)
+        elif type(expr) is float :
+            return cls.make_float(expr)
+        elif type(expr) is bool :
+            return cls.make_boolean(expr)
+
+        raise ValueError('unrecognized expression', str(expr))
+
+    # -----------------------------------------------------------------
+    @classmethod
+    def make_list(cls, exprlist) :
         result = []
         for expr in exprlist :
             if not isinstance(expr, SchemeExpression) :
                 expr = SchemeExpression(expr)
-                #raise ValueError('append parameter must be a scheme expression', str(expr))
 
             result.append(expr.expression)
 
@@ -46,12 +79,11 @@ class SchemeExpression(object) :
 
     # -----------------------------------------------------------------
     @classmethod
-    def make_vector(cls, *exprlist) :
+    def make_vector(cls, exprlist) :
         result = []
         for expr in exprlist :
             if not isinstance(expr, SchemeExpression) :
                 expr = SchemeExpression(expr)
-                #raise ValueError('append parameter must be a scheme expression', str(expr))
 
             result.append(expr.expression)
 
@@ -60,6 +92,14 @@ class SchemeExpression(object) :
     # -----------------------------------------------------------------
     @classmethod
     def make_string(cls, value) :
+        # if the string is delimited by quotes then strip them first, if
+        # you really want double quotes then escape them
+        value = str(value)
+        if value.startswith('"') :
+            assert value.endswith('"')
+            value = value[1:-1]
+
+        value = value.encode('utf-8').decode('unicode-escape').replace('\\"','"')
         return cls({ 'type' : 'string', 'value' : str(value) })
 
     # -----------------------------------------------------------------
@@ -132,7 +172,7 @@ class SchemeExpression(object) :
             elif etype == 'integer' :
                 return str(expr['value'])
             elif etype == 'string' :
-                return '"' + expr['value'] + '"'
+                return '"' + expr['value'].encode('unicode-escape').decode().replace('"', '\\"') + '"'
             elif etype == 'boolean' :
                 return "#t" if expr['value'] else "#f"
             elif etype == 'vector' :
@@ -159,7 +199,7 @@ class SchemeExpression(object) :
                 result = []
                 for item in expr['value'] :
                     result.append(SchemeExpression._tovalue(item))
-                return result
+                return tuple(result)
             else :
                 return expr['value']
 
@@ -190,10 +230,10 @@ class SchemeExpression(object) :
         integer = Word(nums)
         integer.setParseAction(lambda s, l, t: SchemeExpression.make_integer(t[0]).expression)
 
-        string = dblQuotedString
-        string.setParseAction(lambda s, l, t: SchemeExpression.make_string(t[0][1:-1]).expression)
+        string = QuotedString('"', multiline=True)
+        string.setParseAction(lambda s, l, t: SchemeExpression.make_string(t[0]).expression)
 
-        element = integer | boolean | symbol | dblQuotedString
+        element = integer | boolean | symbol | string
 
         # lists
         lexpr = Forward()
@@ -205,10 +245,10 @@ class SchemeExpression(object) :
 
         # vectors
         lexpr << Group(lparen + ZeroOrMore(element ^ lexpr ^ vexpr) + rparen)
-        lexpr.setParseAction(lambda s, l, t: SchemeExpression.make_list(*t[0]))
+        lexpr.setParseAction(lambda s, l, t: SchemeExpression.make_list(t[0]))
 
         vexpr << Group(hashsym + lparen + ZeroOrMore(element ^ lexpr ^ vexpr) + rparen)
-        vexpr.setParseAction(lambda s, l, t: SchemeExpression.make_vector(*t[0]))
+        vexpr.setParseAction(lambda s, l, t: SchemeExpression.make_vector(t[0]))
 
         # final...
         sexpr = element | vexpr | lexpr
@@ -320,4 +360,4 @@ if __name__ == '__main__' :
     x2 = SchemeExpression.make_symbol("sym")
     x3 = SchemeExpression.make_string("string")
     x4 = SchemeExpression.make_boolean(True)
-    print(str(SchemeExpression.make_list(e1, x1, x2, x3, x4)))
+    print(str(SchemeExpression.make_list([e1, x1, x2, x3, x4])))

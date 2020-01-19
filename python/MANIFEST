@@ -5,9 +5,11 @@
 ./pdo/common/logger.py
 ./pdo/common/secrets.py
 ./pdo/common/utility.py
+./pdo/common/wsgi.py
 ./pdo/contract/__init__.py
 ./pdo/contract/code.py
 ./pdo/contract/contract.py
+./pdo/contract/invocation.py
 ./pdo/contract/message.py
 ./pdo/contract/replication.py
 ./pdo/contract/request.py
@@ -18,6 +20,7 @@
 ./pdo/service_client/enclave.py
 ./pdo/service_client/generic.py
 ./pdo/service_client/provisioning.py
+./pdo/service_client/service_data/__init__.py
 ./pdo/service_client/service_data/eservice.py
 ./pdo/service_client/storage.py
 ./pdo/submitter/__init__.py

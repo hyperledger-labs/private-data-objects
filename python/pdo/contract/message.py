@@ -14,6 +14,8 @@
 import os
 
 import pdo.common.crypto as crypto
+from pdo.contract.invocation import InvocationRequest
+
 from pdo.common.utility import deprecated
 
 import logging
@@ -30,10 +32,18 @@ class ContractMessage(object) :
         self.__request_originator_keys = request_originator_keys
         self.__channel_keys = channel_keys
 
-        self.invocation_request = kwargs.get('invocation_request', '');
-        if kwargs.get('expression') :
-            logger.warn('deprecated use of expression parameter')
-            self.invocation_request = kwargs.get('expression', '')
+        # remove this when we are convinced that we've converted
+        # all forms to use InvocationRequest
+        invocation_request = kwargs.get('invocation_request')
+        if invocation_request :
+            if not issubclass(type(invocation_request), InvocationRequest) :
+                logger.warn("not an InvocationRequest: %s", str(invocation_request))
+
+        self.invocation_request = str(kwargs.get('invocation_request', ''));
+
+        # remove this when we are convinced that we've removed
+        # all forms expressing the message through 'expression'
+        assert kwargs.get('expression') is None
 
         self.nonce = crypto.byte_array_to_hex(crypto.random_bit_string(16))
 
