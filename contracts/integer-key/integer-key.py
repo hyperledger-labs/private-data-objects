@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -68,38 +69,38 @@ def __command_integer_key__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('create')
-    subparser.add_argument('-k', '--key', help='key to create', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to create', type=str, required=True)
     subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, default=0)
 
     subparser = subparsers.add_parser('inc')
-    subparser.add_argument('-k', '--key', help='key to increment', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to increment', type=str, required=True)
     subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
 
     subparser = subparsers.add_parser('dec')
-    subparser.add_argument('-k', '--key', help='key to decrement', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to decrement', type=str, required=True)
     subparser.add_argument('-v', '--value', help='initial value to give to the key', type=int, required=True)
 
     subparser = subparsers.add_parser('get')
-    subparser.add_argument('-k', '--key', help='key to retrieve', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to retrieve', type=str, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('transfer')
-    subparser.add_argument('-k', '--key', help='key to transfer', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to transfer', type=str, required=True)
     subparser.add_argument('-o', '--owner', help='identity to transfer ownership', type=str, required=True)
 
     subparser = subparsers.add_parser('escrow')
-    subparser.add_argument('-k', '--key', help='key to escrow', type=scheme_string, required=True)
-    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
+    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=str, required=True)
 
     subparser = subparsers.add_parser('attestation')
-    subparser.add_argument('-k', '--key', help='key to escrow', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='key to escrow', type=str, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('disburse')
-    subparser.add_argument('-a', '--attestation', help='disburse attestation from escrow agent', type=scheme_expr, required=True)
+    subparser.add_argument('-a', '--attestation', help='disburse attestation from escrow agent', type=scheme_parameter, required=True)
 
     subparser = subparsers.add_parser('exchange')
-    subparser.add_argument('-a', '--attestation', help='exchange attestation from escrow agent', type=scheme_expr, required=True)
+    subparser.add_argument('-a', '--attestation', help='exchange attestation from escrow agent', type=scheme_parameter, required=True)
 
     options = parser.parse_args(pargs)
 
@@ -107,74 +108,79 @@ def __command_integer_key__(state, bindings, pargs) :
 
     if options.command == 'get_state' :
         extraparams['quiet'] = True
-        message = "'(get-state)"
+        message = invocation_request('get-state')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         __dump_state__(result)
         return
 
     if options.command == 'get_signing_key' :
-        message = "'(get-public-signing-key)"
+        message = invocation_request('get-public-signing-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'create' :
-        message = "'(create {0} {1})".format(options.key, options.value)
+        message = invocation_request('create', options.key, options.value)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'inc' :
-        message = "'(inc {0} {1})".format(options.key, options.value)
+        message = invocation_request('inc', options.key, options.value)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'dec' :
-        message = "'(dec {0} {1})".format(options.key, options.value)
+        message = invocation_request('dec', options.key, options.value)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'get' :
         extraparams['commit'] = False
-        message = "'(get-value {0})".format(options.key)
+        message = invocation_request('get-value', options.key)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'transfer' :
-        message = "'(transfer-ownership {0} {1})".format(options.key, options.owner)
+        message = invocation_request('transfer-ownership', options.key, options.owner)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'escrow' :
-        message = "'(escrow {0} {1})".format(options.key, options.agent)
+        message = invocation_request('escrow', options.key, options.agent)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'attestation' :
-        message = "'(escrow-attestation {0})".format(options.key)
+        message = invocation_request('escrow-attestation', options.key)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'disburse' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        assetkey = scheme_string(dict(attestation.nth(0).value)['key'])
-        dependencies = str(attestation.nth(1))
-        signature = str(attestation.nth(2))
-        message = "'(disburse {0} {1} {2})".format(assetkey, dependencies, signature)
+        assert type(options.attestation) is list
+        assert len(options.attestation) == 3
+
+        bidinfo = dict(options.attestation[0])
+        assetkey = bidinfo['key']
+        dependencies = options.attestation[1]
+        signature = options.attestation[2]
+        message = invocation_request('disburse', assetkey, dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'exchange' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        offered = scheme_string(dict(attestation.nth(0).value)['key'])
-        maxbid = scheme_string(dict(attestation.nth(1).value)['key'])
-        dependencies = str(attestation.nth(2))
-        signature = scheme_string(str(attestation.nth(3)))
-        message = "'(exchange-ownership {0} {1} {2} {3})".format(offered, maxbid, dependencies, signature)
+        assert type(options.attestation) is list
+        assert len(options.attestation) == 4
+
+        offered = dict(options.attestation[0])['key']
+        maxbid =  dict(options.attestation[1])['key']
+        dependencies = options.attestation[2]
+        signature = options.attestation[3]
+        message = invocation_request('exchange-ownership', offered, maxbid, dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 

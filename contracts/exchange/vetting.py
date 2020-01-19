@@ -18,9 +18,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -40,13 +40,13 @@ def __command_vetting__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=scheme_string, required=True)
+    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=str, required=True)
 
     subparser = subparsers.add_parser('approve')
-    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=scheme_string, required=True)
+    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=str, required=True)
 
     subparser = subparsers.add_parser('get_authority')
-    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=scheme_string, required=True)
+    subparser.add_argument('-i', '--issuer', help='identity of the issuer; ECDSA key', type=str, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     options = parser.parse_args(pargs)
@@ -56,7 +56,7 @@ def __command_vetting__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
-        message = "'(get-verifying-key)"
+        message = invocation_request('get-verifying-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
@@ -65,20 +65,20 @@ def __command_vetting__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        message = "'(initialize {0})".format(options.type_id)
+        message = invocation_request('initialize', options.type_id)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'approve' :
-        message = "'(add-approved-key {0})".format(options.issuer)
+        message = invocation_request('add-approved-key', options.issuer)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
    # -------------------------------------------------------
     if options.command == 'get_authority' :
         extraparams['commit'] = False
-        message = "'(get-authority {0})".format(options.issuer)
+        message = invocation_request('get-authority', options.issuer)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)

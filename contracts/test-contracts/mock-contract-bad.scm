@@ -20,21 +20,21 @@
    (creator (get ':message 'originator))
    (value 0)))
 
-(define-method mock-contract (s-value)
+(define-method mock-contract (s_value)
   "this is a string")
 
-(define-method mock-contract (get-value)
+(define-method mock-contract (get_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can get the value"))
   value)
 
-(define-method mock-contract (inc-value)
+(define-method mock-contract (inc_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (instance-set! self 'value (+ value 1))
   value)
 
-(define-method mock-contract (dec-value)
+(define-method mock-contract (dec_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (assert (> value 0) "value must not be negative")

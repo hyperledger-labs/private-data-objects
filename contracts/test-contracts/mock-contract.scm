@@ -20,12 +20,12 @@
    (creator (get ':message 'originator))
    (value 0)))
 
-(define-const-method mock-contract (get-value)
+(define-const-method mock-contract (get_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can get the value"))
   value)
 
-(define-method mock-contract (inc-value)
+(define-method mock-contract (inc_value)
   (let* ((requestor (get ':message 'originator)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (instance-set! self 'value (+ value 1))

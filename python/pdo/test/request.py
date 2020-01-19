@@ -342,7 +342,7 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
             test_state.TamperWithStateBlockOrder(contract.contract_state)
 
         try :
-            expression = "'(inc-value)"
+            expression = contract_helper.invocation_request('inc_value')
             update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
             update_response = update_request.evaluate()
 
@@ -442,6 +442,7 @@ ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
+ContractInterpreter = os.environ.get("PDO_INTERPRETER", "gipsy")
 LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
@@ -451,6 +452,7 @@ config_map = {
     'etc'  : ContractEtc,
     'home' : ContractHome,
     'host' : ContractHost,
+    'interpreter' : ContractInterpreter,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
     'ledger' : LedgerURL
@@ -496,6 +498,7 @@ def Main() :
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
+    parser.add_argument('--interpreter', help='Name of the contract to to require', default=ContractInterpreter)
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
 
     parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)
@@ -595,7 +598,7 @@ def Main() :
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
 
-    config['Contract']['Interpreter'] = 'gipsy'
+    config['Contract']['Interpreter'] = options.interpreter
     config['Contract']['Name'] = 'mock-contract'
     config['Contract']['SourceFile'] = '_mock-contract'
 

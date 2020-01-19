@@ -18,9 +18,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -40,13 +40,13 @@ def __command_auction__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-k', '--key', help='public key of the asset contract', type=scheme_string, required=True)
+    subparser.add_argument('-k', '--key', help='public key of the asset contract', type=str, required=True)
 
     subparser = subparsers.add_parser('prime')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_expr, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_parameter, required=True)
 
     subparser = subparsers.add_parser('submit_bid')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_expr, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_parameter, required=True)
 
     subparser = subparsers.add_parser('get_offered_asset')
     subparser = subparsers.add_parser('cancel_bid')
@@ -68,71 +68,69 @@ def __command_auction__(state, bindings, pargs) :
     extraparams={'quiet' : options.quiet, 'wait' : options.wait}
 
     if options.command == 'get_signing_key' :
-        message = "'(get-public-signing-key)"
+        message = invocation_request('get-public-signing-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'initialize' :
-        message = "'(initialize {0})".format(options.key)
+        message = invocation_request('initialize', options.key)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'prime' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        bidinfo = str(attestation.nth(0))
-        dependencies = str(attestation.nth(1))
-        signature = str(attestation.nth(2))
-        message = "'(prime-auction* {0} {1} {2})".format(bidinfo, dependencies, signature)
+        bidinfo = dict(options.attestation[0])
+        dependencies = options.attestation[1]
+        signature = options.attestation[2]
+        message = invocation_request('prime-auction*', bidinfo, dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'submit_bid' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        bidinfo = str(attestation.nth(0))
-        dependencies = str(attestation.nth(1))
-        signature = str(attestation.nth(2))
-        message = "'(submit-bid* {0} {1} {2})".format(bidinfo, dependencies, signature)
+        bidinfo = dict(options.attestation[0])
+        dependencies = options.attestation[1]
+        signature = options.attestation[2]
+        message = invocation_request('submit-bid*',bidinfo, dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'get_offered_asset' :
-        message = "'(get-offered-asset)"
+        message = invocation_request('get-offered-asset')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'cancel_bid' :
-        message = "'(cancel-bid)"
+        message = invocation_request('cancel-bid')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'check_bid' :
-        message = "'(check-bid)"
+        message = invocation_request('check-bid')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'max_bid' :
-        message = "'(max-bid)"
+        message = invocation_request('max-bid')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'close_bidding' :
-        message = "'(close-bidding)"
+        message = invocation_request('close-bidding')
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     if options.command == 'cancel_attestation' :
-        message = "'(cancel-attestation)"
+        message = invocation_request('cancel-attestation')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
     if options.command == 'exchange_attestation' :
-        message = "'(exchange-attestation)"
+        message = invocation_request('exchange-attestation')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)

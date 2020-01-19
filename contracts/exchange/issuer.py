@@ -18,9 +18,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
+from pdo.contract import invocation_request
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -43,26 +43,35 @@ def __command_issuer__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=scheme_string, required=True)
-    subparser.add_argument('-a', '--authority', help='serialized authority from the vetting organization', type=scheme_expr, required=True)
+    subparser.add_argument('-t', '--type_id', help='contract identifier for the issuer asset type', type=str, required=True)
+    subparser.add_argument(
+        '-a', '--authority',
+        help='serialized authority from the vetting organization',
+        type=scheme_parameter, required=True)
 
     subparser = subparsers.add_parser('issue')
-    subparser.add_argument('-o', '--owner', help='identity of the issuance owner; ECDSA key', type=scheme_string, required=True)
+    subparser.add_argument('-o', '--owner', help='identity of the issuance owner; ECDSA key', type=str, required=True)
     subparser.add_argument('-c', '--count', help='amount of the issuance', type=int, required=True)
 
     subparser = subparsers.add_parser('transfer')
-    subparser.add_argument('-n', '--new_owner', help='identity of the new owner; ECDSA key', type=scheme_string, required=True)
+    subparser.add_argument('-n', '--new_owner', help='identity of the new owner; ECDSA key', type=str, required=True)
     subparser.add_argument('-c', '--count', help='amount to transfer', type=int, required=True)
 
     subparser = subparsers.add_parser('escrow')   # combine escrow & attestation
-    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=scheme_string, required=True)
+    subparser.add_argument('-a', '--agent', help='identity of the escrow agent', type=str, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('disburse')
-    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=scheme_expr, required=True)
+    subparser.add_argument(
+        '-a', '--attestation',
+        help='Disburse attestation from the escrow agent',
+        type=scheme_parameter, required=True)
 
     subparser = subparsers.add_parser('claim')
-    subparser.add_argument('-a', '--attestation', help='Disburse attestation from the escrow agent', type=scheme_expr, required=True)
+    subparser.add_argument(
+        '-a', '--attestation',
+        help='Disburse attestation from the escrow agent',
+        type=scheme_parameter, required=True)
 
     options = parser.parse_args(pargs)
 
@@ -71,7 +80,7 @@ def __command_issuer__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_verifying_key' :
         extraparams['commit'] = False
-        message = "'(get-verifying-key)"
+        message = invocation_request('get-verifying-key')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
@@ -80,7 +89,7 @@ def __command_issuer__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'get_balance' :
         extraparams['commit'] = False
-        message = "'(get-balance)"
+        message = invocation_request('get-balance')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
@@ -88,19 +97,19 @@ def __command_issuer__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
-        message = "'(initialize {0} {1})".format(options.type_id, options.authority)
+        message = invocation_request('initialize', options.type_id, options.authority)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'issue' :
-        message = "'(issue {0} {1})".format(options.owner, options.count)
+        message = invocation_request('issue', options.owner, options.count)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'transfer' :
-        message = "'(transfer {0} {1})".format(options.new_owner, options.count)
+        message = invocation_request('transfer', options.new_owner, options.count)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
@@ -108,12 +117,12 @@ def __command_issuer__(state, bindings, pargs) :
     if options.command == 'escrow' :
         extraparams['commit'] = True
         extraparams['wait'] = True
-        message = "'(escrow {0})".format(options.agent)
+        message = invocation_request('escrow', options.agent)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
 
         extraparams['commit'] = False
         extraparams['wait'] = False
-        message = "'(escrow-attestation)"
+        message = invocation_request('escrow-attestation')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
             bindings.bind(options.symbol, result)
@@ -121,20 +130,20 @@ def __command_issuer__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'disburse' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        dependencies = str(attestation.nth(0))
-        signature = str(attestation.nth(1))
-        message = "'(disburse {0} {1})".format(dependencies, signature)
+        assert type(options.attestation) is list
+        dependencies = options.attestation[0]
+        signature = options.attestation[1]
+        message = invocation_request('disburse', dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim' :
-        attestation = SchemeExpression.ParseExpression(options.attestation)
-        old_owner_identity = str(attestation.nth(0))
-        dependencies = str(attestation.nth(1))
-        signature = str(attestation.nth(2))
-        message = "'(claim {0} {1} {2})".format(old_owner_identity, dependencies, signature)
+        assert type(options.attestation) is list
+        old_owner_identity = options.attestation[0]
+        dependencies = options.attestation[1]
+        signature = options.attestation[2]
+        message = invocation_request('claim', old_owner_identity, dependencies, signature)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
