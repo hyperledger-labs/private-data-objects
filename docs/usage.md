@@ -68,7 +68,7 @@ information about contracts is available
 This project comes bundled with a few example contracts which you can
 experiment with. Here is a brief overview of each one:
 
-- [mock-contract](../contracts/mock-contract/mock-contract.scm)
+- [mock-contract](../contracts/test-contracts/mock-contract.scm)
 A very simple contract which allows the contract owner to increment and
 retrieve a stored value. Other parties can not interact with the contract.
 
