@@ -57,8 +57,8 @@ prompt> pip install twisted
 
 ### <a name="quick">Quick way to build (& install):
 
-Make sure the environment variables are defined (see the top level
-[REQUIREMENTS](../../REQUIREMENTS.md) document), then run:
+Make sure the environment variables are defined (see the
+[environment guide](../../docs/environment.md)), then run:
 ```bash
 prompt> make build_all && make install
 ```

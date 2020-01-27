@@ -132,17 +132,17 @@ self-contained/single machine installation.
 
 For more advanced docker-compose usage, check the headers in the yaml
 files:
-  - [sawtooth-pdo.yaml](sawtooth-pdo.yaml)
-  - [sawtooth-pdo.local-code.yaml](sawtooth-pdo.local-code.yaml)
-  - [sawtooth-pdo.proxy.yaml](sawtooth-pdo.proxy.yaml)
-  - [sawtooth-pdo.sgx.yaml](sawtooth-pdo.sgx.yaml)
-  - [sawtooth-pdo.debugging.yaml](sawtooth-pdo.debugging.yaml)
+  - [sawtooth-pdo.yaml](../docker/sawtooth-pdo.yaml)
+  - [sawtooth-pdo.local-code.yaml](../docker/sawtooth-pdo.local-code.yaml)
+  - [sawtooth-pdo.proxy.yaml](../docker/sawtooth-pdo.proxy.yaml)
+  - [sawtooth-pdo.sgx.yaml](../docker/sawtooth-pdo.sgx.yaml)
+  - [sawtooth-pdo.debugging.yaml](../docker/sawtooth-pdo.debugging.yaml)
 
 Similarly, the Dockerfiles also have additional information in the header if you want
 to use them separately:
-  - [Dockerfile.pdo-dev](Dockerfile.pdo-dev)
-  - [Dockerfile.pdo-build](Dockerfile.pdo-build)
-  - [Dockerfile.pdo-tp](Dockerfile.pdo-tp)
+  - [Dockerfile.pdo-dev](../docker/Dockerfile.pdo-dev)
+  - [Dockerfile.pdo-build](../docker/Dockerfile.pdo-build)
+  - [Dockerfile.pdo-tp](../docker/Dockerfile.pdo-tp)
 
 
 ## Makefile customization

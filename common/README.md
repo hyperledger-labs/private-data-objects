@@ -21,18 +21,18 @@ https://software.intel.com/en-us/sgx-sdk/download
 Directories
 -----------
 
-Dir                           Content
------------------------------ -----------------------------------------------------------------------
-  crypto/                     .cpp/.h for OpenSSL based crypto functions
-  .                           .cpp/.h error handling and common types
-  packages/base64/            .cpp/.h of Renee Nyffinger base64 encoding/decoding
-  packages/parson/            .cpp/.h of Parson JSON  encoding/decoding
-  interpreter/                The contract interpreter implementation (currently based on TinyScheme)
-  tests/                      unit tests for crypto library
-  tests/untrusted             test untrusted Crypto library
-  tests/trusted               test trusted Crypto library
-  tests/trusted/app           trusted Crypto test app
-  tests/trusted/enclave       trusted Crypto test enclave
+| Dir                        |   Content |
+| -------------------------- | ----------------------------------------------------------------------- |
+|  crypto/                   |  .cpp/.h for OpenSSL based crypto functions |
+|  .                         |  .cpp/.h error handling and common types |
+|  packages/base64/          |  .cpp/.h of Renee Nyffinger base64 encoding/decoding |
+|  packages/parson/          |  .cpp/.h of Parson JSON  encoding/decoding |
+|  interpreter/              |  The contract interpreter implementation (currently based on TinyScheme) |
+|  tests/                    |  unit tests for crypto library |
+|  tests/untrusted           |  test untrusted Crypto library |
+|  tests/trusted             |  test trusted Crypto library |
+|  tests/trusted/app         |  trusted Crypto test app |
+|  tests/trusted/enclave     |  trusted Crypto test enclave |
 
 Python Wrapper
 -------------------------------------------------------------------------------------------------------

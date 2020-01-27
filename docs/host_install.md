@@ -167,7 +167,7 @@ application requests. This repository contains the code required to build
 Transaction Processors that handle PDO requests.
 
 Follow the
-[setup document](sawtooth/docs/SETUP.md)
+[setup document](../sawtooth/docs/SETUP.md)
 to install both Sawtooth and the custom Sawtooth Transaction Processors.
 
 Note that the Sawtooth components do not depend on any other components of the
