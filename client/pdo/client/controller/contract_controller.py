@@ -307,7 +307,7 @@ class ContractController(cmd.Cmd) :
             pargs = self.__arg_parse__(args)
 
             parser = argparse.ArgumentParser(prog='if')
-            parser.add_argument('--not', help='inverts the result of the query', action='store_true')
+            parser.add_argument('--not', help='inverts the result of the query', dest='invert', action='store_true')
 
             eparser = parser.add_mutually_exclusive_group(required=True)
             eparser.add_argument('-z', '--zero', help="true if the argument is 0", type=int)
@@ -331,6 +331,9 @@ class ContractController(cmd.Cmd) :
                         break
             else :
                 condition = False
+
+            if options.invert :
+                condition = not condition
 
             if not condition :
                 self.deferred += 1

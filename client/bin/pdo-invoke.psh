@@ -22,12 +22,15 @@
 ##
 ## Required:
 ##    pdo_file -- save file for the contract
-##    expr -- expression to be evaluated
+##    method -- method to be evaluated
+##    params -- JSON-encoded list of positional parameters
 ##    identity -- the identity of the contract creator
-##
 ## $ ./pdo-invoke.psh -m contract <contract> -expr <expression> -m identity <identity>
 
 set -q --conditional -s data -v .
+set -q --conditional -s params -v ""
+set -q --conditional -s method -v ""
+
 script -f ${home}/etc/site.psh
 
 if -e ${identity} '__unknown__'
@@ -40,12 +43,17 @@ if -n ${pdo_file}
    exit
 fi
 
-if -n ${expr}
-   echo missing required parameter, expr
+identity -n ${identity}
+
+if -n ${method}
+   echo missing method to invoke
    exit
 fi
 
-identity -n ${identity}
-send -f ${pdo_file} ${expr}
+if -n ${params}
+   send -f ${pdo_file} ${method}
+else
+   send -f ${pdo_file} -p ${params} ${method}
+fi
 
 exit
