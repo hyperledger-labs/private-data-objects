@@ -189,3 +189,4 @@
 
 (load (string-append package_directory "catch-package.scm"))
 (load (string-append package_directory "oops-package.scm"))
+(load (string-append package_directory "dispatch-package.scm"))

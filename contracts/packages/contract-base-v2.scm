@@ -18,35 +18,43 @@
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------
-(define base-contract-package
+(define base-contract-v2-package
   (package
-   (define-class base-contract
+   (define-class base-contract-v2
      (class-vars
-      (interface-version 1))
+      (interface-version 2))
 
      (instance-vars
+      (base_initialized #f)
       (creator "")
       (contract-signing-keys #f)
       (contract-encryption-keys #f)))
 
-   (define-method base-contract (initialize-instance . args)
-     (if (string=? creator "")
-         (instance-set! self 'creator (get ':message 'originator)))
-     (if (not contract-signing-keys)
-         (instance-set! self 'contract-signing-keys (make-instance signing-keys)))
-     (if (not contract-encryption-keys)
-         (instance-set! self 'contract-encryption-keys (make-instance encryption-keys))))
+   (define-method base-contract-v2 (initialize-instance . args)
+     (if (not base_initialized)
+         (let* ((environment (car args))
+                (requestor (send environment 'get-originator-id)))
+           (instance-set! self 'creator requestor)
+           (instance-set! self 'contract-signing-keys (make-instance signing-keys))
+           (instance-set! self 'contract-encryption-keys (make-instance encryption-keys))
+           (instance-set! self 'base_initialized #t))))
 
-   (define-method base-contract (get-creator) creator)
-
-   (define-const-method base-contract (get-public-encryption-key)
+   (define-method base-contract-v2 (_get-public-encryption-key_)
      (send contract-encryption-keys 'get-public-encryption-key))
 
-   (define-const-method base-contract (get-public-signing-key)
+   (define-method base-contract-v2 (_get-public-signing-key_)
      (send contract-signing-keys 'get-public-signing-key))
+
+   (define-const-method base-contract-v2 (get-public-encryption-key environment)
+     (let ((key (send self '_get-public-encryption-key_)))
+       (dispatch-package::return-value key #f)))
+
+   (define-const-method base-contract-v2 (get-public-signing-key environment)
+     (let ((key (send self '_get-public-signing-key_)))
+       (dispatch-package::return-value key #f)))
 
    ))
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------
-(define base-contract base-contract-package::base-contract)
+(define base-contract-v2 base-contract-v2-package::base-contract-v2)

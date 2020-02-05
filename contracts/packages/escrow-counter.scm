@@ -21,8 +21,8 @@
 
 (define-method counter (externalize . args)
   (if (member 'full args)
-      `((key ,key) (value ,value) (owner ,owner) (active ,active) (escrow-key ,escrow-key))
-      `((key ,key) (value ,value) (owner ,owner))))
+      `(("key" ,key) ("value" ,value) ("owner" ,owner) ("active" ,active) ("escrow-key" ,escrow-key))
+      `(("key" ,key) ("value" ,value) ("owner" ,owner))))
 
 ;; -----------------------------------------------------------------
 ;; Methods to manage escrow
