@@ -23,7 +23,7 @@
 
 (require-when (member "debug" *args*) "debug.scm")
 (require "utility.scm")
-(require "contract-base.scm")
+(require "contract-base-v2.scm")
 (require "escrow-counter.scm")
 (require "indexed-key-store.scm")
 
@@ -31,10 +31,10 @@
 ;; CLASS: integer-key
 ;; =================================================================
 (define-class integer-key
-  (super-class base-contract)
+  (super-class base-contract-v2)
+
   (instance-vars
-   (state #f)
-   (count 0)))
+   (state #f)))
 
 (define-method integer-key (initialize-instance . args)
   (if (not state)
@@ -43,55 +43,56 @@
 ;; -----------------------------------------------------------------
 ;; Methods to interogate the counter store
 ;; -----------------------------------------------------------------
-(define-const-method integer-key (get-state)
-  (assert (or (null? creator) (equal? creator (get ':message 'originator))) "only creator may dump state")
-  (send state 'map (lambda (k v) (send v 'externalize 'full))))
+(define-const-method integer-key (get-state environment)
+  (assert (or (null? creator) (equal? creator (send environment 'get-originator-id))) "only creator may dump state")
+  (let ((serialized-state (send state 'map (lambda (k v) (list (send v 'externalize 'full))))))
+    (dispatch-package::return-value serialized-state #f)))
 
-(define-const-method integer-key (get-value key)
-  (let* ((requestor (get ':message 'originator))
+(define-const-method integer-key (get-value environment key)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may get the value of a counter" requestor)
-    (send counter 'get-value)))
+    (dispatch-package::return-value (send counter 'get-value) #f)))
 
 ;; -----------------------------------------------------------------
 ;; Methods to modify the value of a counter
 ;; -----------------------------------------------------------------
-(define-method integer-key (create key . initial-value)
+(define-method integer-key (create environment key . initial-value)
   (let ((value (if (pair? initial-value) (utility-package::coerce-number (car initial-value)) 0)))
     (assert (and (integer? value) (<= 0 value)) "initialization value must not be negative")
-    (let* ((requestor (get ':message 'originator))
+    (let* ((requestor (send environment 'get-originator-id))
            (counter (make-instance escrow-counter (key key) (value value) (owner requestor))))
       (send state 'set key counter)
-      #t)))
+      (dispatch-package::return-success #t))))
 
 ;; no owner check required for increment... any one can do it
-(define-method integer-key (inc key . oparam)
+(define-method integer-key (inc environment key . oparam)
   (let ((value (if (pair? oparam) (utility-package::coerce-number (car oparam)) 1)))
     (assert (and (integer? value) (< 0 value)) "increment must be positive integer" value)
-    (let* ((requestor (get ':message 'originator))
+    (let* ((requestor (send environment 'get-originator-id))
            (counter (send state 'get key)))
       (assert (send counter 'is-active?) "counter must be active to modify")
       (send counter 'inc value)
       (send state 'set key counter)
-      #t)))
+      (dispatch-package::return-success #t))))
 
-(define-method integer-key (dec key . oparam)
+(define-method integer-key (dec environment key . oparam)
   ;; only the owner may decrement a counter
   (let ((value (if (pair? oparam) (utility-package::coerce-number (car oparam)) 1)))
     (assert (and (integer? value) (< 0 value)) "decrement must be positive integer" value)
-    (let* ((requestor (get ':message 'originator))
+    (let* ((requestor (send environment 'get-originator-id))
            (counter (send state 'get key)))
       (assert (send counter 'is-active?) "counter must be active to modify")
       (assert (send counter 'is-owner? requestor) "only the current owner may decrement the value of a counter" requestor)
       (send counter 'dec value)
       (send state 'set key counter)
-      #t)))
+      (dispatch-package::return-success #t))))
 
-(define-method integer-key (xfer src dst param)
+(define-method integer-key (xfer environment src dst param)
   (let ((value (utility-package::coerce-number param)))
     (assert (and (integer? value) (< 0 value)) "amount must be positive integer" value)
     (assert (not (equal? src dst)) "source and destination must be different" src dst)
-    (let* ((requestor (get ':message 'originator))
+    (let* ((requestor (send environment 'get-originator-id))
            (scounter (send state 'get src))
            (dcounter (send state 'get dst)))
       (assert (send scounter 'is-owner? requestor) "only the current owner may decrement the value of a counter" requestor)
@@ -100,16 +101,17 @@
       (send dcounter 'inc value)
       (send state 'set src scounter)
       (send state 'set dst dcounter)
-      #t)))
+      (dispatch-package::return-success #t))))
 
-(define-method integer-key (transfer-ownership key new-owner)
-  (let* ((requestor (get ':message 'originator))
+
+(define-method integer-key (transfer-ownership environment key new-owner)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may transfer ownership" requestor)
     (assert (send counter 'is-active?) "counter must be active to transfer")
     (send counter 'set-owner new-owner)
     (send state 'set key counter)
-    #t))
+    (dispatch-package::return-success #t)))
 
 ;; -----------------------------------------------------------------
 ;; Methods to handle escrow of a counter
@@ -127,13 +129,13 @@
 ;;   key -- counter identifier
 ;;   agent-public-key -- the public key of the owner of the escrow
 ;; -----------------------------------------------------------------
-(define-method integer-key (escrow key agent-public-key)
-  (let* ((requestor (get ':message 'originator))
+(define-method integer-key (escrow environment key agent-public-key)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter (send state 'get key)))
     (assert (send counter 'is-owner? requestor) "only the current owner may escrow the value" requestor)
     (send counter 'deactivate agent-public-key)
     (send state 'set key counter)
-    #t))
+    (dispatch-package::return-success #t)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: escrow-attestation
@@ -145,18 +147,20 @@
 ;; PARAMETERS:
 ;;   key -- counter identifier
 ;; -----------------------------------------------------------------
-(define-const-method integer-key (escrow-attestation key)
-  (let* ((requestor (get ':message 'originator))
+(define-method integer-key (escrow-attestation environment key)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter (send state 'get key)))
 
     (assert (send counter 'is-owner? requestor) "only owner may retrieve escrow status" requestor)
     (assert (not (send counter 'is-active?)) "counter has not been escrowed")
 
     (let* ((externalized (send counter 'externalize))
-           (dependencies (list (list (get ':contract 'id) (get ':contract 'state))))
+           (dep-contract-id (send environment 'get-contract-id))
+           (dep-state-hash (send environment 'get-state-hash))
+           (dependencies (vector (vector dep-contract-id dep-state-hash)))
            (expression (list externalized dependencies))
            (signature (send contract-signing-keys 'sign-expression expression)))
-      (list externalized dependencies signature))))
+      (dispatch-package::return-value (vector externalized dependencies signature) #f))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: disburse
@@ -167,11 +171,11 @@
 ;;
 ;; PARAMETERS:
 ;;   key -- counter identifier
-;;   dependencies -- association list mapping contract ids to corresponding state hash
+;;   dependencies -- vector of dependency references
 ;;   signature -- base64 encoded signature
 ;; -----------------------------------------------------------------
-(define-method integer-key (disburse key dependencies signature)
-  (let* ((requestor (get ':message 'originator))
+(define-method integer-key (disburse environment key dependencies signature)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter (send state 'get key)))
 
     (assert (send counter 'is-owner? requestor) "only the current owner may disburse the value" requestor)
@@ -185,11 +189,12 @@
       (assert (send agent-keys 'verify-expression expression signature) "signature mismatch" signature)
 
       ;; this update cannot be committed unless the dependencies are committed
-      (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
       (send counter 'activate)
       (send state 'set key counter)
 
-      #t)))
+      (let ((invocation-res (make-instance dispatch-package::response)))
+        (send invocation-res 'add-dependency-vector dependencies)
+        (send invocation-res 'return-success #t)))))
 
 ;; -----------------------------------------------------------------
 ;; NAME: exchange-ownership
@@ -201,11 +206,11 @@
 ;; PARAMETERS:
 ;;   key1 -- counter identifier
 ;;   key2 -- counter identifier
-;;   dependencies -- association list mapping contract ids to corresponding state hash
+;;   dependencies -- vector of dependency references
 ;;   signature -- base64 encoded signature, signature generated using agents keys
 ;; -----------------------------------------------------------------
-(define-method integer-key (exchange-ownership key1 key2 dependencies signature)
-  (let* ((requestor (get ':message 'originator))
+(define-method integer-key (exchange-ownership environment key1 key2 dependencies signature)
+  (let* ((requestor (send environment 'get-originator-id))
          (counter1 (send state 'get key1))
          (counter2 (send state 'get key2)))
 
@@ -230,7 +235,6 @@
     (let ((owner1 (send counter1 'get-owner))
           (owner2 (send counter2 'get-owner)))
       ;; this update cannot be committed unless the dependencies are committed
-      (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
       (send counter1 'activate)
       (send counter1 'set-owner owner2)
       (send counter2 'activate)
@@ -239,7 +243,9 @@
       (send state 'set key1 counter1)
       (send state 'set key2 counter2)
 
-      #t)))
+      (let ((invocation-res (make-instance dispatch-package::response)))
+        (send invocation-res 'add-dependency-vector dependencies)
+        (send invocation-res 'return-success #t)))))
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------

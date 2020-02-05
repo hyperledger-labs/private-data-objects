@@ -17,9 +17,12 @@
 (load "../packages/contract-builder.scm")
 
 (define package-directories
-  '("." "../integer-key" "../packages" "../../common/interpreter/gipsy_scheme/packages"))
+  '("." "../packages" "../../common/interpreter/gipsy_scheme/packages"))
 
-(define contract-input "auction-protocol-test.scm")
-(define contract-output "_aptest.scm")
+(define contract-input "interface-test.scm")
+(define contract-output (string-append "_" contract-input))
+
+(if (member "debug" *args*)
+    (set! contract-output (string-append "_debug_" contract-input)))
 
 (build-contract contract-output contract-input package-directories)

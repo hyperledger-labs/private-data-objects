@@ -22,7 +22,7 @@
 (require-when (member "debug" *args*) "debug.scm")
 
 (require "utility.scm")
-(require "contract-base.scm")
+(require "contract-base-v2.scm")
 (require "escrow-counter.scm")
 (require "indexed-key-store.scm")
 
@@ -79,7 +79,7 @@
 ;; CLASS: auction
 ;; =================================================================
 (define-class integer-key-auction
-  (super-class base-contract)
+  (super-class base-contract-v2)
   (class-vars
    (_bid-type_	escrow-counter))
   (instance-vars
@@ -104,11 +104,11 @@
 ;; PARAMETERS:
 ;;   asset-key -- the public key of the asset hosting contract
 ;; -----------------------------------------------------------------
-(define-method integer-key-auction (initialize asset-key)
+(define-method integer-key-auction (initialize environment asset-key)
   (assert (not auction-inited) "can set the asset key only one time")
   (instance-set! self 'asset-contract-public-key asset-key)
   (instance-set! self 'auction-inited #t)
-  #t)
+  (dispatch-package::return-success #t))
 
 ;; -----------------------------------------------------------------
 ;; NAME: prime-auction, prime-auction*
@@ -125,11 +125,11 @@
 ;;   dependencies -- association list mapping contract ids to corresponding state hash
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
-(define-method integer-key-auction (prime-auction* bidinfo dependencies signature)
+(define-method integer-key-auction (prime-auction* environment bidinfo dependencies signature)
   (let ((initial-bid (make-instance* escrow-counter (utility-package::coerce-binding-list bidinfo))))
-    (send self 'prime-auction initial-bid dependencies signature)))
+    (send self 'prime-auction environment initial-bid dependencies signature)))
 
-(define-method integer-key-auction (prime-auction initial-bid dependencies signature)
+(define-method integer-key-auction (prime-auction environment initial-bid dependencies signature)
   "Prime the auction with the initial counter"
   (assert auction-inited "must initialize the auction before priming")
   (assert (not auction-primed) "cannot prime an auction that is already active")
@@ -137,7 +137,7 @@
   (let ((bidclass (oops::class-name initial-bid)))
     (assert (eqv? bidclass (oops::class-name _bid-type_)) "wrong bid type" bidclass))
 
-  (let ((requestor (get ':message 'originator)))
+  (let ((requestor (send environment 'get-originator-id)))
     (assert (string=? creator requestor) "only the creator of the auction may prime it" requestor)
     (assert (send initial-bid 'is-owner? requestor) "initial asset must be owned by the creator" requestor))
 
@@ -152,16 +152,17 @@
   (instance-set! self 'auction-primed #t)
 
   ;; this update cannot be committed unless the dependencies are committed
-  (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
-  #t)
+  (let ((invocation-res (make-instance dispatch-package::response)))
+    (send invocation-res 'add-dependency-vector dependencies)
+    (send invocation-res 'return-success #t)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: get-offered-asset
 ;; -----------------------------------------------------------------
-(define-const-method integer-key-auction (get-offered-asset)
+(define-const-method integer-key-auction (get-offered-asset environment)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
-  (list (send offered-asset 'get-key) (send offered-asset 'get-value)))
+  (dispatch-package::return-value (list (send offered-asset 'get-key) (send offered-asset 'get-value)) #f))
 
 ;; -----------------------------------------------------------------
 ;; NAME: submit-bid, submit-bid*
@@ -176,11 +177,11 @@
 ;;   dependencies -- association list mapping contract ids to corresponding state hash
 ;;   signature -- base64 encoded signature from the asset contract
 ;; -----------------------------------------------------------------
-(define-method integer-key-auction (submit-bid* bidinfo dependencies signature)
+(define-method integer-key-auction (submit-bid* environment bidinfo dependencies signature)
   (let ((initial-bid (make-instance* escrow-counter (utility-package::coerce-binding-list bidinfo))))
-    (send self 'submit-bid initial-bid dependencies signature)))
+    (send self 'submit-bid environment initial-bid dependencies signature)))
 
-(define-method integer-key-auction (submit-bid bid dependencies signature)
+(define-method integer-key-auction (submit-bid environment bid dependencies signature)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (assert (instance? bid) "not an instance" bid)
@@ -193,14 +194,14 @@
     (assert (send agent-keys 'verify-expression expression signature)
             "Bid must be signed by the asset contract" expression))
 
-  (let ((requestor (get ':message 'originator)))
+  (let ((requestor (send environment 'get-originator-id)))
     (assert (send bid 'is-owner? requestor) "only the owner of a bid may submit the bid" requestor)
     (send state 'set-bid requestor bid))
 
   ;; this update cannot be committed unless the dependencies are committed
-  (if (pair? dependencies) (put ':ledger 'dependencies dependencies))
-
-  #t)
+  (let ((invocation-res (make-instance dispatch-package::response)))
+    (send invocation-res 'add-dependency-vector dependencies)
+    (send invocation-res 'return-success #t)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: cancel-bid
@@ -210,13 +211,13 @@
 ;; escrow in the integer-key contract, we have to return cancelled
 ;; bids even when the auction is closed
 ;; -----------------------------------------------------------------
-(define-method integer-key-auction (cancel-bid)
+(define-method integer-key-auction (cancel-bid environment)
   (assert auction-primed "bidding is not active")
-  (let* ((requestor (get ':message 'originator)))
+  (let* ((requestor (send environment 'get-originator-id)))
     (if auction-closed
         (assert (not (send maximum-bid 'is-owner? requestor)) "winning bidder may not cancel bid"))
-    (send state 'cancel-bid requestor))
-  #t)
+    (send state 'cancel-bid requestor)
+    (dispatch-package::return-success #t)))
 
 ;; ----------------------------------------------------------------
 ;; NAME: cancelled-bid-attestation
@@ -225,32 +226,34 @@
 ;; this is distinct from the actual cancellation of the bid because we
 ;; need to record the state change first.
 ;; -----------------------------------------------------------------
-(define-const-method integer-key-auction (cancel-attestation)
+(define-const-method integer-key-auction (cancel-attestation environment)
   (assert auction-primed "bidding is not active")
-  (let* ((requestor (get ':message 'originator))
+  (let* ((requestor (send environment 'get-originator-id))
          (externalized (send state 'get-cancelled-bid requestor 'externalize))
-         (dependencies (list (list (get ':contract 'id) (get ':contract 'state))))
+         (dep-contract-id (send environment 'get-contract-id))
+         (dep-state-hash (send environment 'get-state-hash))
+         (dependencies (vector (vector dep-contract-id dep-state-hash)))
          (expression (list externalized dependencies))
          (signature (send contract-signing-keys 'sign-expression expression)))
-    (list externalized dependencies signature)))
+    (dispatch-package::return-value (vector externalized dependencies signature) #f)))
 
 ;; ----------------------------------------------------------------
 ;; NAME: check-bid
 ;; ----------------------------------------------------------------
-(define-const-method integer-key-auction (check-bid)
+(define-const-method integer-key-auction (check-bid environment)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
-  (let* ((requestor (get ':message 'originator)))
-    (send state 'get-active-bid requestor 'externalize)))
+  (let* ((requestor (send environment 'get-originator-id)))
+    (dispatch-package::return-value (send state 'get-active-bid requestor 'externalize) #f)))
 
 ;; ----------------------------------------------------------------
 ;; NAME: max-bid
 ;; ----------------------------------------------------------------
-(define-const-method integer-key-auction (max-bid)
+(define-const-method integer-key-auction (max-bid environment)
   (assert auction-primed "bidding is not active")
   (assert (not auction-closed) "the auction has completed")
   (let ((maxbid (send state 'max-bid)))
-    (send maxbid 'get-value)))
+    (dispatch-package::return-value (send maxbid 'get-value) #f)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: close-bidding
@@ -259,10 +262,10 @@
 ;; exchange attestation must be generated separately to ensure that the
 ;; closed state is committed to the ledger.
 ;; -----------------------------------------------------------------
-(define-method integer-key-auction (close-bidding)
+(define-method integer-key-auction (close-bidding environment)
   (assert auction-primed "cannot close auction that has not started")
   (assert (not auction-closed) "the auction has already completed")
-  (let ((requestor (get ':message 'originator)))
+  (let ((requestor (send environment 'get-originator-id)))
     (assert (string=? requestor creator) "only the auction creator may close bidding"))
 
   (instance-set! self 'auction-closed #t)
@@ -273,8 +276,7 @@
   ;; asset contract which would prevent the high bidder from disbursing
   ;; their asset; although a cancel-attestation could be generated.
   (send maximum-bid 'deactivate)
-
-  #t)
+  (dispatch-package::return-success #t))
 
 ;; -----------------------------------------------------------------
 ;; NAME: exchange-attestation
@@ -282,18 +284,20 @@
 ;; DESCRIPTION: generate the attestation that handles the actual
 ;; exchange of asset ownership in the asset contract
 ;; -----------------------------------------------------------------
-(define-const-method integer-key-auction (exchange-attestation)
-  (let ((requestor (get ':message 'originator)))
+(define-const-method integer-key-auction (exchange-attestation environment)
+  (let ((requestor (send environment 'get-originator-id)))
     (assert (string=? requestor creator) "only the auction creator may generate the exchange attestation" requestor))
 
   (assert auction-closed "cannot generate exchange attestation until the auction is closed")
 
   (let* ((offered (send offered-asset 'externalize))
          (maxbid (send maximum-bid 'externalize))
-         (dependencies (list (list (get ':contract 'id) (get ':contract 'state))))
+         (dep-contract-id (send environment 'get-contract-id))
+         (dep-state-hash (send environment 'get-state-hash))
+         (dependencies (vector (vector dep-contract-id dep-state-hash)))
          (expression (list offered maxbid dependencies))
          (signature (send contract-signing-keys 'sign-expression expression)))
-    (list offered maxbid dependencies signature)))
+    (dispatch-package::return-value (vector offered maxbid dependencies signature) #f)))
 
 ;; -----------------------------------------------------------------
 ;; -----------------------------------------------------------------

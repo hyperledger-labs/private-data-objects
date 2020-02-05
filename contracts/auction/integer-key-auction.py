@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import argparse
-import shlex
-import logging
+import json
 
+import logging
 logger = logging.getLogger(__name__)
 
 from pdo.client.controller.commands.send import send_to_contract
@@ -43,10 +43,10 @@ def __command_auction__(state, bindings, pargs) :
     subparser.add_argument('-k', '--key', help='public key of the asset contract', type=str, required=True)
 
     subparser = subparsers.add_parser('prime')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_parameter, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=invocation_parameter, required=True)
 
     subparser = subparsers.add_parser('submit_bid')
-    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=scheme_parameter, required=True)
+    subparser.add_argument('-a', '--attestation', help='Escrow attestation from the asset ledger', type=invocation_parameter, required=True)
 
     subparser = subparsers.add_parser('get_offered_asset')
     subparser = subparsers.add_parser('cancel_bid')
@@ -80,7 +80,10 @@ def __command_auction__(state, bindings, pargs) :
         return
 
     if options.command == 'prime' :
-        bidinfo = dict(options.attestation[0])
+        assert type(options.attestation) is list
+        assert len(options.attestation) == 3
+
+        bidinfo = options.attestation[0]
         dependencies = options.attestation[1]
         signature = options.attestation[2]
         message = invocation_request('prime-auction*', bidinfo, dependencies, signature)
@@ -88,7 +91,10 @@ def __command_auction__(state, bindings, pargs) :
         return
 
     if options.command == 'submit_bid' :
-        bidinfo = dict(options.attestation[0])
+        assert type(options.attestation) is list
+        assert len(options.attestation) == 3
+
+        bidinfo = options.attestation[0]
         dependencies = options.attestation[1]
         signature = options.attestation[2]
         message = invocation_request('submit-bid*',bidinfo, dependencies, signature)
@@ -126,14 +132,14 @@ def __command_auction__(state, bindings, pargs) :
         message = invocation_request('cancel-attestation')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
-            bindings.bind(options.symbol, result)
+            bindings.bind(options.symbol, json.dumps(result))
         return
 
     if options.command == 'exchange_attestation' :
         message = invocation_request('exchange-attestation')
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
-            bindings.bind(options.symbol, result)
+            bindings.bind(options.symbol, json.dumps(result))
         return
 
 ## -----------------------------------------------------------------

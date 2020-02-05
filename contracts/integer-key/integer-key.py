@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import argparse
-import shlex
-import logging
 import hashlib
+import json
+import shlex
 
+import logging
 logger = logging.getLogger(__name__)
 
-from pdo.client.SchemeExpression import SchemeExpression
 from pdo.client.controller.commands.send import send_to_contract
 from pdo.client.controller.util import *
 from pdo.contract import invocation_request
@@ -31,23 +31,16 @@ def __hashed_identity__(identity) :
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def __dump_state__(result) :
-    try :
-        expression = SchemeExpression.ParseExpression(result)
+def __dump_state__(expression) :
 
-        keylength = expression.length()
-        print("{0:10}{1:10}{2:18}{3:8}{4:16}".format('key', 'value', 'owner', 'status', 'escrow'))
-        for i in range(0, keylength) :
-            keydata = expression.nth(i).cdr()
-            key = str(keydata.nth(0).nth(1))
-            val = str(keydata.nth(1).nth(1))
-            owner_key = __hashed_identity__(str(keydata.nth(2).nth(1)))
-            active = str(keydata.nth(3).nth(1))
-            escrow_key = __hashed_identity__(str(keydata.nth(4).nth(1))) if active == '#f' else ""
-            print("{0:10}{1:10}{2:18}{3:8}{4:16}".format(key, val, owner_key, active, escrow_key))
-    except :
-        logger.exception("dump state")
-        raise ValueError("failed to parse ledger state")
+    print("{0:10}{1:10}{2:18}{3:8}{4:16}".format('key', 'value', 'owner', 'status', 'escrow'))
+    for k, v in sorted(expression.items()) :
+        key = v['key']
+        val = v['value']
+        owner_key = __hashed_identity__(v['owner'])
+        active = v['active']
+        escrow_key = __hashed_identity__(v['escrow-key']) if not active else ""
+        print("{0:10}{1:10}{2:18}{3:8}{4:16}".format(key, str(val), owner_key, str(active), escrow_key))
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -97,10 +90,10 @@ def __command_integer_key__(state, bindings, pargs) :
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('disburse')
-    subparser.add_argument('-a', '--attestation', help='disburse attestation from escrow agent', type=scheme_parameter, required=True)
+    subparser.add_argument('-a', '--attestation', help='disburse attestation from escrow agent', type=invocation_parameter, required=True)
 
     subparser = subparsers.add_parser('exchange')
-    subparser.add_argument('-a', '--attestation', help='exchange attestation from escrow agent', type=scheme_parameter, required=True)
+    subparser.add_argument('-a', '--attestation', help='exchange attestation from escrow agent', type=invocation_parameter, required=True)
 
     options = parser.parse_args(pargs)
 
@@ -157,7 +150,7 @@ def __command_integer_key__(state, bindings, pargs) :
         message = invocation_request('escrow-attestation', options.key)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if options.symbol :
-            bindings.bind(options.symbol, result)
+            bindings.bind(options.symbol, json.dumps(result))
         return
 
     if options.command == 'disburse' :

@@ -19,7 +19,7 @@ ROOTDIR := $(abspath $(SRCDIR)/../..)
 GIPSY_SCHEME := $(ROOTDIR)/contracts/bin/gipsyscheme
 INSTALLDIR = $(PDO_HOME)/contracts
 
-CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm _memory-test.scm
+CONTRACTS := _mock-contract.scm _mock-contract-bad.scm _key-value-test.scm _memory-test.scm _interface-test.scm
 TEST_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
 
 all: $(CONTRACTS)
@@ -49,6 +49,9 @@ _debug_key-value-test.scm : key-value-test.bld key-value-test.scm
 
 _memory-test.scm : memory-test.bld memory-test.scm
 	$(GIPSY_SCHEME) -1 memory-test.bld
+
+_interface-test.scm : interface-test.bld interface-test.scm
+	$(GIPSY_SCHEME) -1 interface-test.bld
 
 _debug_memory-test.scm : memory-test.bld memory-test.scm
 	$(GIPSY_SCHEME) -1 memory-test.bld debug

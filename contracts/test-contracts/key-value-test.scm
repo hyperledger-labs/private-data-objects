@@ -18,27 +18,40 @@
   `(if (not ,pred) (throw ,@message)))
 
 (define-class key-value-test
+  (class-vars
+   (interface-version 2))
+
   (instance-vars
-   (creator (get ':message 'originator))))
+   (initialized #f)
+   (creator "")))
 
-(define-const-method key-value-test (get-key key)
+(define-method key-value-test (initialize-instance . args)
+  (if (not initialized)
+      (let* ((environment (car args))
+             (requestor (send environment 'get-originator-id)))
+        (instance-set! self 'creator requestor)
+        (instance-set! self 'initialized #t))))
+
+(define-method key-value-test (get-key environment key)
   (assert (string? key) "key must be a string" key)
-  (safe-kv-get key))
+  (let ((value (safe-kv-get key))
+        (response (make-instance dispatch-package::response)))
+    (dispatch-package::return-value value #f)))
 
-(define-method key-value-test (put-key key value)
+(define-method key-value-test (put-key environment key value)
   (assert (string? key) "key must be a string" key)
   (assert (string? value) "value must be a string" value)
   (safe-kv-put key value)
-  #t)
+  (dispatch-package::return-success #t))
 
-(define-method key-value-test (del-key key)
+(define-method key-value-test (del-key environment key)
   (assert (string? key) "key must be a string" key)
   (safe-kv-del key)
-  #t)
+  (dispatch-package::return-success #t))
 
-(define-method key-value-test (put-big-key str count)
+(define-method key-value-test (put-big-key environment str count)
   (assert (and (string? str) (= (string-length str) 1)) "first parameter must be a one character string")
   (assert (and (integer? count) (< 0 count)) "second parameter must be a positive integer")
   (let ((big-string (make-string count (string-ref str 0))))
     (safe-kv-put big-string big-string)
-    (safe-kv-get big-string)))
+    (dispatch-package::return-value (safe-kv-get big-string) #t)))
