@@ -1,0 +1,13 @@
+[
+    { "MethodName" : "inc_value",  "expected" : "1" },
+    { "MethodName" : "inc_value",  "expected" : "2" },
+    { "MethodName" : "inc_value",  "expected" : "3" },
+    { "MethodName" : "inc_value",  "expected" : "4" },
+    { "MethodName" : "inc_value",  "expected" : "5" },
+    { "MethodName" : "inc_value",  "expected" : "6" },
+    { "MethodName" : "inc_value",  "expected" : "7" },
+    { "MethodName" : "inc_value",  "expected" : "8" },
+    { "MethodName" : "inc_value",  "expected" : "9" },
+    { "MethodName" : "inc_value",  "expected" : "10" },
+    { "MethodName" : "get_value",  "expected" : "10" }
+]

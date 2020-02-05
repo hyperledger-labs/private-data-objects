@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
+endif
+
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+DSTDIR ?= $(PDO_INSTALL_ROOT)
+
 all : build
 	@cd build; make all
 
@@ -23,7 +30,10 @@ debug :
 	@echo No debug build defined
 
 test :
-	@echo No automated tests defined
+	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interface-test --expressions ${SCRIPTDIR}/interface-test/test-short.json
+	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract mock-contract --expressions ${SCRIPTDIR}/mock-contract/test-short.json
+	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interpreter-test --expressions ${SCRIPTDIR}/interpreter-test/test-short.json
+
 
 install : build
 	@echo install contracts

@@ -1,0 +1,32 @@
+[
+    {
+        "MethodName" : "environment_test"
+    },
+    {
+        "MethodName" : "fail_test",
+        "invert": "fail"
+    },
+    {
+        "MethodName" : "echo_test",
+        "KeywordParameters": {
+            "message": "hello there"
+        },
+        "expected": "\"hello there\""
+    },
+    {
+        "MethodName" : "dependency_test",
+        "KeywordParameters": {
+            "ContractID": 5,
+            "StateHash": "StateHash"
+        },
+        "invert": "fail"
+    },
+    {
+        "MethodName" : "dependency_test",
+        "KeywordParameters": {
+            "ContractID": "ContractID",
+            "StateHash": "StateHash"
+        },
+        "expected": "[tT]rue"
+    }
+]

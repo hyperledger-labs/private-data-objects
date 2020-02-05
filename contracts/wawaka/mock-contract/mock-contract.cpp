@@ -28,11 +28,47 @@
 #include "Value.h"
 #include "WasmExtensions.h"
 
+static KeyValueStore meta_store("meta");
 static KeyValueStore value_store("values");
+
+const StringArray owner_key("owner");
 const StringArray test_key("test");
 
+// -----------------------------------------------------------------
+// NAME: originator_is_owner
+// -----------------------------------------------------------------
+static bool originator_is_owner(const Environment& env, Response& rsp)
+{
+    // verify that the owner stored in state is the originator
+    StringArray owner;
+    if (! meta_store.get(owner_key, owner))
+    {
+        rsp.error("failed to retrieve owner metadata");
+        return false;
+    }
+
+    const StringArray originator(env.originator_id_);
+    if (! owner.equal(originator))
+    {
+        rsp.error("only the creator can inc the value");
+        return false;
+    }
+
+    return true;
+}
+
+// -----------------------------------------------------------------
+// NAME: initialize_contract
+// -----------------------------------------------------------------
 bool initialize_contract(const Environment& env, Response& rsp)
 {
+    // save owner information
+    const StringArray owner_val(env.creator_id_);
+
+    if (! meta_store.set(owner_key, owner_val))
+        return rsp.error("failed to save creator metadata");
+
+    // create the value and save it to state
     const uint32_t value = 0;
 
     if (! value_store.set(test_key, value))
@@ -41,8 +77,15 @@ bool initialize_contract(const Environment& env, Response& rsp)
     return rsp.success(true);
 }
 
+// -----------------------------------------------------------------
+// NAME: inc_value
+// -----------------------------------------------------------------
 bool inc_value(const Message& msg, const Environment& env, Response& rsp)
 {
+    if (! originator_is_owner(env, rsp))
+        return false;
+
+    // get the value and increment it
     uint32_t value;
     if (! value_store.get(test_key, value))
         return rsp.error("no such key");
@@ -55,8 +98,15 @@ bool inc_value(const Message& msg, const Environment& env, Response& rsp)
     return rsp.value(v, true);
 }
 
+// -----------------------------------------------------------------
+// NAME: get_value
+// -----------------------------------------------------------------
 bool get_value(const Message& msg, const Environment& env, Response& rsp)
 {
+    if (! originator_is_owner(env, rsp))
+        return false;
+
+    // get the value
     uint32_t value;
     if (! value_store.get(test_key, value))
         return rsp.error("no such key");

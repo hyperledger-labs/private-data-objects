@@ -223,71 +223,10 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// NAME: env_test
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool env_test(const Message& msg, const Environment& env, Response& rsp)
-{
-    ww::value::Object o;
-    ww::value::String s("");
-
-    s.set(env.contract_id_);
-    o.set_value("ContractID", s);
-
-    s.set(env.creator_id_);
-    o.set_value("CreatorID", s);
-
-    s.set(env.originator_id_);
-    o.set_value("OriginatorID", s);
-
-    s.set(env.state_hash_);
-    o.set_value("StateHash", s);
-
-    s.set(env.message_hash_);
-    o.set_value("MessageHash", s);
-
-    s.set(env.contract_code_name_);
-    o.set_value("ContractCodeName", s);
-
-    s.set(env.contract_code_hash_);
-    o.set_value("ContractCodeHash", s);
-
-    return rsp.value(o, false);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// NAME: msg_test
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool msg_test(const Message& msg, const Environment& env, Response& rsp)
-{
-    return rsp.value(msg, false);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// NAME: env_test
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool dependency_test(const Message& msg, const Environment& env, Response& rsp)
-{
-    rsp.add_dependency(env.contract_id_, env.state_hash_);
-    return rsp.success(false);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// NAME: fail_test
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool fail_test(const Message& msg, const Environment& env, Response& rsp)
-{
-    return rsp.error("this test should fail");
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(ecdsa_test),
     CONTRACT_METHOD(aes_test),
     CONTRACT_METHOD(rsa_test),
-    CONTRACT_METHOD(env_test),
-    CONTRACT_METHOD(msg_test),
-    CONTRACT_METHOD(dependency_test),
-    CONTRACT_METHOD(fail_test),
     { NULL, NULL }
 };
