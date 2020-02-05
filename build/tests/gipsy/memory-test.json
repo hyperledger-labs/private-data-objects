@@ -1,85 +1,97 @@
 [
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [100],
         "KeywordParameters": {
             "value" : "A"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [110],
         "KeywordParameters": {
             "value" : "B"
         },
-       "expected":"#t"
+       "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [120],
         "KeywordParameters": {
             "value" : "C"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [130],
         "KeywordParameters": {
             "value" : "D"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [140],
         "KeywordParameters": {
             "value" : "E"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [150],
         "KeywordParameters": {
             "value" : "F"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [160],
         "KeywordParameters": {
             "value" : "G"
         },
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [170],
         "KeywordParameters": {
             "value" : "H"
         },
-       "expected":"#t"
+       "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [180],
         "KeywordParameters": {
             "value" : "I"
         },
-        "expected":"intrinsic state size exceeds maximum",
-        "invert": "fail"
+        "x-expected":"intrinsic state size exceeds maximum",
+        "x-invert": "fail",
+        "expected":"True"
     },
     {
+        "description" : "start big state tests {PositionalParameters}",
         "MethodName": "big-state",
         "PositionalParameters": [190],
         "KeywordParameters": {
             "value" : "J"
         },
-        "expected":"intrinsic state size exceeds maximum",
-        "invert": "fail"
+        "x-expected":"intrinsic state size exceeds maximum",
+        "x-invert": "fail",
+        "expected":"True"
     },
     {
         "MethodName": "deep-recursion",
@@ -88,29 +100,38 @@
     },
     {
         "MethodName": "clear-state",
-        "expected":"#t"
+        "expected":"True"
     },
     {
+        "description" : "deep recursion test {PositionalParameters}",
         "MethodName": "deep-recursion",
         "PositionalParameters": [10000],
-        "expected":"10000"
+        "invert": "fail",
+        "x-expected":"10000"
     },
     {
+        "description" : "deep recursion test ({invert}) {PositionalParameters}",
         "MethodName": "deep-recursion",
         "PositionalParameters": [15000],
-        "expected":"15000"
+        "invert": "fail",
+        "x-expected":"15000"
     },
     {
+        "description" : "deep recursion test ({invert}) {PositionalParameters}",
         "MethodName": "deep-recursion",
         "PositionalParameters": [20000],
-        "expected":"20000"
+        "invert": "fail",
+        "x-expected":"20000"
     },
     {
+        "description" : "deep recursion test ({invert}) {PositionalParameters}",
         "MethodName": "deep-recursion",
         "PositionalParameters": [21000],
-        "expected":"21000"
+        "invert": "fail",
+        "x-expected":"21000"
     },
     {
+        "description" : "deep recursion test ({invert}) {PositionalParameters}",
         "MethodName": "deep-recursion",
         "PositionalParameters": [22000],
         "expected":"excessive memory use",
@@ -122,58 +143,64 @@
         "expected":"1000"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [2000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{2000}\""
+        "expected": "b{2000}"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [4000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{4000}\""
+        "expected": "b{4000}"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [8000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{8000}\""
+        "expected": "b{8000}"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [16000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{16000}\""
+        "expected": "b{16000}"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [32000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{32000}\""
+        "expected": "b{32000}"
     },
     {
+        "description" : "big value test {PositionalParameters}",
         "MethodName": "big-value",
         "PositionalParameters": [64000],
         "KeywordParameters": {
             "key" : "big-value",
             "value-base": "b"
         },
-        "expected": "\"b{64000}\""
+        "expected": "b{64000}"
     },
     {
         "MethodName": "deep-recursion",
@@ -181,6 +208,7 @@
         "expected":"1000"
     },
     {
+        "description" : "vector fill test {KeywordParameters}",
         "MethodName": "fill-vector",
         "KeywordParameters": {
             "first": 0,
@@ -195,9 +223,10 @@
             "first": 0,
             "last": 3
         },
-        "expected": "\\(1 1 1 1\\)"
+        "expected": "\\[1, 1, 1, 1\\]"
     },
     {
+        "description" : "vector fill test {KeywordParameters}",
         "MethodName": "fill-vector",
         "KeywordParameters": {
             "first" : 0,
@@ -207,6 +236,7 @@
         "expected": "1000"
     },
     {
+        "description" : "vector fill test {KeywordParameters}",
         "MethodName": "fill-vector",
         "KeywordParameters": {
             "first": 0,
@@ -228,9 +258,12 @@
             "first": 0,
             "last": 3
         },
-        "expected": "\\(0 1 1 1\\)"
+        "expected": "\\[0, 1, 1, 1\\]"
     },
     {
+        "test-level": 1,
+        "comment": "this test causes time outs on low performing machines",
+        "description" : "vector fill test {KeywordParameters}",
         "MethodName": "fill-vector",
         "KeywordParameters": {
             "first": 0,
@@ -240,6 +273,8 @@
         "expected": "5000"
     },
     {
+        "test-level": 1,
+        "comment": "this test depends on the 4999 fill test",
         "MethodName": "clear-vector",
         "KeywordParameters": {
             "skip": 4
@@ -247,6 +282,8 @@
         "expected": "3750"
     },
     {
+        "test-level": 1,
+        "comment": "this test depends on the 4999 fill test",
         "MethodName": "clear-vector",
         "KeywordParameters": {
             "skip": 3
@@ -254,84 +291,93 @@
         "expected": "2500"
     },
     {
+        "test-level": 1,
         "MethodName": "dump-vector",
         "KeywordParameters": {
             "first": 0,
             "last": 3
         },
-        "expected": "\\(0 1 1 0\\)"
+        "expected": "\\[0, 1, 1, 0\\]"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [1000],
         "KeywordParameters": {
             "key-base": "a",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [2000],
         "KeywordParameters": {
             "key-base": "b",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [4000],
         "KeywordParameters": {
             "key-base": "c",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [8000],
         "KeywordParameters": {
             "key-base": "d",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [16000],
         "KeywordParameters": {
             "key-base": "e",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [32000],
         "KeywordParameters": {
             "key-base": "f",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [64000],
         "KeywordParameters": {
             "key-base": "g",
             "value": "v"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
+        "description" : "many keys test {PositionalParameters}",
         "MethodName": "many-keys",
         "PositionalParameters": [64000],
         "KeywordParameters": {
             "key-base": "g",
             "value": "n"
         },
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "deep-recursion",

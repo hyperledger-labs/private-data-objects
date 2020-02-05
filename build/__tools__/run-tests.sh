@@ -23,9 +23,9 @@ source ${SRCDIR}/bin/lib/common.sh
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-if [ "${PDO_INTERPRETER}" == "wawaka" ]; then
-    die automated tests not enabled for the wawaka interpreter
-fi
+# if [ "${PDO_INTERPRETER}" == "wawaka" ]; then
+#     die automated tests not enabled for the wawaka interpreter
+# fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -81,13 +81,31 @@ try ${PDO_HOME}/bin/ps-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_UR
 try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/build
+
 # -----------------------------------------------------------------
 yell start tests without provisioning or enclave services
 # -----------------------------------------------------------------
-
 say start request test
 try pdo-test-request --no-ledger --iterations 100 \
     --logfile __screen__ --loglevel warn
+
+# execute the common tests
+for test_file in ${SRCDIR}/build/tests/common/*.json ; do
+    test_contract=$(basename ${test_file} .json)
+    say start test ${test_contract} without services
+    try pdo-test-contract --no-ledger --contract ${test_contract} \
+        --expressions ${test_file} \
+        --logfile __screen__ --loglevel warn
+done
+
+# execute interpreter specific tests
+for test_file in ${SRCDIR}/build/tests/${PDO_INTERPRETER}/*.json ; do
+    test_contract=$(basename ${test_file} .json)
+    say start interpreter-specific test ${test_contract} without services
+    try pdo-test-contract --no-ledger --contract ${test_contract} \
+        --expressions ${test_file} \
+        --logfile __screen__ --loglevel warn
+done
 
 say start request test with tampered block order, this should fail
 pdo-test-request --no-ledger \
@@ -97,30 +115,9 @@ if [ $? == 0 ]; then
     die request test with tampered block order succeeded though it should have failed
 fi
 
-say start integer-key contract test
-try pdo-test-contract --no-ledger --contract integer-key \
-    --expressions integer-key.json \
-    --logfile __screen__ --loglevel warn
-
-say start mock-contract contract test
-try pdo-test-contract --no-ledger --contract mock-contract \
-    --expressions mock-contract.json \
-    --logfile __screen__ --loglevel warn
-
-say start key value store test
-try pdo-test-contract --no-ledger --contract key-value-test \
-    --expressions key-value-test.json \
-    --logfile __screen__ --loglevel warn
-
-say start memory test
-try pdo-test-contract --no-ledger --contract memory-test \
-    --expressions memory-test.json \
-    --logfile __screen__ --loglevel warn
-
 ## -----------------------------------------------------------------
 yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
-
 say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
 try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
@@ -148,26 +145,27 @@ try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --eservice-url http://localhost:7101/ \
     --logfile __screen__ --loglevel warn
 
-say start integer-key contract test
-try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract integer-key \
-    --expressions integer-key.json \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ \
-    --logfile __screen__ --loglevel warn
+# execute the common tests
+for test_file in ${SRCDIR}/build/tests/common/*.json ; do
+    test_contract=$(basename ${test_file} .json)
+    say start test ${test_contract} with services
+    try pdo-test-contract --contract ${test_contract} \
+        --expressions ${test_file} \
+        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+        --eservice-url http://localhost:7101/ \
+        --logfile __screen__ --loglevel warn
+done
 
-say start key value store test
-try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract key-value-test \
-    --expressions key-value-test.json \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ \
-    --logfile __screen__ --loglevel warn
-
-say start memory test
-try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
-    --expressions memory-test.json \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ \
-    --logfile __screen__ --loglevel warn
+# execute interpreter specific tests
+for test_file in ${SRCDIR}/build/tests/${PDO_INTERPRETER}/*.json ; do
+    test_contract=$(basename ${test_file} .json)
+    say start interpreter-specific test ${test_contract} with services
+    try pdo-test-contract --contract ${test_contract} \
+        --expressions ${test_file} \
+        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+        --eservice-url http://localhost:7101/ \
+        --logfile __screen__ --loglevel warn
+done
 
 ## -----------------------------------------------------------------
 yell start pdo-create and pdo-update tests
@@ -179,7 +177,12 @@ if [ ! -f ${CONFIG_FILE} ]; then
     die missing client configuration file, ${CONFIG_FILE}
 fi
 
-CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
+if [ "$PDO_INTERPRETER" == "gipsy" ]; then
+    CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
+else
+    CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.b64
+fi
+
 if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi
@@ -187,7 +190,7 @@ fi
 say create the contract
 try ${PDO_HOME}/bin/pdo-create.psh \
     --identity user1 --ps_group default --es_group all \
-    --pdo_file ${SAVE_FILE} --source _mock-contract.scm --class mock-contract
+    --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 
 # this will invoke the increment operation 5 times on each enclave round robin
 # fashion; the objective of this test is to ensure that the client touches
@@ -199,7 +202,7 @@ for v in $(seq 1 ${n}) ; do
     e=$((v % pcontract_es + 1))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
                        --enclave "http://localhost:710${e}" --identity user1 \
-                       --pdo_file ${SAVE_FILE} --expr inc_value)
+                       --pdo_file ${SAVE_FILE} --method inc_value)
     if [ $value != $v ]; then
         die "contract has the wrong value ($value instead of $v) for enclave $e"
     fi
@@ -209,7 +212,7 @@ say get the value and check it
 v=$((v+1)); e=$((v % pcontract_es + 1))
 value=$(${PDO_HOME}/bin/pdo-invoke.psh \
                    --enclave "http://localhost:710${e}" --identity user1 \
-                   --pdo_file ${SAVE_FILE} --expr get_value)
+                   --pdo_file ${SAVE_FILE} --method get_value)
 if [ $value != $((n)) ]; then
     die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
 fi
@@ -217,30 +220,14 @@ fi
 ## -----------------------------------------------------------------
 yell test failure conditions to ensure they are caught
 ## -----------------------------------------------------------------
-say start mock contract test with ledger, this should fail dependency check
-pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract mock-contract \
-    --expressions mock-contract.json \
-    --logfile __screen__ --loglevel warn
-if [ $? == 0 ]; then
-    die mock contract test succeeded though it should have failed
-fi
-
-say start broken contract test, this should fail
-pdo-test-contract --no-ledger --contract mock-contract-bad \
-    --expressions mock-contract.json \
-    --logfile __screen__ --loglevel warn
-if [ $? == 0 ]; then
-    die mock contract test succeeded though it should have failed
-fi
-
 say invalid method, this should fail
-${PDO_HOME}/bin/pdo-invoke.psh --identity user1 --pdo_file ${SAVE_FILE} --expr no-such-method
+${PDO_HOME}/bin/pdo-invoke.psh --identity user1 --pdo_file ${SAVE_FILE} --method no-such-method
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
 say policy violation with identity, this should fail
-${PDO_HOME}/bin/pdo-invoke.psh --identity user2 --pdo_file ${SAVE_FILE} --expr get_value
+${PDO_HOME}/bin/pdo-invoke.psh --identity user2 --pdo_file ${SAVE_FILE} --method get_value
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
@@ -259,16 +246,18 @@ say start mock-contract test with replication 3 eservices 2 replicas needed befo
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
-    --logfile __screen__ --loglevel warn --iterations 10 \
+    --logfile __screen__ --loglevel warn --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
-say start memory test test with replication 3 eservices 2 replicas needed before txn
-try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
-    --expressions memory-test.json \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
-    --logfile __screen__ --loglevel warn \
-    --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
+if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
+    say start memory test test with replication 3 eservices 2 replicas needed before txn
+    try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
+        --expressions ${SRCDIR}/build/tests/${PDO_INTERPRETER}/memory-test.json \
+        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
+        --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
+        --logfile __screen__ --loglevel warn \
+        --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
+fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

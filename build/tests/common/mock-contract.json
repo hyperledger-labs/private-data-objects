@@ -1,0 +1,19 @@
+[
+    {
+        "MethodName": "inc_value",
+        "expected": "1"
+    },
+    {
+        "MethodName": "inc_value",
+        "expected": "2"
+    },
+    {
+        "MethodName": "get_value",
+        "expected": "2"
+    },
+    {
+        "MethodName": "get_unknown_value",
+        "expected": "method evaluation failed",
+        "invert": "fail"
+    }
+]

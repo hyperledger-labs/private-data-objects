@@ -2,67 +2,67 @@
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key0", "value0"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key0", "value0"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key1", "value1"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key2", "value2"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key3", "value3"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key4", "value4"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key5", "value5"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key6", "value6"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key7", "value7"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key8", "value8"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key9", "value9"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "get-key",
         "PositionalParameters": ["key0"],
-        "expected": "\"value0\""
+        "expected": "value0"
     },
     {
         "MethodName": "get-key",
         "PositionalParameters": ["key9"],
-        "expected": "\"value9\""
+        "expected": "value9"
     },
     {
         "MethodName": "get-key",
@@ -73,7 +73,7 @@
     {
         "MethodName": "del-key",
         "PositionalParameters": ["key0"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "get-key",
@@ -84,36 +84,36 @@
     {
         "MethodName": "put-key",
         "PositionalParameters": [ "key0", "value0"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "get-key",
         "PositionalParameters": ["key0"],
-        "expected": "\"value0\""
+        "expected": "value0"
     },
     {
         "MethodName": "put-key",
         "PositionalParameters": ["key9", "duplicate"],
-        "expected": "#t"
+        "expected": "True"
     },
     {
         "MethodName": "get-key",
         "PositionalParameters": ["key9"],
-        "expected": "\"duplicate\""
+        "expected": "duplicate"
     },
     {
         "MethodName": "put-big-key",
         "PositionalParameters": ["a", 5000],
-        "expected": "\"a{5000}\""
+        "expected": "a{5000}"
     },
     {
         "MethodName": "put-big-key",
         "PositionalParameters": ["a", 10000],
-        "expected": "\"a{10000}\""
+        "expected": "a{10000}"
     },
     {
         "MethodName": "put-big-key",
         "PositionalParameters": ["a", 100000],
-        "expected": "\"a{100000}\""
+        "expected": "a{100000}"
     }
 ]
