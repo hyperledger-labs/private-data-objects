@@ -35,7 +35,7 @@
    (macro (catch-with-no-continuations form)
      (let ((label (gensym)))
        `(begin
-          (catch-throw::_push-handler (lambda msg (begin (apply ,(cadr form) msg) (quit -1))))
+          (catch-throw::_push-handler (lambda msg (begin (apply ,(cadr form) msg) (error msg))))
           (let ((,label (begin ,@(cddr form))))
             (catch-throw::_pop-handler)
             ,label))))

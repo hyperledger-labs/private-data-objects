@@ -42,7 +42,7 @@ namespace pstate = pdo::state;
 #define DEPENDENCIES "\"Dependencies\":" DEPENDENCY
 
 #define INVOCATION_REQUEST_SCHEMA "{" KW(Method,"") ","  KW(PositionalParameters,[]) "," KW(KeywordParameters,{}) "}"
-#define INVOCATION_RESPONSE_SCHEMA "{" KW(Status,true) "," KW(Response,"") "," KW(StateChanged,true) "," DEPENDENCIES "}"
+#define INVOCATION_RESPONSE_SCHEMA "{" KW(Status,true) "," KW(Response,null) "," KW(StateChanged,true) "," DEPENDENCIES "}"
 
 // -----------------------------------------------------------------
 // validate_invocation_request
@@ -67,8 +67,6 @@ void pc::parse_invocation_response(
     bool& outStateChanged,
     std::map<std::string,std::string>& outDependencies)
 {
-    SAFE_LOG(PDO_LOG_DEBUG, "response string: %s", response);
-
     // Parse the contract request
     JsonValue parsed(json_parse_string(response.c_str()));
     pe::ThrowIfNull(parsed.value, "invalid response string; invalid JSON");
@@ -85,9 +83,20 @@ void pc::parse_invocation_response(
         "invalid result pointer; missing result object");
 
     // response
-    const char* response_string = json_object_dotget_string(parsed_object, "Response");
-    pe::ThrowIfNull(response_string, "invalid response string; missing Response field");
-    outResponse.assign(response_string);
+    const JSON_Value* response_value = json_object_get_value(parsed_object, "Response");
+    pe::ThrowIfNull(response_value, "invalid response string; missing Response field");
+
+    size_t serialized_size = json_serialization_size(response_value);
+    ByteArray serialized_response_value;
+    serialized_response_value.resize(serialized_size);
+    JSON_Status jret = json_serialize_to_buffer(
+        response_value,
+        reinterpret_cast<char*>(&serialized_response_value[0]),
+        serialized_response_value.size());
+    pe::ThrowIf<pe::RuntimeError>(
+        jret != JSONSuccess,
+        "failed to serialize result");
+    outResponse = ByteArrayToString(serialized_response_value);
 
     // dependencies
     const JSON_Array *dependency_array = json_object_dotget_array(parsed_object, "Dependencies");

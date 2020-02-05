@@ -34,8 +34,11 @@ private:
     std::string error_msg_;
     scheme *interpreter_ = NULL;
 
-    //Convention: we use the key "IntrinsicState" key to store the value
-    const std::string intrinsic_state_key_ = "IntrinsicState";
+    const char* report_interpreter_error(
+        scheme *sc,
+        const char* message,
+        const char* error = NULL
+        );
 
     // load functions with throw errors when unsuccessful
 
@@ -43,21 +46,6 @@ private:
         const pc::ContractCode& inContractCode
         );
 
-    void load_message(
-        const pc::ContractMessage& inMessage
-        );
-
-    void load_contract_state(
-        const ByteArray& inIntrinsicState
-        );
-
-    void save_contract_state(
-        ByteArray& outIntrinsicState
-        );
-
-    void save_dependencies(
-        std::map<std::string,std::string>& outDependencies
-        );
 public:
     // Identity of the interpreter returned in enclave information
     static const std::string identity_;
