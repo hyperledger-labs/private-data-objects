@@ -55,7 +55,7 @@ def command_eservice_db(state, bindings, pargs) :
     options = parser.parse_args(pargs)
 
     default_database = state.get(['Service', 'EnclaveServiceDatabaseFile'])
-    ledger_config = state.get(['Sawtooth'])
+    ledger_config = state.get(['Ledger'])
 
     if options.command == 'add' :
         if not eservice_db.add_by_url(ledger_config, options.url, name=options.name, update=True) :

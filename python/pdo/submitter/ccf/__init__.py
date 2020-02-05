@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,25 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-set -x
-
-top_dir=$(cd $(dirname $(dirname $(dirname $0))) && pwd)
-
-echo -e "\033[0;32m--- Building sawtooth protobuf python files ---\n\033[0m"
-
-echo "top_dir:" $top_dir
-
-cd $top_dir/python/pdo/submitter/sawtooth/pdo_protos/protobufs
-
-mkdir -p python
-
-protoc --python_out=../ *.proto
-
-if [[ $? -eq 0 ]]; then
-	echo -e "\033[0;32m--- Successfully compiled protobufs! ---\033[0m"
-	exit 0
-fi
-
-echo -e "\033[0;31m--- Failed to compile protobufs ---\033[0m"
-exit 1
+__all__ = [ 'ccf_submitter', 'helpers']

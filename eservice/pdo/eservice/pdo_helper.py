@@ -35,8 +35,7 @@ import pdo.common.keys as keys
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
 
-from pdo.submitter.submitter import Submitter
-import sawtooth.helpers.pdo_connect
+from pdo.submitter.create import create_submitter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -101,11 +100,11 @@ class Enclave(object) :
 
         :param file_name:  string, name of the file
         :param search_path: list of strings, directories to search for the data file
-        :param txn_keys: object of type TransactionKeys
+        :param txn_keys: Used to sign the register_enclave transaction. For Sawtooth,
+                         this is of type TransactionKeys, while for CCF, this is of type ServiceKeys
         """
-
         if txn_keys is None :
-            txn_keys = keys.TransactionKeys()
+            txn_keys = keys.generate_txn_keys()
 
         filename = putils.build_file_name(basename, data_dir = data_dir, extension = '.enc')
         if os.path.exists(filename) is not True :
@@ -143,11 +142,11 @@ class Enclave(object) :
     def create_new_enclave(cls, txn_keys = None, block_store = None) :
         """create_new_enclave -- create a new enclave
 
-        :param txn_keys: object of type TransactionKeys
+        :param txn_keys: Used to sign the register_enclave transaction. For Sawtooth,
+                         this is of type TransactionKeys, while for CCF, this is of type ServiceKeys
         """
-
         if txn_keys is None :
-            txn_keys = keys.TransactionKeys()
+            txn_keys = keys.generate_txn_keys()
 
         nonce = '{0:016X}'.format(random.getrandbits(64))
         hashed_identity = txn_keys.hashed_identity
@@ -288,19 +287,14 @@ class Enclave(object) :
         try :
             logger.debug('submit enclave registration to %s', ledger_config['LedgerURL'])
 
-            submitter = Submitter(
-                ledger_config['LedgerURL'],
-                key_str = self.txn_keys.txn_private)
+            submitter = create_submitter(ledger_config, pdo_signer = self.txn_keys)
 
-            txnsignature = submitter.submit_enclave_registration_from_data(
+            txnsignature = submitter.register_encalve(
                 self.verifying_key,
                 self.encryption_key,
                 self.proof_data,
-                self.nonce,
-                ledger_config.get('Organization', "EMPTY"),
-                wait=30.0)
-        except TimeoutError as err :
-            raise Exception('time out waiting for ledger commit')
+                self.nonce, # registration block content
+                ledger_config.get('Organization', "EMPTY")) # Eservice Organization Info
         except Exception as e :
             logger.error('failed to register enclave; %s', str(e))
             raise
@@ -314,14 +308,10 @@ class Enclave(object) :
         :param ledger_config: dictionary of configuration information that must include LedgerURL
         """
         try:
-            client = sawtooth.helpers.pdo_connect.PdoClientConnectHelper(
-                ledger_config['LedgerURL'],
-                key_str = self.txn_keys.txn_private)
-            enclave_state = client.get_enclave_dict(self.enclave_id)
-        except sawtooth.helpers.pdo_connect.ClientConnectException as ce :
+            registry_helper = create_submitter(ledger_config)
+            enclave_state = registry_helper.get_enclave_info(self.enclave_id)
+        except Exception as ce :
             raise Exception('failed to verify enclave registration; %s', str(ce))
-        except:
-            raise Exception('unknown error occurred while verifying enclave registration')
 
         logger.info('enclave registration verified')
         return True

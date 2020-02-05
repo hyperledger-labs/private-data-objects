@@ -135,12 +135,12 @@ def Main() :
     plogger.setup_loggers(config.get('Logging', {}))
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
+        config['Ledger']['LedgerURL'] = options.ledger
 
     # set up the key search paths
     if config.get('Key') is None :

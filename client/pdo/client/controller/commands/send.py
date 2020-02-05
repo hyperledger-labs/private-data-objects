@@ -96,7 +96,7 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         print(update_response.invocation_response)
 
     data_directory = state.get(['Contract', 'DataDirectory'])
-    ledger_config = state.get(['Sawtooth'])
+    ledger_config = state.get(['Ledger'])
 
     if update_response.state_changed and commit :
 

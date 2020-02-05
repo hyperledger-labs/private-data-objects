@@ -63,7 +63,7 @@ def command_contract(state, bindings, pargs) :
 def refresh_contract(state, contract) :
     try :
         data_directory = state.get(['Contract', 'DataDirectory'])
-        ledger_config = state.get(['Sawtooth'])
+        ledger_config = state.get(['Ledger'])
 
         contract_state = ContractState.get_from_ledger(ledger_config, contract.contract_id)
         contract_state.save_to_cache(data_dir=data_directory)
@@ -83,7 +83,7 @@ def save_contract(state, contract_file, contract) :
 def load_contract(state, contract_file) :
     try :
         data_directory = state.get(['Contract', 'DataDirectory'])
-        ledger_config = state.get(['Sawtooth'])
+        ledger_config = state.get(['Ledger'])
 
         return Contract.read_from_file(ledger_config, contract_file, data_dir=data_directory)
     except Exception as e :

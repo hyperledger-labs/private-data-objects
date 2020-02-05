@@ -32,11 +32,12 @@ URL = "http://localhost:${{7200+_count_}}"
 BlockStore = "${data}/${{identity.replace('eservice','sservice')}}.mdb"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger -- ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
 # LedgerURL is used to submit the registration transaction should
 # the enclave require registration
+LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
 Organization = "Widgets R Us"
 
@@ -54,7 +55,7 @@ LogFile  = "${logs}/${identity}.log"
 # Keys are used to sign the registration transaction
 # should it be required
 SearchPath = [ ".", "./keys", "${keys}" ]
-FileName = "${identity}_private.skf"
+FileName = "${identity}_private.${eservice_key_format}"
 
 # --------------------------------------------------
 # EnclaveData -- configuration of sealed storage for the enclave

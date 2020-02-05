@@ -28,8 +28,8 @@ from common.sgx.sawtooth_poet_common import sgx_structs
 from common.sawtooth_signing import create_context
 from common.sawtooth_signing.secp256k1 import Secp256k1PrivateKey
 
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveRegister
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveRegister
 
 
 class CreateTestEnclavePayload:

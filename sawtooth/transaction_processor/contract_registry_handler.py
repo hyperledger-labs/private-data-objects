@@ -21,14 +21,14 @@ from sawtooth_sdk.processor.handler import TransactionHandler
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.exceptions import InternalError
 
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractTransaction
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRegister
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractAddEnclaves
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRemoveEnclaves
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractTransaction
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRegister
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractAddEnclaves
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRemoveEnclaves
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
 
-from sawtooth.helpers.pdo_debug import PdoDbgDump
+from pdo.submitter.sawtooth.helpers.pdo_debug import PdoDbgDump
 
 from common.pdo_signing import verify_add_enclave_to_contract_pdo_signature
 from common.pdo_signing import verify_add_enclave_to_contract_signature

@@ -35,9 +35,6 @@ import pdo.common.keys as keys
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
 
-from pdo.submitter.submitter import Submitter
-import sawtooth.helpers.pdo_connect
-
 import logging
 logger = logging.getLogger(__name__)
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import hashlib
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
@@ -21,6 +22,33 @@ logger = logging.getLogger(__name__)
 
 import binascii
 import secp256k1
+
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def generate_txn_keys(ledger_type=os.environ.get('PDO_LEDGER_TYPE')):
+    """ txn_keys are used to sign register_enclave transaction.
+    The format is based on the ledger type"""
+
+    if ledger_type == 'sawtooth':
+        return TransactionKeys()
+    elif ledger_type == 'ccf':
+        return ServiceKeys.create_service_keys()
+    else:
+        raise Exception("Invalid ledger_type. Must be either 'sawtooth' or 'ccf'")
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def read_transaction_keys_from_file(key_file, search_path, \
+    ledger_type = os.environ.get('PDO_LEDGER_TYPE')):
+    """ use the correct read handler based on ledger type to read txn keys"""
+
+    if ledger_type == 'sawtooth':
+        txn_keys = TransactionKeys.read_from_file(key_file, search_path)
+    elif ledger_type == 'ccf':
+        txn_keys = ServiceKeys.read_from_file(key_file, search_path)
+    else:
+        raise Exception("Invalid Ledger Type. Must be either 'sawtooth' or 'ccf'")
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

@@ -155,7 +155,7 @@ login shell script (`~/.bashrc` or similar)
 export SGX_SSL=/opt/intel/sgxssl
 ```
 
-## Build and Install Sawtooth
+## Build and Install Ledger
 
 Hyperledger Private Data Objects uses the Hyperledger Sawtooth distributed
 ledger to store data object instances and state, and to guarantee update
@@ -175,6 +175,14 @@ PDO project, and can be set up on an entirely separate machine from the one
 running Private Data Objects. It is recommended that Sawtooth be run on Ubuntu
 16.04 as it is the only operating system version on which Sawtooth is actively
 supported.
+
+There is an ongoing effort to support Microsoft CCF based ledger
+in addition to Hyperledger Sawtooth. Currently PDO supports CCF ledger under
+the SIMULATE mode for PDO enclaves, and virtual mode for CCF enclaves.
+
+See [HERE](../ccf_transaction_processor/Readme.md) to learn more about the ccf based transaction processor.
+The default ledger choice for PDO is Sawtooth. CCF based ledger can be enabled by setting the
+environment variable PDO_LEDGER_TYPE=ccf (assuming that a CCF ledger has already been set up).
 
 ## Build and Install PDO
 

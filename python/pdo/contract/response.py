@@ -43,8 +43,9 @@ class ContractResponse(object) :
     def exit_commit_workers():
         """Set the global variable stop_commit_service to True. This will be picked by the workers"""
 
-        stop_replication_service()
-        stop_transacion_processing_service()
+        if ContractResponse.__start_commit_service__ is False: #if True no service has yet been started
+            stop_replication_service()
+            stop_transacion_processing_service()
 
     # -------------------------------------------------------
     def __init__(self, request, response) :
@@ -80,6 +81,7 @@ class ContractResponse(object) :
 
             # save the information we will need for the transaction
             self.channel_keys = request.channel_keys
+            self.channel_id = request.channel_id
             self.contract_id = request.contract_id
             self.creator_id = request.creator_id
             self.code_hash = request.contract_code.compute_hash()
@@ -193,7 +195,7 @@ class ContractResponse(object) :
     def __serialize_for_signing(self) :
         """serialize the response for enclave signature verification"""
 
-        message = crypto.string_to_byte_array(self.channel_keys.txn_public)
+        message = crypto.string_to_byte_array(self.channel_id)
         message += crypto.string_to_byte_array(self.contract_id)
         message += crypto.string_to_byte_array(self.creator_id)
 

@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class ContractMessage(object) :
-    def __init__(self, request_originator_keys, channel_keys, **kwargs) :
+    def __init__(self, request_originator_keys, channel_id, **kwargs) :
         """
         :param request_originator_keys: object of type ServiceKeys
         :param channel_keys: object of type TransactionKeys
         """
         self.__request_originator_keys = request_originator_keys
-        self.__channel_keys = channel_keys
+        self.channel_id = channel_id
 
         # remove this when we are convinced that we've converted
         # all forms to use InvocationRequest
@@ -58,14 +58,8 @@ class ContractMessage(object) :
     def originator_verifying_key(self) :
         return self.__request_originator_keys.identity
 
-    # -------------------------------------------------------
-    @property
-    def channel_verifying_key(self) :
-        return self.__channel_keys.txn_public
-
-    # -------------------------------------------------------
     def serialize_for_signing(self) :
-        return self.invocation_request + self.channel_verifying_key + self.nonce
+        return self.invocation_request + self.channel_id + self.nonce
 
     # -------------------------------------------------------
     def serialize_for_hash(self) :
@@ -85,7 +79,7 @@ class ContractMessage(object) :
         result = dict()
         result['InvocationRequest'] = self.invocation_request
         result['OriginatorVerifyingKey'] = self.originator_verifying_key
-        result['ChannelVerifyingKey'] = self.channel_verifying_key
+        result['ChannelVerifyingKey'] = self.channel_id
         result['Nonce'] = self.nonce
         result['Signature'] = self.signature
 

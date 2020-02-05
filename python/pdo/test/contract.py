@@ -151,7 +151,7 @@ def CreateAndRegisterEnclave(config) :
 
     global enclave
     global txn_dependencies
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
 
     interpreter = config['Contract']['Interpreter']
 
@@ -206,7 +206,7 @@ def CreateAndRegisterEnclave(config) :
         ErrorShutdown()
 
     try :
-        ledger_config = config.get('Sawtooth')
+        ledger_config = config.get('Ledger')
         if use_ledger :
             txnid = enclave.register_enclave(ledger_config)
             logger.info('enclave registration successful')
@@ -228,7 +228,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     data_dir = config['Contract']['DataDirectory']
 
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
     contract_creator_id = contract_creator_keys.identity
 
     try :
@@ -335,7 +335,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
     commit_dependenices = []
     last_response_committed = None
 
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
     contract_invoker_id = contract_invoker_keys.identity
 
     # Decide if the contract use a fixed enclave or a randomized one for each update.
@@ -456,7 +456,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 # -----------------------------------------------------------------
 def LocalMain(config) :
     # create the enclave
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
 
     # keys of the contract creator
     contract_creator_keys = keys.ServiceKeys.create_service_keys()
@@ -609,15 +609,15 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
-    if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
+        config['Ledger']['LedgerURL'] = options.ledger
+    if options.no_ledger  or not config['Ledger']['LedgerURL'] :
         use_ledger = False
-        config.pop('Sawtooth', None)
+        config.pop('Ledger', None)
 
     # set up the key search paths
     if config.get('Key') is None :

@@ -29,10 +29,20 @@ import pdo.common.config as pconfig
 try :
     ContractHome = os.environ["PDO_HOME"]
     LedgerURL = os.environ["PDO_LEDGER_URL"]
+    LedgerType = os.environ["PDO_LEDGER_TYPE"]
     SPID = os.environ["PDO_SPID"]
     SPID_API_KEY = os.environ["PDO_SPID_API_KEY"]
 except KeyError as ke :
     print("incomplete configuration, missing definition of {0}".format(str(ke)))
+    sys.exit(-1)
+
+#deduce eservice key format based on ledger type
+if LedgerType == 'sawtooth':
+    EserviceKeyFormat = 'skf'
+elif LedgerType == 'ccf':
+    EserviceKeyFormat = 'pem'
+else:
+    print("Cannot configure eservice keys. Invalid ledger type, Must be 'sawtooth' or 'ccf'" )
     sys.exit(-1)
 
 ContractHost = os.environ.get("HOSTNAME", "localhost")
@@ -50,6 +60,8 @@ config_map = {
     'keys' : ContractKeys,
     'logs' : ContractLogs,
     'ledger' : LedgerURL,
+    'ledger_type': LedgerType,
+    'eservice_key_format': EserviceKeyFormat,
     'proxy' : HttpsProxy,
     'spid' : SPID,
     'spid_api_key' : SPID_API_KEY

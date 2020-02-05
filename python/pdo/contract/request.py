@@ -21,8 +21,7 @@ import pdo.common.keys as keys
 from pdo.contract.response import ContractResponse
 from pdo.contract.message import ContractMessage
 from pdo.contract.state import ContractState
-from pdo.submitter.submitter import Submitter
-
+from pdo.submitter.create import create_submitter
 import pdo.service_client.service_data.eservice as eservice_db
 
 import logging
@@ -66,14 +65,25 @@ class ContractRequest(object) :
 
         self.encrypted_state_encryption_key = contract.get_state_encryption_key(self.enclave_service.enclave_id)
         self.originator_keys = request_originator_keys
-        self.channel_keys = keys.TransactionKeys()
+        self.make_channel_keys()
         self.session_key = crypto.SKENC_GenerateKey()
         self.contract_code = contract.contract_code
         self.contract_state = contract.contract_state
-        self.message = ContractMessage(self.originator_keys, self.channel_keys, **kwargs)
+        self.message = ContractMessage(self.originator_keys, self.channel_id, **kwargs)
         self.replication_params = contract.replication_params
         self.request_number = ContractRequest.__request_number__
         ContractRequest.__request_number__+=1
+
+    # -------------------------------------------------------
+    def make_channel_keys(self, ledger_type=os.environ.get('PDO_LEDGER_TYPE')):
+        if ledger_type=='sawtooth':
+            self.channel_keys =  keys.TransactionKeys()
+            self.channel_id = self.channel_keys.txn_public
+        elif ledger_type=='ccf':
+            self.channel_keys =  crypto.random_bit_string(64) # byte array
+            self.channel_id = crypto.byte_array_to_base64(crypto.compute_message_hash(self.channel_keys))
+        else:
+            raise Exception("Invalid Ledger Type. Must be either sawtooth or ccf.")
 
     # -------------------------------------------------------
     @property

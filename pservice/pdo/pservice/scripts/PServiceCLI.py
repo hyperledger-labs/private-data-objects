@@ -28,10 +28,7 @@ import hashlib
 import signal
 import traceback
 
-from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
-from sawtooth.helpers.pdo_connect import PdoRegistryHelper
-from sawtooth.helpers.pdo_connect import ClientConnectException
-
+from pdo.submitter.create import create_submitter
 import pdo.common.crypto as pcrypto
 import pdo.common.config as pconfig
 import pdo.common.logger as plogger
@@ -67,7 +64,7 @@ class ProvisioningServer(resource.Resource):
         self.EncryptionKey = enclave.encryption_key # Enclave public encryption key
         self.EnclaveID = enclave.enclave_id
 
-        self.__registry_helper = PdoRegistryHelper(config['Sawtooth']['LedgerURL'])
+        self.__registry_helper = create_submitter(config['Ledger'])
 
         self.secrets_file_path = config['SecretsFilePath']
         self.secret_length = 16
@@ -159,26 +156,21 @@ class ProvisioningServer(resource.Resource):
         # Get enclave state
         try:
             logger.debug('retrieve information for enclave %s', enclave_id)
-            enclave_info = self.__registry_helper.get_enclave_dict(enclave_id)
+            enclave_info = self.__registry_helper.get_enclave_info(enclave_id)
             logger.debug("enclave information retrieved: %s", enclave_info)
-        except BaseException as err:
-            logger.warn('exception occurred when getting ledger information for enclave %s; %s', enclave_id, str(err))
-            raise Error(http.BAD_REQUEST, 'could not retrieve enclave state; {0}'.format(err))
-        except ClientConnectException as err:
-            logger.warn('client exception occurred when getting ledger information for enclave %s; %s', enclave_id, str(err))
-            raise Error(http.BAD_REQUEST, 'could not retrieve enclave state; {0}'.format(err))
-
+        except Exception as err:
+            logger.error('exception occurred when getting ledger information for enclave %s; %s', enclave_id, str(err))
+            raise Exception('could not retrieve enclave state; {0}'.format(err))
+        
         # Get contract state
         try:
             logger.debug('retrieve information for contract <%s>', contract_id)
-            contract_info = self.__registry_helper.get_contract_dict(contract_id)
+            contract_info = self.__registry_helper.get_contract_info(contract_id)
             logger.debug("contract_info from ledger: %s", contract_info)
-        except BaseException as err:
-            logger.warn('exception occurred when getting ledger information for contract %s; %s', contract_id, str(err))
-            raise Error(http.BAD_REQUEST, 'could not retrieve contract state; {0}'.format(err))
-        except ClientConnectException as err:
-            logger.warn('client exception occurred when getting ledger information for contract %s; %s', contract_id, str(err))
-            raise Error(http.BAD_REQUEST, 'could not retrieve contract state; {0}'.format(err))
+        except Exception as err:
+            logger.error('exception occurred when getting ledger information for contract %s; %s', contract_id, str(err))
+            raise Exception('could not retrieve contract state; {0}'.format(err))
+        
 
         # make sure that the signer of this request is really the owner of the contract
         try :
@@ -509,12 +501,12 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
+        config['Ledger']['LedgerURL'] = options.ledger
 
     # set up the provisioning service configuration
     if config.get('ProvisioningService') is None :

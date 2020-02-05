@@ -27,7 +27,7 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
-import sawtooth.sawtooth_protos.transaction_pb2 as sawtooth__sdk_dot_protobuf_dot_transaction__pb2
+import pdo.submitter.sawtooth.sawtooth_protos.transaction_pb2 as sawtooth__sdk_dot_protobuf_dot_transaction__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

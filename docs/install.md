@@ -27,15 +27,16 @@ support. Information about supported processors is provided below.
 ## Recommended Host System
 
 The required host-system configuration for Private Data Objects is to
-separate the Private Data Objects components from the Sawtooth components.
+separate the Private Data Objects components from the ledger components.
 This means if you want to run PDO on a single physical host, either PDO or the
-Sawtooth will have to run in a separate VM or container. In particular, to run
+ledger will have to run in a separate VM or container. In particular, to run
 PDO in SGX HW mode, the PDO component has to run in an SGX-enabled environment.
 Below installation and configuration instructions will make sure that the host
 and the docker components fullfill this requirement.
 
-Sawtooth (and the PDO transaction processors for Sawtooth) should be run on
-Ubuntu 16.04.
+If Sawtooth ledger is used, then both Sawtooth (and the PDO transaction processors for Sawtooth)
+should be run on Ubuntu 16.04. If Microsoft CCF ledger is used, both CCF and the PDO transaction processor
+should be run on Ubuntu 18.04.
 
 Private Data Objects services (specifically the enclave service, provisioning
 service, and the client) should be run on Ubuntu 18.04  (server or client).
@@ -44,7 +45,7 @@ not all standard libraries match the required versions and you will have to, e.g
 install by hand an openssl version >= 1.1.0g (the default libssl-dev on these
 platforms is still based on 1.0.2)
 
-Sawtooth and PDO may run on other Linux distributions, but the installation
+The ledger and PDO may run on other Linux distributions, but the installation
 process is likely to be more complicated, and the use of other distributions is
 not supported by their respective communities at this time.
 

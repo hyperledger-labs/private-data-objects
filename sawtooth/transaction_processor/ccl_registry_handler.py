@@ -17,13 +17,13 @@ import logging
 from sawtooth_sdk.processor.handler import TransactionHandler
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractState
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractInformation
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_TransactionPayload
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractState
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractInformation
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_TransactionPayload
 
-from sawtooth.helpers.pdo_debug import PdoDbgDump
+from pdo.submitter.sawtooth.helpers.pdo_debug import PdoDbgDump
 
 from common.pdo_signing import verify_ccl_transaction_pdo_signature
 from common.pdo_signing import verify_ccl_transaction_signature

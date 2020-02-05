@@ -16,7 +16,7 @@ import json
 
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
-import sawtooth.helpers.pdo_connect
+from pdo.submitter.create import create_submitter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -231,14 +231,18 @@ class ContractState(object) :
         :param ledger_config dictionary: ledger configuration that must contain 'LedgerURL'
         :param contract_id str: contract identifier
         """
-        client = sawtooth.helpers.pdo_connect.PdoRegistryHelper(ledger_config['LedgerURL'])
+        registry_helper = create_submitter(ledger_config)
 
         try :
             # what is returned when the contract has been created but
             # state has not been initialized? need to detect this and
             # return some kind of "not found" exception
-            contract_state_info = client.get_ccl_info_dict(contract_id)
-            current_state_hash = contract_state_info['current_state']['state_hash']
+            state_info = registry_helper.get_current_state_hash(contract_id)
+            if state_info['is_active']:
+                return state_info['state_hash']
+            else:
+                raise Exception("Contract is no longer active")
+
         except Exception as e :
             logger.info('error getting state hash; %s', str(e))
             raise Exception('failed to retrieve contract state hash; {}'.format(contract_id))
@@ -248,19 +252,12 @@ class ContractState(object) :
     # --------------------------------------------------
     @classmethod
     def get_from_ledger(cls, ledger_config, contract_id, current_state_hash = None) :
-        if current_state_hash is None :
-            current_state_hash = ContractState.get_current_state_hash(ledger_config, contract_id)
+        """This method tries to get the root block from the ledger.  This method will be replaced
+        with get_from_storage_service in a separate (not so trivial) PR, since the root block is no
+        longer stored in the ledger. For now, raising an exception."""
 
-        client = sawtooth.helpers.pdo_connect.PdoRegistryHelper(ledger_config['LedgerURL'])
-
-        try :
-            contract_info = client.get_ccl_state_dict(contract_id, current_state_hash)
-            raw_state = contract_info['state_update']['encrypted_state']
-        except Exception as e :
-            logger.info('error getting state; %s', str(e))
-            raise Exception('failed to retrieve contract state; {}', contract_id)
-
-        return cls(contract_id, raw_state = raw_state)
+        raise Exception("Attempting to read root block from ledger. \
+            Root block is no longer stored in the ledger")
 
     # --------------------------------------------------
     @classmethod

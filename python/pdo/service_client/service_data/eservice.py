@@ -40,8 +40,7 @@ __all__ = [
     'get_by_enclave_id',
     ]
 
-from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
-from sawtooth.helpers.pdo_connect import ClientConnectException
+from pdo.submitter.create import create_submitter
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.common.utility import deprecated
 import pdo.common.keys as keys
@@ -108,9 +107,8 @@ class enclave_info(object) :
         # second check: make sure the ledger has an entry for the enclave
         if ledger_config and ledger_config.get('LedgerURL') :
             try :
-                txn_keys = keys.TransactionKeys()
-                sawtooth_client = PdoClientConnectHelper(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
-                enclave_state = sawtooth_client.get_enclave_dict(self.enclave_id)
+                registry_helper = create_submitter(ledger_config)
+                enclave_state = registry_helper.get_enclave_info(self.enclave_id)
             except Exception as e :
                 logger.info('failed to verify enclave registration with the ledger; %s', str(e))
                 self.last_verified_time = ""

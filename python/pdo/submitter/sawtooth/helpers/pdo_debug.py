@@ -16,12 +16,12 @@ import json
 from google.protobuf.json_format import MessageToDict
 
 
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
     PdoContractRegister,\
     PdoContractAddEnclaves,\
     PdoContractRemoveEnclaves
 
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import\
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import\
     PdoContractEnclaveRegister,\
     PdoContractEnclaveUpdate
 

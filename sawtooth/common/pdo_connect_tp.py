@@ -18,7 +18,7 @@ from sawtooth_sdk.messaging.future import FutureTimeoutError
 from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.protobuf.setting_pb2 import Setting
 
-from sawtooth.helpers.pdo_address_helper import PdoAddressHelper
+from pdo.submitter.sawtooth.helpers.pdo_address_helper import PdoAddressHelper
 
 LOGGER = logging.getLogger(__name__)
 STATE_TIMEOUT_SEC = 10
