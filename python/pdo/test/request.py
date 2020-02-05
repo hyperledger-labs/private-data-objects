@@ -353,7 +353,7 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
             logger.info('{0} --> {1}'.format(expression, update_response.invocation_response))
 
         except Exception as e:
-            logger.error('enclave failed to evaluation expression; %s', str(e))
+            logger.error('enclave failed to evaluate expression; %s', str(e))
             ErrorShutdown()
 
         # if this operation did not change state then there is nothing to commit

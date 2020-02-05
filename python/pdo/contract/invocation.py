@@ -42,35 +42,12 @@ class InvocationRequest(dict):
         return json.dumps(request)
 
 # -----------------------------------------------------------------
-# -----------------------------------------------------------------
-class GipsyInvocationRequest(InvocationRequest) :
-    """Invocation Request that encodes requests as a Scheme
-    s-expression. Assumes that all strings have been fully escaped
-    in the parameter lists.
-    """
-
-    def __init__(self, method, *args, **kwargs) :
-        super(GipsyInvocationRequest, self).__init__(method, *args, **kwargs)
-
-    def serialize(self) :
-        """construct an s-expression from positional and keyword parameters,
-        the expression will have the form '(method pp1 pp2 ... (kw1 v1) (kw2 v2) ..)
-        """
-        params = list(self.__positional_parameters__)
-        for k in self.keys() :
-            params.append([k, self[k]])
-
-        params_sexpr = SchemeExpression.make_expression(params)
-        sexpr = SchemeExpression.cons(SchemeExpression.make_symbol(self.__method__), params_sexpr)
-        sexpr = SchemeExpression.make_list([sexpr])
-        sexpr = SchemeExpression.cons(SchemeExpression.make_symbol('quote'), sexpr)
-
-        logger.debug("gipsy invocation expression: {0}".format(str(sexpr)))
-        return str(sexpr)
-
-# -----------------------------------------------------------------
 def invocation_request(method, *args, **kwargs) :
-    if os.environ.get('PDO_INTERPRETER', 'gipsy') == 'gipsy':
-        return GipsyInvocationRequest(method, *args, **kwargs)
-
     return InvocationRequest(method, *args, **kwargs)
+
+# -----------------------------------------------------------------
+def invocation_response(response_string) :
+    try :
+        return json.loads(response_string)
+    except Exception as e:
+        return str(response_string)

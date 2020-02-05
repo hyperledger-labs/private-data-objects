@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import sys
-import concurrent.futures
-import queue
-import time
-import threading
 
+from pdo.contract.invocation import invocation_response
 import pdo.common.crypto as crypto
-import pdo.common.keys as keys
 from pdo.common.utility import deprecated
 
 from pdo.contract.state import ContractState
-from pdo.contract.replication import ReplicationRequest, start_replication_service, stop_replication_service, add_replication_task
-from pdo.contract.transaction import TransactionRequest, start_transaction_processing_service, stop_transacion_processing_service, add_transaction_task
+from pdo.contract.replication import ReplicationRequest
+from pdo.contract.replication import start_replication_service
+from pdo.contract.replication import stop_replication_service
+from pdo.contract.replication import add_replication_task
+from pdo.contract.transaction import TransactionRequest
+from pdo.contract.transaction import start_transaction_processing_service
+from pdo.contract.transaction import stop_transacion_processing_service
+from pdo.contract.transaction import add_transaction_task
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,8 +54,10 @@ class ContractResponse(object) :
         :param request: the ContractRequest object corresponding to the response
         :param response: diction containing the response from the enclave
         """
+
         self.status = response['Status']
-        self.invocation_response = response['InvocationResponse']
+        self.invocation_response_raw = response['InvocationResponse']
+        self.invocation_response = invocation_response(response['InvocationResponse'])
         self.state_changed = response['StateChanged']
         self.new_state_object = request.contract_state
         #if the new state is same as the old state, then change set is empty

@@ -30,6 +30,11 @@ from colorlog import ColoredFormatter
 
 __all__ = ['stream_to_logger', 'setup_loggers']
 
+# provide a level that can be used to generate output
+# at a very high priority, e.g. test information
+HIGHLIGHT=35
+logging.addLevelName(HIGHLIGHT, 'HIGHLIGHT')
+
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 class stream_to_logger(object):
@@ -67,15 +72,16 @@ def setup_loggers(config) :
     else :
         clog = logging.StreamHandler()
         formatter = ColoredFormatter(
-            "%(log_color)s[%(asctime)s %(levelname)-8s%(name)s]%(reset)s %(white)s%(message)s",
+            "%(log_color)s[%(asctime)s %(levelname)s %(name)s]%(reset)s %(white)s%(message)s",
             datefmt="%H:%M:%S",
             reset=True,
             log_colors={
-                'DEBUG':    'cyan',
-                'INFO':     'green',
-                'WARNING':  'yellow',
-                'ERROR':    'red',
-                'CRITICAL': 'red',
+                'DEBUG':     'cyan',
+                'INFO':      'green',
+                'WARNING':   'yellow',
+                'HIGHLIGHT': 'purple',
+                'ERROR':     'red',
+                'CRITICAL':  'red',
                 }
             )
 
