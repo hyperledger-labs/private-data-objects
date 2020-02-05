@@ -138,6 +138,7 @@ def command_send(state, bindings, pargs) :
     parser = argparse.ArgumentParser(prog='send')
     parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
+    parser.add_argument('-p', '--positional', help='JSON encoded list of positional parameters', type=invocation_parameter)
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
     parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
@@ -156,9 +157,16 @@ def command_send(state, bindings, pargs) :
 
     options = parser.parse_args(pargs)
     waitflag = options.wait
+
     method = options.method
 
-    pparams = options.positional_params or []
+    pparams = []
+    if options.positional :
+        assert type(options.positional) is list
+        pparams.extend(options.positional)
+
+    if options.positional_params :
+        pparams.extend(options.positional_params)
 
     kparams = dict()
     if options.kwarg :

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import argparse
 import logging
 import random
@@ -109,10 +110,11 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 def command_create(state, bindings, pargs) :
     """controller command to create a contract
     """
+    interp = os.environ.get("PDO_INTERPRETER", "gipsy")
 
     parser = argparse.ArgumentParser(prog='create')
     parser.add_argument('-c', '--contract-class', help='Name of the contract class', required = True, type=str)
-    parser.add_argument('-i', '--interpreter', help='Name of the interpreter used to evaluate the contract', default='gipsy')
+    parser.add_argument('-i', '--interpreter', help='Name of the interpreter used to evaluate the contract', default=interp)
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
     parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', default="default")
     parser.add_argument('-e', '--eservice-group', help='Name of the enclave service group to use', default="default")
