@@ -25,6 +25,7 @@ __all__ = [
     "add_replication_task",
     "add_transaction_task",
     "invocation_request",
+    "invocation_response",
     "register_contract",
     "start_replication_service",
     "start_transaction_processing_service",
@@ -37,6 +38,7 @@ from pdo.contract.contract import Contract
 from pdo.contract.contract import add_enclave_to_contract
 from pdo.contract.contract import register_contract
 from pdo.contract.invocation import invocation_request
+from pdo.contract.invocation import invocation_response
 from pdo.contract.message import ContractMessage
 from pdo.contract.request import ContractRequest
 from pdo.contract.response import ContractResponse

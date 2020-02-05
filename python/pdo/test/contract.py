@@ -34,10 +34,11 @@ import pdo.service_client.service_data.eservice as db
 
 import pdo.contract as contract_helper
 from pdo.contract.response import ContractResponse
-import pdo.common.crypto as crypto
-import pdo.common.keys as keys
-import pdo.common.secrets as secrets
-import pdo.common.utility as putils
+from pdo.common import crypto
+from pdo.common import keys
+from pdo.common import utility as putils
+from pdo.common import config as pconfig
+from pdo.common import logger as plogger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -358,8 +359,15 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
             test_list = list(reader)
 
         elif test_file.endswith('.json') :
+            # there is currently no support to set these values outside of the
+            # configuration file and that is not going to change soon
+            test_max_level = config.get('Test', {}).get('MaxLevel', 0)
+
             reader = json.load(efile)
             for test in reader :
+                if test.get('test-level', 0) > test_max_level :
+                    continue
+
                 method = test['MethodName']
                 pparms = test.get('PositionalParameters',[])
                 kparms = test.get('KeywordParameters',{})
@@ -372,22 +380,27 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
     for test in test_list :
         expression = test['expression']
 
+        if test.get('description') :
+            logger.log(plogger.HIGHLIGHT,"TEST[{0}] : {1}".format(total_tests, test['description'].format(**test)))
+
         try :
             total_tests += 1
             update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
             update_response = update_request.evaluate()
 
-            result = update_response.invocation_response[:15]
-            if len(update_response.invocation_response) >= 15 :
+            raw_result = str(update_response.invocation_response)
+            result = raw_result[:15]
+            if len(raw_result) >= 15 :
                 result += "..."
 
+            unpacked_response = contract_helper.invocation_response(raw_result)
             if update_response.status is False :
                 logger.info('failed: {0} --> {1}'.format(expression, result))
-                if test['invert'] is None or test['invert'] != 'fail' :
+                if test.get('invert') is None or test.get('invert') != 'fail' :
                     total_failed += 1
                     logger.warn('inverted test failed: %s instead of %s', result, test['expected'])
 
-                if test['expected'] and not re.match(test['expected'], update_response.invocation_response) :
+                elif test.get('expected') and not re.match(test.get('expected'), raw_result) :
                     total_failed += 1
                     logger.warn('test failed: %s instead of %s', result, test['expected'])
 
@@ -395,12 +408,12 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 
             logger.info('{0} --> {1}'.format(expression, result))
 
-            if test['expected'] and not re.match(test['expected'], update_response.invocation_response) :
+            if test.get('expected') and not re.match(test.get('expected'), raw_result) :
                 total_failed += 1
                 logger.warn('test failed: %s instead of %s', result, test['expected'])
 
         except Exception as e:
-            logger.error('enclave failed to evaluation expression; %s', str(e))
+            logger.error('enclave failed to evaluate expression; %s', str(e))
             ErrorShutdown()
 
         # if this operation did not change state then there is nothing to commit
@@ -517,8 +530,6 @@ def Main() :
     global use_eservice
     global use_pservice
 
-    import pdo.common.config as pconfig
-    import pdo.common.logger as plogger
 
     # parse out the configuration file first
     conffiles = [ 'pcontract.toml', 'enclave.toml' ]
