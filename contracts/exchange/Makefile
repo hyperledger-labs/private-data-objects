@@ -41,7 +41,10 @@ all: $(CONTRACTS)
 
 debug :
 
-test : $(TEST_CONTRACTS)
+test :
+	@echo TESTS DISABLED
+
+x-test : $(TEST_CONTRACTS)
 	@echo Run exchange contract tests
 	@$(GIPSY_SCHEME) -1 _issuer_test.scm loglevel 2
 	@$(GIPSY_SCHEME) -1 _exchange_test.scm loglevel 2

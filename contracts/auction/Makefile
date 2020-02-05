@@ -20,25 +20,17 @@ GIPSY_SCHEME := $(ROOTDIR)/contracts/bin/gipsyscheme
 INSTALLDIR = $(PDO_HOME)/contracts
 
 CONTRACTS := _integer-key-auction.scm
-DEBUG_CONTRACTS := $(addprefix _debug, $(CONTRACTS))
-TEST_CONTRACTS = _aptest.scm
 PLUGINS := integer-key-auction.py
 
 all: $(CONTRACTS)
 
-debug : $(DEBUG_CONTRACTS)
+debug :
 
 test : $(TESTS)
 	@echo No automated tests defined
 
 _integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm
 	$(GIPSY_SCHEME) -1 integer-key-auction.bld
-
-_debug_integer-key-auction.scm : integer-key-auction.bld integer-key-auction.scm auction-test.scm
-	$(GIPSY_SCHEME) -1 integer-key-auction.bld debug test-auction
-
-_aptest.scm : aptest.bld auction-protocol-test.scm ../integer-key/integer-key.scm integer-key-auction.scm
-	$(GIPSY_SCHEME) -1 aptest.bld debug aptest
 
 install : $(CONTRACTS) $(PLUGINS)
 	@echo copy $(CONTRACTS) to $(INSTALLDIR)

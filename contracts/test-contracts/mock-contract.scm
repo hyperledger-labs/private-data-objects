@@ -16,21 +16,28 @@
   `(if (not ,pred) (throw ,@message)))
 
 (define-class mock-contract
+  (class-vars
+   (interface-version 2))
+
   (instance-vars
-   (creator (get ':message 'originator))
+   (initialized #f)
+   (creator "")
    (value 0)))
 
-(define-const-method mock-contract (get_value)
-  (let* ((requestor (get ':message 'originator)))
-    (assert (string=? requestor creator) "only the creator can get the value"))
-  value)
+(define-method mock-contract (initialize-instance . args)
+  (if (not initialized)
+      (let* ((environment (car args))
+             (requestor (send environment 'get-originator-id)))
+        (instance-set! self 'creator requestor)
+        (instance-set! self 'initialized #t))))
 
-(define-method mock-contract (inc_value)
-  (let* ((requestor (get ':message 'originator)))
+(define-method mock-contract (get_value environment)
+  (let ((requestor (send environment 'get-originator-id)))
+    (assert (string=? requestor creator) "only the creator can get the value"))
+  (dispatch-package::return-value value #f))
+
+(define-method mock-contract (inc_value environment)
+  (let ((requestor (send environment 'get-originator-id)))
     (assert (string=? requestor creator) "only the creator can inc the value"))
   (instance-set! self 'value (+ value 1))
-  value)
-
-(define-method mock-contract (depends dependencies)
-  (put ':ledger 'dependencies dependencies)
-  value)
+  (dispatch-package::return-value value #t))

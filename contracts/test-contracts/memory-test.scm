@@ -26,6 +26,9 @@
    ;; CLASS: memory-test
    ;; =================================================================
    (define-class memory-test
+     (class-vars
+      (interface-version 2))
+
      (instance-vars
       (_initialized #f)
       (_persistent_vector #f)
@@ -50,11 +53,11 @@
    ;; '(big-state 10 '(value "v"))
    ;;
    ;; -----------------------------------------------------------------
-   (define-method memory-test (big-state dimension . args)
+   (define-method memory-test (big-state environment dimension . args)
      (assert (and (integer? dimension) (< 0 dimension)) "second parameter must be a positive integer")
      (let ((value (utility-package::get-with-default "value" string? args memory-test-package::default-value)))
        (instance-set! self '_value (make-vector dimension (make-vector dimension value))))
-     #t)
+     (dispatch-package::return-success #t))
 
    ;; -----------------------------------------------------------------
    ;; NAME: clear-state
@@ -62,13 +65,13 @@
    ;; DESCRIPTION:
    ;; Clear the value making the intrinsic state small again
    ;; -----------------------------------------------------------------
-   (define-method memory-test (clear-state)
+   (define-method memory-test (clear-state environment)
      (instance-set! self '_value ())
-     #t)
+     (dispatch-package::return-success #t))
 
    ;; -----------------------------------------------------------------
    ;; -----------------------------------------------------------------
-   (define-method memory-test (fill-vector . args)
+   (define-method memory-test (fill-vector environment . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
             (first (utility-package::get-with-default "first" integer? args 0))
             (last (utility-package::get-with-default "last" integer? args (- vector-size 1)))
@@ -84,18 +87,21 @@
                (loop (+ index 1)))))
 
        ;; add up all of the values and return them
-       (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0)))
+       (dispatch-package::return-value
+        (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0)
+        #t)))
 
    ;; -----------------------------------------------------------------
    ;; -----------------------------------------------------------------
-   (define-method memory-test (dump-vector . args)
+   (define-method memory-test (dump-vector environment . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
             (first (utility-package::get-with-default "first" integer? args 0))
             (last (utility-package::get-with-default "last" integer? args (- vector-size 1))))
        (assert (and (<= 0 first) (<= first last) (< last vector-size)) "invalid positional parameters" first last)
 
        ;; dump the values in the vector
-       (send _persistent_vector 'map (lambda (v) v) `(first ,first) `(last ,last))))
+       (let ((result (send _persistent_vector 'map (lambda (v) v) `(first ,first) `(last ,last))))
+         (dispatch-package::return-value (apply vector result) #f))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: clear-vector
@@ -103,7 +109,7 @@
    ;; DESCRIPTION:
    ;; Clear some of the values in the vector
    ;; -----------------------------------------------------------------
-   (define-method memory-test (clear-vector . args)
+   (define-method memory-test (clear-vector environment . args)
      (let* ((vector-size (send _persistent_vector 'get-size))
             (first (utility-package::get-with-default "first" integer? args 0))
             (last (utility-package::get-with-default "last" integer? args (- vector-size 1)))
@@ -115,7 +121,8 @@
              (begin (send _persistent_vector 'del index) (loop (+ index skip)))))
 
        ;; add up all of the values and return them
-       (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0 `(first ,first) `(last ,last))))
+       (let ((result (send _persistent_vector 'foldr (lambda (v i) (+ v i)) 0 `(first ,first) `(last ,last))))
+         (dispatch-package::return-value result #t))))
 
    ;; -----------------------------------------------------------------
    ;; NAME: deep-recursion
@@ -129,9 +136,11 @@
    (define (_recursive-function_ n)
      (if (< 0 n) (+ 1 (memory-test-package::_recursive-function_ (- n 1))) 0))
 
-   (define-method memory-test (deep-recursion depth)
+   (define-method memory-test (deep-recursion environment depth)
      (assert (and (integer? depth) (< 0 depth)) "parameter must be a positive integer")
-     (memory-test-package::_recursive-function_ depth))
+     (dispatch-package::return-value
+      (memory-test-package::_recursive-function_ depth)
+      #f))
 
    ;; -----------------------------------------------------------------
    ;; NAME: many-keys
@@ -147,7 +156,7 @@
    ;; '(many-keys 10 '(key-base "key") '(value "v"))
    ;;
    ;; -----------------------------------------------------------------
-   (define-method memory-test (many-keys count . args)
+   (define-method memory-test (many-keys environment count . args)
      (assert (and (integer? count) (< 0 count)) "second parameter must be a positive integer")
      (let ((key-base (utility-package::get-with-default "key-base" string? args memory-test-package::default-key))
            (value (utility-package::get-with-default "value" string? args memory-test-package::default-value)))
@@ -156,7 +165,7 @@
              (let ((key (string-append key-base (number->string i))))
                (safe-kv-put key "_")
                (loop (+ i 1))))))
-     #t)
+     (dispatch-package::return-success #t))
 
    ;; -----------------------------------------------------------------
    ;; NAME: big-value
@@ -169,14 +178,16 @@
    ;; optional: key -- key to use for the put
    ;; optional: value-base -- string to use for the value
    ;; -----------------------------------------------------------------
-   (define-method memory-test (big-value size . args)
+   (define-method memory-test (big-value environment size . args)
      (assert (and (integer? size) (< 0 size)) "second parameter must be a positive integer")
      (let ((key (utility-package::get-with-default "key" string? args memory-test-package::default-key))
            (value-base (utility-package::get-with-default "value-base" string? args memory-test-package::default-value)))
        (assert (= (string-length value-base) 1) "value base must be a one character string")
        (let ((big-string (make-string size (string-ref value-base 0))))
          (safe-kv-put key big-string)
-         (safe-kv-get key))))
+         (dispatch-package::return-value
+          (safe-kv-get key)
+          #t))))
 
    ))
 
