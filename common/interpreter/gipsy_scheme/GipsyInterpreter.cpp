@@ -27,8 +27,9 @@
 #include "types.h"
 #include "log.h"
 
-#include "scheme-private.h"
+//#include "scheme-private.h"
 
+#include "InvocationHelpers.h"
 #include "GipsyInterpreter.h"
 #include "SchemeExtensions.h"
 
@@ -82,144 +83,34 @@ void SchemeLog(unsigned int level, const char *msg, const int value)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static void clear_output_buffer(scheme *sc)
-{
-    port *pt = sc->outport->_object._port;
-    Zero(pt->rep.string.start, pt->rep.string.past_the_end - pt->rep.string.start);
-
-    pt->rep.string.curr = pt->rep.string.start;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static void copy_output_buffer(
-    scheme *sc,
-    ByteArray& output
-    )
-{
-    port *pt = sc->outport->_object._port;
-    size_t s = pt->rep.string.curr - pt->rep.string.start;
-
-    output.resize(pt->rep.string.curr - pt->rep.string.start + 1, 0);
-    memcpy_s(output.data(), output.size(), pt->rep.string.start, s);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static std::string report_interpreter_error(
+const char* GipsyInterpreter::report_interpreter_error(
     scheme *sc,
     const char* message,
-    std::string error_msg
+    const char* error
     )
 {
     port *pt = sc->outport->_object._port;
 
-    error_msg = message;
-    error_msg.append("; ");
-    error_msg.append(pt->rep.string.start);
-
-    return error_msg;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static void gipsy_put_property_p(
-    scheme *sc,
-    const char* symbol,
-    const char* property,
-    pointer pvalue
-    )
-{
-    pointer psymbol, pproperty, x;
-
-    // add the creator property to the :contract symbol
-    psymbol = mk_symbol(sc, symbol);
-    pe::ThrowIfNull(psymbol, "unable to find/create symbol");
-
-    pproperty = mk_symbol(sc, property);
-    pe::ThrowIfNull(pproperty, "unable to find/create property");
-
-    // find the symbol and update it
-    for (x = symprop(psymbol); x != sc->NIL; x = cdr(x))
+    error_msg_ = message;
+    if (error == NULL)
     {
-        if (caar(x) == pproperty) break;
+        const char* e = pt->rep.string.start;
+        if (strnlen(e, 1) > 0)
+        {
+            error_msg_.append("; ");
+            error_msg_.append(e);
+        }
     }
-
-    if (x != sc->NIL)
-        cdar(x) = pvalue;
     else
     {
-        pointer s1 = cons(sc, pproperty, pvalue);
-        pe::ThrowIf<pe::RuntimeError>(sc->no_memory, "failure to put property");
-
-        pointer s2 = cons(sc, s1, symprop(psymbol));
-        pe::ThrowIf<pe::RuntimeError>(sc->no_memory, "failure to put property");
-
-        symprop(psymbol) = s2;
-    }
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static void gipsy_put_property(
-    scheme *sc,
-    const char* symbol,
-    const char* property,
-    const char* value
-    )
-{
-    pointer pvalue = mk_string(sc, value);
-    pe::ThrowIfNull(pvalue, "unable to create string for property");
-
-    gipsy_put_property_p(sc, symbol, property, pvalue);
-}
-
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static pointer gipsy_get_property(
-    scheme *sc,
-    const char* symbol,
-    const char* property
-    )
-{
-    pointer psymbol = scheme_find_symbol(sc, symbol);
-    pe::ThrowIf<pe::RuntimeError>(
-        psymbol == sc->NIL,
-        "missing symbol");
-
-    pointer pproperty = scheme_find_symbol(sc, property);
-    pe::ThrowIf<pe::RuntimeError>(
-        pproperty == sc->NIL,
-        "missing property");
-
-    pointer x;
-    for (x = symprop(psymbol); x != sc->NIL; x = cdr(x)) {
-        if (caar(x) == pproperty) break;
+        if (strnlen(error, 1) > 0)
+        {
+            error_msg_.append("; ");
+            error_msg_.append(error);
+        }
     }
 
-    if (x != sc->NIL)
-        return cdar(x);
-
-    return(sc->NIL);
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static void gipsy_write_to_buffer(
-    scheme *sc,
-    pointer value,
-    ByteArray& output
-    )
-{
-    clear_output_buffer(sc);
-
-    pointer writesym = scheme_find_symbol(sc, "write");
-    pe::ThrowIf<pe::RuntimeError>(writesym == sc->NIL, "unable to find write function symbol");
-
-    pointer writefn = cdr(scheme_find_symbol_value(sc, sc->envir, writesym));
-    pe::ThrowIf<pe::RuntimeError>(writefn == sc->NIL, "unable to find write function definition");
-
-    scheme_call(sc, writefn, cons(sc, value, sc->NIL));
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "failed to write expression to buffer");
-
-    copy_output_buffer(sc, output);
+    return error_msg_.c_str();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -250,7 +141,10 @@ void GipsyInterpreter::Initialize(void)
     if (interpreter_ != NULL)
         return;
 
-    interpreter_ = scheme_init_new_custom_alloc(pc::safe_malloc_for_scheme, pc::safe_free_for_scheme, pc::safe_realloc_for_scheme);
+    interpreter_ = scheme_init_new_custom_alloc(
+        pc::safe_malloc_for_scheme,
+        pc::safe_free_for_scheme,
+        pc::safe_realloc_for_scheme);
     pe::ThrowIfNull(interpreter_, "failed to create the gipsy scheme interpreter");
 
     /* ---------- Create the interpreter ---------- */
@@ -270,7 +164,7 @@ void GipsyInterpreter::Initialize(void)
     scheme_load_string(sc, (const char *)packages_package_scm, packages_package_scm_len);
     pe::ThrowIf<pe::RuntimeError>(
         sc->retcode != 0,
-        "failed to load the gipsy initialization package");
+        report_interpreter_error(sc, "failed to load the gipsy initialization package"));
 
     /* ---------- Reserve extra space in preparation for the contract ---------- */
     pointer p = sc->vptr->reserve_cells(sc, CELL_SEGSIZE * 2);
@@ -287,32 +181,6 @@ GipsyInterpreter::GipsyInterpreter(void)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void GipsyInterpreter::save_dependencies(
-    std::map<std::string,std::string>& outDependencies
-    )
-{
-    scheme* sc = interpreter_;
-
-    pointer dlist = gipsy_get_property(sc, ":ledger", "dependencies");
-    if (is_pair(dlist)) {
-        for ( ; dlist != sc->NIL; dlist = cdr(dlist)) {
-            pointer dep = car(dlist);
-            pe::ThrowIf<pe::ValueError>(
-                is_pair(dep) == 0 || is_pair(cdr(dep)) == 0,
-                "malformed dependency; dependency must be an alist");
-
-            pointer contractid = car(dep);
-            pointer statehash = cadr(dep);
-            pe::ThrowIf<pe::ValueError>(
-                is_string(contractid) == 0 || is_string(statehash) == 0,
-                "malformed dependency; dependency must be a pair of strings");
-
-            outDependencies[strvalue(contractid)] = strvalue(statehash);
-        }
-    }
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void GipsyInterpreter::load_contract_code(
     const pc::ContractCode& inContractCode
     )
@@ -323,98 +191,7 @@ void GipsyInterpreter::load_contract_code(
     scheme_load_string(sc, inContractCode.Code.c_str(), inContractCode.Code.size());
     pe::ThrowIf<pe::ValueError>(
         sc->retcode != 0,
-        report_interpreter_error(sc, "failed to load the contract code", error_msg_).c_str());
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void GipsyInterpreter::load_message(
-    const pc::ContractMessage& inMessage
-    )
-{
-    scheme* sc = interpreter_;
-
-    if (! inMessage.Message.empty())
-    {
-        /* --------------- Load the message --------------- */
-
-        // load string evals the string in a safe environment,
-        // any definitions made or modified are thrown away
-        scheme_safe_load_string(sc, inMessage.Message.c_str(), inMessage.Message.size());
-        pe::ThrowIf<pe::ValueError>(
-            sc->retcode != 0,
-            report_interpreter_error(sc, "failed to load the message", error_msg_).c_str());
-
-        /* message must be a list with at least the method as a parameter */
-        pointer mptr = sc->value;
-        pe::ThrowIf<pe::ValueError>(
-            mptr == sc->EOF_OBJ,
-            "incomplete message");
-
-        pe::ThrowIf<pe::ValueError>(
-            list_length(sc, mptr) < 1,
-            "badly formed message, must be a list");
-
-        pe::ThrowIf<pe::ValueError>(
-            is_symbol(car(mptr)) == 0,
-            "badly formed message, first element must be a method");
-
-        pointer sptr = mk_symbol(sc, "_message");
-        pe::ThrowIfNull(sptr, "unable to create the _message symbol");
-
-        scheme_define(sc, sc->global_env, sptr, mptr);
-    }
-}
-
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void GipsyInterpreter::load_contract_state(
-    const ByteArray& inIntrinsicState
-    )
-{
-    scheme* sc = interpreter_;
-
-    if (inIntrinsicState.size() > 0)
-    {
-        /* ---------- Load contract state ---------- */
-        scheme_load_string(sc, reinterpret_cast<const char*>(inIntrinsicState.data()), inIntrinsicState.size());
-        pe::ThrowIf<pe::RuntimeError>(
-            sc->retcode != 0,
-            "failed to load the contract state");
-
-        pointer sptr = mk_symbol(sc, "_instance");
-        pe::ThrowIfNull(sptr, "unable to create the _instance symbol");
-
-        scheme_define(sc, sc->global_env, sptr, sc->value);
-    }
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void GipsyInterpreter::save_contract_state(
-    ByteArray& outIntrinsicState
-    )
-{
-    scheme* sc = interpreter_;
-
-    pointer instance = scheme_find_symbol(sc, "_instance");
-    pe::ThrowIf<pe::RuntimeError>(instance == sc->NIL, "unable to find contract instance");
-
-    pointer serialfn = scheme_find_symbol(sc, "serialize-instance");
-    pe::ThrowIf<pe::RuntimeError>(serialfn == sc->NIL, "unable to find serialize function");
-
-    pointer expr, rexpr;
-    expr = cons(sc, instance, sc->NIL);
-    pe::ThrowIf<pe::RuntimeError>(sc->no_memory, "out of memory, save_contract_state");
-
-    expr = cons(sc, serialfn, expr);
-    pe::ThrowIf<pe::RuntimeError>(sc->no_memory, "out of memory, save_contract_state");
-
-    rexpr = scheme_eval(sc, expr);
-    pe::ThrowIf<pe::RuntimeError>(
-        sc->retcode != 0,
-        "state serialization failed");
-
-    outIntrinsicState.resize(0);
-    gipsy_write_to_buffer(sc, rexpr, outIntrinsicState);
+        report_interpreter_error(sc, "failed to load the contract code"));
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -429,80 +206,68 @@ void GipsyInterpreter::create_initial_contract_state(
     scheme* sc = interpreter_;
     pe::ThrowIfNull(sc, "interpreter has not been initialized");
 
-    // the message is not currently used though we should consider
-    // how it can be implemented, throug the create-object-instance fn
-    // this->load_message(inMessage);
-    try {
-        this->load_contract_code(inContractCode);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("load contract code");
-        throw;
-    }
+    this->load_contract_code(inContractCode);
 
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
     scheme_set_external_data(sc, &inoutContractState);
 
-    pointer _class = scheme_find_symbol(sc, inContractCode.Name.c_str());
-    pe::ThrowIf<pe::ValueError>(
-        _class == sc->NIL,
-        "malformed contract; unable to locate the contract class");
+    // serialize the environment parameter for the method
+    pstate::StateBlockId initialStateHash;
+    initialStateHash.assign(initialStateHash.size(), 0); // this is probably not necessary
 
-    pointer _funcsym = scheme_find_symbol(sc, "create-object-instance");
-    pe::ThrowIf<pe::ValueError>(
-        _funcsym == sc->NIL,
-        "malformed contract; unable to locate create-object-instance function");
+    std::string env;
+    pc::create_invocation_environment(ContractID, CreatorID, inContractCode, inMessage, initialStateHash, env);
 
-    pointer _function = scheme_find_symbol_value(sc, sc->envir, _funcsym);
+    // find the **initialize** symbol
+    pointer _initialize_symbol = scheme_find_symbol(sc, "**initialize**");
     pe::ThrowIf<pe::ValueError>(
-        _funcsym == sc->NIL,
-        "malformed contract; create-object-instance function is nil");
+        _initialize_symbol == sc->NIL || sc->retcode != 0,
+        "misconfigured enclave, missing initialize function");
 
-    /* --------------- Assign the symbol values --------------- */
+    pointer _initialize_entry_point = scheme_find_symbol_value(sc, sc->envir, _initialize_symbol);
+    pe::ThrowIf<pe::ValueError>(
+        _initialize_entry_point == sc->NIL
+        || sc->retcode != 0
+        || ! sc->vptr->is_closure(cdr(_initialize_entry_point)),
+        "misconfigured enclave, malformed initialize function");
+
+    pointer arglist;
+    pointer _environment = sc->vptr->mk_string(sc, env.c_str());
+    pe::ThrowIf<pe::ValueError>(
+        _environment == sc->NIL || sc->retcode != 0,
+        "failed to initialize interpreter environment");
+
+    arglist = cons(sc, _environment, sc->NIL);
+    pe::ThrowIf<pe::ValueError>(
+        arglist == sc->NIL || sc->retcode != 0,
+        "interpreter error creating invocation request");
+
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (code loaded): segments=%d, free cells=%d, gcs=%d",
+             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
+
     pointer rexpr;
-    try  {
-        gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
-        gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
-        gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
-        gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
-
-        rexpr = scheme_call(sc, cdr(_function), cons(sc, _class, sc->NIL));
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("create initial contract instance");
-        throw;
-    }
-
+    rexpr = scheme_call(sc, cdr(_initialize_entry_point), arglist);
     pe::ThrowIf<pe::ValueError>(
         sc->retcode != 0,
-        report_interpreter_error(sc, "failed to create contract instance", error_msg_).c_str());
+        report_interpreter_error(sc, "failed to create contract instance"));
 
-    scheme_define(sc, sc->global_env, mk_symbol(sc, "_instance"), rexpr);
+    pe::ThrowIf<pe::ValueError>(
+        ! sc->vptr->is_string(rexpr),
+        report_interpreter_error(sc, "unexpected return type"));
+
+    bool status;
+    std::string outMessageResult;
+    bool outStateChangedFlag;
+    std::map<std::string,std::string> outDependencies;
+    pc::parse_invocation_response(strvalue(rexpr), outMessageResult, status, outStateChangedFlag, outDependencies);
+    pe::ThrowIf<pe::ValueError>(
+        ! status,
+        report_interpreter_error(sc, "operation failed", outMessageResult.c_str()));
 
     // this should not be necessary, but lets make sure the interpreter
     // doesn't have any carry over
     scheme_set_external_data(sc, NULL);
-
-    ByteArray intrinsic_state(0);
-    try {
-        this->save_contract_state(intrinsic_state);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("serialize initial contract state");
-        throw;
-    }
-
-    pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
-
-    try {
-        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        inoutContractState.PrivilegedPut(k, intrinsic_state);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("save initial contract state");
-        throw;
-    }
 
     SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (initialize contract): segments=%d, free cells=%d, gcs=%d",
              sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
@@ -524,17 +289,6 @@ void GipsyInterpreter::send_message_to_contract(
     scheme* sc = interpreter_;
     pe::ThrowIfNull(sc, "interpreter has not been initialized");
 
-    //the hash is the hash of the encrypted state, in our case it's the root hash given in input
-    const Base64EncodedString state_hash = ByteArrayToBase64EncodedString(inContractStateHash);
-
-    try {
-        this->load_message(inMessage);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("load message");
-        throw;
-    }
-
     try {
         this->load_contract_code(inContractCode);
     }
@@ -543,115 +297,71 @@ void GipsyInterpreter::send_message_to_contract(
         throw;
     }
 
-    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (code loaded): segments=%d, free cells=%d, gcs=%d",
-             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
-
     // connect the key value store to the interpreter, i do not believe
     // there are any security implications for hooking it up at this point
     scheme_set_external_data(sc, &inoutContractState);
 
-    try {
-        //Convention: we use the "IntrinsicState" key to store the value
-        ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-        ByteArray intrinsic_state(inoutContractState.PrivilegedGet(k));
+    // serialize the environment parameter for the method
+    std::string env;
+    pc::create_invocation_environment(ContractID, CreatorID, inContractCode, inMessage, inContractStateHash, env);
 
-        this->load_contract_state(intrinsic_state);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("load intrinsic state");
-        throw;
-    }
+    // find the **dispatch** symbol
+    pointer _dispatch_symbol = scheme_find_symbol(sc, "**dispatch**");
+    pe::ThrowIf<pe::ValueError>(
+        _dispatch_symbol == sc->NIL || sc->retcode != 0,
+        "misconfigured enclave, missing dispatch function");
+
+    pointer _dispatch_entry_point = scheme_find_symbol_value(sc, sc->envir, _dispatch_symbol);
+    pe::ThrowIf<pe::ValueError>(
+        _dispatch_entry_point == sc->NIL
+        || sc->retcode != 0
+        || ! sc->vptr->is_closure(cdr(_dispatch_entry_point)),
+        "misconfigured enclave, malformed dispatch function");
+
+    pointer arglist;
+    pointer _invocation = sc->vptr->mk_string(sc, inMessage.Message.c_str());
+    pe::ThrowIf<pe::ValueError>(
+        _invocation == sc->NIL || sc->retcode != 0,
+        "failed to initialize invocation request");
+
+    arglist = cons(sc, _invocation, sc->NIL);
+    pe::ThrowIf<pe::ValueError>(
+        arglist == sc->NIL || sc->retcode != 0,
+        "interpreter error creating invocation request");
+
+    pointer _environment = sc->vptr->mk_string(sc, env.c_str());
+    pe::ThrowIf<pe::ValueError>(
+        _environment == sc->NIL || sc->retcode != 0,
+        "failed to initialize interpreter environment");
+
+    arglist = cons(sc, _environment, arglist);
+    pe::ThrowIf<pe::ValueError>(
+        arglist == sc->NIL || sc->retcode != 0,
+        "interpreter error creating invocation request");
 
     SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (state loaded): segments=%d, free cells=%d, gcs=%d",
              sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 
-    /* this might not be the most obvious way to invoke the send function
-       but this method is used to ensure that the message is not evaluated
-       again with the contract context active */
     pointer rexpr;
-
-    try {
-        /* --------------- Assign the symbol values --------------- */
-        gipsy_put_property(sc, ":message", "originator", inMessage.OriginatorID.c_str());
-        gipsy_put_property_p(sc, ":ledger", "dependencies", sc->NIL);
-        gipsy_put_property(sc, ":contract", "creator", CreatorID.c_str());
-        gipsy_put_property(sc, ":contract", "state", state_hash.c_str());
-        gipsy_put_property(sc, ":contract", "id", ContractID.c_str());
-        gipsy_put_property_p(sc, ":method", "immutable", sc->NIL);
-
-        pointer _message = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_message"));
-        pointer _instance = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "_instance"));
-        pointer sendfn = scheme_find_symbol_value(sc, sc->envir, scheme_find_symbol(sc, "send"));
-
-        rexpr = scheme_call(sc, cdr(sendfn), cons(sc, cdr(_instance), cdr(_message)));
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("evaluate contract method");
-        throw;
-    }
+    rexpr = scheme_call(sc, cdr(_dispatch_entry_point), arglist);
+    pe::ThrowIf<pe::ValueError>(
+        sc->retcode < 0 ,
+        report_interpreter_error(sc, "method evaluation failed", ""));
 
     pe::ThrowIf<pe::ValueError>(
-        sc->retcode < 0,
-        report_interpreter_error(sc, "method evaluation failed", error_msg_).c_str());
+        ! sc->vptr->is_string(rexpr),
+        report_interpreter_error(sc, "unexpected return type"));
 
-    try {
-        this->save_dependencies(outDependencies);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("save dependencies");
-        throw;
-    }
-
-    /* write the result into the result buffer */
-    try {
-        ByteArray result(0);
-        gipsy_write_to_buffer(sc, rexpr, result);
-        outMessageResult = ByteArrayToString(result);
-    }
-    catch (std::exception& e) {
-        SAFE_LOG_EXCEPTION("save contract result");
-        throw;
-    }
-
-    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (method invoked): segments=%d, free cells=%d, gcs=%d",
-             sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
+    bool status;
+    pc::parse_invocation_response(strvalue(rexpr), outMessageResult, status, outStateChangedFlag, outDependencies);
+    pe::ThrowIf<pe::ValueError>(
+        ! status,
+        report_interpreter_error(sc, "method evaluation failed", outMessageResult.c_str()));
 
     // this should not be necessary, but lets make sure the interpreter
     // doesn't have any carry over
     scheme_set_external_data(sc, NULL);
 
-    // save the state
-    pointer _immutable = gipsy_get_property(sc, ":method", "immutable");
-    if (_immutable == sc->NIL) {
-        // serialize
-        ByteArray intrinsic_state(0);
-        try {
-            this->save_contract_state(intrinsic_state);
-        }
-        catch (std::exception& e) {
-            SAFE_LOG_EXCEPTION("serialize contract state");
-            throw;
-        }
-
-        pe::ThrowIf<pe::ValueError>(MAX_STATE_SIZE < intrinsic_state.size(), "intrinsic state size exceeds maximum");
-
-        try {
-            ByteArray k(intrinsic_state_key_.begin(), intrinsic_state_key_.end());
-            inoutContractState.PrivilegedPut(k, intrinsic_state);
-        }
-        catch (std::exception& e) {
-            SAFE_LOG_EXCEPTION("save intrinsic state");
-            throw;
-        }
-
-        outStateChangedFlag = true;
-    }
-    else
-    {
-        //leave the intrinsic state already in the kv
-         outStateChangedFlag = false;
-    }
-
-    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (send to contract): segments=%d, free cells=%d, gcs=%d",
+    SAFE_LOG(PDO_LOG_DEBUG,"interpreter memory used (method invoked): segments=%d, free cells=%d, gcs=%d",
              sc->last_cell_seg+1, sc->fcells, sc->gc_calls);
 }

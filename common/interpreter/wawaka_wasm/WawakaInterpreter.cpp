@@ -106,7 +106,7 @@ void WawakaInterpreter::parse_response_string(
     pc::parse_invocation_response(result, outResponse, status, outStateChanged, outDependencies);
     pe::ThrowIf<pe::ValueError>(
         ! status,
-        report_interpreter_error("operation failed", outResponse.c_str()));
+        report_interpreter_error("method evaluation failed", outResponse.c_str()));
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

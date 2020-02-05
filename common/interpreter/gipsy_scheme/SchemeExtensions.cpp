@@ -22,6 +22,7 @@
 #include "error.h"
 #include "interpreter_kv.h"
 #include "jsonvalue.h"
+#include "log.h"
 #include "pdo_error.h"
 #include "types.h"
 
@@ -1377,6 +1378,48 @@ static pointer validate_json(scheme* sc, pointer args)
 }
 
 /* ----------------------------------------------------------------- */
+/* (enclave-log level message)                                       */
+/* ----------------------------------------------------------------- */
+static pointer enclave_log(scheme *sc, pointer args)
+{
+    scheme_clear_error(sc);
+
+    // --------------- level ---------------
+    pointer rest = args;
+    if (! sc->vptr->is_pair(args))
+        return scheme_return_error(sc, "missing required parameter; level");
+
+    pointer lptr = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_integer(lptr))
+        return scheme_return_error(sc, "level must be an integer");
+
+    size_t level = (size_t)sc->vptr->ivalue(lptr);
+
+    // --------------- message ---------------
+    rest = sc->vptr->pair_cdr(rest);
+    if (! sc->vptr->is_pair(rest))
+        return scheme_return_error(sc, "missing required parameter; message");
+
+    pointer m = sc->vptr->pair_car(rest);
+    if (! sc->vptr->is_string(m))
+        return scheme_return_error(sc, "message must be a string");
+
+    std::string message = strvalue(sc, m);
+
+    // --------------- end of argument ---------------
+    rest = sc->vptr->pair_cdr(rest);
+    if (rest != sc->NIL)
+        return scheme_return_error(sc, "too many parameters");
+
+#if UNTRUSTED
+#else
+    SAFE_LOG(level, "%s", message.c_str());
+#endif
+
+    return sc->T;
+}
+
+/* ----------------------------------------------------------------- */
 /* ----------------------------------------------------------------- */
 void scheme_load_extensions(scheme *sc)
 {
@@ -1485,6 +1528,11 @@ void scheme_load_extensions(scheme *sc)
     sc->vptr->scheme_define(sc, sc->global_env,
 		  sc->vptr->mk_symbol(sc, "validate-json"),
                   sc->vptr->mk_foreign_func(sc, validate_json));
+
+    sc->vptr->scheme_define(sc, sc->global_env,
+		  sc->vptr->mk_symbol(sc, "enclave-log"),
+                  sc->vptr->mk_foreign_func(sc, enclave_log));
+
 }
 
 extern "C" void init_pcontract(scheme *sc)

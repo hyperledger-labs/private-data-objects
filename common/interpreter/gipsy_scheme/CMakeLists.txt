@@ -30,7 +30,7 @@ endif()
 # Common components for both trusted and untrusted common libraries
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h packages/init-package.h packages/catch-package.h packages/oops-package.h)
+FILE(GLOB PROJECT_HEADERS *.h packages/init-package.h packages/catch-package.h packages/oops-package.h packages/dispatch-package.h)
 FILE(GLOB PROJECT_SOURCES *.cpp)
 
 SET(GENERIC_PRIVATE_INCLUDE_DIRS "." "../../crypto" "./packages" "../.." "../../state")
@@ -40,11 +40,11 @@ SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=
 ################################################################################
 # Package headers compiled from scheme
 ################################################################################
-
+SET(GIPSY_PACKAGE_SRC "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm" "packages/dispatch-package.scm")
 ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h
                    COMMAND packages/build-init-package.sh
-                   ARGS --package "packages/package" -- "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm"
-                   DEPENDS "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm"
+                   ARGS --package "packages/package" -- ${GIPSY_PACKAGE_SRC}
+                   DEPENDS ${GIPSY_PACKAGE_SRC}
                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h)
