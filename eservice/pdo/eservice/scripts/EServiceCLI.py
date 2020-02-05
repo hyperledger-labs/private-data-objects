@@ -184,6 +184,10 @@ def CreateEnclaveData(enclave_config, ledger_config, txn_keys) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def LocalMain(config) :
+
+    ledger_config = config['Ledger']
+    ledger_type = ledger_config.get('LedgerType', os.environ.get('PDO_LEDGER_TYPE'))
+
     # load and initialize the enclave library
     try :
         logger.debug('initialize the enclave')
@@ -197,7 +201,8 @@ def LocalMain(config) :
         key_config = config['Key']
         key_file = key_config['FileName']
         key_path = key_config['SearchPath']
-        txn_keys = keys.TransactionKeys.read_from_file(key_file, search_path = key_path)
+        txn_keys = keys.read_transaction_keys_from_file(key_file, search_path = key_path,\
+            ledger_type = ledger_type)
     except KeyError as ke :
         logger.error('missing configuration for %s', str(ke))
         sys.exit(-1)
@@ -208,7 +213,6 @@ def LocalMain(config) :
     # create or load the enclave data
     try :
         enclave_config = config['EnclaveData']
-        ledger_config = config['Sawtooth']
         enclave = LoadEnclaveData(enclave_config, txn_keys)
         if enclave is None :
             enclave = CreateEnclaveData(enclave_config, ledger_config, txn_keys)
@@ -317,12 +321,12 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
+        config['Ledger']['LedgerURL'] = options.ledger
 
     # set up the enclave service configuration
     if config.get('EnclaveService') is None :

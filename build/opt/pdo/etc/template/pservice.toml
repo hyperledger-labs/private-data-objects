@@ -21,10 +21,14 @@ HttpPort = ${{7000+_count_}}
 Host = "localhost"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger -- ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
+# LedgerURL is used to submit the registration transaction should
+# the enclave require registration
+LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
+Organization = "Widgets R Us"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging

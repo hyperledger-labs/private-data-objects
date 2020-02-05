@@ -20,27 +20,27 @@ import datetime
 
 from google.protobuf import json_format
 
-from sawtooth.sawtooth_protos.setting_pb2 import Setting
-from sawtooth.sawtooth_protos.settings_pb2 import SettingsPayload
-from sawtooth.sawtooth_protos.settings_pb2 import SettingProposal
+from pdo.submitter.sawtooth.sawtooth_protos.setting_pb2 import Setting
+from pdo.submitter.sawtooth.sawtooth_protos.settings_pb2 import SettingsPayload
+from pdo.submitter.sawtooth.sawtooth_protos.settings_pb2 import SettingProposal
 
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
 
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractTransaction
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRegister
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractAddEnclaves
-from sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRemoveEnclaves
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractTransaction
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRegister
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractAddEnclaves
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import PdoContractRemoveEnclaves
 
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractState
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractInformation
-from sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_TransactionPayload
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractState
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_ContractInformation
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import CCL_TransactionPayload
 
-from sawtooth.helpers.pdo_debug import PdoDbgDump
-from sawtooth.helpers.pdo_connect import PdoClientConnectHelper
-from sawtooth.helpers.pdo_connect import ClientConnectException
-from sawtooth.helpers.pdo_address_helper import short_hash
+from pdo.submitter.sawtooth.helpers.pdo_debug import PdoDbgDump
+from pdo.submitter.sawtooth.helpers.pdo_connect import PdoClientConnectHelper
+from pdo.submitter.sawtooth.helpers.pdo_connect import ClientConnectException
+from pdo.submitter.sawtooth.helpers.pdo_address_helper import short_hash
 
 from common.pdo_signing import make_ccl_transaction_pdo_hash_input
 from common.pdo_signing import make_add_enclave_to_contract_pdo_hash_input

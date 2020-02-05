@@ -134,7 +134,8 @@ def AddEnclaveSecrets(ledger_config, contract_id, client_keys, enclaves, provcli
                                 enclave.enclave_id,
                                 psecrets,
                                 esresponse['encrypted_state_encryption_key'],
-                                esresponse['signature'])
+                                esresponse['signature']
+                                )
 
     return encrypted_state_encryption_keys
 
@@ -148,7 +149,7 @@ def CreateAndRegisterEnclave(config) :
     """
 
     global enclave
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
 
     interpreter = config['Contract']['Interpreter']
 
@@ -215,7 +216,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     data_dir = config['Contract']['DataDirectory']
 
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
     contract_creator_id = contract_creator_keys.identity
 
     try :
@@ -323,7 +324,7 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 # -----------------------------------------------------------------
 def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
 
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
     contract_invoker_id = contract_invoker_keys.identity
     last_response_committed = None
 
@@ -390,7 +391,7 @@ def UpdateTheContract(config, contract, enclaves, contract_invoker_keys) :
 # -----------------------------------------------------------------
 def LocalMain(config) :
     # create the enclave
-    ledger_config = config.get('Sawtooth')
+    ledger_config = config.get('Ledger')
 
     # keys of the contract creator
     contract_creator_keys = keys.ServiceKeys.create_service_keys()
@@ -425,7 +426,7 @@ def LocalMain(config) :
     except Exception as e :
         logger.exception('contract execution failed; %s', str(e))
         ErrorShutdown()
-
+    
     enclave_helper.shutdown_enclave()
     sys.exit(0)
 
@@ -546,15 +547,15 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
-    if options.no_ledger  or not config['Sawtooth']['LedgerURL'] :
+        config['Ledger']['LedgerURL'] = options.ledger
+    if options.no_ledger  or not config['Ledger']['LedgerURL'] :
         use_ledger = False
-        config.pop('Sawtooth', None)
+        config.pop('Ledger', None)
 
     # set up the key search paths
     if config.get('Key') is None :

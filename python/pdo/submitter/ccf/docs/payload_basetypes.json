@@ -1,0 +1,91 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Basetypes for Ledger Transactions",
+    "definitions": {
+        "enclave_info":{
+            "id": "#enclave_info",
+            "description": [
+                "specifies information about enclave to be added to a registered contract"
+            ],
+            "type": "object",
+            "properties": {
+                "contract_id":{
+                    "$ref":"#/pdo/basetypes/contract-id",
+                    "required":true
+                },
+                "contract_enclave_id":{
+                    "description:":[
+                        "An enclave is identified via its ECDSA verifying key"
+                    ],
+                    "$ref":"#/pdo/basetypes/ecdsa-public-key",
+                    "required":true
+                },
+                "encrypted_state_encryption_key":{
+                    "$ref":"#/pdo/basetypes/state-encryption-key",
+                    "required":true
+                },
+                "signature":{
+                    "description:":[
+                        "Enclave signature over a document that includes encrypted secrets from pservices, ",
+                        "encrypted state encryption key, etc "
+                    ],
+                    "$ref":"#/pdo/basetypes/ecdsa-signature",
+                    "required":true
+                },
+                "provisioning_key_state_secret_pairs":{
+                    "description:":[
+                        "Array of (pservice public key, encrypted secret) pairs.",
+                        "Used by ledger to verify enclave signature"
+                    ],
+                    "type":"array",
+                    "required":true
+                }
+            }
+        },
+
+        "state_update":{
+            "id": "#state_update",
+            "description": [
+                "specifies information about contract state updates"
+            ],
+            "type": "object",
+            "properties": {
+                "contract_id":{
+                    "$ref":"#/pdo/basetypes/contract-id",
+                    "required":true
+                },
+                "message_hash":{
+                    "description:":[
+                        "SHA256 hash of message used for contract invocation"
+                    ],
+                    "$ref":"#/pdo/basetypes/encoded-hash",
+                    "required":true
+                },
+                "current_state_hash":{
+                    "description:":[
+                        "SHA256 hash of current contract state (state that is returned as part of invocation response)"
+                    ],
+                    "$ref":"#/pdo/basetypes/encoded-hash",
+                    "required":true
+                },
+                "previous_state_hash":{
+                    "description:":[
+                        "SHA256 hash of previous contract state (state that is provided as part of invocation request)"
+                    ],
+                    "$ref":"#/pdo/basetypes/encoded-hash",
+                    "required":true
+                },
+                "dependency_list":{
+                    "description:":[
+                        "Array of dependencies specified in the invocation response"
+                    ],
+                    "type":"array",
+                    "contains":{
+                        "$ref":"#/pdo/basetypes/state-reference"
+                    },
+                    "required":true
+                }
+            }
+        }
+    }
+}

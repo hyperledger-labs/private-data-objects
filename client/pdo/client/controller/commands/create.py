@@ -158,7 +158,7 @@ def command_create(state, bindings, pargs) :
 
     # ---------- register contract ----------
     data_directory = state.get(['Contract', 'DataDirectory'])
-    ledger_config = state.get(['Sawtooth'])
+    ledger_config = state.get(['Ledger'])
 
     try :
         provisioning_service_keys = [pc.identity for pc in pservice_clients]

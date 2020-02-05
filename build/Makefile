@@ -29,6 +29,10 @@ ifndef SGX_MODE
 $(error Incomplete configuration, SGX_MODE is not defined)
 endif
 
+ifndef PDO_LEDGER_TYPE
+$(error Incomplete configuration, PDO_LEDGER_TYPE is not defined)
+endif
+
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
@@ -86,6 +90,11 @@ $(PYTHON_DIR) :
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade cryptography
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pyparsing
 	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade lmdb
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade loguru
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests_http_signature
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade websocket-client
+	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade msgpack
+
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
@@ -111,7 +120,13 @@ ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
 service_indexes := 1 2 3 4 5
-ESERVICE_SKF := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+
+ifeq ($(PDO_LEDGER_TYPE),sawtooth)
+	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+else
+	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.pem))
+endif
+
 SSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),sservice$(i)_private.pem))
 PSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),pservice$(i)_private.pem))
 
@@ -124,7 +139,7 @@ USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.p
 %.pem :
 	. $(abspath $(DSTDIR)/bin/activate) ; $(KEYGEN) --keyfile $(subst _private,,$*) --format pem
 
-keys : $(ESERVICE_SKF) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
+keys : $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
 
 ESERVICE_CONF := $(ETCDIR)/eservice1.toml
 SSERVICE_CONF := $(ETCDIR)/sservice1.toml
@@ -185,7 +200,7 @@ template : $(PYTHON_DIR)
 	mkdir -p $(DSTDIR)/opt/pdo/data
 	mkdir -p $(DSTDIR)/opt/pdo/etc
 	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sgx
-	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sawtooth
+	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/ledger
 	mkdir -p $(DSTDIR)/opt/pdo/keys
 	mkdir -p $(DSTDIR)/opt/pdo/logs
 

@@ -9,12 +9,14 @@ Instructions in this document assume the environment variable
 
 PDO uses a number of environment variables to control build,
 installation and operation. While PDO should build and run with only the
-default values, three variables are commonly set to reflect specifics of
+default values, four variables are commonly set to reflect specifics of
 the installation:
 
   * [`PDO_INSTALL_ROOT`](#pdo_install_root) -- the path to the directory where PDO is installed
-  * [`PDO_LEDGER_URL`](#pdo_ledger_url) -- the URL for the Sawtooth ledger
-  * [`PDO_STL_KEY_ROOT`](#pdo_stl_key_root) -- the path to a directory containing Sawtooth keys
+  * [`PDO_LEDGER_TYPE`](#pdo_ledger_type) -- the ledger type to be used (sawtooth or ccf)
+  * [`PDO_LEDGER_URL`](#pdo_ledger_url) -- the URL for the ledger
+  * [`PDO_LEDGER_KEY_ROOT`](#pdo_ledger_key_root) -- the path to a directory containing ledger keys
+
 
 In addition, if you run in SGX HW mode you will generally define
 `PDO_SGX_KEY_ROOT` as well. See below for information on these variables
@@ -34,7 +36,7 @@ configuration file may be constructed as:
 
 ```bash
    export PDO_INSTALL_ROOT=${PDO_SOURCE_ROOT}/build/_dev
-   export PDO_STL_KEY_ROOT=${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth
+   export PDO_LEDGER_KEY_ROOT=${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/ledger
    export PDO_LEDGER_URL=http://127.0.0.1:8008
 ```
 and before building it you call the configuration script as
@@ -191,28 +193,35 @@ instructions to create the API key to support SGX hardware mode.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
-## Sawtooth Environment Variables
+## Ledger Environment Variables
+
+<!-- -------------------------------------------------- -->
+### `PDO_LEDGER_TYPE`
+(default: `sawtooth`):
+
+`PDO_LEDGER_TYPE` is the ledger to be used with PDO.
+PDO supports sawtooth and ccf (Microsoft) based ledgers.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_LEDGER_URL`
 (default: `http://127.0.0.1:8008/`):
 
-`PDO_LEDGER_URL` is the URL used to submit transactions to the Sawtooth
+`PDO_LEDGER_URL` is the URL used to submit transactions to the
 ledger. This should be the URL for the REST API component.
 
 <!-- -------------------------------------------------- -->
-### `PDO_STL_KEY_ROOT`
-(default: `${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth`):
+### `PDO_LEDGER_KEY_ROOT`
+(default: `${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/ledger`):
 
-`PDO_STL_KEY_ROOT` is the root directory where the system keys are
-stored for Sawtooth integration; files in this directory are not
+`PDO_LEDGER_KEY_ROOT` is the root directory where the system keys are
+stored for ledger integration; files in this directory are not
 automatically generated.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_LEDGER_KEY_SKF`
-(default: `${PDO_STL_KEY_ROOT/pdo_validator.priv`)
+(default: `${PDO_LEDGER_KEY_ROOT/pdo_validator.priv`)
 
 `PDO_LEDGER_KEY_SKF` is used to update settings in the Sawtooth
 validator. This is the key used by the Sawtooth ledger and is generally
-found in the file `.sawtooth/keys/sawtooth.priv` in the Sawtooth
+found in the file `.sawtooth/keys/ledger.priv` in the Sawtooth
 installation directory hiearchy.

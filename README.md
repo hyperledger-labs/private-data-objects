@@ -13,12 +13,13 @@ smart contracts policies are enforced through execution in a Trusted Execution
 Environment (TEE).
 
 PDO uses a distributed ledger, in this case the
-[Hyperledger Sawtooth](httphttps://sawtooth.hyperledger.org/)
+[Hyperledger Sawtooth](https://sawtooth.hyperledger.org/)
 distributed ledger, to ensure that there is a single, authoritative
 instance of the object, and to provide a means of guaranteeing atomicity of
-updates across interacting objects. The long-term goal for PDO is to perform
-contract execution and storage off the blockchain, with only a hash of
-blockchain state stored on the distributed ledger
+updates across interacting objects. There is also ongoing efforts to support
+[Microsoft Confidential Consortium Framework (CCF)](https://microsoft.github.io/CCF/) based ledger.
+PDO performs contract execution and storage off the blockchain, with only a hash of
+blockchain state stored on the distributed ledger.
 
 PDO provides benefits for both application developers seeking to define and
 implement privacy-preserving distributed ledgers, and for service providers

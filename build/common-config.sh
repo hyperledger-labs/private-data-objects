@@ -75,10 +75,15 @@ var_set() {
 
 	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
 	env_desc[PDO_LEDGER_URL]="
-		PDO_PDO_LEDGER_URL is the URL is to submit transactions to the
-		Sawtooth ledger.
+		PDO_LEDGER_URL is the URL is to submit transactions to the ledger.
 	"
 	env_key_sort[$i]="PDO_LEDGER_URL"; i=$i+1; export PDO_LEDGER_URL=${env_val[PDO_LEDGER_URL]}
+
+	env_val[PDO_LEDGER_TYPE]="${PDO_LEDGER_TYPE:-sawtooth}"
+	env_desc[PDO_LEDGER_TYPE]="
+		PDO_LEDGER_TYPE is the ledger used by PDO. Choose either sawtooth or ccf
+	"
+	env_key_sort[$i]="PDO_LEDGER_TYPE"; i=$i+1; export PDO_LEDGER_TYPE=${env_val[PDO_LEDGER_TYPE]}
 
 	env_val[PDO_INSTALL_ROOT]="${PDO_INSTALL_ROOT:-${SCRIPTDIR}/_dev}"
 	env_desc[PDO_INSTALL_ROOT]="
@@ -130,19 +135,20 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_SPID_API_KEY"; i=$i+1; export PDO_SPID_API_KEY=${env_val[PDO_SPID_API_KEY]}
 
-	env_val[PDO_STL_KEY_ROOT]="${PDO_STL_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/sawtooth}"
-	env_desc[PDO_STL_KEY_ROOT]="
-		PDO_STL_KEY_ROOT is the root directory where the system keys are stored
-		for Sawtooth integration; files in this directory
-		are not automatically generated.
+	env_val[PDO_LEDGER_KEY_ROOT]="${PDO_LEDGER_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/ledger}"
+	env_desc[PDO_LEDGER_KEY_ROOT]="
+		PDO_LEDGER_KEY_ROOT is the root directory where the system keys are stored
+		for ledger integration; files in this directory are not automatically generated. When ccf is used 
+		as ledger, the ccf keys {networkcert.pem, userccf_cert.pem, userccf_privk.pem} must be
+		placed under this folder. These keys get generated during ccf deployment.
 	"
-	env_key_sort[$i]="PDO_STL_KEY_ROOT"; i=$i+1; export PDO_STL_KEY_ROOT=${env_val[PDO_STL_KEY_ROOT]}
+	env_key_sort[$i]="PDO_LEDGER_KEY_ROOT"; i=$i+1; export PDO_LEDGER_KEY_ROOT=${env_val[PDO_LEDGER_KEY_ROOT]}
 
-	env_val[PDO_LEDGER_KEY_SKF]="${PDO_LEDGER_KEY_SKF:-${PDO_STL_KEY_ROOT}/pdo_validator.priv}"
+	env_val[PDO_LEDGER_KEY_SKF]="${PDO_LEDGER_KEY_SKF:-${PDO_LEDGER_KEY_ROOT}/pdo_validator.priv}"
 	env_desc[PDO_LEDGER_KEY_SKF]="
 		PDO_LEDGER_KEY_SKF is used to update settings in the Sawtooth validator.
 		This is the key used by the Sawtooth ledger and is generally
-		found in the file .sawtooth/keys/sawtooth.priv in the
+		found in the file .sawtooth/keys/ledger.priv in the
 		Sawtooth installation directory hiearchy.
 	"
 	env_key_sort[$i]="PDO_LEDGER_KEY_SKF"; i=$i+1; export PDO_LEDGER_KEY_SKF=${env_val[PDO_LEDGER_KEY_SKF]}
@@ -172,16 +178,17 @@ in the build, installation & execution process. While the build should
 progress with only the default values specified, commonly five variables
 are set and then this file is evaluated. These five variables are:
 WASM_SRC, TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
-PDO_STL_KEY_ROOT. In case you run in SGX HW mode you usally will define
+PDO_LEDGER_KEY_ROOT. In case you run in SGX HW mode you usally will define
 PDO_SGX_KEY_ROOT. See further down information on these variables and
 others you could override from defaults.
 
 The default usage of this script is to be sourced. For example,
 local configuration file may be constructed as:
 
-   export PDO_STL_KEY_ROOT=${HOME}/keys
+   export PDO_LEDGER_KEY_ROOT=${HOME}/keys/ledger
    export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
    export PDO_LEDGER_URL=http://127.0.0.1:8008
+   export PDO_LEDGER_TYPE=sawtooth
    export TINY_SCHEME_SRC=${HOME}/tinyscheme-1.41
    export WASM_SRC=${HOME}/wasm
 
@@ -216,7 +223,7 @@ do
     case $opt in
         --reset-keys|-r)
 	    # -----------------------------------------------------------------
-	    # if you change either PDO_SGX_KEY_ROOT or PDO_STL_KEY_ROOT variable
+	    # if you change either PDO_SGX_KEY_ROOT or PDO_LEDGER_KEY_ROOT variable
             # and re-source this file you should unset all of the variables that
             # depend on those variables
 	    # -----------------------------------------------------------------

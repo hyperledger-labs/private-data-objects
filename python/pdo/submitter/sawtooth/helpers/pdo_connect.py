@@ -27,19 +27,19 @@ import urllib
 from google.protobuf import json_format
 from google.protobuf.json_format import MessageToDict
 
-from sawtooth.sawtooth_protos.transaction_pb2 import TransactionHeader
-from sawtooth.sawtooth_protos.transaction_pb2 import Transaction
-from sawtooth.sawtooth_protos.batch_pb2 import BatchList
-from sawtooth.sawtooth_protos.batch_pb2 import BatchHeader
-from sawtooth.sawtooth_protos.batch_pb2 import Batch
+from pdo.submitter.sawtooth.sawtooth_protos.transaction_pb2 import TransactionHeader
+from pdo.submitter.sawtooth.sawtooth_protos.transaction_pb2 import Transaction
+from pdo.submitter.sawtooth.sawtooth_protos.batch_pb2 import BatchList
+from pdo.submitter.sawtooth.sawtooth_protos.batch_pb2 import BatchHeader
+from pdo.submitter.sawtooth.sawtooth_protos.batch_pb2 import Batch
 
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import\
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import\
     PdoContractEnclaveInfo,\
     PdoContractEnclaveTransaction,\
     PdoContractEnclaveRegister,\
     PdoContractEnclaveUpdate
 
-from  sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
+from  pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
     PdoContractInfo,\
     PdoContractTransaction,\
     PdoContractRegister,\
@@ -48,13 +48,13 @@ from  sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
     PdoContractEnclavesInfo,\
     PdoProvisioningKeyToStateSecretMap
 
-from  sawtooth.pdo_protos.pdo_contract_ccl_pb2 import\
+from  pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import\
     CCL_ContractState,\
     CCL_ContractInformation,\
     CCL_TransactionPayload
 
-from sawtooth.helpers.pdo_debug import PdoDbgDump
-from sawtooth.helpers.pdo_address_helper import PdoAddressHelper
+from pdo.submitter.sawtooth.helpers.pdo_debug import PdoDbgDump
+from pdo.submitter.sawtooth.helpers.pdo_address_helper import PdoAddressHelper
 
 LOGGER = logging.getLogger(__name__)
 STATE_TIMEOUT_SEC = 10

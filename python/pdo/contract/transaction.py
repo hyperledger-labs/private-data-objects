@@ -17,8 +17,7 @@ import queue
 import threading
 
 import pdo.common.crypto as crypto
-from sawtooth.helpers.pdo_connect import PdoRegistryHelper
-from pdo.submitter.submitter import Submitter
+from pdo.submitter.create import create_submitter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -66,12 +65,12 @@ class Dependencies(object) :
 
         # no information about this update locally, so go to the
         # ledger to retrieve it
-        client = PdoRegistryHelper(ledger_config['LedgerURL'])
+        registry_helper = create_submitter(ledger_config)
 
         try :
             # this is not very efficient since it pulls all of the state
             # down with the txnid
-            contract_state_info = client.get_ccl_state_dict(contractid, statehash)
+            contract_state_info = registry_helper.get_state_details(contractid, statehash)
             txnid = contract_state_info['transaction_id']
             self.__set(contractid, statehash, txnid)
             return txnid
@@ -169,10 +168,10 @@ def __transaction_worker__():
             del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
             try:
                 if response.operation != 'initialize' :
-                    txn_id =  __submit_update_transaction__(response, transaction_request.ledger_config, wait=transaction_request.wait, \
+                    txn_id =  __submit_update_transaction__(response, transaction_request.ledger_config, \
                         transaction_dependency_list=txn_dependencies)
                 else:
-                    txn_id = __submit_initialize_transaction__(response, transaction_request.ledger_config, wait=transaction_request.wait)
+                    txn_id = __submit_initialize_transaction__(response, transaction_request.ledger_config)
 
                 if txn_id:
                     logger.info("Submitted transaction for request %d", request_number)
@@ -239,36 +238,22 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
     # an initialize operation has no previous state
     assert not response.old_state_hash
 
-    initialize_submitter = Submitter(
-        ledger_config['LedgerURL'],
-        key_str = response.channel_keys.txn_private)
+    initialize_submitter = create_submitter(ledger_config, pdo_signer = response.originator_keys)
 
-    b64_message_hash = crypto.byte_array_to_base64(response.message_hash)
-    b64_new_state_hash = crypto.byte_array_to_base64(response.new_state_hash)
-    b64_code_hash = crypto.byte_array_to_base64(response.code_hash)
-
-    raw_state = response.raw_state
-    try :
-        raw_state = raw_state.decode()
-    except AttributeError :
-        pass
-
-    txnid = initialize_submitter.submit_ccl_initialize_from_data(
-        response.originator_keys.signing_key,
-        response.originator_keys.verifying_key,
-        response.channel_keys.txn_public,
+    txnid = initialize_submitter.ccl_initialize(
+        response.channel_keys,
         response.enclave_service.enclave_id,
         response.signature,
         response.contract_id,
-        b64_message_hash,
-        b64_new_state_hash,
-        raw_state,
-        b64_code_hash,
+        response.message_hash,
+        response.new_state_hash,
+        response.code_hash,
         **extra_params)
 
     if txnid :
         __lock_for_dependencies__.acquire()
-        __dependencies__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __dependencies__.SaveDependency(response.contract_id, \
+            crypto.byte_array_to_base64(response.new_state_hash), txnid)
         __lock_for_dependencies__.release()
 
     return txnid
@@ -285,42 +270,24 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
     # an update
     assert response.old_state_hash
 
-    update_submitter = Submitter(
-        ledger_config['LedgerURL'],
-        key_str = response.channel_keys.txn_private)
+    update_submitter = create_submitter(ledger_config)
 
-    b64_message_hash = crypto.byte_array_to_base64(response.message_hash)
-    b64_new_state_hash = crypto.byte_array_to_base64(response.new_state_hash)
-    b64_old_state_hash = crypto.byte_array_to_base64(response.old_state_hash)
-
-    # get transaction dependency list from the input
-    txn_dependencies = set()
-    if extra_params.get('transaction_dependency_list') :
-        txn_dependencies.update(extra_params['transaction_dependency_list'])
-
-    raw_state = response.raw_state
-    try :
-        raw_state = raw_state.decode()
-    except AttributeError :
-        pass
-
-    # now send off the transaction to the ledger
-    txnid = update_submitter.submit_ccl_update_from_data(
-        response.originator_keys.verifying_key,
-        response.channel_keys.txn_public,
+    # now send off the transaction to the ledgerchannel_keys.txn_public,
+    txnid = update_submitter.ccl_update(
+        response.channel_keys,
         response.enclave_service.enclave_id,
         response.signature,
         response.contract_id,
-        b64_message_hash,
-        b64_new_state_hash,
-        b64_old_state_hash,
-        raw_state,
+        response.message_hash,
+        response.new_state_hash,
+        response.old_state_hash,
         response.dependencies,
         **extra_params)
 
     if txnid :
         __lock_for_dependencies__.acquire()
-        __dependencies__.SaveDependency(response.contract_id, b64_new_state_hash, txnid)
+        __dependencies__.SaveDependency(response.contract_id, \
+            crypto.byte_array_to_base64(response.new_state_hash), txnid)
         __lock_for_dependencies__.release()
 
     return txnid
@@ -328,11 +295,14 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
 # -----------------------------------------------------------------
 class TransactionRequest(object):
 
-    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = 30):
+    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = None):
 
         self.ledger_config = ledger_config
+        # add the wait parameter to the ledger config, if there is one.
+        # Used only with Sawtooth. Defaults to 30s in Sawtooth submitter
+        if wait_parameter_for_ledger:
+            self.ledger_config['wait'] = wait_parameter_for_ledger
         self.commit_id = commit_id
-        self.wait = wait_parameter_for_ledger
 
         self.is_completed = False
         self.is_failed = False

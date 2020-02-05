@@ -24,7 +24,7 @@ from colorlog import ColoredFormatter
 
 from pdo_cli.pdo_cli_client import PdoCliClient
 from pdo_cli.pdo_cli_client import PdoCliException
-from sawtooth.helpers.pdo_connect import PdoAddressHelper
+from pdo.submitter.sawtooth.helpers.pdo_connect import PdoAddressHelper
 
 
 DISTRIBUTION_NAME = 'pdo-sawtooth'

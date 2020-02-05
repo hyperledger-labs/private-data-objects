@@ -29,12 +29,12 @@ from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.protobuf.setting_pb2 import Setting
 
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveRegister
-from sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveUpdate
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveInfo
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveTransaction
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveRegister
+from pdo.submitter.sawtooth.pdo_protos.pdo_contract_enclave_registry_pb2 import PdoContractEnclaveUpdate
 
-from sawtooth.helpers.pdo_debug import PdoDbgDump
+from pdo.submitter.sawtooth.helpers.pdo_debug import PdoDbgDump
 
 
 from common.pdo_signing import verify_enclave_registration_info

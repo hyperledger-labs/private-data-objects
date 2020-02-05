@@ -64,7 +64,7 @@ services:
         tail -f /dev/null \
         \""
     volumes:
-      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/sawtooth
+      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/ledger
 
   # PDO Transaction processor
   pdo-tp:
@@ -77,7 +77,7 @@ services:
       - validator
     entrypoint: /project/pdo/src/private-data-objects/sawtooth/bin/pdo-tp -v -v --connect tcp://validator:4004 --debug-on
     volumes:
-      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/sawtooth
+      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/ledger
 
   # Sawtooth containers ...
   settings-tp:
@@ -88,7 +88,7 @@ services:
       - validator
     entrypoint: settings-tp -vv -C tcp://validator:4004
     volumes:
-      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/sawtooth
+      - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/ledger
 
   validator:
     image: hyperledger/sawtooth-validator:1.0

@@ -19,10 +19,14 @@
 Identity = "${identity}"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger -- ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
+# LedgerURL is used to submit the registration transaction should
+# the enclave require registration
+LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
+Organization = "Widgets R Us"
 
 # --------------------------------------------------
 # Service -- Information about enclave/provisioning services

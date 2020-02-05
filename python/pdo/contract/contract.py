@@ -19,12 +19,10 @@ import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.utility as putils
 
-from pdo.submitter.submitter import Submitter
+from pdo.submitter.create import create_submitter
 from pdo.contract.request import ContractRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
-
-import sawtooth.helpers.pdo_connect
 
 import logging
 logger = logging.getLogger(__name__)
@@ -209,17 +207,10 @@ def register_contract(
         provisioning_service_ids,
         **extra_params) :
 
-    txn_keys = keys.TransactionKeys()
+    ss = create_submitter(ledger_config, pdo_signer = creator_keys)
 
-    if 'wait' not in extra_params :
-        extra_params['wait'] = 60
-
-    ss = Submitter(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
-    txnsignature = ss.submit_contract_registration_from_data(
-        creator_keys.signing_key,
-        creator_keys.verifying_key,
-        txn_keys.txn_public,
-        crypto.byte_array_to_base64(contract_code.compute_hash()),
+    txnsignature = ss.register_contract(
+        contract_code.compute_hash(),
         provisioning_service_ids,
         **extra_params
     )
@@ -240,7 +231,6 @@ def add_enclave_to_contract(
         signature,
         **extra_params):
 
-    txn_keys = keys.TransactionKeys()
 
     enclave_secret_data_array = []
     enclave_secret_data = dict()
@@ -255,13 +245,25 @@ def add_enclave_to_contract(
     enclave_secret_data['provisioning_key_state_secret_pairs'] = secret_list
     enclave_secret_data_array.append(enclave_secret_data)
 
-    if 'wait' not in extra_params :
-        extra_params['wait'] = 60
+    #verify enclave signature if enclave_keys is passed as optional input
+    #code is for debugging the issue where verification does not work at ccf ledger
+    #see git issues for status.
+    enclave_keys = extra_params.get('enclave_keys', None)
+    if enclave_keys is not None:
+        document = contract_id
+        document += creator_keys.verifying_key
+        for secret in secrets:
+            document += secret['pspk'] + secret['encrypted_secret']
+        document_ba = crypto.string_to_byte_array(document)
+        document_ba += crypto.base64_to_byte_array(encrypted_state_encryption_key)
+        if enclave_keys.verify(document_ba, signature, encoding = 'b64') == 1:
+            logger.info("Add enclave to contract sign verified. (doc::sig::key) as follows")
+            logger.info(crypto.byte_array_to_base64(document_ba)+"::"+signature+"::"+enclave_id)
+        else:
+            logger.error("Failed to verify add enclave to contract sign")
 
-    ss = Submitter(ledger_config['LedgerURL'], key_str = txn_keys.txn_private)
-    txnsignature = ss.submit_add_enclave_from_data(
-        creator_keys.signing_key,
-        txn_keys.txn_public,
+    ss = create_submitter(ledger_config, pdo_signer = creator_keys)
+    txnsignature = ss.add_enclave_to_contract(
         contract_id,
         enclave_secret_data_array,
         **extra_params)

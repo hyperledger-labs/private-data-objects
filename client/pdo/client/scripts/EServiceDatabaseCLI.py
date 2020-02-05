@@ -76,7 +76,7 @@ def do_add_cmd(config, args) :
     _load_database_(config)
 
     try :
-        ledger_config = config['Sawtooth']
+        ledger_config = config['Ledger']
         if not options.name :
             eservice_db.add_by_url(ledger_config, options.url)
         else :
@@ -172,7 +172,7 @@ def do_verify_cmd(config, args) :
     _load_database_(config)
 
     try :
-        ledger_config = config['Sawtooth']
+        ledger_config = config['Ledger']
         enclave_info = eservice_db.get_by_name(options.name)
         if enclave_info is None :
             print('no enclave with name {0}'.format(options.name))
@@ -268,12 +268,12 @@ def Main() :
     plogger.setup_loggers(config.get('Logging', {}))
 
     # set up the ledger configuration
-    if config.get('Sawtooth') is None :
-        config['Sawtooth'] = {
+    if config.get('Ledger') is None :
+        config['Ledger'] = {
             'LedgerURL' : 'http://localhost:8008',
         }
     if options.ledger :
-        config['Sawtooth']['LedgerURL'] = options.ledger
+        config['Ledger']['LedgerURL'] = options.ledger
 
     #set up the service configuration
     if config.get('Service') is None :
