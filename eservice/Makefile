@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+
 PY_VERSION=${shell python --version | sed 's/Python \([0-9]\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
@@ -52,7 +55,9 @@ SCRIPTS = \
 	bin/ss-stop.sh \
 	bin/ss-status.sh
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl ${SGX_SSL}/include/*.edl lib/libpdo_enclave/state/*.cpp lib/libpdo_enclave/state/*.h lib/libpdo_enclave/state/*.edl)
+ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
+ENCLAVE_FILES += $(wildcard ${SGX_SSL}/include/*.edl)
+ENCLAVE_FILES += $(wildcard ${SRCDIR}/common/build/*.a)
 
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
