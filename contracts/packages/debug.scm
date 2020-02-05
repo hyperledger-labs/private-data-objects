@@ -23,7 +23,7 @@
 ;;   message -- message to generate if the expression succeeds
 ;; -----------------------------------------------------------------
 (define-macro (catch-success expr . message)
-  `(if (catch (lambda (x) #f) (begin ,expr)) (throw ,@message)))
+  `(if (catch (lambda args #f) (begin ,expr #t)) (throw ,@message)))
 
 ;; -----------------------------------------------------------------
 ;; NAME: result-print
@@ -118,3 +118,16 @@
         (test-logger::logger-error msg)
         (quit -1)))
     (begin ,@expr)))
+
+;; -----------------------------------------------------------------
+;; NAME: catch-successful-test
+;;
+;; DESCRIPTION:
+;; Called when a test that should fail actually succeeds, prints
+;; the arguments and quits the interpreter with a failed status
+;; -----------------------------------------------------------------
+(define-macro (catch-successful-test expr . args)
+  `(if (catch (lambda a #t) (begin ,expr #f))
+       (let ((msg (foldr (lambda (m e) (string-append m " " (expression->string e))) (car ',args) (cdr ',args))))
+         (test-logger::logger-error msg)
+         (quit -1))))

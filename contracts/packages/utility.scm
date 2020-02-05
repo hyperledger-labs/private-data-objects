@@ -36,6 +36,16 @@
    (define (coerce-number value)
      (if (number? value) value (string->number value)))
 
+   (define (contract-state-reference? reference)
+     (and (list? reference)
+          (= (length reference) 2)
+          (string? (car reference))
+          (string? (cadr reference))))
+
+   (define (contract-state-dependency? dependencies)
+     (and (list? dependencies)
+          (foldr (lambda (old new) (and old (contract-state-reference? new))) #t dependencies)))
+
    (define (get-with-default key pred args default)
      (let* ((arg-value (if (pair? args) (assoc key args) #f))
             (value (cond ((not arg-value) default)
