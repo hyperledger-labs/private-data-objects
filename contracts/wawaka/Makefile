@@ -41,6 +41,6 @@ install : build
 
 build :
 	mkdir $@
-	cd $@ ; emconfigure cmake ..
+	cd $@ ; emcmake cmake ..
 
 .PHONY : all clean debug install test

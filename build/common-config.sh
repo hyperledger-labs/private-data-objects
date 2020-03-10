@@ -35,7 +35,7 @@ var_set() {
 	"
 	env_key_sort[$i]="TINY_SCHEME_SRC"; i=$i+1; export TINY_SCHEME_SRC=${env_val[TINY_SCHEME_SRC]};
 
-	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/wasm}"
+	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime}"
 	env_desc[WASM_SRC]="
 		WASM_SRC points to the installation of the micro-wasm
 		source in order to build the wasm interpreter

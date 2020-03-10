@@ -25,6 +25,50 @@ ENDIF()
 
 SET(WASM_SRC "$ENV{WASM_SRC}")
 
+# Reset default linker flags
+set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+set (CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+# Set WAMR_BUILD_TARGET
+if (NOT DEFINED WAMR_BUILD_TARGET)
+  if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    # Build as X86_64 by default in 64-bit platform
+    set (WAMR_BUILD_TARGET "X86_64")
+  else ()
+    # Build as X86_32 by default in 32-bit platform
+    set (WAMR_BUILD_TARGET "X86_32")
+  endif ()
+endif ()
+
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif ()
+
+if (NOT DEFINED WAMR_BUILD_INTERP)
+  # Enable Interpreter by default
+  set (WAMR_BUILD_INTERP 1)
+endif ()
+
+if (NOT DEFINED WAMR_BUILD_AOT)
+  # Disable AOT by default.
+  set (WAMR_BUILD_AOT 0)
+endif ()
+
+if (NOT DEFINED WAMR_BUILD_JIT)
+  # Disable JIT by default.
+  set (WAMR_BUILD_JIT 0)
+endif ()
+
+if (NOT DEFINED WAMR_BUILD_LIBC_BUILTIN)
+  # Enable libc builtin support by default
+  set (WAMR_BUILD_LIBC_BUILTIN 1)
+endif ()
+
+if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
+  # Disable libc wasi support by default
+  set (WAMR_BUILD_LIBC_WASI 0)
+endif ()
+
 SET(PDO_INCLUDE_DIRS ".")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/crypto")
@@ -36,96 +80,70 @@ LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/tlibc")
 LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/libcxx")
 
 ################################################################################
+
 SET(IWASM_STATIC_NAME iwasm)
 SET(WAWAKA_STATIC_NAME wwasm)
 PROJECT(wawaka_wasm C CXX)
 
-SET(PLATFORM "linux-sgx")
+set (WAMR_BUILD_PLATFORM "linux-sgx")
 
-SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -ffunction-sections -fdata-sections \
+                                     -Wall -Wno-unused-parameter -Wno-pedantic \
+                                     -nostdinc -fvisibility=hidden -fpie" )
 
-ADD_DEFINITIONS(-DUSE_SGX=1)
-ADD_DEFINITIONS(-DOPS_INPUT_OUTPUT=1)
-ADD_DEFINITIONS(-DOPS_UNSAFE_BUFFERS=1)
-ADD_DEFINITIONS(-DWASM_ENABLE_LOG=0)
-ADD_DEFINITIONS(-Dbh_printf=bh_printf_sgx)
-ADD_DEFINITIONS(-Dvprintf=bh_vprintf_sgx)
+set (WAMR_ROOT_DIR ${WASM_SRC})
+set (SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+set (IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
+set (APP_FRAMEWORK_DIR ${WAMR_ROOT_DIR}/core/app-framework)
 
-IF (NOT ("$ENV{VALGRIND}" STREQUAL "YES"))
-  ADD_DEFINITIONS(-DNVALGRIND)
-ENDIF ()
-
-# Currently build as 64-bit by default.
-IF (CMAKE_SIZEOF_VOID_P EQUAL 8)
-  # Build as X86_64 by default in 64-bit platform
-  SET (BUILD_TARGET "X86_64")
-  ADD_DEFINITIONS(-DBUILD_TARGET_X86_64)
-  SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-  SET (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS} -fPIC")
-ELSE ()
-  # Build as X86_32 by default in 32-bit platform
-  SET (BUILD_TARGET "X86_32")
-  ADD_DEFINITIONS(-DBUILD_TARGET_X86_32)
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m32")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
-ENDIF ()
-
-IF (NOT DEFINED WASM_ENABLE_WASI)
-  # Disable wasi support by default
-  SET (WASM_ENABLE_WASI 0)
-ENDIF ()
-
-IF (WASM_ENABLE_WASI EQUAL 1)
-  ADD_DEFINITIONS(-DWASM_ENABLE_WASI=1)
-  ADD_DEFINITIONS(-D_GNU_SOURCE)
-  MESSAGE ("-- WASI enabled")
-ELSE ()
-  MESSAGE ("-- WASI disabled")
-ENDIF ()
-
-IF (NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF (NOT CMAKE_BUILD_TYPE)
-
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -Wall -Wno-unused-parameter -Wno-pedantic")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdinc -fvisibility=hidden -fpie")
-
-SET(WASM_IWASM_ROOT ${WASM_SRC}/core/iwasm)
-SET(WASM_SHARED_LIB_ROOT ${WASM_SRC}/core/shared-lib)
-
-ENABLE_LANGUAGE(ASM)
+enable_language (ASM)
 
 #################################################################
-# Pull in all the WASM makefiles
+# WAMR Library
 #################################################################
-INCLUDE(${WASM_IWASM_ROOT}/runtime/platform/${PLATFORM}/platform.cmake)
-INCLUDE(${WASM_IWASM_ROOT}/runtime/utils/utils.cmake)
-INCLUDE(${WASM_IWASM_ROOT}/runtime/vmcore-wasm/vmcore.cmake)
-INCLUDE(${WASM_IWASM_ROOT}/lib/native/libc/wasmtime-wasi-c/wasi.cmake)
-INCLUDE(${WASM_IWASM_ROOT}/lib/native/libc/wasm_libc.cmake)
-INCLUDE(${WASM_SHARED_LIB_ROOT}/platform/${PLATFORM}/shared_platform.cmake)
-INCLUDE(${WASM_SHARED_LIB_ROOT}/mem-alloc/mem_alloc.cmake)
-INCLUDE(${WASM_SHARED_LIB_ROOT}/utils/shared_utils.cmake)
 
-#################################################################
-# MicroWasm Library
-#################################################################
-ADD_LIBRARY(${IWASM_STATIC_NAME}
-             ${WASM_PLATFORM_LIB_SOURCE}
-             ${WASM_UTILS_LIB_SOURCE}
-             ${VMCORE_LIB_SOURCE}
-             ${WASM_IWASM_ROOT}/lib/native/base/base_lib_export.c
-             ${WASM_LIBC_SOURCE}
+# include the build config template file
+include (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
+
+include (${SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
+include (${SHARED_DIR}/mem-alloc/mem_alloc.cmake)
+include (${SHARED_DIR}/utils/shared_utils.cmake)
+if (WAMR_BUILD_LIBC_BUILTIN EQUAL 1)
+  include (${IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
+endif ()
+if (WAMR_BUILD_LIBC_WASI EQUAL 1)
+  include (${IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
+endif ()
+
+include (${IWASM_DIR}/common/iwasm_common.cmake)
+
+if (WAMR_BUILD_INTERP EQUAL 1 OR WAMR_BUILD_JIT EQUAL 1)
+  include (${IWASM_DIR}/interpreter/iwasm_interp.cmake)
+endif ()
+
+if (WAMR_BUILD_AOT EQUAL 1)
+  include (${IWASM_DIR}/aot/iwasm_aot.cmake)
+  if (WAMR_BUILD_JIT EQUAL 1)
+    include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
+  endif ()
+endif ()
+
+add_library (${IWASM_STATIC_NAME}
              ${PLATFORM_SHARED_SOURCE}
-             ${MEM_ALLOC_SHARED_SOURCE})
+             ${MEM_ALLOC_SHARED_SOURCE}
+             ${UTILS_SHARED_SOURCE}
+             ${LIBC_BUILTIN_SOURCE}
+             ${LIBC_WASI_SOURCE}
+             ${IWASM_COMMON_SOURCE}
+             ${IWASM_INTERP_SOURCE}
+             ${IWASM_AOT_SOURCE}
+             ${IWASM_COMPL_SOURCE})
 
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PRIVATE ".")
 
-TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${WASM_IWASM_ROOT}/runtime/include)
-TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${WASM_IWASM_ROOT}/runtime/platform/include)
-TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${WASM_SHARED_LIB_ROOT}/include)
+TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)
+TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${IWASM_DIR}/include)
 
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SGX_INCLUDE_DIRS})
 
@@ -144,9 +162,8 @@ ADD_LIBRARY(${WAWAKA_STATIC_NAME}
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ".")
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ${PDO_INCLUDE_DIRS})
 
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${WASM_IWASM_ROOT}/runtime/include)
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${WASM_IWASM_ROOT}/runtime/platform/include)
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${WASM_SHARED_LIB_ROOT}/include)
+TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${IWASM_DIR}/include)
+TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)
 
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SGX_INCLUDE_DIRS})
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC "${SGX_SSL}/include")

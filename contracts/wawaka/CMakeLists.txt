@@ -54,8 +54,9 @@ SET(PACKAGE_INCLUDES
 
 INCLUDE_DIRECTORIES(
   ${PACKAGE_INCLUDES}
-  ${WASM_SRC}/core/iwasm/lib/native-interface
-  ${WASM_SRC}/core/iwasm/lib/app-libs/base)
+  ${WASM_SRC}/core/app-framework/base/native
+  ${WASM_SRC}/core/app-framework/app-native-shared/bi-inc
+  ${WASM_SRC}/core/app-framework/base/app)
 
 SET(CONTRACT_INSTALL_DIRECTORY "$ENV{PDO_HOME}/contracts")
 
