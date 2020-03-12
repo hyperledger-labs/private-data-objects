@@ -186,19 +186,15 @@ RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinysch
 
 # - web-assembly/wasm/wawaka
 #   - Get WAMR code
-RUN mkdir -p /project/wasm/src/
-WORKDIR /project/wasm/src
-RUN git clone --branch ${WAMR} https://github.com/intel/wasm-micro-runtime \
- && cd wasm-micro-runtime \
- && echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
+WORKDIR /project/interpreters/wasm-micro-runtime
+RUN echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 #   - get emscripten tooling
-RUN cd /project/wasm/src \
- && git clone https://github.com/emscripten-core/emsdk.git \
+RUN git clone https://github.com/emscripten-core/emsdk.git \
  && cd emsdk \
  && ./emsdk install latest-fastcomp \
  && ./emsdk activate latest-fastcomp \
- && echo 'cd /project/wasm/src/emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
+ && echo 'cd emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
 # Note: above convoluted BASH_SOURCE hack is necessary as (a) emsdk_env.sh 
 #   assumes we run in bash but (b) as we build we actually run in sh
 
