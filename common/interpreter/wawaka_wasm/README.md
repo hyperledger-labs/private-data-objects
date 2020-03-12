@@ -22,7 +22,7 @@ The Wawaka interpreter is not built by default. To build a contract
 enclave with Wawaka enabled, you will need to do the following:
 
   * Install and configure [emscripten](https://emscripten.org/)
-  * Clone the WAMR source code
+  * Pull the WAMR submodule (if the repo was not cloned with the `--recurse-submodules` flag)
   * Set the `PDO_INTERPRETER` environment variable to `wawaka`
 
 ### Install emscripten ###
@@ -46,11 +46,19 @@ source ./emsdk_env.sh
 
 If wawaka is configured as the contract interpreter, the libraries implementing the WASM interpreter
 will be built for use with Intel SGX. The source for the WAMR interpreter is
-included as a submodule in the interpreters/ folder. The WAMR API is built during the Wawaka build, so
-no additional build steps are required to set up WAMR.
+included as a submodule in the interpreters/ folder, and will
+always point to the latest tagged commit that we have validated: `WAMR-03-05-2020`.
+If the PDO parent repo was not cloned with the `--recurse-submodules` flag,
+you will have to explictly pull the submodule source.
 
-**TODO: Need to make sure that the repository automatically checks out the GIT Submodule for WAMR**
-**TODO: Make sure you are using tag WAMR-03-05-2020**
+```
+cd ${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
+git submodule update --init
+git checkout WAMR-03-05-2020 # optional
+```
+
+The WAMR API is built during the Wawaka build, so no additional
+build steps are required to set up WAMR.
 
 ### Set the environment variables ###
 
