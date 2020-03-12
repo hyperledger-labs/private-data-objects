@@ -41,13 +41,14 @@ namespace pcrypto = pdo::crypto;
  * NAME: _b64_encode_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool b64_encode_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 dec_buffer_offset, // uint8_t*
     const int32 dec_buffer_length, // size_t
     int32 enc_buffer_pointer_offset, // char**
     int32 enc_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* dec_buffer = (uint8_t*)get_buffer(module_inst, dec_buffer_offset, dec_buffer_length);
         if (dec_buffer == NULL)
@@ -76,13 +77,14 @@ extern "C" bool b64_encode_wrapper(
  * NAME: _b64_decode_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool b64_decode_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 enc_buffer_offset, // char*
     const int32 enc_buffer_length, // size_t
     int32 dec_buffer_pointer_offset, // uint8_t**
     int32 dec_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* enc_buffer = (uint8_t*)get_buffer(module_inst, enc_buffer_offset, enc_buffer_length);
         if (enc_buffer == NULL)
@@ -112,13 +114,14 @@ extern "C" bool b64_decode_wrapper(
  * NAME: _ecdsa_create_signing_keys
  * ----------------------------------------------------------------- */
 extern "C" bool ecdsa_create_signing_keys_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     int32 private_buffer_pointer_offset, // char**
     int32 private_length_pointer_offset, // size_t*
     int32 public_buffer_pointer_offset,  // char**
     int32 public_length_pointer_offset   // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         pcrypto::sig::PrivateKey privkey;
         privkey.Generate();
@@ -152,7 +155,7 @@ extern "C" bool ecdsa_create_signing_keys_wrapper(
  * NAME: _ecdsa_sign_message_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool ecdsa_sign_message_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_length,        // size_t
     const int32 key_buffer_offset, // char*
@@ -161,6 +164,7 @@ extern "C" bool ecdsa_sign_message_wrapper(
     int32 sig_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         const uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_length);
         if (msg_buffer == NULL)
@@ -195,7 +199,7 @@ extern "C" bool ecdsa_sign_message_wrapper(
  * NAME: _ecdsa_verify_signature_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool ecdsa_verify_signature_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_length,        // size_t
     const int32 key_buffer_offset, // char*
@@ -204,6 +208,7 @@ extern "C" bool ecdsa_verify_signature_wrapper(
     const int32 sig_length         // size_t
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         const uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_length);
         if (msg_buffer == NULL)
@@ -238,11 +243,12 @@ extern "C" bool ecdsa_verify_signature_wrapper(
  * NAME: aes_generate_key_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool aes_generate_key_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     int32 key_buffer_pointer_offset, // uint8_t**
     int32 key_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         ByteArray key = pcrypto::skenc::GenerateKey();
 
@@ -265,13 +271,14 @@ extern "C" bool aes_generate_key_wrapper(
  * NAME: aes_generate_iv_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool aes_generate_iv_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 buffer_offset,  // uint8_t*
     const int32 buffer_length,  // size_t
     int32 iv_buffer_pointer_offset, // uint8_t**
     int32 iv_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         const uint8_t* buffer = (uint8_t*)get_buffer(module_inst, buffer_offset, buffer_length);
         if (buffer == NULL)
@@ -298,7 +305,7 @@ extern "C" bool aes_generate_iv_wrapper(
  * NAME: aes_encrypt_message_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool aes_encrypt_message_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_length,        // size_t
     const int32 key_buffer_offset, // uint8_t*
@@ -309,6 +316,7 @@ extern "C" bool aes_encrypt_message_wrapper(
     int32 cipher_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_length);
         if (msg_buffer == NULL)
@@ -348,7 +356,7 @@ extern "C" bool aes_encrypt_message_wrapper(
  * NAME: aes_decrypt_message_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool aes_decrypt_message_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 cipher_buffer_offset, // uint8_t*
     const int32 cipher_length,        // size_t
     const int32 key_buffer_offset,    // uint8_t*
@@ -359,6 +367,7 @@ extern "C" bool aes_decrypt_message_wrapper(
     int32 msg_length_pointer_offset   // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* cipher_buffer = (uint8_t*)get_buffer(module_inst, cipher_buffer_offset, cipher_length);
         if (cipher_buffer == NULL)
@@ -398,13 +407,14 @@ extern "C" bool aes_decrypt_message_wrapper(
  * NAME: rsa_generate_keys_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool rsa_generate_keys_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     int32 private_buffer_pointer_offset, // char**
     int32 private_length_pointer_offset, // size_t*
     int32 public_buffer_pointer_offset,  // char**
     int32 public_length_pointer_offset   // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         pcrypto::pkenc::PrivateKey privkey;
         privkey.Generate();
@@ -438,7 +448,7 @@ extern "C" bool rsa_generate_keys_wrapper(
  * NAME: rsa_encrypt_message_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool rsa_encrypt_message_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_length,        // size_t
     const int32 key_buffer_offset, // char*
@@ -447,6 +457,7 @@ extern "C" bool rsa_encrypt_message_wrapper(
     int32 cipher_length_pointer_offset  // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_length);
         if (msg_buffer == NULL)
@@ -484,7 +495,7 @@ extern "C" bool rsa_encrypt_message_wrapper(
  * NAME: rsa_decrypt_message_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool rsa_decrypt_message_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 cipher_buffer_offset, // uint8_t*
     const int32 cipher_length,        // size_t
     const int32 key_buffer_offset,    // char*
@@ -493,6 +504,7 @@ extern "C" bool rsa_decrypt_message_wrapper(
     int32 msg_length_pointer_offset   // size_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* cipher_buffer = (uint8_t*)get_buffer(module_inst, cipher_buffer_offset, cipher_length);
         if (cipher_buffer == NULL)
@@ -530,12 +542,13 @@ extern "C" bool rsa_decrypt_message_wrapper(
  * NAME: crypto_hash_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool crypto_hash_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_buffer_length, // size_t
     int32 hash_buffer_pointer_offset, // uint8_t**
     int32 hash_length_pointer_offset) // size_t*
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
         if (msg_buffer == NULL)
@@ -565,11 +578,12 @@ extern "C" bool crypto_hash_wrapper(
  * NAME: _random_identifier_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool random_identifier_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     const int32 length,         // size_t
     int32 buffer_offset         // uint8_t*
     )
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     if (length <= 0)
         return false;
 

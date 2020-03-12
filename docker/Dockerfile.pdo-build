@@ -25,6 +25,7 @@
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 #  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
+#  - wamr version:		                WAMR    (default: WAMR-03-05-2020)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -84,7 +85,7 @@ COPY . /tmp/build-src
 WORKDIR /project/pdo/
 
 RUN mkdir src && cd src \
- && git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects
+ && git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} private-data-objects
 
 
 # Build ..
@@ -100,6 +101,13 @@ ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
 ARG PDO_INTERPRETER=gipsy
 ENV PDO_INTERPRETER=${PDO_INTERPRETER}
+
+# - web-assembly/wasm/wawaka
+#   - Configure WAMR source
+ARG WAMR=WAMR-03-05-2020
+RUN cd /project/pdo/src/private-data-objects/interpreters/wasm-micro-runtime \
+ && git checkout ${WAMR}\
+ && echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 RUN \
 # as we added now PDO source, also define PDO_SOURCE_ROOT to pdo env, ..

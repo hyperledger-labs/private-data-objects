@@ -38,69 +38,15 @@
 namespace pe = pdo::error;
 
 /* ----------------------------------------------------------------- *
- * NAME: _contract_log_wrapper
- * ----------------------------------------------------------------- */
-extern "C" bool contract_log_wrapper(
-    wasm_module_inst_t module_inst,
-    const int32 loglevel,
-    const int32 buffer_offset)
-{
-    try {
-        if (! wasm_runtime_validate_app_addr(module_inst, buffer_offset, 0))
-        {
-            SAFE_LOG(PDO_LOG_INFO, "invalid address passed as key");
-            return false;
-        }
-
-        const char* buffer = (char*)wasm_runtime_addr_app_to_native(module_inst, buffer_offset);
-        SAFE_LOG(loglevel, "CONTRACT: %s", buffer);
-
-        return true;
-    }
-    catch (...) {
-        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
-        return false;
-    }
-}
-
-/* ----------------------------------------------------------------- *
- * NAME: simple_hash
- * ----------------------------------------------------------------- */
-extern "C" int simple_hash_wrapper(
-    wasm_module_inst_t module_inst,
-    int32 buffer_offset,
-    const int32 buffer_length)
-{
-    try {
-        uint8_t *buffer = (uint8_t*)get_buffer(module_inst, buffer_offset, buffer_length);
-        if (buffer == NULL)
-            return -1;
-
-        unsigned int result = 0;
-        for (int i = 0; i < buffer_length; i++, buffer++)
-        {
-            int temp;
-            temp = (result << 6) + (result << 16) - result;
-            result = (*buffer) + temp;
-        }
-
-        return result;
-    }
-    catch (...) {
-        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
-        return false;
-    }
-}
-
-/* ----------------------------------------------------------------- *
  * NAME: memchr
  * ----------------------------------------------------------------- */
 extern "C" int32 memchr_wrapper(
-    wasm_module_inst_t module_inst,
+    wasm_exec_env_t exec_env,
     int32 src_offset,
     int32 ch,
     uint32 src_size)
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         if (src_size == 0)
             return 0;
@@ -122,35 +68,17 @@ extern "C" int32 memchr_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
- * NAME: strtod
+ * NAME: _contract_log_wrapper
  * ----------------------------------------------------------------- */
-extern "C" double strtod_wrapper(
-    wasm_module_inst_t module_inst,
-    int32 src_offset,
-    int32 endptr_offset)
+extern "C" bool contract_log_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 loglevel,
+    const char* buffer)
 {
+    // wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        /* could figure out the minimum length */
-        if (! wasm_runtime_validate_app_addr(module_inst, src_offset, 1))
-            return 0;
-
-        if (! wasm_runtime_validate_app_addr(module_inst, endptr_offset, 1))
-            return 0;
-
-        char *src = (char*)wasm_runtime_addr_app_to_native(module_inst, src_offset);
-        char *end;
-
-        double value = strtod(src, &end);
-        if (endptr_offset != 0)
-        {
-            int32* endptr = (int32*)wasm_runtime_addr_app_to_native(module_inst, endptr_offset);
-            if (! wasm_runtime_validate_app_addr(module_inst, (*endptr), 1))
-                return 0;
-
-            (*endptr) = wasm_runtime_addr_native_to_app(module_inst, end);
-        }
-
-        return value;
+        SAFE_LOG(loglevel, "CONTRACT: %s", buffer);
+        return true;
     }
     catch (...) {
         SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
@@ -159,35 +87,53 @@ extern "C" double strtod_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
- * NAME: strstr
+ * NAME: simple_hash
  * ----------------------------------------------------------------- */
-extern "C" int32 strstr_wrapper(
-    wasm_module_inst_t module_inst,
-    int32 haystack_offset,
-    int32 needle_offset)
+extern "C" int simple_hash_wrapper(
+    wasm_exec_env_t exec_env,
+    uint8_t* buffer,
+    const int buffer_length)
 {
+    // wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        /* could figure out the minimum length */
-        if (! wasm_runtime_validate_app_addr(module_inst, haystack_offset, 1))
-            return 0;
+        if (buffer == NULL)
+            return -1;
 
-        if (! wasm_runtime_validate_app_addr(module_inst, needle_offset, 1))
-            return 0;
+        unsigned int result = 0;
+        for (int i = 0; i < buffer_length; i++, buffer++)
+        {
+            int temp;
+            temp = (result << 6) + (result << 16) - result;
+            result = (*buffer) + temp;
+        }
 
-        char *haystack = (char*)wasm_runtime_addr_app_to_native(module_inst, haystack_offset);
-        char *needle = (char*)wasm_runtime_addr_app_to_native(module_inst, needle_offset);
-        char *ptr = strstr(haystack, needle);
-        if (ptr == NULL)
-            return 0;
-
-        return wasm_runtime_addr_native_to_app(module_inst, ptr);
+        return result;
     }
     catch (...) {
         SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
-        return 0;
+        return -1;
     }
 }
 
+/* ----------------------------------------------------------------- *
+ * NAME: strtod
+ * ----------------------------------------------------------------- */
+extern "C" double strtod_wrapper(
+    wasm_exec_env_t exec_env,
+    const char *nptr,
+    char **endptr)
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    double num = 0;
+
+    if (! wasm_runtime_validate_native_addr(module_inst, endptr, sizeof(uint32)))
+        return 0;
+
+    num = strtod(nptr, endptr);
+    *(int32*)endptr = wasm_runtime_addr_native_to_app(module_inst, *endptr);
+
+    return num;
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -195,76 +141,76 @@ extern "C" int32 strstr_wrapper(
 extern "C" {
 #endif
 
-#define CPP_EXPORT_WASM_API(symbol)  {#symbol, (void*)symbol}
-#define CPP_EXPORT_WASM_API2(symbol) {#symbol, (void*)symbol##_wrapper}
-
 #define WASM_PASSTHRU_FUNCTION(function) \
     static int function##_wrapper(wasm_module_inst_t m, int c) { return function(c); }
 
-WASM_PASSTHRU_FUNCTION(isalnum)
-WASM_PASSTHRU_FUNCTION(isalpha)
 WASM_PASSTHRU_FUNCTION(iscntrl)
-WASM_PASSTHRU_FUNCTION(isdigit)
-WASM_PASSTHRU_FUNCTION(isgraph)
 WASM_PASSTHRU_FUNCTION(islower)
-WASM_PASSTHRU_FUNCTION(isprint)
 WASM_PASSTHRU_FUNCTION(ispunct)
-WASM_PASSTHRU_FUNCTION(isspace)
-WASM_PASSTHRU_FUNCTION(isupper)
-WASM_PASSTHRU_FUNCTION(isxdigit)
 WASM_PASSTHRU_FUNCTION(isblank)
 
 #if 0
 WASM_PASSTHRU_FUNCTION(isascii)
 #endif
 
-static NativeSymbol extended_native_symbol_defs[] = {
-    CPP_EXPORT_WASM_API2(isalnum),
-    CPP_EXPORT_WASM_API2(isalpha),
-    CPP_EXPORT_WASM_API2(iscntrl),
-    CPP_EXPORT_WASM_API2(isdigit),
-    CPP_EXPORT_WASM_API2(isgraph),
-    CPP_EXPORT_WASM_API2(islower),
-    CPP_EXPORT_WASM_API2(isprint),
-    CPP_EXPORT_WASM_API2(ispunct),
-    CPP_EXPORT_WASM_API2(isspace),
-    CPP_EXPORT_WASM_API2(isupper),
-    CPP_EXPORT_WASM_API2(isxdigit),
+static NativeSymbol native_symbols[] =
+{
+    /* Missing libc functions */
+    EXPORT_WASM_API_WITH_SIG2(iscntrl,"(i)i"),
+    EXPORT_WASM_API_WITH_SIG2(islower,"(i)i"),
+    EXPORT_WASM_API_WITH_SIG2(ispunct,"(i)i"),
+    EXPORT_WASM_API_WITH_SIG2(isblank,"(i)i"),
 #if 0
-    CPP_EXPORT_WASM_API2(isascii),
+    EXPORT_WASM_API_WITH_SIG2(isascii,"(i)i"),
 #endif
-    CPP_EXPORT_WASM_API2(isblank),
 
-    /* from WasmCryptoExtensions.h */
-    CPP_EXPORT_WASM_API2(b64_encode),
-    CPP_EXPORT_WASM_API2(b64_decode),
-    CPP_EXPORT_WASM_API2(ecdsa_create_signing_keys),
-    CPP_EXPORT_WASM_API2(ecdsa_sign_message),
-    CPP_EXPORT_WASM_API2(ecdsa_verify_signature),
-    CPP_EXPORT_WASM_API2(aes_generate_key),
-    CPP_EXPORT_WASM_API2(aes_generate_iv),
-    CPP_EXPORT_WASM_API2(aes_encrypt_message),
-    CPP_EXPORT_WASM_API2(aes_decrypt_message),
-    CPP_EXPORT_WASM_API2(rsa_generate_keys),
-    CPP_EXPORT_WASM_API2(rsa_encrypt_message),
-    CPP_EXPORT_WASM_API2(rsa_decrypt_message),
-    CPP_EXPORT_WASM_API2(crypto_hash),
-    CPP_EXPORT_WASM_API2(random_identifier),
+    /* Crypto operations from WasmCryptoExtensions.h */
+    EXPORT_WASM_API_WITH_SIG2(b64_encode,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(b64_decode,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(ecdsa_create_signing_keys,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(ecdsa_sign_message,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(ecdsa_verify_signature,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(aes_generate_key,"(ii)i"),
+    EXPORT_WASM_API_WITH_SIG2(aes_generate_iv,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(aes_encrypt_message,"(iiiiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(aes_decrypt_message,"(iiiiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(rsa_generate_keys,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(rsa_encrypt_message,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(rsa_decrypt_message,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(crypto_hash,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(random_identifier,"(ii)i"),
 
-    /* from WasmStateExtensions.h */
-    CPP_EXPORT_WASM_API2(key_value_set),
-    CPP_EXPORT_WASM_API2(key_value_get),
+    /* Persistent store operations from WasmStateExtensions.h */
+    EXPORT_WASM_API_WITH_SIG2(key_value_set,"(*~*~)i"),
+    EXPORT_WASM_API_WITH_SIG2(key_value_get,"(*~ii)i"),
 
-    /* From WasmExtensions.cpp */
-    CPP_EXPORT_WASM_API2(contract_log),
-    CPP_EXPORT_WASM_API2(simple_hash),
-    CPP_EXPORT_WASM_API2(memchr),
-    CPP_EXPORT_WASM_API2(strtod),
-    CPP_EXPORT_WASM_API2(strstr)
+    /* Utility functions */
+    EXPORT_WASM_API_WITH_SIG2(contract_log, "(i$)i"),
+    EXPORT_WASM_API_WITH_SIG2(simple_hash, "(*~)i"),
+    EXPORT_WASM_API_WITH_SIG2(memchr, "(iii)i"),
+    EXPORT_WASM_API_WITH_SIG2(strtod, "($*)F"),
 };
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "ext_lib_export.h"
+bool RegisterNativeFunctions(void)
+{
+    try {
+        size_t native_symbols_count = sizeof(native_symbols)/sizeof(NativeSymbol);
+        if (! wasm_runtime_register_natives("env", native_symbols, native_symbols_count))
+        {
+            SAFE_LOG(PDO_LOG_ERROR, "failed to register native functions");
+            return false;
+        }
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "exception throw while registering native functions");
+        return false;
+    }
+
+    return true;
+}
+
+//#include "ext_lib_export.h"

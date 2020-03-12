@@ -7,7 +7,13 @@ https://creativecommons.org/licenses/by/4.0/
 
 Private Data Objects (PDO) can be installed directly to a host system or
 it may be installed through Docker. This document contains instructions
-for both methods of installation.
+for both methods of installation. If you choose to install directly on a
+host system, please clone our repo with the following command to pull
+in all submodules:
+
+```
+git clone --recurse-submodules https://github.com/hyperledger-labs/private-data-objects.git
+```
 
 PDO requires installation of the SDK for Intel Software Guard Extensions
 (SGX). SGX can be used either in simulation mode or hardware

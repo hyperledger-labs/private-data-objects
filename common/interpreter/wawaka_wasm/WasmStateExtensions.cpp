@@ -41,12 +41,13 @@ namespace pstate = pdo::state;
  * NAME: _key_value_set_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool key_value_set_wrapper(
-    wasm_module_inst_t module_inst,
-    const int32 key_buffer_offset, // uint8_t*
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
     const int32 key_buffer_length, // size_t
-    const int32 val_buffer_offset, // uint8_t*
+    const uint8_t* val_buffer,
     const int32 val_buffer_length) // size_t
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         pstate::Basic_KV_Plus* state = (pstate::Basic_KV_Plus*)wasm_runtime_get_custom_data(module_inst);
         if (state == NULL)
@@ -55,11 +56,9 @@ extern "C" bool key_value_set_wrapper(
             return false;
         }
 
-        uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
         if (key_buffer == NULL)
             return false;
 
-        uint8_t* val_buffer = (uint8_t*)get_buffer(module_inst, val_buffer_offset, val_buffer_length);
         if (val_buffer == NULL)
             return false;
 
@@ -83,12 +82,13 @@ extern "C" bool key_value_set_wrapper(
  * NAME: _key_value_get_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool key_value_get_wrapper(
-    wasm_module_inst_t module_inst,
-    const int32 key_buffer_offset, // uint8_t*
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
     const int32 key_buffer_length, // size_t
     int32 val_buffer_pointer_offset, // uint8_t**
     int32 val_length_pointer_offset) // size_t*
 {
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         pstate::Basic_KV_Plus* state = (pstate::Basic_KV_Plus*)wasm_runtime_get_custom_data(module_inst);
         if (state == NULL)
@@ -97,7 +97,6 @@ extern "C" bool key_value_get_wrapper(
             return false;
         }
 
-        uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
         if (key_buffer == NULL)
             return false;
 

@@ -21,15 +21,15 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern "C" bool key_value_set_wrapper(
-    wasm_module_inst_t module_inst,
-    const int32 key_buffer_offset,
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
     const int32 key_buffer_length,
-    const int32 val_buffer_offset,
+    const uint8_t* val_buffer,
     const int32 val_buffer_length);
 
 extern "C" bool key_value_get_wrapper(
-    wasm_module_inst_t module_inst,
-    const int32 key_buffer_offset,
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
     const int32 key_buffer_length,
-    int32 val_buffer_pointer_offset,
-    int32 val_length_pointer_offset);
+    int32 val_buffer_pointer_offset,  /* uint8_t** */
+    int32 val_length_pointer_offset); /* size_t* */
