@@ -69,6 +69,11 @@ if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
   set (WAMR_BUILD_LIBC_WASI 0)
 endif ()
 
+if (NOT DEFINED WAMR_BUILD_FAST_INTERP)
+  # Disable fast interpreter by default
+  set (WAMR_BUILD_FAST_INTERP 0)
+endif ()
+
 SET(PDO_INCLUDE_DIRS ".")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/crypto")
