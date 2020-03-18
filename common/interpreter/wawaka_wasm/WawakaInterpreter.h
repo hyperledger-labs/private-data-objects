@@ -23,8 +23,7 @@
 
 extern "C" {
 #include "wasm_export.h"
-#include "bh_memory.h"
-#include "bh_common.h"
+#include "bh_platform.h"
 }
 
 namespace pc = pdo::contracts;

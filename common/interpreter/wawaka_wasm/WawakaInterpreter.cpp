@@ -59,8 +59,6 @@ pc::ContractInterpreter* pdo::contracts::CreateInterpreter(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern "C" {
 #include "wasm_export.h"
-#include "bh_memory.h"
-#include "bh_common.h"
 
 //#include "sample.h"
 
@@ -260,7 +258,6 @@ void WawakaInterpreter::Finalize(void)
     }
 
     wasm_runtime_destroy();
-    bh_memory_destroy();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -272,16 +269,21 @@ WawakaInterpreter::~WawakaInterpreter(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void WawakaInterpreter::Initialize(void)
 {
-    int result;
+    RuntimeInitArgs init_args;
+    bool result;
 
     SAFE_LOG(PDO_LOG_DEBUG, "initialize wasm interpreter");
 
-    bh_set_print_function(wasm_printer);
+    os_set_print_function(wasm_printer);
 
-    result = bh_memory_init_with_pool(global_heap_buf, sizeof(global_heap_buf));
-    pe::ThrowIf<pe::RuntimeError>(result != 0, "failed to initialize wasm interpreter memory ppol");
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
-    wasm_runtime_init();
+    init_args.mem_alloc_type = Alloc_With_Pool;
+    init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
+    init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+
+    result = wasm_runtime_full_init(&init_args);
+    pe::ThrowIf<pe::RuntimeError>(! result, "failed to initialize wasm runtime environment");
 
     bool registered = RegisterNativeFunctions();
     pe::ThrowIf<pe::RuntimeError>(! registered, "failed to register native functions");
