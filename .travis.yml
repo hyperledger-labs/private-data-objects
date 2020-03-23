@@ -27,4 +27,4 @@ script:
   # - gipsy/scheme
   - PDO_INTERPRETER=gipsy make -C docker test
   # - wawaka/wasm
-  - PDO_INTERPRETER=wawaka make -C docker test-env-setup # replace with test once integration tests also work with wawaka
+  - PDO_INTERPRETER=wawaka make -C docker test # replace with test once integration tests also work with wawaka
