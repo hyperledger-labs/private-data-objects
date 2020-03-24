@@ -88,10 +88,20 @@ void WawakaInterpreter::parse_response_string(
     int32 response_app_beg, response_app_end;
 
     pe::ThrowIf<pe::RuntimeError>(
+        response_app == 0,
+        report_interpreter_error("invalid result pointer", "no response"));
+
+    pe::ThrowIf<pe::RuntimeError>(
         ! wasm_runtime_get_app_addr_range(wasm_module_inst, response_app, &response_app_beg, &response_app_end),
         report_interpreter_error("invalid result pointer", "out of range"));
 
+    pe::ThrowIf<pe::RuntimeError>(
+        response_app_beg == response_app_end,
+        report_interpreter_error("invalid result pointer", "empty response"));
+
     char *result = (char*)wasm_runtime_addr_app_to_native(wasm_module_inst, response_app);
+    pe::ThrowIfNull(result, report_interpreter_error("invalid result pointer", "invalid address"));
+
     const char *result_end = result + (response_app_end - response_app);
 
     // Not the most performant way to do this, but with no assumptions
@@ -170,7 +180,7 @@ int32 WawakaInterpreter::initialize_contract(
            !wasm_runtime_call_wasm(wasm_exec_env,
                                    wasm_func, 1, argv),
            "execution failed for some reason");
-        
+
         SAFE_LOG(PDO_LOG_DEBUG, "RESULT=%u", argv[0]);
         result = argv[0];
     }
@@ -216,7 +226,7 @@ int32 WawakaInterpreter::evaluate_function(
         argv[1] = buf_offset1 = (int32)wasm_runtime_module_malloc(wasm_module_inst, env.length() + 1, (void**)&buffer);
         pe::ThrowIf<pe::RuntimeError>(argv[1] == 0,
            "module malloc failed for some reason");
-        
+
         memcpy(buffer, env.c_str(), env.length());
         buffer[env.length()] = '\0';
 
