@@ -42,7 +42,7 @@ var_set() {
 	"
 	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
 
-       env_val[WASM_MODE]="${WASM_MODE:-INTERP}"
+	env_val[WASM_MODE]="${WASM_MODE:-INTERP}"
 	env_desc[WASM_MODE]="
 		WASM_MODE indicates the mode of the wasm runtime. If the
                 variable is set to 'INTERP', the runtime will be built to
