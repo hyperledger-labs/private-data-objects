@@ -154,6 +154,8 @@ void pstate::Cache::sync_entry(unsigned int block_num)
 
         // sync done
         bce.modified = false;
+
+        synced_entries_ ++;
     }
 }
 
@@ -218,7 +220,9 @@ void pstate::Cache::done(unsigned int block_num, bool modified)
     block_cache_entry_t& bce = block_cache_[block_num];
     bce.references--;
     if (modified)
+    {
         bce.modified = modified;
+    }
 }
 
 void pstate::Cache::pin(unsigned int block_num)
@@ -245,3 +249,7 @@ void pstate::Cache::modified(unsigned int block_num)
     bce.modified = true;
 }
 
+unsigned int pstate::Cache::synced_entries()
+{
+    return synced_entries_;
+}

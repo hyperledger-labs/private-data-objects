@@ -19,9 +19,6 @@ namespace pstate = pdo::state;
 
 void pstate::data_node_io::block_offset_for_appending(block_offset_t& out_bo)
 {
-    //bring in new node if necessary
-    consume_add_and_init_append_data_node_cond(append_dn_->free_bytes() == 0);
-
     append_dn_->cursor(out_bo);
 }
 
@@ -57,7 +54,7 @@ void pstate::data_node_io::init_append_data_node()
         append_data_node_block_num, data_node_id);
     append_dn_ = &cache_.retrieve(append_data_node_block_num, true);
     cache_.done(append_data_node_block_num,
-        true);  // nobody is using it now; new nodes are modified
+        false);  // nobody is using it now
 }
 
 void pstate::data_node_io::add_and_init_append_data_node()
@@ -92,8 +89,11 @@ void pstate::data_node_io::consume_add_and_init_append_data_node()
     //consume remaining space (if any) in data node, for later collection
     block_offset_t bo;
     block_offset_for_appending(bo);
-    free_space_collector_.collect(bo, append_dn_->free_bytes());
-    append_dn_->consume_free_space(append_dn_->free_bytes());
+    if(append_dn_->free_bytes() > 0)
+    {
+        free_space_collector_.collect(bo, append_dn_->free_bytes());
+        append_dn_->consume_free_space(append_dn_->free_bytes());
+    }
 
     add_and_init_append_data_node();
 }
@@ -119,16 +119,16 @@ void pstate::data_node_io::write_across_data_nodes(const ByteArray& buffer, unsi
     // start writing value
     while(total_bytes_written < buffer.size())
     {
+        //if we are appending and the block offset touches a new data node, make sure to append a new one to the list
+        add_and_init_append_data_node_cond(bo.block_num > block_warehouse_.get_last_block_num());
+
         data_node& dn = cache_.retrieve(bo.block_num, false);
         bytes_written = dn.write_at(buffer, total_bytes_written, bo);
-        cache_.done(bo.block_num, true);
+        cache_.done(bo.block_num, bytes_written > 0);
 
         //increment written bytes and advance block offset
         total_bytes_written += bytes_written;
         data_node::advance_block_offset(bo, bytes_written);
-
-        //if we are appending and the block offset touches a new data node, make sure to append a new one to the list
-        add_and_init_append_data_node_cond(bo.block_num > block_warehouse_.get_last_block_num());
     }
 }
 
@@ -152,7 +152,7 @@ void pstate::data_node_io::read_across_data_nodes(const block_offset_t& bo_at, u
             SAFE_LOG_EXCEPTION("read_at call failed");
             throw;
         }
-        cache_.done(bo.block_num, true);
+        cache_.done(bo.block_num, false);
 
         //increment read bytes and advance block offset
         total_bytes_read += bytes_read;

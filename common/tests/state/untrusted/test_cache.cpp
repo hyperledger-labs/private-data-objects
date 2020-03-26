@@ -37,12 +37,25 @@ state_status_t custom_fetch(const pstate::StateBlockId& block_id,
     return sebio_fetch_from_block_store(block_id, crypto_algo, block);
 }
 
+// We intercept the evict call to count the number of block evictions
+unsigned int evict_calls = 0;
+state_status_t custom_evict(
+    const pdo::state::StateBlock& block, sebio_crypto_algo_e crypto_algo, ByteArray& idOnEviction)
+{
+    evict_calls ++;
+    return sebio_evict_to_block_store(block, crypto_algo, idOnEviction);
+}
+
+void init_test_cache()
+{
+    sebio_set({{}, SEBIO_NO_CRYPTO, &custom_fetch, &custom_evict});
+}
+
 void test_cache()
 {
     const ByteArray state_encryption_key_(16, 0);
     ByteArray id;
 //################## TEST CACHE EXISTENCE #############################################################################
-    sebio_set({{}, SEBIO_NO_CRYPTO, &custom_fetch, &sebio_evict_to_block_store});
     try
     {
         SAFE_LOG(PDO_LOG_INFO, "start test cache existence\n");

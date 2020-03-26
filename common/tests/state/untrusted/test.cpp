@@ -28,13 +28,21 @@
 /* Application entry */
 int main(int argc, char* argv[])
 {
-    SAFE_LOG(PDO_LOG_DEBUG, "Test UNTRUSTED State API.\n");
-
+    int ret = -1;
     pdo::lmdb_block_store::BlockStoreOpen(TEST_DATABASE_NAME);
 
     SAFE_LOG(PDO_LOG_DEBUG, "Test State KV: start\n");
-    test_state_kv();
-    SAFE_LOG(PDO_LOG_DEBUG, "Test State KV:end\n");
+    try
+    {
+        test_state_kv();
+        SAFE_LOG(PDO_LOG_DEBUG, "Test State KV: SUCCESSFUL!\n");
+        ret = 0;
+    }
+    catch(...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Test State KV: FAILED\n");
+        ret = -1;
+    }
 
     pdo::lmdb_block_store::BlockStoreClose();
 
@@ -42,6 +50,5 @@ int main(int argc, char* argv[])
     unlink(TEST_DATABASE_NAME);
     unlink(TEST_DATABASE_LOCK_NAME);
 
-    SAFE_LOG(PDO_LOG_DEBUG, "Test UNTRUSTED State API SUCCESSFUL!\n");
-    return 0;
+    return ret;
 }
