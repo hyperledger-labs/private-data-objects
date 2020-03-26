@@ -23,7 +23,12 @@ IF (NOT EXISTS "$ENV{WASM_SRC}")
   MESSAGE(FATAL_ERROR "WASM_SRC environment variable not defined!")
 ENDIF()
 
+IF (NOT DEFINED ENV{WASM_MODE})
+  MESSAGE(FATAL_ERROR "WASM_MODE environment variable not defined!")
+ENDIF()
+
 SET(WASM_SRC "$ENV{WASM_SRC}")
+SET(WASM_MODE "INTERP")
 
 # Reset default linker flags
 set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
@@ -44,20 +49,24 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif ()
 
-if (NOT DEFINED WAMR_BUILD_INTERP)
-  # Enable Interpreter by default
-  set (WAMR_BUILD_INTERP 1)
-endif ()
-
-if (NOT DEFINED WAMR_BUILD_AOT)
-  # Disable AOT by default.
+IF (WASM_MODE STREQUAL "AOT")
+  # Enable AOT.
+  set (WAMR_BUILD_AOT 1)
+  # Disable Interpreter for AoT mode
+  set (WAMR_BUILD_INTERP 0)
+  set (WAMR_BUILD_FAST_INTERP 0)
+ELSE()
+  # Disable AoT by default
   set (WAMR_BUILD_AOT 0)
-endif ()
+  set (WAMR_BUILD_INTERP 1)
+  if (NOT DEFINED WAMR_BUILD_FAST_INTERP)
+    # Disable fast interpreter by default
+    set (WAMR_BUILD_FAST_INTERP 0)
+  endif ()
+ENDIF()
 
-if (NOT DEFINED WAMR_BUILD_JIT)
-  # Disable JIT by default.
-  set (WAMR_BUILD_JIT 0)
-endif ()
+# Disable JIT by default for all runtime modes.
+set (WAMR_BUILD_JIT 0)
 
 if (NOT DEFINED WAMR_BUILD_LIBC_BUILTIN)
   # Enable libc builtin support by default
@@ -67,11 +76,6 @@ endif ()
 if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
   # Disable libc wasi support by default
   set (WAMR_BUILD_LIBC_WASI 0)
-endif ()
-
-if (NOT DEFINED WAMR_BUILD_FAST_INTERP)
-  # Disable fast interpreter by default
-  set (WAMR_BUILD_FAST_INTERP 0)
 endif ()
 
 SET(PDO_INCLUDE_DIRS ".")

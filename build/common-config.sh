@@ -37,10 +37,20 @@ var_set() {
 
 	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime}"
 	env_desc[WASM_SRC]="
-		WASM_SRC points to the installation of the micro-wasm
+		WASM_SRC points to the installation of the wasm micro runtime
 		source in order to build the wasm interpreter
 	"
 	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
+
+       env_val[WASM_MODE]="${WASM_MODE:-INTERP}"
+	env_desc[WASM_MODE]="
+		WASM_MODE indicates the mode of the wasm runtime. If the
+                variable is set to 'INTERP', the runtime will be built to
+                run intepreted wasm bytecode contracts. If the variable is
+                set to 'AOT', the runtime will be built to run AoT-compiled
+                native wasm contracts.
+	"
+	env_key_sort[$i]="WASM_MODE"; i=$i+1; export WASM_MODE=${env_val[WASM_MODE]};
 
 	env_val[PDO_INTERPRETER]="${PDO_INTERPRETER:-gipsy}"
 	env_desc[PDO_INTERPRETER]="

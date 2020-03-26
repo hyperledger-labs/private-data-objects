@@ -89,6 +89,37 @@ pdo-test-contract --no-ledger --interpreter wawaka --contract mock-contract \
     --expressions ./mock-contract/test-long.exp --loglevel info
 ```
 
+## Ahead-of-Time Compiled WASM
+** Disclaimer: Support for this feature is under active development and will be rolled-out at a later date. AoT mode cannot currently be enabled for testing. **
+
+### Setup
+
+By default, wawaka will be built for interpreted wasm contracts. If you would like to enable
+ahead-of-time (AoT) compiled wasm contracts, set the environment variable `WASM_MODE` (default: `INTERP`):
+
+```bash
+export WASM_MODE=AOT
+```
+
+With AoT wasm enabled, the `wamrc` compiler (including dependencies)
+shipped as part of the WAMR codebase will be built
+as part of the PDO build.
+
+### Building and running wawaka Contracts
+
+We provide a new cmake function `BUILD_AOT_CONTRACT` that
+automatically invokes `wamrc` on a given wasm bytecode file,
+and generates the corresponding `.aot` binary file. 
+To build an AoT-compiled wawaka contract, add the following call to the contract's
+`CMakeList.txt`:
+
+```
+BUILD_AOT_CONTRACT(<contract name> <contract source list>)
+```
+
+Running an AoT-compiled wawaka contract requires no additional steps,
+as the WAMR runtime transparently detects the input wasm code's format.
+
 ## Basics of a Contract ##
 
 Note that compilation into WASM that will run in the contract enclave can be somewhat tricky. Specifically, all symbols whether used or not must be bound. The wawaka interpreter will fail if it attempts to load WASM code with unbound symbols.
