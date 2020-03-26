@@ -75,6 +75,23 @@ FUNCTION(BUILD_CONTRACT contract)
   INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
 ENDFUNCTION()
 
+FUNCTION(BUILD_AOT_CONTRACT contract)
+  ADD_EXECUTABLE(${contract} ${ARGN} ${COMMON_SOURCE} ${LIBRARY_SOURCE} )
+  SET(b64contract ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.b64)
+  ADD_CUSTOM_COMMAND(
+    TARGET ${contract}
+    POST_BUILD
+    COMMAND $ENV{WASM_SRC}/wamr-compiler/build/wamrc
+    ARGS -sgx --format=aot -o ${contract}.aot ${contract}.wasm
+    COMMAND base64
+    ARGS -w 0 ${contract}.aot > ${b64contract})
+  SET_SOURCE_FILES_PROPERTIES(${b64contract} PROPERTIES GENERATED TRUE)
+  SET_DIRECTORY_PROPERTIES(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${b64contract})
+  # this can be replaced in later versions of CMAKE with target_link_properties
+  SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${EMCC_LINK_OPTIONS}")
+  INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
+ENDFUNCTION()
+
 ADD_SUBDIRECTORY(interface-test)
 ADD_SUBDIRECTORY(mock-contract)
 ADD_SUBDIRECTORY(interpreter-test)
