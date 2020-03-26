@@ -22,12 +22,16 @@ namespace pstate = pdo::state;
 
 extern pdo::state::Basic_KV* kv_;
 
+extern unsigned int evict_calls;
+
 #define MAX_BIG_VALUE_LOG2_SIZE 24
 
 #define MIN_KEY_LENGTH ((1<<14) - (1<<8))
 #define MAX_KEY_LENGTH (1<<14)
 
 void test_state_kv() {
+    init_test_cache();
+
     ByteArray emptyId;
     SAFE_LOG(PDO_LOG_DEBUG, "statekv init empty state kv\n");
     const ByteArray state_encryption_key_(16, 0);
@@ -376,6 +380,43 @@ void test_state_kv() {
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR, "error testing KV on one key medium val\n");
+        throw;
+    }
+
+//################## TEST UNMODIFIED STATE ############################################################################
+    try
+    {
+        SAFE_LOG(PDO_LOG_INFO, "start test read-only ops\n");
+        for(int i=1; i<=(1 << 14); i++) {
+            pstate::State_KV skv(state_encryption_key_);
+            kv_ = &skv;
+            std::string big_string(i, 'a');
+            _kv_put("a", big_string);
+            kv_->Finalize(id);
+
+            evict_calls = 0;
+
+            ByteArray id_new;
+            pstate::State_KV skv_new(id, state_encryption_key_);
+            kv_ = &skv_new;
+            _kv_get("a", big_string);
+            kv_->Finalize(id_new);
+
+            if(id != id_new)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "error ids are not equal (i=%d)\n", i);
+                throw pdo::error::RuntimeError("error");
+            }
+            if(evict_calls > 0)
+            {
+                SAFE_LOG(PDO_LOG_ERROR, "%d evict_calls during read-only ops (i=%d)\n", evict_calls, i);
+                throw pdo::error::RuntimeError("error");
+            }
+        }
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing unmodified KV store id after read_only ops\n");
         throw;
     }
 

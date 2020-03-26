@@ -45,6 +45,7 @@ namespace state
     private:
         // the block_warehouse_ reference is related to the block_warehouse member of dn_io
         block_warehouse& block_warehouse_;
+        unsigned int synced_entries_;
 
         void replacement_policy_MRU();
 
@@ -58,7 +59,7 @@ namespace state
             data_node* dn;
         };
 
-        Cache(block_warehouse& bw): block_warehouse_(bw) {}
+        Cache(block_warehouse& bw): block_warehouse_(bw), synced_entries_(0) {}
 
         std::map<unsigned int, block_cache_entry_t> block_cache_;
         cache_slots slots_;
@@ -77,6 +78,7 @@ namespace state
         void pin(unsigned int block_num);
         void unpin(unsigned int block_num);
         void modified(unsigned int block_num);
+        unsigned int synced_entries();
     };
 }
 }

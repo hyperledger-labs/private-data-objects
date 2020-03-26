@@ -92,14 +92,18 @@ void pdo::state::State_KV::Finalize(ByteArray& outId)
         // flush cache first
         dn_io_.cache_.flush();
 
-        // serialize block ids
-        dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
+        // if the cache synced modified entries, recompute root block id
+        if(dn_io_.cache_.synced_entries() > 0)
+        {
+            // serialize block ids
+            dn_io_.block_warehouse_.serialize_block_ids(rootNode_);
 
-        // evict root block
-        ByteArray baBlock = rootNode_.GetBlock();
-        state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_.GetBlockId());
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
+            // evict root block
+            ByteArray baBlock = rootNode_.GetBlock();
+            state_status_t ret = sebio_evict(baBlock, SEBIO_NO_CRYPTO, rootNode_.GetBlockId());
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                ret != STATE_SUCCESS, "kv root node unload, sebio returned an error");
+        }
 
         // output the root id
         outId = rootNode_.GetBlockId();

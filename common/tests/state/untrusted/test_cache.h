@@ -15,4 +15,5 @@
 
 #pragma once
 
+void init_test_cache();
 void test_cache();
