@@ -23,6 +23,14 @@ IF (NOT EXISTS "$ENV{WASM_SRC}")
   MESSAGE(FATAL_ERROR "WASM_SRC environment variable not defined!")
 ENDIF()
 
+# Make sure wasm-micro-runtime submodule has been cloned
+file(GLOB WAMR_SUBMOD "$ENV{WASM_SRC}")
+list(LENGTH WAMR_SUBMOD SUBMOD_CONTENTS)
+IF (SUBMOD_CONTENTS EQUAL 0)
+  # submodule directory is empty
+  MESSAGE(FATAL_ERROR "WAMR git submodule has not been cloned. Please run `git submodule update --init` first.")
+ENDIF()
+
 IF (NOT DEFINED ENV{WASM_MODE})
   MESSAGE(FATAL_ERROR "WASM_MODE environment variable not defined!")
 ENDIF()
