@@ -47,14 +47,14 @@ source ./emsdk_env.sh
 If wawaka is configured as the contract interpreter, the libraries implementing the WASM interpreter
 will be built for use with Intel SGX. The source for the WAMR interpreter is
 included as a submodule in the interpreters/ folder, and will
-always point to the latest tagged commit that we have validated: `WAMR-03-19-2020`.
+always point to the latest tagged commit that we have validated: `WAMR-03-30-2020`.
 If the PDO parent repo was not cloned with the `--recurse-submodules` flag,
 you will have to explictly pull the submodule source.
 
 ```
 cd ${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 git submodule update --init
-git checkout WAMR-03-19-2020 # optional
+git checkout WAMR-03-30-2020 # optional
 ```
 
 The WAMR API is built during the Wawaka build, so no additional
@@ -62,12 +62,21 @@ build steps are required to set up WAMR.
 
 ### Set the environment variables ###
 
-By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory with the WAMR source) and `PDO_INTERPRETER` (the name of the contract interpreter to use.
+By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use), and `WASM_MODE` (the
+execution mode of the wawaka WASM runtime).
 
 ```bash
 export WASM_SRC=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 export PDO_INTERPRETER=wawaka
+export WASM_MODE=INTERP
 ```
+
+PDO supports two WAMR interpreter modes: classic
+interpreter and optimized interpreter (more details at
+[WAMR documentation](https://github.com/bytecodealliance/wasm-micro-runtime/blob/master/doc/build_wamr.md#configure-interpreter)).
+By default, PDO builds the classic interpreter. To enable the
+optimized interpreter, set the `WASM_MODE` environment variable
+to `INTERP_OPT`.
 
 ### Build PDO ###
 
@@ -94,7 +103,8 @@ pdo-test-contract --no-ledger --interpreter wawaka --contract mock-contract \
 
 ### Setup
 
-By default, wawaka will be built for interpreted wasm contracts. If you would like to enable
+By default, wawaka will be built for interpreted wasm contracts.
+If you would like to enable
 ahead-of-time (AoT) compiled wasm contracts, set the environment variable `WASM_MODE` (default: `INTERP`):
 
 ```bash
