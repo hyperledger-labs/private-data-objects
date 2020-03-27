@@ -44,9 +44,12 @@ var_set() {
 
 	env_val[WASM_MODE]="${WASM_MODE:-INTERP}"
 	env_desc[WASM_MODE]="
-		WASM_MODE indicates the mode of the wasm runtime. If the
-                variable is set to 'INTERP', the runtime will be built to
-                run intepreted wasm bytecode contracts. If the variable is
+		WASM_MODE indicates the execution mode of the wasm runtime.
+                If the variable is set to 'INTERP', the runtime will be
+                built to run intepreted wasm bytecode contracts. If the
+                variable is set to 'INTERP_OPT', the runtime will be
+                built to run the optimized interpreter for wasm bytecode
+                contracts. If the variable is
                 set to 'AOT', the runtime will be built to run AoT-compiled
                 native wasm contracts.
 	"

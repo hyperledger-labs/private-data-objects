@@ -36,7 +36,7 @@ IF (NOT DEFINED ENV{WASM_MODE})
 ENDIF()
 
 SET(WASM_SRC "$ENV{WASM_SRC}")
-SET(WASM_MODE "INTERP")
+SET(WASM_MODE "$ENV{WASM_MODE}")
 
 # Reset default linker flags
 set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
@@ -63,14 +63,20 @@ IF (WASM_MODE STREQUAL "AOT")
   # Disable Interpreter for AoT mode
   set (WAMR_BUILD_INTERP 0)
   set (WAMR_BUILD_FAST_INTERP 0)
-ELSE()
+  message(STATUS "Building wawaka in AOT mode")
+  message(FATAL_ERROR "AoT mode is not currently implemented")
+ELSE ()
   # Disable AoT by default
   set (WAMR_BUILD_AOT 0)
   set (WAMR_BUILD_INTERP 1)
-  if (NOT DEFINED WAMR_BUILD_FAST_INTERP)
-    # Disable fast interpreter by default
+  if (WASM_MODE STREQUAL "INTERP_OPT")
+    set (WAMR_BUILD_FAST_INTERP 1)
+    message(STATUS "Building wawaka in optimized INTERP mode")
+  else()
+    # Disable optimized interpreter by default
     set (WAMR_BUILD_FAST_INTERP 0)
-  endif ()
+    message(STATUS "Building wawaka in INTERP mode")
+  endif()
 ENDIF()
 
 # Disable JIT by default for all runtime modes.
