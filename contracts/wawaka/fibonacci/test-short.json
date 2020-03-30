@@ -1,0 +1,5 @@
+[
+    { "MethodName" : "fibonacci", "KeywordParameters": { "message" : 5 }, "expected": "5" },
+    { "MethodName" : "fibonacci", "KeywordParameters": { "message" : 7 }, "expected": "13" },
+    { "MethodName" : "fibonacci", "KeywordParameters": { "message" : 13 }, "expected": "233" }
+]

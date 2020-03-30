@@ -1,0 +1,16 @@
+[
+    { "MethodName" : "sha256_digest",
+      "KeywordParameters":
+      {
+          "message" : "Hello, World!"
+      },
+      "expected": "\"IZlCu3z6VwwMSSv3r5kKM8DD2kXcqmmzwwDL1awD9Ao=\""
+    },
+    { "MethodName" : "sha256_test",
+      "KeywordParameters":
+      {
+          "num_chars" : 500
+      },
+      "expected": "true"
+    }
+]
