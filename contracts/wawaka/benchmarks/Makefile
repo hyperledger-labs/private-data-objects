@@ -12,11 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
+endif
 
-INCLUDE(contract-build.cmake)
+all : build
+	@cd build; make all
 
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
+clean :
+	@echo Remove build directory
+	@rm -rf build
+
+install : build
+	@echo install contracts
+	@cd build; make install
+
+build :
+	mkdir -p $@
+	cd $@ ; emcmake cmake ..
+
+.PHONY : all build clean install

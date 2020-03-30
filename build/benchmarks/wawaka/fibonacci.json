@@ -1,0 +1,34 @@
+[
+    { "MethodName" : "fibonacci",
+      "KeywordParameters": {
+          "message": 10
+      },
+      "benchmark": "true",
+      "benchIterations": "10",
+      "benchName": "fib10"
+    },
+    { "MethodName" : "fibonacci",
+      "KeywordParameters": {
+          "message": 20
+      },
+      "benchmark": "true",
+      "benchIterations": "10",
+      "benchName": "fib20"
+    },
+    { "MethodName" : "fibonacci",
+      "KeywordParameters": {
+          "message": 30
+      },
+      "benchmark": "true",
+      "benchIterations": "10",
+      "benchName": "fib30"
+    },
+    { "MethodName" : "fibonacci",
+      "KeywordParameters": {
+          "message": 40
+      },
+      "benchmark": "true",
+      "benchIterations": "10",
+      "benchName": "fib40"
+    }
+]

@@ -25,6 +25,7 @@ all : build
 clean :
 	@echo Remove build directory
 	@rm -rf build
+	@$(MAKE) -C benchmarks clean
 
 debug :
 	@echo No debug build defined
@@ -33,7 +34,6 @@ test :
 	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interface-test --expressions ${SCRIPTDIR}/interface-test/test-short.json
 	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract mock-contract --expressions ${SCRIPTDIR}/mock-contract/test-short.json
 	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interpreter-test --expressions ${SCRIPTDIR}/interpreter-test/test-short.json
-
 
 install : build
 	@echo install contracts

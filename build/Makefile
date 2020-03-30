@@ -47,6 +47,7 @@ VERIFY_PRE_BUILD=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
 VERIFY_PRE_CONF=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
 CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
+BENCHMARKSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
@@ -214,6 +215,9 @@ endif
 
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTSCRIPT)
+
+benchmark : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(BENCHMARKSCRIPT)
 
 .PHONY : all build verified-build clean clean-build clean-install conf verified-conf environment
 .PHONY : install keys rebuild system-keys template test verify-pre-build verify-pre-conf
