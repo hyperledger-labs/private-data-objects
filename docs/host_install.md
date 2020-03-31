@@ -131,7 +131,7 @@ SGX SSL install:
 
 ```bash
 cd openssl_source
-wget 'https://www.openssl.org/source/openssl-1.1.0k.tar.gz'
+wget 'https://www.openssl.org/source/old/1.1.0/openssl-1.1.0k.tar.gz'
 cd ..
 ```
 

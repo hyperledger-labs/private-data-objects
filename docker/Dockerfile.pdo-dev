@@ -138,7 +138,9 @@ RUN git clone --branch ${SGX_SDK} https://github.com/01org/linux-sgx.git \
 
 # ("Untrusted") OpenSSL
 WORKDIR /tmp
-RUN wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz
+RUN \
+    OPENSSL_MAJOR_VERSION=$(echo ${OPENSSL} | sed 's/\([^0-9.]\)*//g') \
+  && wget https://www.openssl.org/source/old/${OPENSSL_MAJOR_VERSION}/openssl-${OPENSSL}.tar.gz
 # && tar -zxvf openssl-${OPENSSL}.tar.gz \
 # && cd openssl-${OPENSSL}/ \
 # && ./config \
