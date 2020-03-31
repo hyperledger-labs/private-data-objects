@@ -213,7 +213,7 @@ int32 WawakaInterpreter::evaluate_function(
     wasm_function_inst_t wasm_func = NULL;
     int32 result = 0;
 
-    SAFE_LOG(PDO_LOG_DEBUG, "evalute_function");
+    SAFE_LOG(PDO_LOG_DEBUG, "evaluate_function");
     pc::validate_invocation_request(args);
 
     wasm_func = wasm_runtime_lookup_function(wasm_module_inst, "_ww_dispatch", "(i32i32)i32");
