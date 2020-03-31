@@ -63,6 +63,7 @@ IF (WASM_MODE STREQUAL "AOT")
   # Disable Interpreter for AoT mode
   set (WAMR_BUILD_INTERP 0)
   set (WAMR_BUILD_FAST_INTERP 0)
+  add_definitions (-DAOT_WASM_RT=1)
   message(STATUS "Building wawaka in AOT mode")
   message(FATAL_ERROR "AoT mode is not currently implemented")
 ELSE ()

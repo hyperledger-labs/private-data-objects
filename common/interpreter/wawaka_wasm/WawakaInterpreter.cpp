@@ -42,8 +42,14 @@ extern bool RegisterNativeFunctions(void);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#ifdef AOT_WASM_RT
+const std::string WawakaInterpreter::identity_ = "wawaka-aot";
+#else
 const std::string WawakaInterpreter::identity_ = "wawaka";
+#endif
 
+// TODO: Produce verifiable info about runtime built into this enclave
+// See issue #255
 std::string pdo::contracts::GetInterpreterIdentity(void)
 {
     return WawakaInterpreter::identity_;
