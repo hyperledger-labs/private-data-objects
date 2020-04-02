@@ -55,6 +55,7 @@ services:
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
         SGX_MODE: SIM
         PDO_INTERPRETER: ${PDO_INTERPRETER:-gipsy}
+        WASM_MODE: ${WASM_MODE:-INTERP}
     container_name: sawtooth-pdo-sim-build
     hostname: sawtooth-pdo-build
     depends_on:
