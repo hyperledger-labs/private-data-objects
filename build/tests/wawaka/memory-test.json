@@ -1,0 +1,236 @@
+[
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 10000
+        },
+        "expected":"10000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 15000
+        },
+        "expected":"15000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 20000
+        },
+        "expected":"20000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 50000
+        },
+        "expected":"50000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 100000
+        },
+        "expected":"100000"
+    },
+    {
+        "description" : "deep recursion test 2^31 levels",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": { "levels" : 2147483647 },
+        "expected":"2147483647"
+    },
+    {
+        "description" : "deep recursion test 2^32 levels should {invert}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": { "levels" : 2147483648 },
+        "invert": "fail",
+        "expected": "method evaluation failed"
+    },
+    {
+        "description" : "deep recursion test 10G levels should {invert}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": { "levels" : 10000000000 },
+        "invert": "fail",
+        "expected": "method evaluation failed"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "big value test {KeywordParameters}",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 2000
+        },
+        "expected": "2000"
+    },
+    {
+        "description" : "big value test {KeywordParameters}",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 4000
+        },
+        "expected": "4000"
+    },
+    {
+        "description" : "big value test {KeywordParameters}",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 8000
+        },
+        "expected": "8000"
+    },
+    {
+        "description" : "big value test {KeywordParameters}",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 16000
+        },
+        "expected": "16000"
+    },
+    {
+        "description" : "big value test 64 KB should {invert} with \"out of memory\" exception",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 64000
+        },
+        "invert": "fail",
+        "expected": "internal pdo error"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "big key test {KeywordParameters}",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 2000
+        },
+        "expected": "2000"
+    },
+    {
+        "description" : "big key test {KeywordParameters}",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 4000
+        },
+        "expected": "4000"
+    },
+    {
+        "description" : "big key test 32 KB should {invert} with \"out of memory\" exception",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 32000
+        },
+        "invert": "fail",
+        "expected": "internal pdo error"
+    },
+    {
+        "description" : "big key test 64 KB should {invert} with \"out of memory\" exception",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 64000
+        },
+        "invert": "fail",
+        "expected": "internal pdo error"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "many keys test 1K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 1000
+        },
+        "expected": "1000"
+    },
+    {
+        "description" : "many keys test 2K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 2000
+        },
+        "expected": "2000"
+    },
+    {
+        "description" : "many keys test 4K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 4000
+        },
+        "expected": "4000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "many KV pairs test 100 * 100",
+        "MethodName": "many_kv_pairs_test",
+        "KeywordParameters": {
+            "num_keys" : 100,
+            "num_chars" : 100
+        },
+        "expected": "10000"
+    },
+    {
+        "description" : "many KV pairs test 64 * 1K",
+        "MethodName": "many_kv_pairs_test",
+        "KeywordParameters": {
+            "num_keys" : 64,
+            "num_chars" : 1000
+        },
+        "expected": "64000"
+    },
+    {
+        "description" : "many KV pairs test 100 * 1K",
+        "MethodName": "many_kv_pairs_test",
+        "KeywordParameters": {
+            "num_keys" : 100,
+            "num_chars" : 1000
+        },
+        "expected": "100000"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    }
+]

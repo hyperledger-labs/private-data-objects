@@ -6,5 +6,7 @@
     { "MethodName" : "big_value_test", "KeywordParameters": { "num_chars" : 5 }, "expected": "5" },
     { "MethodName" : "big_value_test", "KeywordParameters": { "num_chars" : 500 }, "expected": "500" },
     { "MethodName" : "deep_recursion_test", "KeywordParameters": { "levels" : 5 }, "expected": "5" },
-    { "MethodName" : "deep_recursion_test", "KeywordParameters": { "levels" : 500 }, "expected": "500" }
+    { "MethodName" : "deep_recursion_test", "KeywordParameters": { "levels" : 500 }, "expected": "500" },
+    { "MethodName" : "many_kv_pairs_test", "KeywordParameters": { "num_keys" : 5, "num_chars" : 100 }, "expected": "500" },
+    { "MethodName" : "many_kv_pairs_test", "KeywordParameters": { "num_keys" : 500, "num_chars" : 100 }, "expected": "50000" }
 ]

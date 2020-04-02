@@ -1,0 +1,10 @@
+[
+    {
+        "description" : "FIXME: big value test 32 KB causes stack corruption in INTERP mode",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 32000
+        },
+        "expected": "32000"
+    }
+]

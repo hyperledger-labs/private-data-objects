@@ -1,0 +1,59 @@
+[
+    {
+        "description" : "big key test 8 KB",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 8000
+        },
+        "expected": "8000"
+    },
+    {
+        "description" : "big key test 16 KB",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 16000
+        },
+        "expected": "16000"
+    },
+    {
+        "description" : "many keys test 8K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 8000
+        },
+        "expected": "8000"
+    },
+    {
+        "description" : "many keys test 16K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 16000
+        },
+        "expected": "16000"
+    },
+    {
+        "description" : "many keys test 32K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 32000
+        },
+        "expected": "32000"
+    },
+    {
+        "description" : "many keys test 64K",
+        "MethodName": "many_keys_test",
+        "KeywordParameters": {
+            "num_keys" : 64000
+        },
+        "expected": "64000"
+    },
+    {
+        "description" : "many KV pairs test 1K * 1K",
+        "MethodName": "many_kv_pairs_test",
+        "KeywordParameters": {
+            "num_keys" : 1000,
+            "num_chars" : 1000
+        },
+        "expected": "1000000"
+    }
+]

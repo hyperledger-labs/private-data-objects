@@ -104,13 +104,37 @@ bool big_value_test(const Message& msg, const Environment& env, Response& rsp)
     return rsp.value(v, true);
 }
 
+// -----------------------------------------------------------------
+// NAME: many_kv_pair_test
+// -----------------------------------------------------------------
+bool many_kv_pairs_test(const Message& msg, const Environment& env, Response& rsp)
+{
+    int num_chars((int)msg.get_number("num_chars"));
+    int num_keys((int)msg.get_number("num_keys"));
+
+    int i = 0;
+    StringArray value(num_chars);
+    for (i = 0; i < num_chars; i++) {
+        value.set((char)*default_val.value_, i);
+    }
+
+    for (i = 0; i < num_keys; i++) {
+        StringArray key(12);
+        sprintf((char *)key.value_, "%d", i);
+        if (!meta_store.set(key, value))
+            return rsp.error("failed to store value");
+    }
+
+    ww::value::Number v((double)(i*value.size()));
+    return rsp.value(v, true);
+}
+
 static int simple_recursive_function(int n) {
     if (n > 0) {
         return simple_recursive_function(n-1) + 1;
     }
     return 0;
 }
-
 
 bool deep_recursion_test(const Message& msg, const Environment& env, Response& rsp) {
 
@@ -129,6 +153,7 @@ contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(many_keys_test),
     CONTRACT_METHOD(big_key_test),
     CONTRACT_METHOD(big_value_test),
+    CONTRACT_METHOD(many_kv_pairs_test),
     CONTRACT_METHOD(deep_recursion_test),
     { NULL, NULL }
 };
