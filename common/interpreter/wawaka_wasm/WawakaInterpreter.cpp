@@ -142,10 +142,10 @@ void WawakaInterpreter::load_contract_code(
     const std::string& code)
 {
     char error_buf[128];
-    ByteArray binary_code = Base64EncodedStringToByteArray(code);
+    binary_code_ = Base64EncodedStringToByteArray(code);
 
     SAFE_LOG(PDO_LOG_DEBUG, "initialize the wasm interpreter");
-    wasm_module = wasm_runtime_load((uint8*)binary_code.data(), binary_code.size(), error_buf, sizeof(error_buf));
+    wasm_module = wasm_runtime_load((uint8*)binary_code_.data(), binary_code_.size(), error_buf, sizeof(error_buf));
     if (wasm_module == NULL)
         SAFE_LOG(PDO_LOG_CRITICAL, "load failed with error <%s>", error_buf);
 
@@ -262,6 +262,9 @@ int32 WawakaInterpreter::evaluate_function(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void WawakaInterpreter::Finalize(void)
 {
+    // Clear the code buffer
+    binary_code_.clear();
+
     // Destroy the environment
     if (wasm_exec_env != NULL)
     {
