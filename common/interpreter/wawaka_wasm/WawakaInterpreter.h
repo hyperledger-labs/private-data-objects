@@ -38,6 +38,7 @@ private:
     wasm_module_t wasm_module = NULL;
     wasm_module_inst_t wasm_module_inst = NULL;
     wasm_exec_env_t wasm_exec_env = NULL;
+    ByteArray binary_code_;
 
     void parse_response_string(
         int32 response_app,
