@@ -450,9 +450,9 @@ class PayloadBuilder(object):
 
 # -----------------------------------------------------------------
     @staticmethod
-    def build_verify_enclave_from_data(verifying_key):
+    def build_verify_enclave_from_data(enclave_id):
         payloadblob = dict()
-        payloadblob['verifying_key'] = verifying_key
+        payloadblob['enclave_id'] = enclave_id
         # there is no need to sign these verification transactions
         return payloadblob
 
@@ -509,7 +509,6 @@ class PayloadBuilder(object):
         payloadblob = dict()
         payloadblob['contract_id'] = contract_id
         payloadblob['enclave_info'] = json.dumps(enclave_info_quintuples, sort_keys=True)
-        payloadblob['contract_creator_verifying_key_PEM'] = contract_creator_keys.verifying_key
 
         # sign the payload after adding a nonce
         payloadblob['signature'] = compute_pdo_add_enclave_signature(contract_creator_keys.signing_key,
@@ -546,7 +545,6 @@ class PayloadBuilder(object):
         state_update_info['dependency_list'] = dependency_list
         state_update_info_string = json.dumps(state_update_info, sort_keys=True)
         payloadblob['state_update_info'] = state_update_info_string
-        payloadblob['verifying_key'] = verifying_key
         payloadblob['nonce'] = nonce
         payloadblob['signature'] = compute_pdo_update_contract_state_signature(signing_key, verifying_key, contract_enclave_id, \
             contract_enclave_signature, state_update_info_string)

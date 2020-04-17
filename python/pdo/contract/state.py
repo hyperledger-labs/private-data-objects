@@ -247,8 +247,6 @@ class ContractState(object) :
             logger.info('error getting state hash; %s', str(e))
             raise Exception('failed to retrieve contract state hash; {}'.format(contract_id))
 
-        return current_state_hash
-
     # --------------------------------------------------
     @classmethod
     def get_from_ledger(cls, ledger_config, contract_id, current_state_hash = None) :

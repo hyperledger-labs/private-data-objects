@@ -16,10 +16,13 @@ PDO uses a distributed ledger, in this case the
 [Hyperledger Sawtooth](https://sawtooth.hyperledger.org/)
 distributed ledger, to ensure that there is a single, authoritative
 instance of the object, and to provide a means of guaranteeing atomicity of
-updates across interacting objects. There is also ongoing efforts to support
-[Microsoft Confidential Consortium Framework (CCF)](https://microsoft.github.io/CCF/) based ledger.
-PDO performs contract execution and storage off the blockchain, with only a hash of
+updates across interacting objects. PDO performs contract execution and storage off the blockchain, with only a hash of
 blockchain state stored on the distributed ledger.
+
+There is also an ongoing experimental effort to add support for
+[Microsoft Confidential Consortium Framework (CCF)](https://microsoft.github.io/CCF/) based ledger.
+Currently, the PDO/CCF combo is restricted to virtual enclaves, and lacks docker as well as
+automated test support.
 
 PDO provides benefits for both application developers seeking to define and
 implement privacy-preserving distributed ledgers, and for service providers
