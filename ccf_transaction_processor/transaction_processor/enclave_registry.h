@@ -54,7 +54,7 @@ namespace ccf
 
   struct Verify_enclave {
     struct In {
-      string verifying_key; //enclave_id
+      string enclave_id; //enclave_id
     };
 
     struct Out {
@@ -72,7 +72,7 @@ namespace ccf
     registration_block_context, organizational_info, EHS_verifying_key, signature);
 
   DECLARE_JSON_TYPE(Verify_enclave::In);
-  DECLARE_JSON_REQUIRED_FIELDS(Verify_enclave::In, verifying_key);
+  DECLARE_JSON_REQUIRED_FIELDS(Verify_enclave::In, enclave_id);
 
   DECLARE_JSON_TYPE(Verify_enclave::Out);
   DECLARE_JSON_REQUIRED_FIELDS(Verify_enclave::Out, verifying_key, encryption_key, proof_data, last_registration_block_context, \

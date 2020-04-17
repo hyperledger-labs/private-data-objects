@@ -25,7 +25,7 @@ namespace ccfapp
 
     TPHandler::TPHandler(Store& store):
         UserHandlerRegistry(store),
-        enclavetable(store.create<string, EnclaveInfo>("encalves")),
+        enclavetable(store.create<string, EnclaveInfo>("enclaves")),
         contracttable(store.create<string, ContractInfo>("contracts")),
         ccltable(store.create<string, ContractStateInfo>("ccl_updates")),
         signer(store.create<string, map<string, string>>("signer"))
@@ -71,10 +71,11 @@ namespace ccfapp
 
             auto signer_local = signer_view->get("signer");
             try{
+                // if local signer exists, it means that we are waiting for global commit of the signer.
+                // The signer is not used until it gets globally committed.
                 if (!signer_local.has_value()){
                     // create the key, done only the first time this rpc is called
-                    auto curve = CurveImpl::secp256k1_mbedtls;
-                    auto kp = make_key_pair(curve);
+                    auto kp = make_key_pair(CurveImpl::secp256k1_mbedtls);
                     auto privk_pem = kp->private_key_pem();
                     auto pubk_pem = kp->public_key_pem();
                     map<string, string> key_pair;
@@ -153,10 +154,10 @@ namespace ccfapp
             const auto in = params.get<Register_contract::In>();
 
             // Capture  the current view
-            auto view = tx.get_view(contracttable);
+            auto contract_view = tx.get_view(contracttable);
 
             // Check if enclave was previously registered
-            auto contract_r = view->get(in.contract_id);
+            auto contract_r = contract_view->get(in.contract_id);
             if (contract_r.has_value())
             {
             return make_error(
@@ -186,7 +187,7 @@ namespace ccfapp
             }
 
             //store the data
-            view->put(in.contract_id, new_contract);
+            contract_view->put(in.contract_id, new_contract);
 
             // No need to commit the Tx, this is automatically taken care of !
 
@@ -211,14 +212,8 @@ namespace ccfapp
             }
             auto contract_info = contract_r.value();
 
-            //ensure the contract owner is the one adding enclaves to contract
-            if (in.contract_creator_verifying_key_PEM != contract_info.contract_creator_verifying_key_PEM){
-                return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave can only be added by the contract owner");
-            }
-
-            // Verify Pdo transaction signature
-            if (!verify_pdo_transaction_signature_add_enclave(in.signature, in.contract_creator_verifying_key_PEM, \
+            // Verify Pdo transaction signature (ensures that the contract ownder is the one adding encalves)
+            if (!verify_pdo_transaction_signature_add_enclave(in.signature, contract_info.contract_creator_verifying_key_PEM, \
                     in.contract_id, in.enclave_info)){
                 return make_error(
                     jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
@@ -272,12 +267,12 @@ namespace ccfapp
                 // To Do: This signature verification does not work. The following function returns "true" until this is fixed
                 // see git issues for status
                 if (!verify_enclave_signature_add_enclave(enclave_info_temp.signature, this->enclave_pubk_verifier[enclave_r.value().verifying_key], \
-                    in.contract_creator_verifying_key_PEM, in.contract_id, enclave_info_temp.provisioning_key_state_secret_pairs, \
+                    contract_info.contract_creator_verifying_key_PEM, in.contract_id, enclave_info_temp.provisioning_key_state_secret_pairs, \
                     enclave_info_temp.encrypted_state_encryption_key)){
 
                     // the following code is to aid in debugging the signature verification issue.
                     string message = in.contract_id;
-                    message += in.contract_creator_verifying_key_PEM;
+                    message += contract_info.contract_creator_verifying_key_PEM;
                     for (auto prov :enclave_info_temp.provisioning_key_state_secret_pairs ) {
                         message += prov.pspk;
                         message += prov.encrypted_secret;
@@ -375,12 +370,8 @@ namespace ccfapp
                         jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Init operation must not have CCL dependeices from other contracts");
                 }
 
-                if (in.verifying_key != contract_info.contract_creator_verifying_key_PEM){
-                    return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Init operation can only be performed by the contract creator");
-                }
-
-                if (!verify_pdo_transaction_signature_update_contract_state(in.signature, in.verifying_key, \
+                // sign check ensures that Init operation can only be performed by the contract creator
+                if (!verify_pdo_transaction_signature_update_contract_state(in.signature, contract_info.contract_creator_verifying_key_PEM, \
                     in.contract_enclave_id, in.contract_enclave_signature, in.state_update_info)){
                     return make_error(
                     jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
@@ -417,8 +408,8 @@ namespace ccfapp
                             jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Update verb must be either init or update");
             }
 
-            // verify contract enclave signature
-
+            // verify contract enclave signature. This signature also ensures (via the notion of channel ids) that
+            // the contraction invocation was performed by the transaction submitter.
             if (!verify_enclave_signature_update_contract_state(in.contract_enclave_signature, this->enclave_pubk_verifier[enclave_r.value().verifying_key], \
                 in.nonce, contract_info.contract_creator_verifying_key_PEM, contract_info.contract_code_hash, \
                 state_update_info)) {
@@ -451,7 +442,7 @@ namespace ccfapp
         auto verify_enclave = [this](Store::Tx& tx, const nlohmann::json& params) {
             const auto in = params.get<Verify_enclave::In>();
             auto enclave_view = tx.get_view(enclavetable);
-            auto enclave_r = enclave_view->get_globally_committed(in.verifying_key);
+            auto enclave_r = enclave_view->get_globally_committed(in.enclave_id);
 
             if (enclave_r.has_value())
             {
@@ -464,14 +455,14 @@ namespace ccfapp
                 }
 
                 string doc_to_sign;
-                doc_to_sign += in.verifying_key;
+                doc_to_sign += in.enclave_id;
                 doc_to_sign += enclave_r.value().encryption_key;
                 doc_to_sign += enclave_r.value().proof_data;
                 doc_to_sign += enclave_r.value().registration_block_context;
                 doc_to_sign += enclave_r.value().EHS_verifying_key;
                 auto signature = TPHandler::sign_document(doc_to_sign);
 
-                return make_success(Verify_enclave::Out{in.verifying_key, enclave_r.value().encryption_key, \
+                return make_success(Verify_enclave::Out{in.enclave_id, enclave_r.value().encryption_key, \
                 enclave_r.value().proof_data, enclave_r.value().registration_block_context, \
                 enclave_r.value().EHS_verifying_key, signature});
             }

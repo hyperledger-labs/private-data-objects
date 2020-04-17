@@ -54,7 +54,6 @@ function cleanup {
 
 trap cleanup EXIT
 
-
 # -----------------------------------------------------------------
 yell run unit tests for python, common, contracts and eservice
 # -----------------------------------------------------------------

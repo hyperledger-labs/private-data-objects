@@ -47,7 +47,7 @@ namespace ccf
     string contract_enclave_id;
     string contract_id;
     string encrypted_state_encryption_key;
-    string signature;
+    string signature; // this is the enclave signature for the add enclave to contract transaction
     std::vector<ProvisioningKeysToSecretMap> provisioning_key_state_secret_pairs;
 
     MSGPACK_DEFINE(contract_enclave_id, contract_id, encrypted_state_encryption_key, signature, provisioning_key_state_secret_pairs);
@@ -100,7 +100,6 @@ namespace ccf
   struct Add_enclave {
     struct In {
       string contract_id;
-      string contract_creator_verifying_key_PEM;
       string enclave_info; //json string
       std::vector<uint8_t> signature;
     };
@@ -128,7 +127,7 @@ namespace ccf
     signature, contract_id, provisioning_service_ids);
 
   DECLARE_JSON_TYPE(Add_enclave::In);
-  DECLARE_JSON_REQUIRED_FIELDS(Add_enclave::In, contract_id, contract_creator_verifying_key_PEM, \
+  DECLARE_JSON_REQUIRED_FIELDS(Add_enclave::In, contract_id, \
     enclave_info, signature);
 
   DECLARE_JSON_TYPE(Verify_contract::In);

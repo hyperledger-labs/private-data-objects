@@ -89,7 +89,6 @@ namespace ccf
       vector<uint8_t> contract_enclave_signature;
       vector<uint8_t> signature;
       vector<uint8_t> nonce;
-      string verifying_key; // for the pdo_signature
       string state_update_info; //json string
     };
 
@@ -126,7 +125,7 @@ namespace ccf
   // check input complies with schema
   DECLARE_JSON_TYPE(Update_contract_state::In);
   DECLARE_JSON_REQUIRED_FIELDS(Update_contract_state::In, verb, contract_enclave_id, \
-    contract_enclave_signature, signature, nonce, verifying_key, state_update_info);
+    contract_enclave_signature, signature, nonce, state_update_info);
 
   DECLARE_JSON_TYPE(Get_current_state_info::In);
   DECLARE_JSON_REQUIRED_FIELDS(Get_current_state_info::In, contract_id);
