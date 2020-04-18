@@ -231,7 +231,6 @@ def add_enclave_to_contract(
         signature,
         **extra_params):
 
-
     enclave_secret_data_array = []
     enclave_secret_data = dict()
     enclave_secret_data['contract_id'] = contract_id
@@ -244,23 +243,6 @@ def add_enclave_to_contract(
         secret_list.append(secret)
     enclave_secret_data['provisioning_key_state_secret_pairs'] = secret_list
     enclave_secret_data_array.append(enclave_secret_data)
-
-    #verify enclave signature if enclave_keys is passed as optional input
-    #code is for debugging the issue where verification does not work at ccf ledger
-    #see git issues for status.
-    enclave_keys = extra_params.get('enclave_keys', None)
-    if enclave_keys is not None:
-        document = contract_id
-        document += creator_keys.verifying_key
-        for secret in secrets:
-            document += secret['pspk'] + secret['encrypted_secret']
-        document_ba = crypto.string_to_byte_array(document)
-        document_ba += crypto.base64_to_byte_array(encrypted_state_encryption_key)
-        if enclave_keys.verify(document_ba, signature, encoding = 'b64') == 1:
-            logger.info("Add enclave to contract sign verified. (doc::sig::key) as follows")
-            logger.info(crypto.byte_array_to_base64(document_ba)+"::"+signature+"::"+enclave_id)
-        else:
-            logger.error("Failed to verify add enclave to contract sign")
 
     ss = create_submitter(ledger_config, pdo_signer = creator_keys)
     txnsignature = ss.add_enclave_to_contract(

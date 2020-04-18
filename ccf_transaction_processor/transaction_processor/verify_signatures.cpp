@@ -24,7 +24,7 @@ namespace ccfapp
 {
 
 
-    bool TPHandler::verify_sig_static(const vector<uint8_t>& signature, const tls::PublicKeyPtr & pubk_verifier, \
+    bool TPHandler::verify_sig_static(vector<uint8_t> signature, const tls::PublicKeyPtr & pubk_verifier, \
             const vector<uint8_t>& contents) {
 
         // verify & return true or false
@@ -32,7 +32,7 @@ namespace ccfapp
 
     }
 
-    bool TPHandler::verify_sig(const vector<uint8_t>& signature, const string & verifying_key, \
+    bool TPHandler::verify_sig(vector<uint8_t> signature, const string & verifying_key, \
             const vector<uint8_t>& contents) {
 
         // format the verifying key as needed by CCF to create the verifier
@@ -41,7 +41,6 @@ namespace ccfapp
         return pubk_verifier->verify(contents, signature); // return true/false
 
     }
-
 
     bool TPHandler::verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
         const EnclaveInfo & enclave_info){
@@ -94,10 +93,7 @@ namespace ccfapp
         const string & contract_creator_key, const string & contract_id, const vector<ProvisioningKeysToSecretMap> & prov_key_maps, \
         const string & encrypted_state_encryption_key){
 
-            return true;
-
-            // the following signature verification code does not work. See git issues for status
-            /*string message = contract_id;
+            string message = contract_id;
             message += contract_creator_key;
             for (auto prov :prov_key_maps ) {
                 message += prov.pspk;
@@ -108,7 +104,20 @@ namespace ccfapp
             vector<uint8_t> temp = raw_from_b64(encrypted_state_encryption_key);
             contents.insert(contents.end(), temp.begin(), temp.end());
 
-            return verify_sig_static(raw_from_b64(signature), pubk_verifier, contents);*/
+           auto signature_byte_array = raw_from_b64(signature);
+
+           //remove any trailing zeros (null characters) in the signature array
+           //this seems to be necessary for verifying this sign
+            while(true){
+                if (signature_byte_array.back() == 0){
+                    signature_byte_array.pop_back();
+                }
+                else{
+                    break;
+                }
+            }
+
+            return verify_sig_static(signature_byte_array, pubk_verifier, contents);
     }
 
 
