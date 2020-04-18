@@ -143,7 +143,7 @@ namespace ccfapp
 
             //create signature verifier for this enclave and cache it
             const auto public_key_pem = tls::Pem(CBuffer(in.verifying_key));
-            this->enclave_pubk_verifier[in.verifying_key] = tls::make_public_key(public_key_pem, true);
+            this->enclave_pubk_verifier[in.verifying_key] = tls::make_public_key(public_key_pem, false);
 
             return make_success(true);
         };
@@ -270,21 +270,7 @@ namespace ccfapp
                     contract_info.contract_creator_verifying_key_PEM, in.contract_id, enclave_info_temp.provisioning_key_state_secret_pairs, \
                     enclave_info_temp.encrypted_state_encryption_key)){
 
-                    // the following code is to aid in debugging the signature verification issue.
-                    string message = in.contract_id;
-                    message += contract_info.contract_creator_verifying_key_PEM;
-                    for (auto prov :enclave_info_temp.provisioning_key_state_secret_pairs ) {
-                        message += prov.pspk;
-                        message += prov.encrypted_secret;
-                    }
-                    vector<uint8_t> contents(message.begin(), message.end());
-                    vector<uint8_t> temp = raw_from_b64(enclave_info_temp.encrypted_state_encryption_key);
-                    contents.insert(contents.end(), temp.begin(), temp.end());
-
-                    string temp2 = b64_from_raw(contents.data(), contents.size());
-                    return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid enclave signature (doc::sig::key) as follows::"+ \
-                        temp2 + "::"+enclave_info_temp.signature +"::"+enclave_r.value().verifying_key);
+                    return make_error( jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid enclave signature");
                 }
 
                 //all good, add enclave to contract
@@ -409,7 +395,7 @@ namespace ccfapp
             }
 
             // verify contract enclave signature. This signature also ensures (via the notion of channel ids) that
-            // the contraction invocation was performed by the transaction submitter.
+            // the contract invocation was performed by the transaction submitter.
             if (!verify_enclave_signature_update_contract_state(in.contract_enclave_signature, this->enclave_pubk_verifier[enclave_r.value().verifying_key], \
                 in.nonce, contract_info.contract_creator_verifying_key_PEM, contract_info.contract_code_hash, \
                 state_update_info)) {

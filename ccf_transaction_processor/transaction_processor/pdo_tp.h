@@ -74,11 +74,10 @@ namespace ccfapp
             bool verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
                 const EnclaveInfo & enclave_info);
 
-            bool verify_sig(const vector<uint8_t>& signature, const string & verifying_key, const vector<uint8_t> & contents);
+            bool verify_sig(vector<uint8_t> signature, const string & verifying_key, const vector<uint8_t> & contents);
 
-            bool verify_sig_static(const vector<uint8_t>& signature, const tls::PublicKeyPtr & pubk_verifier, \
+            bool verify_sig_static(vector<uint8_t> signature, const tls::PublicKeyPtr & pubk_verifier, \
                 const vector<uint8_t>& contents);
-
 
             bool verify_pdo_transaction_signature_register_contract(const vector<uint8_t>& signature, const string & verifying_key, \
                 const vector<uint8_t>& contract_code_hash, const string & nonce, const vector<string> & provisioning_service_ids);
