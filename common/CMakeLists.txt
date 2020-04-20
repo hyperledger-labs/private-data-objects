@@ -23,24 +23,14 @@ INCLUDE(CMakeVariables.txt)
 # Common components for both trusted and untrusted common libraries
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h crypto/*.h crypto/verify_ias_report/*.h packages/base64/*.h packages/parson/*.h state/*.h)
-FILE(GLOB PROJECT_SOURCES *.cpp crypto/*.cpp crypto/verify_ias_report/*.cpp packages/base64/*.cpp packages/parson/*.cpp state/*.cpp)
+FILE(GLOB PROJECT_HEADERS *.h packages/base64/*.h packages/parson/*.h state/*.h)
+FILE(GLOB PROJECT_SOURCES *.cpp packages/base64/*.cpp packages/parson/*.cpp state/*.cpp)
 
 SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson" "state")
-SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} ${IAS_CA_CERT_REQUIRED_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
+SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
-################################################################################
-# Generated source
-################################################################################
-
-SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_ias_report/ias-certificates.cpp)
-set_source_files_properties(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
-add_custom_command(OUTPUT  ${PROJECT_GENERATED_IAS_SOURCES}
-                     COMMAND ./build_ias_certificates_cpp.sh
-                     DEPENDS crypto/verify_ias_report/ias-certificates.template crypto/verify_ias_report/build_ias_certificates_cpp.sh
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../crypto/verify_ias_report
-)
-add_custom_target(generate-ias-files DEPENDS ${PROJECT_GENERATED_IAS_SOURCES})
+SET(U_CRYPTO_LIB_NAME updo-crypto)
+SET(T_CRYPTO_LIB_NAME tpdo-crypto)
 
 ################################################################################
 # Untrusted Common Library
@@ -53,8 +43,6 @@ pkg_check_modules (OPENSSL REQUIRED openssl>=1.1.0g)
 
 ADD_LIBRARY(${UNTRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_GENERATED_IAS_SOURCES} ${PROJECT_SOURCES})
 
-add_dependencies(${UNTRUSTED_LIB_NAME} generate-ias-files)
-
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
 TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
 
@@ -62,7 +50,6 @@ TARGET_COMPILE_OPTIONS(${UNTRUSTED_LIB_NAME} PRIVATE ${COMMON_CXX_FLAGS} ${OPENS
 
 TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_LIB_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
-# DEBUG:
 ################################################################################
 # Block Store Library
 ################################################################################
@@ -93,8 +80,6 @@ if(NOT UNTRUSTED_ONLY)
 
 	ADD_LIBRARY(${TRUSTED_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_GENERATED_IAS_SOURCES} ${PROJECT_SOURCES})
 
-	add_dependencies(${TRUSTED_LIB_NAME} generate-ias-files)
-
 	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PRIVATE ${COMMON_PRIVATE_INCLUDE_DIRS})
 	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SDK}/include)
 	TARGET_INCLUDE_DIRECTORIES(${TRUSTED_LIB_NAME} PUBLIC ${SGX_SSL}/include)
@@ -105,6 +90,7 @@ if(NOT UNTRUSTED_ONLY)
 	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc)
 	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -nostdinc++)
 	TARGET_COMPILE_OPTIONS(${TRUSTED_LIB_NAME} PRIVATE -fno-builtin-printf)
+
 endif()
 
 
@@ -122,3 +108,4 @@ if(NOT UNTRUSTED_ONLY)
 endif()
 ADD_SUBDIRECTORY (interpreter)
 ADD_SUBDIRECTORY (tests)
+ADD_SUBDIRECTORY (crypto)

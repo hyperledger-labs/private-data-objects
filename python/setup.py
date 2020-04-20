@@ -66,7 +66,7 @@ include_dirs = [
     os.path.join(pdo_root_dir, 'common/packages/base64')
 ] + openssl_include_dirs
 
-libraries = ['updo-common'] + openssl_libs
+libraries = ['updo-common'] + ['updo-crypto'] + openssl_libs
 
 library_dirs = [
     os.path.join(pdo_root_dir, 'common/build')
