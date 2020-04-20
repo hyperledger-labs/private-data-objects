@@ -41,7 +41,7 @@ TARGET_COMPILE_OPTIONS(${UNTRUSTED_TEST_NAME} PRIVATE ${COMMON_CXX_FLAGS})
 TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_TEST_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
 # Link the untrusted test application against the untrusted library and openssl
-TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} ${UNTRUSTED_LIB_NAME} ${BLOCK_STORE_LIB_NAME} ${OPENSSL_LDFLAGS} -lpthread -llmdb)
+TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} "-Wl,--start-group" ${UNTRUSTED_LIB_NAME} ${BLOCK_STORE_LIB_NAME} ${OPENSSL_LDFLAGS} -lpthread -llmdb ${U_CRYPTO_LIB_NAME} "-Wl,--end-group")
 
 # Register this application as a test
 add_test(

@@ -18,6 +18,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 
+IF("$ENV{SGX_MODE}" STREQUAL "HW")
+    SET(IAS_CA_CERT_REQUIRED_FLAGS "-DIAS_CA_CERT_REQUIRED")
+ENDIF()
+
 ################################################################################
 # Untrusted Test Application
 ################################################################################
@@ -36,10 +40,13 @@ TARGET_INCLUDE_DIRECTORIES(${UNTRUSTED_TEST_NAME} PRIVATE ${PDO_TOP_DIR}/common/
 
 TARGET_COMPILE_OPTIONS(${UNTRUSTED_TEST_NAME} PRIVATE ${COMMON_CXX_FLAGS})
 
+# critical flag for conditional compile in test crypto sources
 TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_TEST_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
+TARGET_COMPILE_DEFINITIONS(${UNTRUSTED_TEST_NAME} PRIVATE ${IAS_CA_CERT_REQUIRED_FLAGS})
+
 # Link the untrusted test application against the untrusted library and openssl
-TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS})
+TARGET_LINK_LIBRARIES(${UNTRUSTED_TEST_NAME} "-Wl,--start-group" ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS} ${U_CRYPTO_LIB_NAME} "-Wl,--end-group")
 
 # Register this application as a test
 add_test(
@@ -63,6 +70,8 @@ if(NOT UNTRUSTED_ONLY)
 	SGX_EDGE_UNTRUSTED(${ENCLAVE_EDL} ENCLAVE_EDGE_SOURCES)
 
 	ADD_EXECUTABLE(${TRUSTED_TEST_NAME} trusted/app/TestApp.cpp ${ENCLAVE_EDGE_SOURCES})
+
+    TARGET_COMPILE_DEFINITIONS(${TRUSTED_TEST_NAME} PRIVATE ${IAS_CA_CERT_REQUIRED_FLAGS})
 
 	# Make sure the enclave builds before the test app that links it
 	ADD_DEPENDENCIES(${TRUSTED_TEST_NAME} TestEnclave)

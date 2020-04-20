@@ -33,7 +33,6 @@ INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include)
 INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common)
 INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/crypto)
 INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/parson)
-## INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/tinyscheme ${PDO_TOP_DIR}/common/interpreter ../libpoet_shared)
 
 # If are compiling for Linux, then we have special linking for the trusted
 # runtime service
@@ -114,7 +113,7 @@ ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJ
 SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PROJECT_KEY} ${PROJECT_CONFIG})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -ltpdo-crypto -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
 TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
 
 ADD_CUSTOM_COMMAND(
