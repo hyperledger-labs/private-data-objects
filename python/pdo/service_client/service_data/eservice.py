@@ -43,7 +43,6 @@ __all__ = [
 from pdo.submitter.create import create_submitter
 from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.common.utility import deprecated
-import pdo.common.keys as keys
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

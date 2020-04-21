@@ -19,7 +19,6 @@ import os
 
 import pdo.submitter.ccf.helpers.clients as ccf_helper
 
-import pdo.common.utility as putils
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.submitter.submitter as sub
@@ -64,7 +63,7 @@ class CCFSubmitter(sub.Submitter):
                 _, host_port = self.url.split('//')
                 self.host, self.port = host_port.split(':')
             except Exception as e:
-                raise("Unable to parse CCF ledger URL. Must be of the form http://ip:port : %s", str(e))
+                raise Exception("Unable to parse CCF ledger URL. Must be of the form http://ip:port : %s", str(e))
 
             ccf_key_dir = os.environ.get("PDO_LEDGER_KEY_ROOT")
             #ensure that ccf keys are present

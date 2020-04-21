@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-import hashlib
 import time
 import requests
 import yaml
@@ -22,7 +21,6 @@ import json
 import binascii
 import warnings
 import secp256k1
-import urllib
 
 from google.protobuf import json_format
 from google.protobuf.json_format import MessageToDict
@@ -44,9 +42,7 @@ from  pdo.submitter.sawtooth.pdo_protos.pdo_contract_registry_pb2 import\
     PdoContractTransaction,\
     PdoContractRegister,\
     PdoContractAddEnclaves,\
-    PdoContractRemoveEnclaves,\
-    PdoContractEnclavesInfo,\
-    PdoProvisioningKeyToStateSecretMap
+    PdoContractRemoveEnclaves
 
 from  pdo.submitter.sawtooth.pdo_protos.pdo_contract_ccl_pb2 import\
     CCL_ContractState,\

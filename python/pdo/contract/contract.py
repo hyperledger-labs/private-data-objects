@@ -15,8 +15,6 @@ import os
 import errno
 import json
 
-import pdo.common.crypto as crypto
-import pdo.common.keys as keys
 import pdo.common.utility as putils
 
 from pdo.submitter.create import create_submitter

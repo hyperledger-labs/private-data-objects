@@ -50,6 +50,8 @@ def read_transaction_keys_from_file(key_file, search_path, \
     else:
         raise Exception("Invalid Ledger Type. Must be either 'sawtooth' or 'ccf'")
 
+    return txn_keys
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class TransactionKeys(object) :
