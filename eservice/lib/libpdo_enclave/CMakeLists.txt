@@ -125,6 +125,7 @@ SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
 SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PROJECT_CONFIG})
 
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} "${PDO_TOP_DIR}/common/build/libtpdo-common.a")
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} "${PDO_TOP_DIR}/common/build/libpdo_contracts.a")
 IF ($ENV{PDO_INTERPRETER} STREQUAL "gipsy")
   TARGET_LINK_LIBRARIES(${PROJECT_NAME} "${PDO_TOP_DIR}/common/build/libgipsy.a")
@@ -136,7 +137,7 @@ ENDIF()
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common ${INTERPRETER_LIBS} -lpdo_contracts -Wl,--end-group)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group ${INTERPRETER_LIBS} -lpdo_contracts -Wl,--end-group)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-crypto -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
 
 TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
