@@ -63,6 +63,6 @@ TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,-L,${SGX_SSL}/lib64/release)
 TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,-L,${PDO_TOP_DIR}/common/build)
 TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} "-Wl,--start-group" "${TRUSTED_LIB_NAME}" "${T_CRYPTO_LIB_NAME}" "sgx_tsgxssl_crypto" "sgx_tstdc" "sgx_tcxx" "sgx_tcrypto" "${SERVICE_LIBRARY_NAME}" "-Wl,--end-group")
+TARGET_LINK_LIBRARIES(${ENCLAVE_NAME} -Wl,--start-group ${TRUSTED_LIB_NAME} ${T_CRYPTO_LIB_NAME} sgx_tsgxssl_crypto sgx_tstdc sgx_tcxx sgx_tcrypto ${SERVICE_LIBRARY_NAME} -Wl,--end-group)
 
 SGX_SIGN_ENCLAVE(${ENCLAVE_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${ENCLAVE_CONFIG})
