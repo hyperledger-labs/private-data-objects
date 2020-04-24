@@ -42,19 +42,6 @@ var_set() {
 	"
 	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
 
-	env_val[WASM_MODE]="${WASM_MODE:-INTERP}"
-	env_desc[WASM_MODE]="
-		WASM_MODE indicates the execution mode of the wasm runtime.
-                If the variable is set to 'INTERP', the runtime will be
-                built to run intepreted wasm bytecode contracts. If the
-                variable is set to 'INTERP_OPT', the runtime will be
-                built to run the optimized interpreter for wasm bytecode
-                contracts. If the variable is
-                set to 'AOT', the runtime will be built to run AoT-compiled
-                native wasm contracts.
-	"
-	env_key_sort[$i]="WASM_MODE"; i=$i+1; export WASM_MODE=${env_val[WASM_MODE]};
-
 	env_val[WASM_MEM_CONFIG]="${WASM_MEM_CONFIG:-MEDIUM}"
 	env_desc[WASM_MEM_CONFIG]="
 		WASM_MEM_CONFIG indicates the memory configuration for the
@@ -74,7 +61,9 @@ var_set() {
 		PDO_INTERPRETER contains the name of the interpreter to use
                 for processing contracts. 'gipsy' is the default and is the Scheme-based,
                 functional language. 'wawaka' is an experimental interpreter that executes
-                WASM-based contracts.
+                WASM-based contracts. 'wawaka-opt' is a version of wawaka with optimizations
+                enabled. 'wawaka-aot' is a WASM runtime that
+                executes ahead-of-time compiled WASM contracts.
 	"
 	env_key_sort[$i]="PDO_INTERPRETER"; i=$i+1; export PDO_INTERPRETER=${env_val[PDO_INTERPRETER]};
 

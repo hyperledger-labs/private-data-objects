@@ -99,7 +99,12 @@ for test_file in ${SRCDIR}/build/tests/common/*.json ; do
 done
 
 # execute interpreter specific tests
-for test_file in ${SRCDIR}/build/tests/${PDO_INTERPRETER}/*.json ; do
+INTERPRETER_NAME=${PDO_INTERPRETER}
+if [[ "$PDO_INTERPRETER" =~ ^"wawaka-" ]]; then
+    INTERPRETER_NAME="wawaka"
+fi
+
+for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start interpreter-specific test ${test_contract} without services
     try pdo-test-contract --no-ledger --contract ${test_contract} \
@@ -157,7 +162,12 @@ for test_file in ${SRCDIR}/build/tests/common/*.json ; do
 done
 
 # execute interpreter specific tests
-for test_file in ${SRCDIR}/build/tests/${PDO_INTERPRETER}/*.json ; do
+INTERPRETER_NAME=${PDO_INTERPRETER}
+if [[ "$PDO_INTERPRETER" =~ ^"wawaka-" ]]; then
+    INTERPRETER_NAME="wawaka"
+fi
+
+for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start interpreter-specific test ${test_contract} with services
     try pdo-test-contract --contract ${test_contract} \

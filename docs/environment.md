@@ -72,7 +72,10 @@ enviroment will be built; generally `PDO_HOME` will point to
 `PDO_INTERPRETER` contains the name of the interpreter to use for
 processing contracts. `gipsy` is the default and is the Scheme-based,
 functional language. `wawaka` is an experimental interpreter that
-executes WASM-based contracts. For more information on configuration
+executes WASM-based contracts. `wawaka-opt` enables optimizations
+in Wawaka's WASM interpreter. `wawaka-aot` is a version of Wawaka that
+executes ahead-of-time compiled WASM contracts.
+For more information on the configuration
 and use of `wawaka`, see the interpreter
 [README](../common/interpreter/wawaka/README.md).
 
@@ -109,18 +112,6 @@ the contract enclave.
 is used to build the WASM interpreter for the wawaka contract interpreter.
 The git submodule points to the latest tagged commit of [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) we have validated:
 `WAMR-04-15-2020`.
-
-<!-- -------------------------------------------------- -->
-### `WASM_MODE`
-(default: `INTERP`)
-
-`WASM_MODE` indicates the execution mode of the wasm runtime.
-If the variable is set to `INTERP`, the runtime will be
-built to run intepreted wasm bytecode contracts. If the
-variable is set to `INTERP_OPT`, the runtime will be
-built to run the optimized interpreter for wasm bytecode
-contracts. If the variable is set to `AOT`, the runtime will
-be built to run AoT-compiled native wasm contracts.
 
 <!-- -------------------------------------------------- -->
 ### `WASM_MEM_CONFIG`

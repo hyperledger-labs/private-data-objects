@@ -42,8 +42,10 @@ extern bool RegisterNativeFunctions(void);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-#ifdef AOT_WASM_RT
+#ifdef USE_WAWAKA_AOT
 const std::string WawakaInterpreter::identity_ = "wawaka-aot";
+#elif USE_WAWAKA_OPT
+const std::string WawakaInterpreter::identity_ = "wawaka-opt";
 #else
 const std::string WawakaInterpreter::identity_ = "wawaka";
 #endif
