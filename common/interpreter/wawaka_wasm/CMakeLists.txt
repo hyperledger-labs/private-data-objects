@@ -31,17 +31,13 @@ IF (SUBMOD_CONTENTS EQUAL 0)
   MESSAGE(FATAL_ERROR "WAMR git submodule has not been cloned. Please run `git submodule update --init` first.")
 ENDIF()
 
-IF (NOT DEFINED ENV{WASM_MODE})
-  MESSAGE(FATAL_ERROR "WASM_MODE environment variable not defined!")
-ENDIF()
-
 IF (NOT DEFINED ENV{WASM_MEM_CONFIG})
   MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
 ENDIF()
 
 SET(WASM_SRC "$ENV{WASM_SRC}")
-SET(WASM_MODE "$ENV{WASM_MODE}")
 SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
+SET(PDO_INTERPRETER "$ENV{PDO_INTERPRETER}")
 
 # Reset default linker flags
 set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
@@ -62,21 +58,22 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif ()
 
-IF (WASM_MODE STREQUAL "AOT")
+IF (PDO_INTERPRETER STREQUAL "wawaka-aot")
   # Enable AOT.
   set (WAMR_BUILD_AOT 1)
   # Disable Interpreter for AoT mode
   set (WAMR_BUILD_INTERP 0)
   set (WAMR_BUILD_FAST_INTERP 0)
-  add_definitions (-DAOT_WASM_RT=1)
+  add_definitions (-DUSE_WAWAKA_AOT=1)
   message(STATUS "Building wawaka in AOT mode")
   message(FATAL_ERROR "AoT mode is not currently implemented")
 ELSE ()
   # Disable AoT by default
   set (WAMR_BUILD_AOT 0)
   set (WAMR_BUILD_INTERP 1)
-  if (WASM_MODE STREQUAL "INTERP_OPT")
+  if (PDO_INTERPRETER STREQUAL "wawaka-opt")
     set (WAMR_BUILD_FAST_INTERP 1)
+    add_definitions (-DUSE_WAWAKA_OPT=1)
     message(STATUS "Building wawaka in optimized INTERP mode")
   else()
     # Disable optimized interpreter by default

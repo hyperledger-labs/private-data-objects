@@ -62,21 +62,24 @@ build steps are required to set up WAMR.
 
 ### Set the environment variables ###
 
-By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use), and `WASM_MODE` (the
-execution mode of the wawaka WASM runtime).
+By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use).
 
 ```bash
 export WASM_SRC=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 export PDO_INTERPRETER=wawaka
-export WASM_MODE=INTERP
 ```
+
+**Optimized Interpreter**
 
 PDO supports two WAMR interpreter modes: classic
 interpreter and optimized interpreter (more details at
 [WAMR documentation](https://github.com/bytecodealliance/wasm-micro-runtime/blob/master/doc/build_wamr.md#configure-interpreter)).
 By default, PDO builds the classic interpreter. To enable the
-optimized interpreter, set the `WASM_MODE` environment variable
-to `INTERP_OPT`.
+optimized interpreter, set the following environment variable:
+
+```bash
+export PDO_INTERPRETER=wawaka-opt
+```
 
 ### Memory configuration ###
 
@@ -168,10 +171,11 @@ Go to [contracts/wawaka/benchmarks](../../../contracts/wawaka/benchmarks/README.
 
 By default, wawaka will be built for interpreted wasm contracts.
 If you would like to enable
-ahead-of-time (AoT) compiled wasm contracts, set the environment variable `WASM_MODE` (default: `INTERP`):
+ahead-of-time (AoT) compiled wasm contracts, set the environment variable
+`PDO_INTERPRETER`:
 
 ```bash
-export WASM_MODE=AOT
+export PDO_INTERPRETER=wawaka-aot
 ```
 
 With AoT wasm enabled, the `wamrc` compiler (including dependencies)
@@ -182,7 +186,7 @@ as part of the PDO build.
 
 We provide a new cmake function `BUILD_AOT_CONTRACT` that
 automatically invokes `wamrc` on a given wasm bytecode file,
-and generates the corresponding `.aot` binary file. 
+and generates the corresponding `.aot` binary file.
 To build an AoT-compiled wawaka contract, add the following call to the contract's
 `CMakeList.txt`:
 

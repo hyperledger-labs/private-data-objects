@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 class ContractCode(object) :
     __extension__ = {
         'gipsy' : '.scm',
-        'wawaka' : '.b64'
+        'wawaka' : '.b64',
+        'wawaka-opt' : '.b64',
+        'wawaka-aot' : '.b64',
     }
 
     # -------------------------------------------------------
