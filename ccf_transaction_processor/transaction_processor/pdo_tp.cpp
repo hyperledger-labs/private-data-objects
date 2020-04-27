@@ -50,9 +50,47 @@ namespace ccfapp
         };
 
         //======================================================================================================
+        // gen_signing_key implementation
+        auto gen_signing_key = [this](Store::Tx& tx, const nlohmann::json& params) {
+
+            auto signer_view = tx.get_view(signer);
+
+            // keys already exist, globally commited
+            auto signer_global = signer_view->get_globally_committed("signer");
+            if (signer_global.has_value()){
+                return make_success("Ledger signing keys exist and globally committed. Use get_ledger_verifying_key \
+                    to get the verifying keys");
+            }
+
+            // keys exist locally, scheduled for globally commit
+            auto signer_local = signer_view->get("signer");
+            if (signer_local.has_value()){
+                return make_success("Ledger signing keys exist and scheduled for global commit. \
+                    Use get_ledger_verifying_key to check the status of global commit");
+            }
+
+            // create new keys and schedule for global commit
+            try{
+                auto kp = make_key_pair(CurveImpl::secp256k1_mbedtls);
+                auto privk_pem = kp->private_key_pem();
+                auto pubk_pem = kp->public_key_pem();
+                map<string, string> key_pair;
+                key_pair["privk"] = privk_pem.str();
+                key_pair["pubk"] = pubk_pem.str();
+                signer_view->put("signer", key_pair);
+                return make_success("Ledger signing keys created locally and scheduled for global commit. \
+                    Use get_ledger_verifying_key to check the status of global commit");
+            } catch(...){
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Unable to create ledger Key");
+            }
+        };
+
+        //======================================================================================================
         // get_ledger_key implementation
         auto get_ledger_key = [this](Store::Tx& tx, const nlohmann::json& params) {
             auto signer_view = tx.get_view(signer);
+
             auto signer_global = signer_view->get_globally_committed("signer");
             if (signer_global.has_value()){
                 try{
@@ -65,29 +103,19 @@ namespace ccfapp
                 }
                 catch(...){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unable to locate ledger Key");
+                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger Key despite global commit");
                 }
             }
 
+            // keys already exist, but not globally commited
             auto signer_local = signer_view->get("signer");
-            try{
-                // if local signer exists, it means that we are waiting for global commit of the signer.
-                // The signer is not used until it gets globally committed.
-                if (!signer_local.has_value()){
-                    // create the key, done only the first time this rpc is called
-                    auto kp = make_key_pair(CurveImpl::secp256k1_mbedtls);
-                    auto privk_pem = kp->private_key_pem();
-                    auto pubk_pem = kp->public_key_pem();
-                    map<string, string> key_pair;
-                    key_pair["privk"] = privk_pem.str();
-                    key_pair["pubk"] = pubk_pem.str();
-                    signer_view->put("signer", key_pair);
-                }
-                return make_success("Ledger signing key not globally commited yet. Check back later");
-            }
-            catch(...){
+            if (signer_local.has_value()){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unable to create ledger Key");
+                    HTTP_STATUS_BAD_REQUEST,"Ledger signing key exist locally, and scheduled for globally commit. \
+                    Verifying keys will be visible only after global commit. Try again in a short while");
+            }else{
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST,"Ledger signing keys not created yet");
             }
         };
 
@@ -104,7 +132,7 @@ namespace ccfapp
             if (enclave_r.has_value())
             {
             return make_error(
-                jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave already registered");
+                HTTP_STATUS_BAD_REQUEST, "Enclave already registered");
             }
 
             // Verify enclave data
@@ -113,7 +141,7 @@ namespace ccfapp
                 // Enclave proof data is empty - simulation mode
             }else{
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Only simulation mode is currently supported");
+                    HTTP_STATUS_BAD_REQUEST, "Only simulation mode is currently supported");
             }
 
             // collect the enclave data to be stored
@@ -129,13 +157,13 @@ namespace ccfapp
             }
             catch(...){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave registration data is incomplete");
+                    HTTP_STATUS_BAD_REQUEST, "Enclave registration data is incomplete");
             }
 
             // Verify Pdo transaction signature
             if (!verify_pdo_transaction_signature_register_enclave(in.signature, in.EHS_verifying_key, new_enclave)){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
+                    HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
             }
 
             //store the data in the KV store
@@ -161,14 +189,14 @@ namespace ccfapp
             if (contract_r.has_value())
             {
             return make_error(
-                jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract already registered");
+                HTTP_STATUS_BAD_REQUEST, "Contract already registered");
             }
 
             // Verify Pdo transaction signature
             if (!verify_pdo_transaction_signature_register_contract(in.signature, in.contract_creator_verifying_key_PEM, \
                     in.contract_code_hash, in.nonce, in.provisioning_service_ids)){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
+                    HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
             }
 
             // collect the contract data to be stored
@@ -183,7 +211,7 @@ namespace ccfapp
                 }
             catch(...){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract registration data is incomplete");
+                    HTTP_STATUS_BAD_REQUEST, "Contract registration data is incomplete");
             }
 
             //store the data
@@ -208,7 +236,7 @@ namespace ccfapp
             auto contract_r = contract_view->get(in.contract_id);
             if (!contract_r.has_value()) {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract not yet registered");
+                    HTTP_STATUS_BAD_REQUEST, "Contract not yet registered");
             }
             auto contract_info = contract_r.value();
 
@@ -216,7 +244,7 @@ namespace ccfapp
             if (!verify_pdo_transaction_signature_add_enclave(in.signature, contract_info.contract_creator_verifying_key_PEM, \
                     in.contract_id, in.enclave_info)){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
+                    HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
             }
 
             // Parse the enclave info json string
@@ -227,7 +255,7 @@ namespace ccfapp
             }
             catch(...){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unable to parse ContractEnclaveInfo Json");
+                    HTTP_STATUS_BAD_REQUEST, "Unable to parse ContractEnclaveInfo Json");
             }
 
             // verify enclave_info_array
@@ -235,7 +263,7 @@ namespace ccfapp
             //unsure if this check is needed, but keeping it for now
             if (enclave_info_array.size() == 0) {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Provide at least one encalve to add to contract");
+                    HTTP_STATUS_BAD_REQUEST, "Provide at least one encalve to add to contract");
             }
 
             // check each element of the array
@@ -244,14 +272,14 @@ namespace ccfapp
                 // check contract id contained in enclave info
                 if (enclave_info_temp.contract_id != contract_info.contract_id){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave info has invalid contract id");
+                        HTTP_STATUS_BAD_REQUEST, "Enclave info has invalid contract id");
                 }
 
                 //ensure enclave is registered
                 auto enclave_r = enclave_view->get(enclave_info_temp.contract_enclave_id);
                 if (!enclave_r.has_value()){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave not yet registered");
+                        HTTP_STATUS_BAD_REQUEST, "Enclave not yet registered");
                 }
                 auto enclave_info_ledger = enclave_r.value();
 
@@ -259,7 +287,7 @@ namespace ccfapp
                 for (auto enclave_in_contract: contract_info.enclave_info){
                     if (enclave_info_temp.contract_enclave_id == enclave_in_contract.contract_enclave_id) {
                         return make_error(
-                            jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave already part of contract");
+                            HTTP_STATUS_BAD_REQUEST, "Enclave already part of contract");
                     }
                 }
 
@@ -270,7 +298,7 @@ namespace ccfapp
                     contract_info.contract_creator_verifying_key_PEM, in.contract_id, enclave_info_temp.provisioning_key_state_secret_pairs, \
                     enclave_info_temp.encrypted_state_encryption_key)){
 
-                    return make_error( jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid enclave signature");
+                    return make_error( HTTP_STATUS_BAD_REQUEST, "Invalid enclave signature");
                 }
 
                 //all good, add enclave to contract
@@ -298,7 +326,7 @@ namespace ccfapp
             }
             catch(...){
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unable to parse StateUpdateInfo json string");
+                    HTTP_STATUS_BAD_REQUEST, "Unable to parse StateUpdateInfo json string");
             }
 
 
@@ -313,14 +341,14 @@ namespace ccfapp
             // ensure that the contract is registered
             if (!contract_r.has_value()) {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract not yet registered");
+                    HTTP_STATUS_BAD_REQUEST, "Contract not yet registered");
             }
             auto contract_info = contract_r.value();
 
             //ensure that the contract is active
             if (!contract_info.is_active) {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract has been turned inactive. No more upates permitted");
+                    HTTP_STATUS_BAD_REQUEST, "Contract has been turned inactive. No more upates permitted");
             }
 
             // ensure that the enclave is part of the contract (no need to separately check if enclave is registered)
@@ -333,7 +361,7 @@ namespace ccfapp
             }
             if (!is_enclave_in_contract) {
                 return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave used for state update not part of contract");
+                        HTTP_STATUS_BAD_REQUEST, "Enclave used for state update not part of contract");
             }
 
             if (in.verb == "init") {
@@ -343,24 +371,23 @@ namespace ccfapp
 
                 if (contract_info.current_state_hash.size() != 0){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract has already been initialized");
+                        HTTP_STATUS_BAD_REQUEST, "Contract has already been initialized");
                 }
 
                 if (state_update_info.previous_state_hash.size() != 0){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Init operation must not have any previous state hash");
+                        HTTP_STATUS_BAD_REQUEST, "Init operation must not have any previous state hash");
                 }
 
                 if (state_update_info.dependency_list.size() != 0){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Init operation must not have CCL dependeices from other contracts");
+                        HTTP_STATUS_BAD_REQUEST, "Init operation must not have CCL dependeices from other contracts");
                 }
 
                 // sign check ensures that Init operation can only be performed by the contract creator
                 if (!verify_pdo_transaction_signature_update_contract_state(in.signature, contract_info.contract_creator_verifying_key_PEM, \
                     in.contract_enclave_id, in.contract_enclave_signature, in.state_update_info)){
-                    return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid PDO payload signature");
+                    return make_error(HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
                 }
 
             }   else if (in.verb == "update") {
@@ -373,25 +400,25 @@ namespace ccfapp
 
                 if (state_update_info.previous_state_hash != contract_info.current_state_hash){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Update can be performed only on the latest state registered with the ledger");
+                        HTTP_STATUS_BAD_REQUEST, "Update can be performed only on the latest state registered with the ledger");
                 }
 
                 for (auto dep: state_update_info.dependency_list){
                     auto dep_r = ccl_view->get(dep.contract_id+ string(dep.state_hash.begin(), dep.state_hash.end()));
                     if (!dep_r.has_value()) {
                         return make_error(
-                            jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unknown CCL dependencies. Cannot commit state");
+                            HTTP_STATUS_BAD_REQUEST, "Unknown CCL dependencies. Cannot commit state");
                     }
                 }
 
                 if (state_update_info.current_state_hash == contract_info.current_state_hash){
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Update can be commited only if there is a change in state");
+                        HTTP_STATUS_BAD_REQUEST, "Update can be commited only if there is a change in state");
                 }
 
             }   else {
                     return make_error(
-                            jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Update verb must be either init or update");
+                            HTTP_STATUS_BAD_REQUEST, "Update verb must be either init or update");
             }
 
             // verify contract enclave signature. This signature also ensures (via the notion of channel ids) that
@@ -400,7 +427,7 @@ namespace ccfapp
                 in.nonce, contract_info.contract_creator_verifying_key_PEM, contract_info.contract_code_hash, \
                 state_update_info)) {
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Invalid enclave signature for contract update operation");
+                        HTTP_STATUS_BAD_REQUEST, "Invalid enclave signature for contract update operation");
                 }
 
 
@@ -437,7 +464,7 @@ namespace ccfapp
                         // OK this needs to be fixed : if locally not present, get it from the table.
                         // Question is how do I write a reuable method for this? (that can take tx
                         // as input and possibily even throw json rpc errors)
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Cannot find signer locally. Use the get_ledger_key rpc to read the key once & try again.");
+                        HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally. Use the get_ledger_key rpc to read the key once & try again.");
                 }
 
                 string doc_to_sign;
@@ -453,7 +480,7 @@ namespace ccfapp
                 enclave_r.value().EHS_verifying_key, signature});
             }
             return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Enclave not found");
+                    HTTP_STATUS_BAD_REQUEST, "Enclave not found");
 
         };
 
@@ -472,7 +499,7 @@ namespace ccfapp
 
                 if (ledger_signer_local == NULL) {
                     return make_error(
-                        jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Cannot find signer locally");
+                        HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
                 }
 
                 auto contract_code_hash = contract_r.value().contract_code_hash;
@@ -492,7 +519,7 @@ namespace ccfapp
                 contract_r.value().contract_creator_verifying_key_PEM, contract_r.value().provisioning_service_ids, \
                 enclave_info_string, signature});
             }
-            return make_error(jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract not found");
+            return make_error(HTTP_STATUS_BAD_REQUEST, "Contract not found");
 
         };
 
@@ -506,16 +533,15 @@ namespace ccfapp
 
             if (!contract_r.has_value())
             {
-                return make_error(jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract not found");
+                return make_error(HTTP_STATUS_BAD_REQUEST, "Contract not found");
             }
 
             if(contract_r.value().is_active && contract_r.value().current_state_hash.size() == 0) {
-                return make_error(jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Contract not yet initialized");
+                return make_error(HTTP_STATUS_BAD_REQUEST, "Contract not yet initialized");
             }
 
             if (ledger_signer_local == NULL) {
-                return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Cannot find signer locally");
+                return make_error(HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
             }
 
             auto current_state_hash = contract_r.value().current_state_hash;
@@ -541,7 +567,7 @@ namespace ccfapp
             if (!ccl_r.has_value())
             {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Unknown (contract_id, state_hash) pair");
+                    HTTP_STATUS_BAD_REQUEST, "Unknown (contract_id, state_hash) pair");
             }
 
             nlohmann::json j = ccl_r.value().dependency_list;
@@ -549,7 +575,7 @@ namespace ccfapp
 
             if (ledger_signer_local == NULL) {
                 return make_error(
-                    jsonrpc::StandardErrorCodes::INVALID_PARAMS, "Cannot find signer locally");
+                    HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
             }
 
             auto ccl_value = ccl_r.value();
@@ -568,34 +594,38 @@ namespace ccfapp
 
         };
 
-        install(PingMe, handler_adapter(ping), HandlerRegistry::Write);
-        install(GET_LEDGER_KEY, handler_adapter(get_ledger_key), HandlerRegistry::Write);
+        install(PingMe, json_adapter(ping), Write);
+        install(GEN_SIGNING_KEY, json_adapter(gen_signing_key), Write);
+        install(GET_LEDGER_KEY, json_adapter(get_ledger_key), Write);
 
-        install(REGISTER_ENCLAVE, handler_adapter(register_enclave), HandlerRegistry::Write);
-        install(REGISTER_CONTRACT, handler_adapter(register_contract), HandlerRegistry::Write);
-        install(ADD_ENCLAVE_TO_CONTRACT, handler_adapter(add_enclave), HandlerRegistry::Write);
-        install(UPDATE_CONTRACT_STATE, handler_adapter(update_contract_state), HandlerRegistry::Write);
+        install(REGISTER_ENCLAVE, json_adapter(register_enclave), Write);
+        install(REGISTER_CONTRACT, json_adapter(register_contract), Write);
+        install(ADD_ENCLAVE_TO_CONTRACT, json_adapter(add_enclave), Write);
+        install(UPDATE_CONTRACT_STATE, json_adapter(update_contract_state), Write);
 
         //Change the following four to read type
-        install(VERIFY_CONTRACT_REGISTRATION, handler_adapter(verify_contract), HandlerRegistry::Read);
-        install(VERIFY_ENCLAVE_REGISTRATION, handler_adapter(verify_enclave), HandlerRegistry::Read);
-        install(GET_CURRENT_STATE_INFO_FOR_CONTRACT, handler_adapter(get_current_state_info_for_contract), HandlerRegistry::Read);
-        install(GET_DETAILS_ABOUT_STATE, handler_adapter(get_details_about_state), HandlerRegistry::Read);
+        install(VERIFY_CONTRACT_REGISTRATION, json_adapter(verify_contract), Read);
+        install(VERIFY_ENCLAVE_REGISTRATION, json_adapter(verify_enclave), Read);
+        install(GET_CURRENT_STATE_INFO_FOR_CONTRACT, json_adapter(get_current_state_info_for_contract), Read);
+        install(GET_DETAILS_ABOUT_STATE, json_adapter(get_details_about_state), Read);
 
     }
 
-
     // Constructor for the app class: Point to rpc handlers
     TransactionProcessor::TransactionProcessor(Store& store) :
-        UserRpcFrontend(store, ping_handler),
-        ping_handler(store) {}
+        UserRpcFrontend(store, tp_handlers),
+        tp_handlers(store)
+        {
+           disable_request_storing();
+        }
 
 
     // This the entry point to the application. Point to the app class
-    std::shared_ptr<enclave::RpcHandler> get_rpc_handler(
+    std::shared_ptr<ccf::UserRpcFrontend> get_rpc_handler(
     NetworkTables& nwt, AbstractNotifier& notifier)
     {
         return make_shared<TransactionProcessor>(*nwt.tables);
     }
 
 }
+
