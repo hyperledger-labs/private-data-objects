@@ -15,7 +15,7 @@
 
 #include "ds/json.h"
 #include "ds/buffer.h"
-#include <msgpack-c/msgpack.hpp>
+#include <msgpack/msgpack.hpp>
 
 using namespace std;
 
