@@ -19,11 +19,57 @@ Return the number of registered endpoints in the exit status
 """
 
 import os
+import socket
 import sys
 import toml
 import re
 from string import Template
-import pdo.common.config as pconfig
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def expand_expressions(text, variable_map) :
+    """expand expressions found in a string, an expression is given
+    in a ${{expr}}. For example, ${{port+5}} will expand to 7005 if
+    port is set to 7000 in the variable_map.
+
+    :param string text: template text
+    :param dict variable_map: dictionary of variable bindings
+    "returns string: text with expressions evaluated.
+    """
+    for item in re.findall(r'\${{(.*)}}', text, re.MULTILINE) :
+        exp = '${{%s}}' % item
+        val = str(eval(item, variable_map))
+        text = text.replace(exp, val)
+
+    return text
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def parse_configuration_file(filename, variable_map) :
+    """
+    Parse a configuration file expanding variable references
+    using the Python Template library (variables are $var format)
+
+    :param string filename: name of the configuration file
+    :param dict variable_map: dictionary of expansions to use
+    :returns dict: dictionary of configuration information
+    """
+
+    cpattern = re.compile('##.*$')
+
+    with open(filename) as fp :
+        lines = fp.readlines()
+
+    text = ""
+    for line in lines :
+        text += re.sub(cpattern, '', line) + ' '
+
+    if variable_map :
+        text = expand_expressions(text, variable_map)
+        text = Template(text).safe_substitute(variable_map)
+
+    return toml.loads(text)
+
 
 ## -----------------------------------------------------------------
 try :
@@ -46,6 +92,7 @@ else:
     sys.exit(-1)
 
 ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHostAddress = socket.gethostbyname(ContractHost)
 ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
@@ -57,6 +104,7 @@ config_map = {
     'etc'  : ContractEtc,
     'home' : ContractHome,
     'host' : ContractHost,
+    'host_address' : ContractHostAddress,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
     'ledger' : LedgerURL,
@@ -71,7 +119,7 @@ config_map = {
 # -----------------------------------------------------------------
 def expand_single(options) :
     filename = os.path.join(options.template_directory, options.template)
-    config = pconfig.parse_configuration_file(filename, config_map)
+    config = parse_configuration_file(filename, config_map)
 
     filename = os.path.join(options.output_directory, options.file)
     with open(filename, 'w') as outfile:
@@ -87,7 +135,7 @@ def expand_multiple(options, n) :
     node_map['_count_'] = n
 
     filename = os.path.join(options.template_directory, options.template)
-    config = pconfig.parse_configuration_file(filename, node_map)
+    config = parse_configuration_file(filename, node_map)
 
     filename = os.path.join(options.output_directory, node + '.toml')
     with open(filename, 'w') as outfile:
