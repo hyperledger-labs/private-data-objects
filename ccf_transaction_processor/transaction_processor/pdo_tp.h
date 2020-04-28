@@ -16,10 +16,12 @@
 #include "enclave_registry.h"
 #include "contract_registry.h"
 #include "ccl_registry.h"
+
 #include "tls/keypair.h"
 #include "tls/base64.h"
 #include "ds/buffer.h"
 #include "crypto/hash.h"
+
 #include "enclave/appinterface.h"
 #include "node/rpc/userfrontend.h"
 
@@ -68,7 +70,7 @@ namespace ccfapp
             Store::Map<string, ContractInfo>& contracttable; // key is contract_id
             Store::Map<string, ContractStateInfo>& ccltable; // key is contract_id + state_hash (string addition)
             Store::Map<string, map<string, string>>& signer; //There is at most one entry in this map. if there is an 
-                                                            //entry key="signer".  value is pubk: & privk:
+                                                            //entry key="signer".  value is pubk:privk
 
             // functions to verify signatures, only wite methods sign transactions, read methods do not.
             bool verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
@@ -113,9 +115,10 @@ namespace ccfapp
     class TransactionProcessor : public ccf::UserRpcFrontend
     {
     private:
-        TPHandler ping_handler;
+        TPHandler tp_handlers;
 
     public:
         TransactionProcessor(Store& store);
     };
 }
+
