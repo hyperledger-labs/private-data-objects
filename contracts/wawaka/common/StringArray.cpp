@@ -16,8 +16,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <stdio.h>
-
 #include "StringArray.h"
 #include "WasmExtensions.h"
 
@@ -183,6 +181,15 @@ bool StringArray::equal(const StringArray& sarray) const
         return false;
 
     return (memcmp(value_, sarray.value_, size_) == 0);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool StringArray::null_terminated(void) const
+{
+    if (value_ == NULL || size_ == 0)
+        return false;
+
+    return (value_[size_ - 1] == 0);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
