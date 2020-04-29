@@ -16,6 +16,7 @@
 #pragma once
 
 #include "parson.h"
+#include "StringArray.h"
 
 namespace ww
 {
@@ -25,6 +26,8 @@ namespace value
     {
         // storage associated value_ is owned by this value and must be free'd
     protected:
+        void clear_value(void);
+
         JSON_Value_Type expected_value_type_;
         JSON_Value *value_;
 
@@ -33,11 +36,14 @@ namespace value
         ~Value(void);
 
         char *serialize(void) const;
+        bool serialize(StringArray& result) const;
         bool deserialize(const char *message);
 
         JSON_Value_Type get_type(void) const;
         const JSON_Value* get(void) const;
         const JSON_Value* set(const JSON_Value *value);
+
+        bool is_null(void) const { return value_ == NULL; };
     };
 
     class Boolean : public Value
@@ -68,6 +74,7 @@ namespace value
     {
     public:
         Object(void);
+        Object(const Object& source);
 
         const char* get_string(const char* key) const;
         double get_number(const char* key) const;
@@ -78,6 +85,19 @@ namespace value
         //bool set_string(const char* name, const char* value);
         //bool set_number(const char* name, const double value);
         //bool set_boolean(const char* name, const bool value);
+        bool set_value(const char* name, const Value& value);
+
+        // pass in a schema object, true if the value has the same
+        // structure as the schema object
+        bool validate_schema(const Value& schema) const;
+        bool validate_schema(const char* schema) const;
+    };
+
+    class Structure : public Object
+    {
+    public:
+        Structure(const char* schema);
+
         bool set_value(const char* name, const Value& value);
     };
 
