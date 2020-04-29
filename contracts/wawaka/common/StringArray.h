@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <string.h>
+
 class StringArray
 {
 public:
@@ -35,6 +38,7 @@ public:
     bool set(uint8_t v, size_t p);
     bool take(uint8_t* buffer, size_t size);
     bool equal(const StringArray& sarray) const;
+    bool null_terminated(void) const;
 
     const size_t size(void) const;
     uint8_t* data(void);
