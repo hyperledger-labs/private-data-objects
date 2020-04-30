@@ -38,6 +38,22 @@ void test_state_kv() {
     size_t test_key_length = TEST_KEY_STRING_LENGTH;
     ByteArray id;
 
+//################ TEST LOG MEMORY ####################################################################################
+    try
+    {
+        LOG_MEMORY;
+        pstate::State_KV skv(state_encryption_key_);
+        LOG_MEMORY;
+        kv_ = &skv;
+        kv_->Finalize(id);
+        kv_ = NULL;
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "error testing LOG_MEMORY");
+        throw;
+    }
+
 //################ TEST PUT ###########################################################################################
     try
     {
