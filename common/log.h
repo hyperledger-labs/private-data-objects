@@ -46,9 +46,55 @@ namespace pdo
 }
 
 #if _UNTRUSTED_
+#define MALLINFO_F mallinfo
 #else  /* _UNTRUSTED_ */
-
+#define MALLINFO_F dlmallinfo
 // this will be implemented by the enclave
 extern void trusted_wrapper_ocall_Log(pdo_log_level_t level, const char* msg);
-
 #endif  /* _UNTRUSTED_ */
+
+/******************************************************************************
+ * Memory logging defines
+ *****************************************************************************/
+// This structure definition is taken from the SGX SDK open-source code
+#define MALLINFO_FIELD_TYPE int
+struct mallinfo {
+  MALLINFO_FIELD_TYPE arena;    /* non-mmapped space allocated from system */
+  MALLINFO_FIELD_TYPE ordblks;  /* number of free chunks */
+  MALLINFO_FIELD_TYPE smblks;   /* always 0 */
+  MALLINFO_FIELD_TYPE hblks;    /* always 0 */
+  MALLINFO_FIELD_TYPE hblkhd;   /* space in mmapped regions */
+  MALLINFO_FIELD_TYPE usmblks;  /* maximum total allocated space */
+  MALLINFO_FIELD_TYPE fsmblks;  /* always 0 */
+  MALLINFO_FIELD_TYPE uordblks; /* total allocated space */
+  MALLINFO_FIELD_TYPE fordblks; /* total free space */
+  MALLINFO_FIELD_TYPE keepcost; /* releasable (via malloc_trim) space */
+};
+
+extern "C"
+{
+    extern struct mallinfo MALLINFO_F(void);
+}
+
+// Usage:
+//      - place the LOG_MEMORY in a source file (e.g., of the enclave);
+//      - compile, run and check out the logs
+//
+// Result:
+//      - the two (string) fields display the function name and the line number where the memory stats was performed
+//      - for the other three fields, see comments in data structure.
+//        NOTE:
+//        Inside an enclave, it should hold that
+//        `a = u + f` AND `a <= HeapMaxSize`
+//        where HeapMaxSize is the value set in enclave configuration xml file
+
+#if PDO_DEBUG_BUILD
+#define LOG_MEMORY \
+    do {\
+        struct mallinfo sm = MALLINFO_F(); \
+        SAFE_LOG(PDO_LOG_INFO, "MLOG:%s:%u: <a=%d | u=%d | f=%d>\n", \
+                __func__, __LINE__, sm.arena, sm.uordblks, sm.fordblks); \
+    } while(0)
+#else // PDO_DEBUG_BUILD
+#define LOG_MEMORY
+#endif //PDO_DEBUG_BUILD
