@@ -99,6 +99,10 @@ if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
 endif ()
 
 # Set the memory configuration for wawaka
+# WASM_RUNTIME_HEAP_SIZE: The WASM runtime's global heap size
+# MODULE_HEAP_SIZE: Size of the runtime's heap for dynamic allocations by a WASM module.
+# MODULE_STACK_SIZE: Size of the runtime's stack for executing a WASM module
+# Layout: WASM_RUNTIME_HEAP_SIZE > MODULE_HEAP_SIZE + MODULE_STACK_SIZE + MODULE_MAX_MEMORY (set at contract compile time)
 IF (WASM_MEM_CONFIG STREQUAL "SMALL")
   add_definitions (-DWASM_RUNTIME_HEAP_SIZE=2*1024*1024 -DMODULE_HEAP_SIZE=16*1024 -DMODULE_STACK_SIZE=4*1024)
   message(STATUS "Using SMALL memory configuration")

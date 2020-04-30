@@ -80,19 +80,23 @@ to `INTERP_OPT`.
 
 ### Memory configuration ###
 
-Wawaka has four memory configuration parameters that can
+Wawaka has five memory configuration parameters that can
 be adjusted depending on the requirements for a WASM contract:
-- `MODULE_MAX_MEMORY`: Compile-time reserved maximum WASM module memory, which is the sum of a module's stack, heap, and static globals.
-- `MODULE_STACK_SIZE`: The module's stack size.
-- `MODULE_HEAP_SIZE`: The module's heap size.
 - `WASM_RUNTIME_HEAP_SIZE`: The WASM runtime's global heap size.
+- `MODULE_STACK_SIZE`: Size of the runtime's stack for executing a WASM
+module.
+- `MODULE_HEAP_SIZE`: Size of the runtime's heap for dynamic allocations
+by a WASM module.
+- `MODULE_MAX_MEMORY`: Maximum size for a WASM module's entire linear
+address space (module's internal stack + static globals + code)
+- `MODULE_INTERNAL_STACK_SIZE`: Size of a WASM module's internal data stack (part of `MODULE_MAX_MEMORY`).
 
 To facilitate configuring wawaka's memory, we provide
 three pre-defined memory configurations that meet most
 contract requirements:
-- `SMALL`: 64KB max module memory (4KB stack, 16KB heap), 2MB WASM runtime heap
-- `MEDIUM`: 512KB max module memory (32KB stack, 128KB heap), 4MB WASM runtime heap
-- `LARGE`: 4MB max module memory (1MB stack, 2MB heap), 8MB WASM runtime heap
+- `SMALL`: 64KB max module memory, 2MB WASM runtime heap (4KB stack, 16KB heap)
+- `MEDIUM`: 512KB max module memory, 4MB WASM runtime heap (32KB stack, 128KB heap)
+- `LARGE`: 4MB max module memory, 8MB WASM runtime heap (1MB stack, 2MB heap)
 
 To use a specific memory configuration, set
 the environment variable `WASM_MEM_CONFIG` (the default is the `MEDIUM`
