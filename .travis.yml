@@ -27,5 +27,5 @@ script:
   # - gipsy/scheme
   - PDO_INTERPRETER=gipsy make -C docker test
   # - wawaka/wasm
-  - PDO_INTERPRETER=wawaka WASM_MODE=INTERP make -C docker test
-  - PDO_INTERPRETER=wawaka WASM_MODE=INTERP_OPT make -C docker test
+  - PDO_INTERPRETER=wawaka WASM_MODE=INTERP WASM_MEM_CONFIG=MEDIUM make -C docker test
+  - PDO_INTERPRETER=wawaka WASM_MODE=INTERP_OPT WASM_MEM_CONFIG=MEDIUM make -C docker test
