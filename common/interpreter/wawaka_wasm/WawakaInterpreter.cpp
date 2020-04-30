@@ -151,11 +151,17 @@ void WawakaInterpreter::load_contract_code(
 
     pe::ThrowIfNull(wasm_module, "module load failed");
 
-    wasm_module_inst = wasm_runtime_instantiate(wasm_module, 64*1024, 64*1024, error_buf, sizeof(error_buf));
+    /* exec_envs in WAMR maintain the corresponding module's stack.
+       So we can pass a dummy stack size here, since we're explictly
+       creating an exec_env for the contract below.
+    */
+    // MODULE_HEAP_SIZE defined through gcc definitions
+    wasm_module_inst = wasm_runtime_instantiate(wasm_module, 0, MODULE_HEAP_SIZE, error_buf, sizeof(error_buf));
     pe::ThrowIfNull(wasm_module_inst, "failed to instantiate the module");
 
-    /* this would allow specific stack size, just use the default for now */
-    wasm_exec_env = wasm_runtime_create_exec_env(wasm_module_inst, 1024 * 64);
+    /* this is where we set the module's stack size */
+    // MODULE_STACK_SIZE defined through gcc definitions
+    wasm_exec_env = wasm_runtime_create_exec_env(wasm_module_inst, MODULE_STACK_SIZE);
     pe::ThrowIfNull(wasm_exec_env, "failed to create the wasm execution environment");
 }
 

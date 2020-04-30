@@ -34,7 +34,8 @@ class WawakaInterpreter : public pc::ContractInterpreter
 private:
     std::string error_msg_;
 
-    char global_heap_buf[10 * 1024 * 1024] = { 0 };
+    // WASM_RUNTIME_HEAP_SIZE defined through gcc definitions
+    char global_heap_buf[WASM_RUNTIME_HEAP_SIZE] = { 0 };
     wasm_module_t wasm_module = NULL;
     wasm_module_inst_t wasm_module_inst = NULL;
     wasm_exec_env_t wasm_exec_env = NULL;

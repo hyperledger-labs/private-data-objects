@@ -78,6 +78,31 @@ By default, PDO builds the classic interpreter. To enable the
 optimized interpreter, set the `WASM_MODE` environment variable
 to `INTERP_OPT`.
 
+### Memory configuration ###
+
+Wawaka has four memory configuration parameters that can
+be adjusted depending on the requirements for a WASM contract:
+- `MODULE_MAX_MEMORY`: Compile-time reserved maximum WASM module memory, which is the sum of a module's stack, heap, and static globals.
+- `MODULE_STACK_SIZE`: The module's stack size.
+- `MODULE_HEAP_SIZE`: The module's heap size.
+- `WASM_RUNTIME_HEAP_SIZE`: The WASM runtime's global heap size.
+
+To facilitate configuring wawaka's memory, we provide
+three pre-defined memory configurations that meet most
+contract requirements:
+- `SMALL`: 64KB max module memory (4KB stack, 16KB heap), 2MB WASM runtime heap
+- `MEDIUM`: 512KB max module memory (32KB stack, 128KB heap), 4MB WASM runtime heap
+- `LARGE`: 4MB max module memory (1MB stack, 2MB heap), 8MB WASM runtime heap
+
+To use a specific memory configuration, set
+the environment variable `WASM_MEM_CONFIG` (the default is the `MEDIUM`
+configuration), which builds both the wawaka interpreter as well as
+any wawaka contracts with the given memory configuration:
+
+```bash
+export WASM_MEM_CONFIG=MEDIUM
+```
+
 ### Build PDO ###
 
 Note that any change to the contract interpreter requires PDO to be completely rebuilt.

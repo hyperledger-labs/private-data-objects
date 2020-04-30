@@ -35,8 +35,13 @@ IF (NOT DEFINED ENV{WASM_MODE})
   MESSAGE(FATAL_ERROR "WASM_MODE environment variable not defined!")
 ENDIF()
 
+IF (NOT DEFINED ENV{WASM_MEM_CONFIG})
+  MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
+ENDIF()
+
 SET(WASM_SRC "$ENV{WASM_SRC}")
 SET(WASM_MODE "$ENV{WASM_MODE}")
+SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
 
 # Reset default linker flags
 set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
@@ -92,6 +97,18 @@ if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
   # Disable libc wasi support by default
   set (WAMR_BUILD_LIBC_WASI 0)
 endif ()
+
+# Set the memory configuration for wawaka
+IF (WASM_MEM_CONFIG STREQUAL "SMALL")
+  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=2*1024*1024 -DMODULE_HEAP_SIZE=16*1024 -DMODULE_STACK_SIZE=4*1024)
+  message(STATUS "Using SMALL memory configuration")
+ELSEIF (WASM_MEM_CONFIG STREQUAL "LARGE")
+  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=8*1024*1024 -DMODULE_HEAP_SIZE=2*1024*1024 -DMODULE_STACK_SIZE=1024*1024)
+  message(STATUS "Using LARGE memory configuration")
+ELSE ()
+  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=4*1024*1024 -DMODULE_HEAP_SIZE=128*1024 -DMODULE_STACK_SIZE=32*1024)
+  message(STATUS "Using MEDIUM memory configuration")
+ENDIF ()
 
 SET(PDO_INCLUDE_DIRS ".")
 LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common")
