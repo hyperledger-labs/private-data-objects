@@ -127,15 +127,15 @@ be built to run AoT-compiled native wasm contracts.
 (default: `MEDIUM`)
 
 `WASM_MEM_CONFIG` indicates the memory configuration for the
-WASM runtime: the runtime's global heap size, the maxium memory
-of a WASM module, and the contract's stack and heap size.
-When the variable is set to `SMALL`, the runtime's global heap
-size is set to 2MB, and the maximum module size is set to
-64KB. If the variable is set to `MEDIUM`, the runtime's heap
-size is set to 4MB and the maxium module size is set to
-512KB. When the variable is set to `LARGE`, the runtime's
-heap size is set to 8MB and the maximum module size is set
-to 4MB.
+WASM runtime: the runtime's global memory pool size,
+the WASM module's heap size, and the size of module's
+operand stack.
+When the variable is set to `SMALL`, the runtime's global memory
+pool size is set to 1MB.
+If the variable is set to `MEDIUM`, the runtime's memory pool
+size is set to 2MB.
+When the variable is set to `LARGE`, the runtime's memory
+pool size is set to 4MB.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
