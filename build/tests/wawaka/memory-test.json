@@ -116,19 +116,34 @@
         "expected": "32000"
     },
     {
-        "description" : "big value test 128 KB should {invert} with WAMR \"out of memory\" exception",
+        "description" : "big value test 128 KB",
         "MethodName": "big_value_test",
         "KeywordParameters": {
             "num_chars" : 128000
         },
-        "invert": "fail",
-        "expected": "internal pdo error"
+        "expected": "128000"
     },
     {
-        "description" : "big value test 1 MB should {invert} with WAMR \"out of memory\" exception",
+        "description" : "big value test 1 MB",
         "MethodName": "big_value_test",
         "KeywordParameters": {
             "num_chars" : 1000000
+        },
+        "expected": "1000000"
+    },
+    {
+        "description" : "big value test 1.5 MB",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 1500000
+        },
+        "expected": "1500000"
+    },
+    {
+        "description" : "big value test 2 MB should {invert} with WAMR \"out of memory\" exception",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 2000000
         },
         "invert": "fail",
         "expected": "internal pdo error"
@@ -174,19 +189,18 @@
         "expected": "16000"
     },
     {
-        "description" : "big key test 64 KB should {invert} with WAMR \"out of memory\" error",
+        "description" : "big key test 64 KB",
         "MethodName": "big_key_test",
         "KeywordParameters": {
             "num_chars" : 64000
         },
-        "invert": "fail",
-        "expected": "internal pdo error"
+        "expected": "64000"
     },
     {
-        "description" : "big key test 1 MB should {invert} with WAMR \"out of memory\" error",
+        "description" : "big key test 1 MB should {invert} with WAMR \"out of memory\" exception",
         "MethodName": "big_key_test",
         "KeywordParameters": {
-            "num_chars" : 64000
+            "num_chars" : 1000000
         },
         "invert": "fail",
         "expected":"internal pdo error"

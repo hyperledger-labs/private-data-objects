@@ -1,0 +1,101 @@
+[
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "big value test 1 MB",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 1000000
+        },
+        "expected": "1000000"
+    },
+    {
+        "description" : "big value test 2 MB",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 2000000
+        },
+        "expected": "2000000"
+    },
+    {
+        "description" : "big value test 3 MB",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 3000000
+        },
+        "expected": "3000000"
+    },
+    {
+        "description" : "big value test 3.15 MB should {invert} with WAMR \"out of memory\" exception",
+        "MethodName": "big_value_test",
+        "KeywordParameters": {
+            "num_chars" : 3150000
+        },
+        "invert": "fail",
+        "expected": "internal pdo error"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    },
+    {
+        "description" : "big key test 64 KB",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 64000
+        },
+        "expected": "64000"
+    },
+    {
+        "description" : "big key test 256 KB",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 256000
+        },
+        "expected": "256000"
+    },
+    {
+        "description" : "big key test 512 KB",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 512000
+        },
+        "expected": "512000"
+    },
+    {
+        "description" : "big key test 1 MB should {invert} with KV store \"bad alloc\" error",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 1000000
+        },
+        "invert": "fail",
+        "expected": "method evaluation failed"
+    },
+    {
+        "description" : "big key test 3 MB should {invert} with WAMR \"out of memory\" exception",
+        "MethodName": "big_key_test",
+        "KeywordParameters": {
+            "num_chars" : 3000000
+        },
+        "invert": "fail",
+        "expected": "internal pdo error"
+    },
+    {
+        "description" : "deep recursion test {KeywordParameters}",
+        "MethodName": "deep_recursion_test",
+        "KeywordParameters": {
+            "levels" : 1000
+        },
+        "expected":"1000"
+    }
+]

@@ -99,18 +99,18 @@ if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
 endif ()
 
 # Set the memory configuration for wawaka
-# WASM_RUNTIME_HEAP_SIZE: The WASM runtime's global heap size
-# MODULE_HEAP_SIZE: Size of the runtime's heap for dynamic allocations by a WASM module.
-# MODULE_STACK_SIZE: Size of the runtime's stack for executing a WASM module
-# Layout: WASM_RUNTIME_HEAP_SIZE > MODULE_HEAP_SIZE + MODULE_STACK_SIZE + MODULE_MAX_MEMORY (set at contract compile time)
+# RUNTIME_MEM_POOL_SIZE: The WASM runtime's global memory pool size
+# HEAP_SIZE: Size of the runtime's heap for dynamic allocations by a WASM module.
+# STACK_SIZE: Size of the runtime's stack for executing a WASM module
+# Layout: RUNTIME_MEM_POOL_SIZE > HEAP_SIZE + STACK_SIZE + padding
 IF (WASM_MEM_CONFIG STREQUAL "SMALL")
-  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=2*1024*1024 -DMODULE_HEAP_SIZE=16*1024 -DMODULE_STACK_SIZE=4*1024)
+  add_definitions (-DRUNTIME_MEM_POOL_SIZE=1*1024*1024 -DHEAP_SIZE=512*1024 -DSTACK_SIZE=64*1024)
   message(STATUS "Using SMALL memory configuration")
 ELSEIF (WASM_MEM_CONFIG STREQUAL "LARGE")
-  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=8*1024*1024 -DMODULE_HEAP_SIZE=2*1024*1024 -DMODULE_STACK_SIZE=1024*1024)
+  add_definitions (-DRUNTIME_MEM_POOL_SIZE=4*1024*1024 -DHEAP_SIZE=3*1024*1024 -DSTACK_SIZE=256*1024)
   message(STATUS "Using LARGE memory configuration")
 ELSE ()
-  add_definitions (-DWASM_RUNTIME_HEAP_SIZE=4*1024*1024 -DMODULE_HEAP_SIZE=128*1024 -DMODULE_STACK_SIZE=32*1024)
+  add_definitions (-DRUNTIME_MEM_POOL_SIZE=2*1024*1024 -DHEAP_SIZE=1536*1024 -DSTACK_SIZE=128*1024)
   message(STATUS "Using MEDIUM memory configuration")
 ENDIF ()
 
