@@ -58,16 +58,14 @@ var_set() {
 	env_val[WASM_MEM_CONFIG]="${WASM_MEM_CONFIG:-MEDIUM}"
 	env_desc[WASM_MEM_CONFIG]="
 		WASM_MEM_CONFIG indicates the memory configuration for the
-		WASM runtime: the runtime's global heap size, the maximum
-		reserved memory for a WASM module at compile-time,
-		and a module's stack and heap size.
-		When the variable is set to 'SMALL', the runtime's global heap
-		size is set to 2MB, and the maximum module memory is set to
-		64KB. If the variable is set to 'MEDIUM', the runtime's heap
-		size is set to 4MB and the maxium module memory is set to
-		512KB. When the variable is set to 'LARGE', the runtime's
-		heap size is set to 8MB and the maximum module memory is set
-		to 4MB.
+		WASM runtime: the runtime's global memory pool size,
+		and a module's operand stack and heap size.
+		When the variable is set to 'SMALL', the runtime's memory pool
+		size is set to 1MB. If the variable is set to 'MEDIUM', the
+		runtime's memory pool size is set to 2MB.
+		When the variable is set to 'LARGE', the runtime's
+		memory pool size is set to 4MB. See
+		common/interpreter/wawaka_wasm/README.md for further details.
 	"
 	env_key_sort[$i]="WASM_MEM_CONFIG"; i=$i+1; export WASM_MEM_CONFIG=${env_val[WASM_MEM_CONFIG]};
 

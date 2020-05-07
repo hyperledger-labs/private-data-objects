@@ -155,13 +155,13 @@ void WawakaInterpreter::load_contract_code(
        So we can pass a dummy stack size here, since we're explictly
        creating an exec_env for the contract below.
     */
-    // MODULE_HEAP_SIZE defined through gcc definitions
-    wasm_module_inst = wasm_runtime_instantiate(wasm_module, 0, MODULE_HEAP_SIZE, error_buf, sizeof(error_buf));
+    // HEAP_SIZE defined through gcc definitions
+    wasm_module_inst = wasm_runtime_instantiate(wasm_module, 0, HEAP_SIZE, error_buf, sizeof(error_buf));
     pe::ThrowIfNull(wasm_module_inst, "failed to instantiate the module");
 
     /* this is where we set the module's stack size */
-    // MODULE_STACK_SIZE defined through gcc definitions
-    wasm_exec_env = wasm_runtime_create_exec_env(wasm_module_inst, MODULE_STACK_SIZE);
+    // STACK_SIZE defined through gcc definitions
+    wasm_exec_env = wasm_runtime_create_exec_env(wasm_module_inst, STACK_SIZE);
     pe::ThrowIfNull(wasm_exec_env, "failed to create the wasm execution environment");
 }
 
@@ -312,8 +312,8 @@ void WawakaInterpreter::Initialize(void)
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     init_args.mem_alloc_type = Alloc_With_Pool;
-    init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
-    init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+    init_args.mem_alloc_option.pool.heap_buf = global_mem_pool_buf;
+    init_args.mem_alloc_option.pool.heap_size = sizeof(global_mem_pool_buf);
 
     result = wasm_runtime_full_init(&init_args);
     pe::ThrowIf<pe::RuntimeError>(! result, "failed to initialize wasm runtime environment");

@@ -80,32 +80,46 @@ to `INTERP_OPT`.
 
 ### Memory configuration ###
 
-Wawaka has five memory configuration parameters that can
+Wawaka has three memory configuration parameters that can
 be adjusted depending on the requirements for a WASM contract:
-- `WASM_RUNTIME_HEAP_SIZE`: The WASM runtime's global heap size.
-- `MODULE_STACK_SIZE`: Size of the runtime's stack for executing a WASM
-module.
-- `MODULE_HEAP_SIZE`: Size of the runtime's heap for dynamic allocations
-by a WASM module.
-- `MODULE_MAX_MEMORY`: Maximum size for a WASM module's entire linear
-address space (module's internal stack + static globals + code)
-- `MODULE_INTERNAL_STACK_SIZE`: Size of a WASM module's internal data stack (part of `MODULE_MAX_MEMORY`).
+- `RUNTIME_MEM_POOL_SIZE`: The WASM runtime's global memory pool size.
+- `STACK_SIZE`: Size of the runtime's operand stack for executing
+the contract.
+- `HEAP_SIZE`: Size of the heap for dynamic allocations
+by the contract.
 
 To facilitate configuring wawaka's memory, we provide
 three pre-defined memory configurations that meet most
 contract requirements:
-- `SMALL`: 64KB max module memory, 2MB WASM runtime heap (4KB stack, 16KB heap)
-- `MEDIUM`: 512KB max module memory, 4MB WASM runtime heap (32KB stack, 128KB heap)
-- `LARGE`: 4MB max module memory, 8MB WASM runtime heap (1MB stack, 2MB heap)
+- `SMALL`: 1MB WASM runtime memory pool (64KB stack, 768KB heap)
+- `MEDIUM`: 2MB WASM runtime memory pool (256KB stack, 1.5MB heap)
+- `LARGE`: 4MB WASM runtime memory pool (512KB stack, 3MB heap)
 
 To use a specific memory configuration, set
 the environment variable `WASM_MEM_CONFIG` (the default is the `MEDIUM`
-configuration), which builds both the wawaka interpreter as well as
-any wawaka contracts with the given memory configuration:
+configuration) to build the wawaka interpreter with those memory
+settings:
 
 ```bash
 export WASM_MEM_CONFIG=MEDIUM
 ```
+
+Here are some tips for choosing the right wawaka memory configuration
+for your contract:
+- How many global variables does your contract use?
+- How deep is your call graph?
+- How many dynamic allocations do you expect your contract to make?
+
+As a general rule, a contract's globals and
+[linear memory](https://webassembly.org/docs/semantics/#linear-memory)
+need to fit into the runtime's memory pool along with
+the stack and heap.
+
+You may also need to specify additional _contract-specific_
+memory settings at compile time to ensure that wawaka has sufficient
+memory to execute your contract. Please refer to
+the emscripten [documentation](https://emscripten.org/docs/tools_reference/emcc.html) for setting the appropriate
+options for your contract.
 
 ### Build PDO ###
 
