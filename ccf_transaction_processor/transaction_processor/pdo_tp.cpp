@@ -50,9 +50,47 @@ namespace ccfapp
         };
 
         //======================================================================================================
+        // gen_signing_key implementation
+        auto gen_signing_key = [this](Store::Tx& tx, const nlohmann::json& params) {
+
+            auto signer_view = tx.get_view(signer);
+            
+            // keys already exist, globally commited
+            auto signer_global = signer_view->get_globally_committed("signer");
+            if (signer_global.has_value()){
+                return make_success("Ledger signing keys exist and globally committed. Use get_ledger_verifying_key \
+                    to get the verifying keys");
+            }
+            
+            // keys exist locally, scheduled for globally commit
+            auto signer_local = signer_view->get("signer");
+            if (signer_local.has_value()){ 
+                return make_success("Ledger signing keys exist and scheduled for global commit. \
+                    Use get_ledger_verifying_key to check the status of global commit");
+            }
+
+            // create new keys and schedule for global commit
+            try{
+                auto kp = make_key_pair(CurveImpl::secp256k1_mbedtls);
+                auto privk_pem = kp->private_key_pem();
+                auto pubk_pem = kp->public_key_pem();
+                map<string, string> key_pair;
+                key_pair["privk"] = privk_pem.str();
+                key_pair["pubk"] = pubk_pem.str();
+                signer_view->put("signer", key_pair);
+                return make_success("Ledger signing keys created locally and scheduled for global commit. \
+                    Use get_ledger_verifying_key to check the status of global commit");
+            } catch(...){
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Unable to create ledger Key");
+            }
+        };
+        
+        //======================================================================================================
         // get_ledger_key implementation
         auto get_ledger_key = [this](Store::Tx& tx, const nlohmann::json& params) {
             auto signer_view = tx.get_view(signer);
+            
             auto signer_global = signer_view->get_globally_committed("signer");
             if (signer_global.has_value()){
                 try{
@@ -65,29 +103,19 @@ namespace ccfapp
                 }
                 catch(...){
                     return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger Key");
+                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger Key despire global commit");
                 }
             }
 
+            // keys already exist, but not globally commited
             auto signer_local = signer_view->get("signer");
-            try{
-                // if local signer exists, it means that we are waiting for global commit of the signer.
-                // The signer is not used until it gets globally committed.
-                if (!signer_local.has_value()){
-                    // create the key, done only the first time this rpc is called
-                    auto kp = make_key_pair(CurveImpl::secp256k1_mbedtls);
-                    auto privk_pem = kp->private_key_pem();
-                    auto pubk_pem = kp->public_key_pem();
-                    map<string, string> key_pair;
-                    key_pair["privk"] = privk_pem.str();
-                    key_pair["pubk"] = pubk_pem.str();
-                    signer_view->put("signer", key_pair);
-                }
-                return make_success("Ledger signing key not globally commited yet. Check back later");
-            }
-            catch(...){
+            if (signer_local.has_value()){
                 return make_error(
-                    HTTP_STATUS_BAD_REQUEST, "Unable to create ledger Key");
+                    HTTP_STATUS_BAD_REQUEST,"Ledger signing key exist locally, and scheduled for globally commit. \
+                    Verifying keys will be visible only after global commit. Try again in a short while");
+            }else{
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST,"Ledger signing keys not created yet");
             }
         };
 
@@ -567,6 +595,7 @@ namespace ccfapp
         };
         
         install(PingMe, json_adapter(ping), Write);
+        install(GEN_SIGNING_KEY, json_adapter(gen_signing_key), Write);
         install(GET_LEDGER_KEY, json_adapter(get_ledger_key), Write);
 
         install(REGISTER_ENCLAVE, json_adapter(register_enclave), Write);
@@ -592,7 +621,7 @@ namespace ccfapp
 
 
     // This the entry point to the application. Point to the app class
-    std::shared_ptr<ccf::RpcHandler> get_rpc_handler(
+    std::shared_ptr<ccf::UserRpcFrontend> get_rpc_handler(
     NetworkTables& nwt, AbstractNotifier& notifier)
     {
         return make_shared<TransactionProcessor>(*nwt.tables);

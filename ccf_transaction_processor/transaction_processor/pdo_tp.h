@@ -17,13 +17,13 @@
 #include "contract_registry.h"
 #include "ccl_registry.h"
 
-#include "tls/keypair.h"
+#include "tls/key_pair.h"
 #include "tls/base64.h"
 #include "ds/buffer.h"
 #include "crypto/hash.h"
 
-#include "enclave/appinterface.h"
-#include "node/rpc/userfrontend.h"
+#include "enclave/app_interface.h"
+#include "node/rpc/user_frontend.h"
 
 #include <map>
 
@@ -60,6 +60,7 @@ namespace ccfapp
     //method that read the ledger verifying key. The very first invocation of this rpc will
     //create the keys and globally commit it.
 
+    static constexpr auto GEN_SIGNING_KEY = "generate_signing_key_for_read_payloads";
     static constexpr auto GET_LEDGER_KEY = "get_ledger_verifying_key";
 
     class TPHandler : public UserHandlerRegistry

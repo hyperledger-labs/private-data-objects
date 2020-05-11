@@ -143,8 +143,8 @@ namespace ccfapp
 
             // Get the hash of the nonce first
             Sha256Hash h;
-            Sha256Hash::evercrypt_sha256({nonce}, h.h);
-            vector<uint8_t> hash(h.h, h.h + 32);
+            Sha256Hash::evercrypt_sha256({nonce}, h.h.data());
+            vector<uint8_t> hash(h.h.data(), h.h.data() + 32);
             string message = b64_from_raw(hash.data(), hash.size());
 
             message += state_update_info.contract_id;
