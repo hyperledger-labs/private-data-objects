@@ -15,6 +15,11 @@ addons:
 
 env:
   global:
+  matrix:
+    # parallelize builds for the different interpreters
+    - PDO_INTERPRETER=gipsy
+    - PDO_INTERPRETER=wawaka
+    - PDO_INTERPRETER=wawaka-opt
 
 before_install:
 
@@ -24,8 +29,5 @@ script:
   - git checkout -b we-need-a-branch-for-below-to-work
   # do integration tests for all available interpreters (in SGX_MODE=SIM mode,
   # though, only ...)
-  # - gipsy/scheme
-  - PDO_INTERPRETER=gipsy make -C docker test
-  # - wawaka/wasm
-  - PDO_INTERPRETER=wawaka WASM_MEM_CONFIG=MEDIUM make -C docker test
-  - PDO_INTERPRETER=wawaka-opt WASM_MEM_CONFIG=MEDIUM make -C docker test
+  # jobs will be parallelized; mem config ignored for gipsy build
+  - make WASM_MEM_CONFIG=MEDIUM -C docker test
