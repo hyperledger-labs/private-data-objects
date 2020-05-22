@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation
+# Copyright 2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,12 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
-INCLUDE(contract-build.cmake)
+FILE(GLOB FIBONACCI_CONTRACT_SOURCE *.cpp)
 
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
+SET(WASM_MODE "$ENV{WASM_MODE}")
+
+IF (WASM_MODE STREQUAL "AOT")
+  BUILD_AOT_CONTRACT(fibonacci ${FIBONACCI_CONTRACT_SOURCE})
+ELSE()
+  BUILD_CONTRACT(fibonacci ${FIBONACCI_CONTRACT_SOURCE})
+ENDIF()

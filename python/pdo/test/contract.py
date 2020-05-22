@@ -39,6 +39,7 @@ from pdo.common import keys
 from pdo.common import utility as putils
 from pdo.common import config as pconfig
 from pdo.common import logger as plogger
+from pdo.test.benchmark import RunBenchmark
 
 import logging
 logger = logging.getLogger(__name__)
@@ -386,7 +387,22 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
         try :
             total_tests += 1
             update_request = contract.create_update_request(contract_invoker_keys, expression, enclave_to_use)
-            update_response = update_request.evaluate()
+
+            # run this test as a benchmark if specified
+            if test.get('benchmark') and test.get('benchmark') == 'true':
+                bench_iterations = 0
+                if test.get('benchIterations'):
+                    bench_iterations = int(test['benchIterations'])
+                bench_name = test['MethodName']
+                if test.get('benchName'):
+                    bench_name = test['benchName']
+
+                logger.info('Running %d iterations of %s benchmark', bench_iterations, bench_name)
+                RunBenchmark(config['Contract']['Interpreter'], bench_iterations, bench_name, update_request)
+
+                continue
+            else:
+                update_response = update_request.evaluate()
 
             raw_result = str(update_response.invocation_response)
             result = raw_result[:15]

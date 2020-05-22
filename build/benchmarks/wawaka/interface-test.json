@@ -1,0 +1,10 @@
+[
+    { "MethodName" : "echo_test",
+      "KeywordParameters": {
+          "message": "test"
+      },
+      "benchmark": "true",
+      "benchIterations": "10",
+      "benchName": "echo"
+    }
+]

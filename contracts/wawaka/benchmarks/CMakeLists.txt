@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation
+# Copyright 2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,6 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
-INCLUDE(contract-build.cmake)
+INCLUDE(../contract-build.cmake)
 
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
+ADD_SUBDIRECTORY(fibonacci)

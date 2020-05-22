@@ -139,7 +139,27 @@ interpreter. You can run the simple test contract as follows:
 cd ${PDO_SOURCE_ROOT}/contracts/wawaka
 pdo-test-contract --no-ledger --interpreter wawaka --contract mock-contract \
     --expressions ./mock-contract/test-long.exp --loglevel info
+    ```
+
+You may also want to run the full wawaka test suite:
+```bash
+cd ${PDO_SOURCE_ROOT}/build
+make test
 ```
+
+### Benchmarking wawaka
+
+PDO now provides a small benchmarking suite for wawaka. The contracts
+are located under `contracts/wawaka/benchmarks` and test different
+workloads. To build the benchmarking contracts, and run the provided
+benchmarking suite under the current wawaka configuration, run:
+
+```bash
+cd ${PDO_SOURCE_ROOT}/build
+make benchmark
+```
+
+Go to [contracts/wawaka/benchmarks](../../../contracts/wawaka/benchmarks/README.md), for more details.
 
 ## Ahead-of-Time Compiled WASM
 ** Disclaimer: Support for this feature is under active development and will be rolled-out at a later date. AoT mode cannot currently be enabled for testing. **
