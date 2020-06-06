@@ -23,3 +23,13 @@ namespace crypto
     int testVerifyReport();
 }
 }
+
+#define COND2ERR(b, error_message) \
+    do \
+    { \
+        if(b) \
+        { \
+            SAFE_LOG(PDO_LOG_ERROR, error_message); \
+            goto err; \
+        } \
+    } while(0)

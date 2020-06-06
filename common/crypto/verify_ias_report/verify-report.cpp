@@ -27,6 +27,16 @@
 //########### INTERNAL FUNCTIONS #########################################
 //########################################################################
 
+#define COND2ERR(b) \
+    do \
+    { \
+        if(b) \
+        { \
+            goto err; \
+        } \
+    } while(0)
+
+
 /* EVP_DecodeBlock pads its output with \0 if the output length is not
    a multiple of 3. Check if the base64 string is padded at the end
    and adjust the output length. */
@@ -37,7 +47,7 @@ static int EVP_DecodeBlock_wrapper(unsigned char* out, int out_len, const unsign
     unsigned char buf[in_len];
 
     int ret = EVP_DecodeBlock(buf, in, in_len);
-    assert(ret != -1);
+    COND2ERR(ret == -1);
     if (in[in_len - 1] == '=' && in[in_len - 2] == '=')
     {
         ret -= 2;
@@ -49,42 +59,57 @@ static int EVP_DecodeBlock_wrapper(unsigned char* out, int out_len, const unsign
 
     memcpy_s(out, out_len, buf, ret);
     return ret;
+
+err:
+    return -1;
 }
 
 //########################################################################
 //########### INTERNAL FUNCTIONS #########################################
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-void get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote)
+int get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote)
 {
     // Move report into \0 terminated buffer such that we can work
     // with str* functions.
     int buf_len = report_len + 1;
     char buf[buf_len];
+    char* p_begin = NULL;
+    char* p_end = NULL;
+    int ret = -1;
+    int quote_base64_len = 0;
+    uint8_t* quote_bin = NULL;
+    uint32_t quote_bin_len = 0;
 
     memcpy_s(buf, buf_len, report, report_len);
     buf[report_len] = '\0';
 
     const int json_string_max_len = 64;
     const char json_string[json_string_max_len] = "\"isvEnclaveQuoteBody\":\"";
-    char* p_begin = strstr(buf, json_string);
-    assert(p_begin != NULL);
+    p_begin = strstr(buf, json_string);
+    COND2ERR(p_begin == NULL);
     p_begin += strnlen(json_string, json_string_max_len);
-    const char* p_end = strchr(p_begin, '"');
-    assert(p_end != NULL);
+    p_end = strchr(p_begin, '"');
+    COND2ERR(p_end == NULL);
 
-    const int quote_base64_len = p_end - p_begin;
-    uint8_t* quote_bin = (uint8_t*)malloc(quote_base64_len);
-    uint32_t quote_bin_len = quote_base64_len;
+    quote_base64_len = p_end - p_begin;
+    quote_bin = (uint8_t*)malloc(quote_base64_len);
+    quote_bin_len = quote_base64_len;
 
-    int ret = EVP_DecodeBlock(quote_bin, (unsigned char*)p_begin, quote_base64_len);
-    assert(ret != -1);
+    ret = EVP_DecodeBlock(quote_bin, (unsigned char*)p_begin, quote_base64_len);
+    COND2ERR(ret == -1);
+
     quote_bin_len = ret;
-
-    assert(quote_bin_len <= sizeof(sgx_quote_t));
+    COND2ERR(quote_bin_len > sizeof(sgx_quote_t));
     memset(quote, 0, sizeof(sgx_quote_t));
     memcpy_s(quote, sizeof(sgx_quote_t), quote_bin, quote_bin_len);
     free(quote_bin);
+
+    // success
+    return 0;
+
+err:
+    return -1;
 }
 
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
@@ -94,30 +119,33 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
                                             unsigned int ias_signature_len)
 {
     X509* crt = NULL;
-    int ret;
-
-    BIO* crt_bio = BIO_new_mem_buf((void*)ias_attestation_signing_cert_pem, -1);
-
-    crt = PEM_read_bio_X509(crt_bio, NULL, 0, NULL);
-    assert(crt != NULL);
-
-    EVP_PKEY* key = X509_get_pubkey(crt);
-    assert(key != NULL);
-
-    EVP_MD_CTX* ctx = EVP_MD_CTX_create();
-    ret = EVP_VerifyInit_ex(ctx, EVP_sha256(), NULL);
-    assert(ret == 1);
-
-    ret = EVP_VerifyUpdate(ctx, ias_report, ias_report_len);
-    assert(ret == 1);
-
+    int ret = -1;
     int ias_signature_decoded_len = 2048;
     unsigned char ias_signature_decoded[ias_signature_decoded_len];
+    EVP_PKEY* key = NULL;
+    EVP_MD_CTX* ctx = NULL;
+
+    BIO* crt_bio = BIO_new_mem_buf((void*)ias_attestation_signing_cert_pem, -1);
+    COND2ERR(crt_bio == NULL);
+
+    crt = PEM_read_bio_X509(crt_bio, NULL, 0, NULL);
+    COND2ERR(crt == NULL);
+
+    key = X509_get_pubkey(crt);
+    COND2ERR(key == NULL);
+
+    ctx = EVP_MD_CTX_create();
+    ret = EVP_VerifyInit_ex(ctx, EVP_sha256(), NULL);
+    COND2ERR(ret != 1);
+
+    ret = EVP_VerifyUpdate(ctx, ias_report, ias_report_len);
+    COND2ERR(ret != 1);
+
     ret = EVP_DecodeBlock_wrapper(ias_signature_decoded,
                                     ias_signature_decoded_len,
                                     (unsigned char*)ias_signature,
                                     ias_signature_len);
-    assert(ret!=-1);
+    COND2ERR(ret == -1);
 
     ret = EVP_VerifyFinal(ctx, (unsigned char*)ias_signature_decoded, ret, key);
 
@@ -126,10 +154,12 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
     X509_free(crt);
     BIO_free(crt_bio);
 
-    if(ret != 1) //error
-        return VERIFY_FAILURE;
+    COND2ERR(ret != 1); // 1 == correct signature
 
     return VERIFY_SUCCESS; /* success */
+
+err:
+    return VERIFY_FAILURE;
 }
 
 verify_status_t verify_ias_certificate_chain(const char* cert_pem)
@@ -139,28 +169,38 @@ verify_status_t verify_ias_certificate_chain(const char* cert_pem)
 }
 #else //IAS_CA_CERT_REQUIRED is defined
 {
-
-    assert(cert_pem!=NULL);
-
     /* Using the IAS CA certificate as a root of trust. */
     /* Checking that cert is signed by CA. */
 
-    X509* cacrt;
-    X509* crt;
+    X509* cacrt = NULL;
+    X509* crt = NULL;
+    BIO* crt_bio = NULL;
+    BIO* cacrt_bio = NULL;
+    X509_STORE* s = NULL;
+    X509_STORE_CTX* ctx = NULL;
+    int rc = -1;
 
-    BIO* crt_bio = BIO_new_mem_buf((void*)cert_pem, -1);
+    COND2ERR(cert_pem == NULL);
+
+    crt_bio = BIO_new_mem_buf((void*)cert_pem, -1);
     crt = PEM_read_bio_X509(crt_bio, NULL, 0, NULL);
-    assert(crt != NULL);
+    COND2ERR(crt == NULL);
 
-    BIO* cacrt_bio = BIO_new_mem_buf((void*)ias_report_signing_ca_cert_pem, -1);
+    cacrt_bio = BIO_new_mem_buf((void*)ias_report_signing_ca_cert_pem, -1);
     cacrt = PEM_read_bio_X509(cacrt_bio, NULL, 0, NULL);
+    // the correct CA certificate is hard-coded, so this must never fail
     assert(cacrt != NULL);
 
-    X509_STORE* s = X509_STORE_new();
-    X509_STORE_add_cert(s, cacrt);
-    X509_STORE_CTX* ctx = X509_STORE_CTX_new();
-    X509_STORE_CTX_init(ctx, s, crt, NULL);
-    int rc = X509_verify_cert(ctx);
+    s = X509_STORE_new();
+    COND2ERR(s == NULL);
+    rc = X509_STORE_add_cert(s, cacrt);
+    COND2ERR(rc != 1);
+    ctx = X509_STORE_CTX_new();
+    COND2ERR(ctx == NULL);
+    rc = X509_STORE_CTX_init(ctx, s, crt, NULL);
+    COND2ERR(rc != 1);
+    rc = X509_verify_cert(ctx);
+    // check value after free
 
     X509_STORE_CTX_free(ctx);
     X509_STORE_free(s);
@@ -169,11 +209,12 @@ verify_status_t verify_ias_certificate_chain(const char* cert_pem)
     BIO_free(crt_bio);
     BIO_free(cacrt_bio);
 
-    if(rc <= 0 ) {  // error
-        return VERIFY_FAILURE; //fail
-    }
-    //else success
-    return VERIFY_SUCCESS; /* 1 .. fail, 0 .. success */
+    COND2ERR(rc <= 0);
+
+    return VERIFY_SUCCESS;
+
+err:
+    return VERIFY_FAILURE;
 }
 #endif //IAS_CA_CERT_REQUIRED
 
@@ -190,19 +231,22 @@ verify_status_t verify_enclave_quote_status(const char* ias_report, int ias_repo
     // with str* functions.
     int buf_len = ias_report_len + 1;
     char buf[buf_len];
+    const int status_OK_max_len = 8;
+    const char status_OK[status_OK_max_len] = "OK\"";
+
     memcpy_s(buf, buf_len, ias_report, ias_report_len);
     buf[ias_report_len] = '\0';
 
     const int json_string_max_len = 64;
     const char json_string[json_string_max_len] = "\"isvEnclaveQuoteStatus\":\"";
     char* p_begin = strstr(buf, json_string);
-    assert(p_begin != NULL);
+    COND2ERR(p_begin == NULL);
     p_begin += strnlen(json_string, json_string_max_len);
 
-    const int status_OK_max_len = 8;
-    const char status_OK[status_OK_max_len] = "OK\"";
     if (0 == strncmp(p_begin, status_OK, strnlen(status_OK, status_OK_max_len)))
+    {
         return VERIFY_SUCCESS;
+    }
 
     if(group_out_of_date_is_ok)
     {
@@ -214,6 +258,7 @@ verify_status_t verify_enclave_quote_status(const char* ias_report, int ias_repo
         }
     }
 
+err:
     //quote not ok
     return VERIFY_FAILURE;
 }

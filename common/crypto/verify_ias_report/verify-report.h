@@ -27,7 +27,7 @@ typedef enum {
 extern "C" {
 #endif
 
-void get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote);
+int get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote);
 verify_status_t verify_enclave_quote_status(const char* ias_report, int ias_report_len, int group_out_of_date_is_ok);
 verify_status_t verify_ias_certificate_chain(const char* cert_pem);
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
