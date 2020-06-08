@@ -54,4 +54,6 @@ add_test(
 # Run the tests automatically after building
 ################################################################################
 
-ADD_DEPENDENCIES(${TEST_TARGET} ${UNTRUSTED_TEST_NAME})
+IF(DEFINED TEST_TARGET)
+    ADD_DEPENDENCIES(${TEST_TARGET} ${UNTRUSTED_TEST_NAME})
+ENDIF()
