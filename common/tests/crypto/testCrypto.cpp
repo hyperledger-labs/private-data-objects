@@ -15,7 +15,6 @@
 
 //***Unit Test***////
 #include "testCrypto.h"
-#include "base64.h"
 #include "crypto.h"
 #include "error.h"
 #include "log.h"
@@ -76,7 +75,7 @@ int pcrypto::testCrypto()
         return -1;
     }
 
-    SAFE_LOG(PDO_LOG_DEBUG, "RandomBitString test successful!\n%s\n\n", base64_encode(rand).c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "RandomBitString test successful!\n%s\n\n", ByteArrayToBase64EncodedString(rand).c_str());
 
     // Test ECDSA key management functions
     try
@@ -209,7 +208,7 @@ int pcrypto::testCrypto()
     msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
     std::string msg_SHA256_B64("43fTaEjBzvug9rf0RRU6anIHfgdoqNjQ/dy/jzcVcAk=");
     ByteArray hash = ComputeMessageHash(msg);
-    std::string hashStr_B64 = base64_encode(hash);
+    std::string hashStr_B64 = ByteArrayToBase64EncodedString(hash);
     if (hashStr_B64.compare(msg_SHA256_B64) != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR,
@@ -229,7 +228,7 @@ int pcrypto::testCrypto()
         msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
         std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
         ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
-        std::string hmacStr_B64 = base64_encode(hmac);
+        std::string hmacStr_B64 = ByteArrayToBase64EncodedString(hmac);
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) != 0)
         {
             SAFE_LOG(PDO_LOG_ERROR,
@@ -246,7 +245,7 @@ int pcrypto::testCrypto()
         msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
         std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
         ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
-        std::string hmacStr_B64 = base64_encode(hmac);
+        std::string hmacStr_B64 = ByteArrayToBase64EncodedString(hmac);
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
         {
             SAFE_LOG(PDO_LOG_ERROR, "testCrypto: ComputeMessageHMAC, wrong key test shoud have failed.\n");
@@ -261,7 +260,7 @@ int pcrypto::testCrypto()
         msg.insert(msg.end(), msgStr.data(), msgStr.data() + msgStr.size());
         std::string msg_SHA256HMAC_B64("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
         ByteArray hmac = ComputeMessageHMAC(hmackey, msg);
-        std::string hmacStr_B64 = base64_encode(hmac);
+        std::string hmacStr_B64 = ByteArrayToBase64EncodedString(hmac);
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
         {
             SAFE_LOG(PDO_LOG_ERROR, "testCrypto: ComputeMessageHMAC, wrong message test should have failed.\n");
