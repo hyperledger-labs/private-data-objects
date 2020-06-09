@@ -27,16 +27,6 @@
 //########### INTERNAL FUNCTIONS #########################################
 //########################################################################
 
-#define COND2ERR(b) \
-    do \
-    { \
-        if(b) \
-        { \
-            goto err; \
-        } \
-    } while(0)
-
-
 /* EVP_DecodeBlock pads its output with \0 if the output length is not
    a multiple of 3. Check if the base64 string is padded at the end
    and adjust the output length. */
