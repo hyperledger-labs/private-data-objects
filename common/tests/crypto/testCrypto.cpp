@@ -874,13 +874,13 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         int r = verify_enclave_quote_status((char*)mock_verification_report, mock_report_len, 0);
 
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify good group-out-of-date quote, with group-out-of-date not allowed\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify good group-out-of-date quote, with group-out-of-date not allowed\n");
     }
 
     {   // verify good group-out-of-date quote, with group-of-date allowed
         int r = verify_enclave_quote_status((char*)mock_verification_report, mock_report_len, 1);
         // success expected
-        COND2ERR(r != VERIFY_SUCCESS, "verify good group-out-of-date quote, with group-out-of-date allowed\n");
+        COND2LOGERR(r != VERIFY_SUCCESS, "verify good group-out-of-date quote, with group-out-of-date allowed\n");
     }
 
     {   // verify quote with no isvEnclaveQuoteStatus
@@ -888,7 +888,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         unsigned char bad_mock_verification_report[] = "{\"nonce\":\"35E8FB64ACFB4A8E\",\"id\":\"284773557701539118279755254416631834508\",\"timestamp\":\"2018-07-11T19:30:35.556996\",\"epidPseudonym\":\"2iBfFyk5LE9du4skK9JjlRh1x5RvCIz/Z2nnoViIYY8W8TmIHg53UlEm2sp8NYVgT+LGSp0oxZgFcIg4p0BWxXqoBEEDnJFaVxgw0fS/RfhtF8yVNbVQjYjgQjw06wPalXzzNnjFpb873Rycj3JKSzkR3KfvKZfA/CJqEkTZK7U=\",\"BADISVENCLAVQUOTESTATUS\":\"GROUP_OUT_OF_DATE\",\"platformInfoBlob\":\"1502006504000700000808010101010000000000000000000007000006000000020000000000000AE791776C1D5C169132CA96D56CC2D59E5A46F23E39933DFB3B4962A8608AB53D84F77D254627D906B46F08073D33FF511E74BC318E8E0C37483C5B08899D1B5E9F\",\"isvEnclaveQuoteBody\":\"AgABAOcKAAAGAAUAAAAAAImTjvVbjrhQGXLFwbdtyMgAAAAAAAAAAAAAAAAAAAAABwf///8BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAMnL+UpC5HcF6MBCXsbYd5KUw2gc1tWgNPHNtK4g1NgKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACp0uDGT8avpUCoA1LU47KLt5L/RJSpeFFT9807MyvETgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOeQAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy7+m9Dx2rPbbbBWJUud3AHHnxoFWhlMQCyNjtVRvD2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}";
         int r = verify_enclave_quote_status((char*)bad_mock_verification_report, strlen((char*)bad_mock_verification_report), 1);
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify quote with no isvEnclaveQuoteStatus\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify quote with no isvEnclaveQuoteStatus\n");
     }
 
     {   // verify IAS CA certificate against hard-coded one
@@ -896,10 +896,10 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         int r = verify_ias_certificate_chain(ias_report_signing_ca_cert_pem);
 #ifdef IAS_CA_CERT_REQUIRED
         // success expected
-        COND2ERR(r != VERIFY_SUCCESS, "verify good IAS CA certificate with IAS CA certificate required\n");
+        COND2LOGERR(r != VERIFY_SUCCESS, "verify good IAS CA certificate with IAS CA certificate required\n");
 #else
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify good IAS CA certificate with IAS CA certificate NOT required\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify good IAS CA certificate with IAS CA certificate NOT required\n");
 #endif
     }
 
@@ -907,23 +907,23 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         int r = verify_ias_certificate_chain(ias_report_signing_cert_pem);
 #ifdef IAS_CA_CERT_REQUIRED
         // success expected
-        COND2ERR(r != VERIFY_SUCCESS, "verify IAS report signing certificate with IAS CA certificate required\n");
+        COND2LOGERR(r != VERIFY_SUCCESS, "verify IAS report signing certificate with IAS CA certificate required\n");
 #else
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify IAS report signing certificate with IAS CA certificate NOT required\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify IAS report signing certificate with IAS CA certificate NOT required\n");
 #endif
     }
 
     {   // verify IAS report signing certificate with null certificate
         int r = verify_ias_certificate_chain(NULL);
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify null IAS certificate\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify null IAS certificate\n");
     }
 
     {   // verify IAS report signing certificate with bad certificate
         int r = verify_ias_certificate_chain("this is a bad certificate");
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify null IAS certificate\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify null IAS certificate\n");
     }
 
     {   // verify bad IAS signature
@@ -935,7 +935,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)bad_mock_signature,
                                         strlen((char*)bad_mock_signature));
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify bad IAS signature\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify bad IAS signature\n");
     }
 
     {   // verify good IAS signature
@@ -945,7 +945,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)mock_signature,
                                         strlen((char*)mock_signature));
         // success expected
-        COND2ERR(r==VERIFY_FAILURE, "verify good IAS signature\n");
+        COND2LOGERR(r==VERIFY_FAILURE, "verify good IAS signature\n");
     }
 
     {   // verify bad report
@@ -957,7 +957,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)mock_signature,
                                         strlen((char*)mock_signature));
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify bad IAS report\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify bad IAS report\n");
     }
 
     {   // verify with null ias certificate
@@ -967,14 +967,14 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)mock_signature,
                                         strlen((char*)mock_signature));
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify with null ias certificate\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify with null ias certificate\n");
     }
 
     {   // verify good quote
         sgx_quote_t q;
         int r = get_quote_from_report(mock_verification_report, mock_report_len, &q);
         // success expected
-        COND2ERR(r != 0, "verify  good quote\n");
+        COND2LOGERR(r != 0, "verify  good quote\n");
     }
 
     {   // verify bad report with no isvEnclaveQuoteBody
@@ -983,7 +983,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         sgx_quote_t q;
         int r = get_quote_from_report(bad_mock_verification_report, strlen((char*)bad_mock_verification_report), &q);
         // failure expected
-        COND2ERR(r != -1, "verify bad IAS report with no isvEnclaveQuoteBody\n"); 
+        COND2LOGERR(r != -1, "verify bad IAS report with no isvEnclaveQuoteBody\n");
     }
 
     {   // verify bad report with unterminated quote body
@@ -992,7 +992,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         sgx_quote_t q;
         int r = get_quote_from_report(bad_mock_verification_report, strlen((char*)bad_mock_verification_report), &q);
         // failure expected
-        COND2ERR(r != -1, "verify bad IAS report with unterminated isvEnclaveQuoteBody\n");
+        COND2LOGERR(r != -1, "verify bad IAS report with unterminated isvEnclaveQuoteBody\n");
     }
 
     {   // verify bad report that fails EVP_DecodeBlock
@@ -1001,7 +1001,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         sgx_quote_t q;
         int r = get_quote_from_report(bad_mock_verification_report, strlen((char*)bad_mock_verification_report), &q);
         // failure expected
-        COND2ERR(r != -1, "verify bad IAS report that fails EVP_DecodeBlock\n");
+        COND2LOGERR(r != -1, "verify bad IAS report that fails EVP_DecodeBlock\n");
     }
 
     {   //verify bad report with long quote
@@ -1010,7 +1010,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
         sgx_quote_t q;
         int r = get_quote_from_report(bad_mock_verification_report, strlen((char*)bad_mock_verification_report), &q);
         // failure expected
-        COND2ERR(r != -1, "verify bad IAS report with bad quote length\n");
+        COND2LOGERR(r != -1, "verify bad IAS report with bad quote length\n");
     }
 
     {   // verify signature with bad certificate
@@ -1020,7 +1020,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)mock_signature,
                                         strlen((char*)mock_signature));
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify signature with bad certificate\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify signature with bad certificate\n");
     }
 
     {   // verify signature with bad encoding
@@ -1031,7 +1031,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
                                         (char*)bad_mock_signature,
                                         strlen((char*)bad_mock_signature));
         // failure expected
-        COND2ERR(r != VERIFY_FAILURE, "verify signature with bad encoding\n");
+        COND2LOGERR(r != VERIFY_FAILURE, "verify signature with bad encoding\n");
     }
 
     // all tests successful

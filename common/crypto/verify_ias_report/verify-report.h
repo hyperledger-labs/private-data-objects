@@ -39,4 +39,13 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
 }
 #endif
 
+#define COND2ERR(b) \
+    do \
+    { \
+        if(b) \
+        { \
+            goto err; \
+        } \
+    } while(0)
+
 #endif

@@ -24,7 +24,7 @@ namespace crypto
 }
 }
 
-#define COND2ERR(b, error_message) \
+#define COND2LOGERR(b, error_message) \
     do \
     { \
         if(b) \
