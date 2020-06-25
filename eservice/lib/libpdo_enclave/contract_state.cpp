@@ -43,6 +43,7 @@
 //     "ContractCode.Code"  : "<string>"
 //     "ContractCode.Name"  : "<string>"
 //     "ContractCode.Nonce" : "<string>"
+//     "ContractCode.CompilationReport" : "<string>"
 //     "ContractCode.Hash"  : "<string>"
 // }
 //

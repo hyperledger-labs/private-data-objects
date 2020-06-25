@@ -128,19 +128,23 @@ module_files = [
     os.path.join(module_src_path, 'block_store.cpp'),
 ]
 
+compile_defs = [
+    ('_UNTRUSTED_', 1),
+    ('PDO_DEBUG_BUILD', debug_flag),
+    ('SGX_SIMULATOR', SGX_SIMULATOR_value)
+]
+
+swig_flags = ['-c++', '-threads']
+
 enclave_module = Extension(
     'pdo.eservice.enclave._pdo_enclave_internal',
     module_files,
-    swig_opts = ['-c++', '-threads'],
+    swig_opts = swig_flags,
     extra_compile_args = compile_args,
     libraries = libraries,
     include_dirs = include_dirs,
     library_dirs = library_dirs,
-    define_macros = [
-                        ('_UNTRUSTED_', 1),
-                        ('PDO_DEBUG_BUILD', debug_flag),
-                        ('SGX_SIMULATOR', SGX_SIMULATOR_value)
-                    ],
+    define_macros = compile_defs,
     undef_macros = ['NDEBUG', 'EDEBUG']
     )
 

@@ -18,6 +18,7 @@ import json
 
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
+from pdo.contract.compilation_report import ContractCompilationReport
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ class ContractCode(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter='gipsy') :
+    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter='gipsy', compilation_report=None) :
         """Create a code object from a Gipsy source file
 
         :param name str: the name of the scheme contract class
@@ -46,18 +47,24 @@ class ContractCode(object) :
         basename = putils.build_simple_file_name(source_name, extension=cls.__extension__[interpreter])
         filename = putils.find_file_in_path(basename, search_path)
         logger.debug('load %s contract from %s', interpreter, filename)
+
         with open(filename, "r") as cfile :
             code = cfile.read()
 
-        return cls(code, name)
+        report = compilation_report
+        if interpreter == 'wawaka-aot' and report is None:
+            report = ContractCompilationReport.create_from_file(source_name, search_path)
+
+        return cls(code, name, compilation_report=report)
 
     # -------------------------------------------------------
-    def __init__(self, code, name, nonce = None) :
+    def __init__(self, code, name, nonce = None, compilation_report=None) :
         if nonce is None :
             nonce = crypto.byte_array_to_hex(crypto.random_bit_string(16))
 
         self.code = code
         self.name = name
+        self.compilation_report = compilation_report
         self.nonce = nonce
 
     # -------------------------------------------------------
@@ -66,12 +73,19 @@ class ContractCode(object) :
         result['Code'] = self.code
         result['Name'] = self.name
         result['Nonce'] = self.nonce
+        result['CompilationReport'] = {}
+        if not self.compilation_report is None:
+            result['CompilationReport'] = self.compilation_report.serialize()
 
         return result
 
     # -------------------------------------------------------
     def __serialize_for_hashing(self) :
-        return self.code + self.name + self.nonce
+        serialized = self.code + self.name + self.nonce
+        if not self.compilation_report is None:
+            serialized += self.compilation_report.compute_hash()
+
+        return serialized
 
     # -------------------------------------------------------
     def compute_hash(self, encoding = 'raw') :

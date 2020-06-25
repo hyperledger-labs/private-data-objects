@@ -28,3 +28,21 @@ common library can be found [here](../common/docs/crypto.md).
 
 More information about how the enclave service works can be found
 [here](../eservice/docs/eservice.md).
+
+### Code Deployment Integrity
+
+*** Disclaimer: This is an experimental feature. Not ready for production use!! ***
+
+The origins of contracts, especially those built by remote
+toolchains, may be difficult to trace. Our Code Deployment
+Integrity (CDI) framework, enables PDO enclave hosting services
+(eservice) to specify various levels of trust relationships
+with contract build toolchains,
+and establish trust in contracts at run-time based on their policy.
+
+For normal CDI policies, CDI-aware toolchains digitally sign
+the emitted contract code to authenticate the toolchain. For
+strict CDO policies, toolchains may generate a signed cryptographic
+proof binding the input to the emitted contract code.
+Only if the eservice can validate the provenance and integrity
+of the contract it receives, does it execute the contract.

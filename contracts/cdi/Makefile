@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright 2018 Intel Corporation
+# Copyright 2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit 1
-fi
+all : build
 
-F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
-source ${F_SERVICEHOME}/bin/lib/common.sh
-source ${F_SERVICEHOME}/bin/lib/common_service.sh
+build:
+	mkdir -p $@
+	cd $@; cmake .. && make
 
-F_BASENAME='eservice'
-F_SERVICE_CMD='eservice'
-F_SERVICE_NAME='enclave'
+clean :
+	rm -rf build
 
-service_start "$@"
+install : ;
+
+.phony : all
+.phony : clean
+.phony : install

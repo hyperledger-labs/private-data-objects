@@ -40,6 +40,7 @@ size_t pdo::enclave_api::contract::EncryptedContractKeySize(
 
   // xxxxx call the enclave
 
+
   /// get the enclave id for passing into the ecall
   sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
   pdo::logger::LogV(PDO_LOG_DEBUG, "ecall_CalculateSealedContractKeySize[%ld] %u ", (long)enclaveid, enclaveIndex);

@@ -56,6 +56,7 @@ ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
 LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+ContractInterpreter = os.environ.get("PDO_INTERPRETER", "gipsy")
 
 config_map = {
     'base' : ScriptBase,
@@ -65,6 +66,7 @@ config_map = {
     'host' : ContractHost,
     'keys' : ContractKeys,
     'logs' : ContractLogs,
+    'interpreter' : ContractInterpreter,
     'ledger' : LedgerURL
 }
 

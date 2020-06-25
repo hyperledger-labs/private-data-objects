@@ -471,7 +471,7 @@ def Main() :
     import pdo.common.logger as plogger
 
     # parse out the configuration file first
-    conffiles = [ 'pcontract.toml', 'enclave.toml' ]
+    conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
     confpaths = [ ".", "./etc", ContractEtc ]
 
     parser = argparse.ArgumentParser()

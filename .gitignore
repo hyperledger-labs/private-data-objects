@@ -3,7 +3,7 @@ docker/validator-keys
 docker/sgx
 make.log
 cscope.files
-cscope.out
+cscope*.out
 ccf_transaction_processor/test/infra
 ccf_transaction_processor/test/*.pem
 ccf_transaction_processor/generate_signing_keys/infra

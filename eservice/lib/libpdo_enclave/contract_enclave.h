@@ -26,7 +26,8 @@ DESCRIPTION:   Function declarations for the contract enclave
 #include "enclave_utils.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-extern pdo_err_t ecall_CreateContractWorker(size_t inThreadId);
+extern pdo_err_t ecall_CreateContractWorker(size_t inThreadId,
+                                            const char *inSerializedEnclavePolicy);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_ShutdownContractWorker();

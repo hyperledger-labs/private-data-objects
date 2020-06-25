@@ -47,6 +47,7 @@ Duration=120 #seconds
 [Contract]
 DataDirectory = "${data}"
 SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
+Interpreter = "${interpreter}"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging

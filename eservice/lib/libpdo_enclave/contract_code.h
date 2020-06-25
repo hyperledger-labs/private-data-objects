@@ -20,6 +20,7 @@
 #include "crypto.h"
 #include "parson.h"
 
+#include "contract_compilation_report.h"
 #include "contract_state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -34,12 +35,16 @@ public:
     std::string code_;
     std::string name_;
     std::string nonce_;
+    ContractCompilationReport compilation_report_;
     ByteArray code_hash_;
 
     ContractCode(void){};
 
     void Unpack(const JSON_Object* object);
 
-    void FetchFromState(const ContractState& state, const ByteArray& code_hash);
-    void SaveToState(ContractState& state);
+    void FetchFromState(const ContractState& state,
+                        bool policyDefaultDeny,
+                        const ByteArray& code_hash);
+    void SaveToState(ContractState& state,
+                     bool policyDefaultDeny);
 };

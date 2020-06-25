@@ -37,6 +37,7 @@
 #include "contract_worker.h"
 #include "enclave_data.h"
 #include "signup_enclave.h"
+#include "enclave_policy.h"
 
 #include "contract_request.h"
 #include "contract_response.h"
@@ -46,16 +47,21 @@ ByteArray last_result;
 ContractWorker *worker = NULL;
 static bool worker_initialized = false;
 static bool shutdown_worker = false;
+EnclavePolicy enclave_policy;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t ecall_CreateContractWorker(size_t inThreadId){
+pdo_err_t ecall_CreateContractWorker(size_t inThreadId,
+                                     const char *inSerializedEnclavePolicy) {
     pdo_err_t result = PDO_SUCCESS;
 
     try {
         if (!worker_initialized)
         {
+            pdo::error::ThrowIfNull(inSerializedEnclavePolicy, "Enclave policy is NULL");
+
             worker = new ContractWorker((long) inThreadId);
             worker_initialized = true;
+            enclave_policy.DeserializePolicy(inSerializedEnclavePolicy);
             SAFE_LOG(PDO_LOG_INFO, "ThreadID: %ld - ContractWorker created",
                 (long) worker->thread_id_);
         }
@@ -252,9 +258,19 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
             request.contract_id_hash_);
 
         if(request.is_initialize())
-            request.contract_code_.SaveToState(contract_state);
+            request.contract_code_.SaveToState(contract_state,
+                                               enclave_policy.DefaultDeny());
         else
-            request.contract_code_.FetchFromState(contract_state, request.code_hash_);
+            request.contract_code_.FetchFromState(contract_state,
+                                                  enclave_policy.DefaultDeny(),
+                                                  request.code_hash_);
+
+        // validate contract compiler after fetching from state,
+        // but before processing the request
+        bool validCompiler =
+            enclave_policy.ValidateContractCompiler(request.contract_code_.compilation_report_);
+        pdo::error::ThrowIf<pdo::error::ValueError>(!validCompiler,
+                                                    "Contract compiler not trusted!");
 
         ContractResponse response(request.process_request(contract_state));
         last_result = response.SerializeAndEncrypt(session_key, enclaveData);

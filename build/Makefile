@@ -33,6 +33,10 @@ ifndef PDO_LEDGER_TYPE
 $(error Incomplete configuration, PDO_LEDGER_TYPE is not defined)
 endif
 
+ifndef PDO_INTERPRETER
+$(error Incomplete configuration, PDO_INTERPRETER is not defined)
+endif
+
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
@@ -47,6 +51,7 @@ VERIFY_PRE_BUILD=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
 VERIFY_PRE_CONF=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
 CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
+TESTAOTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests-aot.sh)
 BENCHMARKSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
@@ -95,7 +100,6 @@ $(PYTHON_DIR) :
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_http_signature
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade websocket-client
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade msgpack
-
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
@@ -147,7 +151,14 @@ SSERVICE_CONF := $(ETCDIR)/sservice1.toml
 PSERVICE_CONF := $(ETCDIR)/pservice1.toml
 ENCLAVE_CONF := $(ETCDIR)/enclave.toml
 CONTRACT_CONF := $(ETCDIR)/pcontract.toml
+
 GENERATED_CONF_FILES := $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
+
+ifeq ($(PDO_INTERPRETER),wawaka-aot)
+	ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice-aot.toml
+else
+	ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
+endif
 
 verified-conf : verify-pre-conf
 	${MAKE} conf
@@ -162,12 +173,12 @@ $(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
 	@ echo copy site.psh
 	@ cp $(SCRIPTDIR)/opt/pdo/etc/template/site.psh $(ETCDIR)/site.psh
 
-$(ESERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
-	@ echo create configuration files for $(basename $(notdir $<))
+$(ESERVICE_CONF) : $(ESERVICE_CONF_TEMPLATE)
+	@ echo create configuration files for eservice
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
-			multiple --file-base $(basename $(notdir $<)) --count 5
+			multiple --file-base eservice --count 5
 
 $(SSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/sservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
@@ -215,6 +226,9 @@ endif
 
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
+
+test-aot : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTAOTSCRIPT)
 
 benchmark : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)

@@ -35,14 +35,19 @@ bool is_sgx_simulator()
 pdo_enclave_info::pdo_enclave_info(
     const std::string& enclaveModulePath,
     const std::string& spid,
+    const std::string& serializedEnclavePolicy,
     const int num_of_enclaves
     )
 {
     SAFE_LOG1(PDO_LOG_INFO, "Initializing SGX PDO enclave");
     SAFE_LOG(PDO_LOG_DEBUG, "Enclave path: %s", enclaveModulePath.c_str());
     SAFE_LOG(PDO_LOG_DEBUG, "SPID: %s", spid.c_str());
+    SAFE_LOG(PDO_LOG_DEBUG, "Enclave policy: %s", serializedEnclavePolicy.c_str());
 
-    pdo_err_t ret = pdo::enclave_api::base::Initialize(enclaveModulePath,spid,num_of_enclaves);
+    pdo_err_t ret = pdo::enclave_api::base::Initialize(enclaveModulePath,
+                                                       spid,
+                                                       serializedEnclavePolicy,
+                                                       num_of_enclaves);
     ThrowPDOError(ret);
     SAFE_LOG1(PDO_LOG_INFO, "SGX PDO enclave initialized.");
 

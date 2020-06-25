@@ -76,7 +76,7 @@ BaseName = "${identity}"
 # The DefaulDeny flag indicates whether the CDI policy
 # only allows contract code built using trusted toolchains.
 # When true, a list of one or more trusted compiler keys is expected
-DefaultDeny = false
+DefaultDeny = true
 
 # TrustedCompilerKeys is a list of public keys corresponding
 # to trusted WASM AoT compilers that sign CDI compilation reports
