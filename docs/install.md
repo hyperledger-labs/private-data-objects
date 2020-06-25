@@ -149,10 +149,10 @@ the SGX kernel driver (for Ubuntu 18.04 server):
 ```bash
 apt-get install dkms
 
-DCAP_VERSION=1.2
-UBUNTU_VERSION=ubuntuServer18.04
-DRIVER_REPO=https://download.01.org/intel-sgx/dcap-${DCAP_VERSION}/linux/dcap_installers/${UBUNTU_VERSION}/
-DRIVER_FILE=$(cd /tmp; wget --spider -r --no-parent $DRIVER_REPO 2>&1 | perl  -ne 'if (m|'${DRIVER_REPO}'(.*driver.*)|) { print "$1\n"; }')
+DCAP_VERSION=1.33
+UBUNTU_VERSION=ubuntu18.04-server
+DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/${UBUNTU_VERSION}/
+DRIVER_FILE=sgx_linux_x64_driver_${DCAP_VERSION}.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE}
 chmod 777 ./${DRIVER_FILE}
@@ -163,7 +163,6 @@ sudo ./${DRIVER_FILE}
    libtool wget python libssl-dev' all of which are not necessary
    but omits necessary 'kms' ..
 -->
-
 
 #### Install SGX Platform Services
 

@@ -66,19 +66,18 @@ export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
 
 ## Install the SGX SDK
 
-Private Data Objects has been tested with version 2.4 of the SGX
+Private Data Objects has been tested with version 2.9.1 of the SGX
 SDK. You can download prebuilt binaries for the SDK and kernel drivers
-from https://01.org/intel-software-guard-extensions/downloads.
+from [01.org](https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/ubuntu18.04-server/).
 
-The following commands will download and install version 2.4 of the SGX
+The following commands will download and install version 2.9.1 of the SGX
 SDK. When asked for the installation directory, we suggest that you install
 the SDK into the directory `/opt/intel`.
 
 ```bash
-DCAP_VERSION=1.2
-UBUNTU_VERSION=ubuntuServer18.04
-DRIVER_REPO=https://download.01.org/intel-sgx/dcap-${DCAP_VERSION}/linux/dcap_installers/${UBUNTU_VERSION}/
-SDK_FILE=$(cd /tmp; wget --spider -r --no-parent $DRIVER_REPO 2>&1 | perl  -ne 'if (m|'${DRIVER_REPO}'(.*sdk.*)|) { print "$1\n"; }')
+UBUNTU_VERSION=ubuntu18.04-server
+DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/${UBUNTU_VERSION}/
+SDK_FILE=sgx_linux_x64_sdk_2.9.101.2.bin
 
 wget ${DRIVER_REPO}/${SDK_FILE}
 chmod 777 ./${SDK_FILE}
@@ -101,7 +100,7 @@ building from source are available
 ## Build and Install SGX SSL
 
 SGX OpenSSL is a compilation of OpenSSL specifically for use within SGX
-enclaves. We have tested PDO with SGX SSL version 2.4.1.
+enclaves. We have tested PDO with SGX SSL version 2.9.1.
 
 Detailed instructions for building and installing SGX SSL is available
 from the
@@ -123,7 +122,7 @@ git clone 'https://github.com/intel/intel-sgx-ssl.git'
 
 ```bash
 cd intel-sgx-ssl
-git checkout v2.4.1
+git checkout lin_2.9_1.1.1d
 ```
 
 - Download the OpenSSL source package that will form the base of this
@@ -131,7 +130,7 @@ SGX SSL install:
 
 ```bash
 cd openssl_source
-wget 'https://www.openssl.org/source/old/1.1.0/openssl-1.1.0k.tar.gz'
+wget 'https://www.openssl.org/source/openssl-1.1.1d.tar.gz'
 cd ..
 ```
 

@@ -18,10 +18,10 @@
 #
 #  Configuration (build) paramaters
 #  - proxy configuration: 	https_proxy http_proxy ftp_proxy, no_proxy  (default: undefined)
-#  - ubuntu base image to use: 	UBUNTU_VERSION (default: bionic)
-#  - sgx sdk version: 		SGX_SDK (default: sgx_2.6)
-#  - openssl version: 		OPENSSL (default: 1.1.0k)
-#  - sgxssl version: 		SGXSSL  (default: v2.4.1)
+#  - ubuntu base image to use: 	UBUNTU_VERSION (default: 18.04-server)
+#  - sgx sdk version: 		SGXSDK (default: 2.9.1)
+#  - openssl version: 		OPENSSL (default: 1.1.1d)
+#  - sgxssl version: 		SGXSSL  (default: 2.9_1.1.1d)
 #  - additional apt packages:	ADD_APT_PKGS (default: )
 
 # Build:
@@ -47,18 +47,20 @@
 #   - for develooping based on source in host you might map source into container with an option
 #     like -v $(pwd):/project/pdo/src/private-data-objects/
 
-ARG UBUNTU_VERSION=bionic
+ARG UBUNTU_VERSION=18.04
 # 16.04 -> xenial, 17.10 -> artful, 18.04 -> bionic
 # NOTE: xenial might not work anymore (see below), preferred choice is bionic ..
 
 FROM ubuntu:${UBUNTU_VERSION}
 
-ARG UBUNTU_VERSION=bionic
+ARG UBUNTU_VERSION=18.04-server
+ARG UBUNTU_NAME=bionic
 # for bizare docker reason, we have to redefine it here ...
 
-ARG SGX_SDK=sgx_2.6
-ARG OPENSSL=1.1.0k
-ARG SGXSSL=v2.4.1
+ARG SGXSDK=2.9.1
+ARG SDKBIN=2.9.101.2
+ARG OPENSSL=1.1.1d
+ARG SGXSSL=2.9_1.1.1d
 
 ARG ADD_APT_PKGS=
 
@@ -75,6 +77,7 @@ RUN apt-get update \
     curl \
     dh-autoreconf \
     git \
+    gnupg \
     libcurl4-openssl-dev \
     liblmdb-dev \
     libprotobuf-dev \
@@ -95,7 +98,7 @@ RUN apt-get update \
     virtualenv \
     wget \
     $ADD_APT_PKGS \
- && if [ "$UBUNTU_VERSION" = "bionic" ] || [ "$UBUNTU_VERSION" = "artful" ]; then \
+ && if [ "$UBUNTU_NAME" = "bionic" ] || [ "$UBUNTU_NAME" = "artful" ]; then \
 	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
     fi \
  && apt-get -y -q upgrade \
@@ -119,57 +122,53 @@ RUN apt-get update \
 #   - skip install and configure of aesmd service
 # - install before openssl as this might cause additional trouble
 
+RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' >> /etc/apt/sources.list
+RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
+RUN apt-get update
+
+# Install PSW packages
+# - dependencies
+RUN apt-get install -y build-essential python
+# - sgx packages
+RUN apt-get install -y libsgx-enclave-common sgx-aesm-service
+# -> do not really need aesmd, there is now some option
+# by which we can prevent installing aesmd ..
+# proxy config?!
+# additional packages
+# - launch service
+RUN apt-get install -y libsgx-launch libsgx-urts
+# - EPID-based attestation service
+RUN apt-get install -y libsgx-epid libsgx-urts
+# - algorithm agnostic attestation service
+RUN apt-get install -y libsgx-quote-ex libsgx-urts
+
 RUN mkdir -p /opt/intel
 WORKDIR /opt/intel
-RUN git clone --branch ${SGX_SDK} https://github.com/01org/linux-sgx.git \
- && cd linux-sgx \
- && ./download_prebuilt.sh \
-# installer usually refuses to install PSW without kernel module, hence override it here so we still can install it as at runtime driver might be there, just not at build time!
- && sed -i '1,$s;grep intel_sgx /lib/modules/$(uname -r)/modules.builtin &> /dev/null;true # grep intel_sgx /lib/modules/$(uname -r)/modules.builtin &> /dev/null;' linux/installer/bin/install-sgx-psw.bin.tmpl \
- && sed -i '1,$s;${SGX_PACKAGES_PATH}/${PSW_PKG_NAME}/scripts/install.sh;# ${SGX_PACKAGES_PATH}/${PSW_PKG_NAME}/scripts/install.sh;' linux/installer/bin/install-sgx-psw.bin.tmpl \
- && make \
- && make sdk_install_pkg \
- && make psw_install_pkg \
- && cd .. \
- && echo "yes" | ./linux-sgx/linux/installer/bin/sgx_linux_x64_sdk_*.bin \
- && ./linux-sgx/linux/installer/bin/sgx_linux_x64_psw_*.bin \
- && rm -rf linux-sgx \
- && echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
+RUN wget https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin
+RUN chmod +x sgx_linux_x64_sdk_${SDKBIN}.bin
+RUN echo -e "no\n/opt/intel" | ./sgx_linux_x64_sdk_${SDKBIN}.bin
+RUN echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 
-# ("Untrusted") OpenSSL
-WORKDIR /tmp
-RUN \
-    OPENSSL_MAJOR_VERSION=$(echo ${OPENSSL} | sed 's/\([^0-9.]\)*//g') \
-  && wget https://www.openssl.org/source/old/${OPENSSL_MAJOR_VERSION}/openssl-${OPENSSL}.tar.gz
-# && tar -zxvf openssl-${OPENSSL}.tar.gz \
-# && cd openssl-${OPENSSL}/ \
-# && ./config \
-# && THREADS=8 \
-# && make -j$THREADS \
-# && make test \
-# && make install -j$THREADS \
-# && ldconfig \
-# && ln -s /etc/ssl/certs/* /usr/local/ssl/certs/ \
-# && cd .. \
-# && rm -rf openssl-${OPENSSL}
-# Note: we do _not_ delete openssl-${OPENSSL}.tar.gz as we re-use it below ..
+# - LVI mitigations, needed to compile sgxssl requires a
+#   recent version of binutils (>= 2.32). Ubuntu 18.04 only
+#   has 2.30 but Intel ships binary distro for 2.32.51.20190719
+RUN wget "https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/as.ld.objdump.gold.r1.tar.gz"
+RUN mkdir sgxsdk.extras
+RUN cd sgxsdk.extras && \
+    tar -zxf ../as.ld.objdump.gold.r1.tar.gz
+RUN echo "export PATH=/opt/intel/sgxsdk.extras/external/toolset:${PATH}" >> /etc/profile.d/pdo.sh
+ENV PATH="/opt/intel/sgxsdk.extras/external/toolset:${PATH}"
 
-
-# ("trusted") SGX OpenSSL
-# Note: This will compile in HW or SIM mode depending on the availability of
-# /dev/isgx and /var/run/aesmd/aesm.socket
-# Notes: there is no way to pass device /dev/isgx and socket (volume) /var/run/aesmd:/var/run/aesmd to docker
-# at build time, However, as we only build libraries here, the mode does not matter for the actual build
-# artifact and so we build with the safe SGX_MODE=SIM.  (It also means the build tests are run only in
-# simulator but we count on the sgxssl team hopefully releasing only versions which work on both cases :-)
-WORKDIR /tmp
-RUN git clone  --branch ${SGXSSL} https://github.com/intel/intel-sgx-ssl.git \
- && . /opt/intel/sgxsdk/environment \
- && (cd intel-sgx-ssl/openssl_source; mv /tmp/openssl-${OPENSSL}.tar.gz . ) \
- && (cd intel-sgx-ssl/Linux; make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test ) \
- && (cd intel-sgx-ssl/Linux; make install ) \
- && rm -rf /tmp/intel-sgx-ssl \
- && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
+# SGXSSL
+RUN git clone 'https://github.com/intel/intel-sgx-ssl.git'
+RUN cd intel-sgx-ssl && \
+    git checkout lin_${SGXSSL} && \
+    cd openssl_source && \
+    wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
+    cd ../Linux && \
+    make DESTDIR=/opt/intel/sgxssl all && \
+    make install
+RUN echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 
 # Install contract interpreter related stuff
 
@@ -194,7 +193,6 @@ RUN mkdir -p /project/pdo/wasm/src \
  && echo 'cd /project/pdo/wasm/src/emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
 # Note: above convoluted BASH_SOURCE hack is necessary as (a) emsdk_env.sh 
 #   assumes we run in bash but (b) as we build we actually run in sh
-
 
 # environment setup as required by PDO
 # Note
