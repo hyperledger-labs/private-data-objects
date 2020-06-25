@@ -104,6 +104,14 @@ namespace pdo {
                 return this->threadId;
             }
 
+            std::string GetEnclavePolicy() const {
+                return this->serializedEnclavePolicy;
+            };
+
+            void SetEnclavePolicy(
+               const std::string& inSerializedEnclavePolicy
+               );
+
         protected:
             void LoadEnclave();
             static void QuerySgxStatus();
@@ -117,6 +125,8 @@ namespace pdo {
 
             std::string signatureRevocationList;
             sgx_spid_t spid;
+
+            std::string serializedEnclavePolicy;
 
             sgx_target_info_t reportTargetInfo;
             sgx_epid_group_id_t epidGroupId;

@@ -80,7 +80,7 @@ config_map = {
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-conffiles = [ 'pcontract.toml', 'enclave.toml' ]
+conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
 confpaths = [ ".", "./etc", ContractEtc ]
 
 import argparse

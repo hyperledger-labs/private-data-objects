@@ -23,8 +23,12 @@ source ${SRCDIR}/bin/lib/common.sh
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+if [ "${PDO_INTERPRETER}" != "wawaka-aot" ]; then
+    die Run automated tests for other interpreters via make test
+fi
+
 if [ "${PDO_INTERPRETER}" == "wawaka-aot" ]; then
-    die Run automated tests for the wawaka-aot interpreter via make test-aot
+    yell Run automated tests for wawaka-aot at your own risk, may fail.
 fi
 
 # -----------------------------------------------------------------

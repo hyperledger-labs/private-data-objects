@@ -80,6 +80,7 @@ INCLUDE_DIRECTORIES(
   ${WASM_SRC}/core/app-framework/base/app)
 
 SET(CONTRACT_INSTALL_DIRECTORY "$ENV{PDO_HOME}/contracts")
+SET(CDI_SIGNING_KEY "cdi_compiler1_private.pem")
 
 FUNCTION(BUILD_CONTRACT contract)
   ADD_EXECUTABLE(${contract} ${ARGN} ${COMMON_SOURCE} ${LIBRARY_SOURCE} )
@@ -97,18 +98,22 @@ FUNCTION(BUILD_CONTRACT contract)
 ENDFUNCTION()
 
 FUNCTION(BUILD_AOT_CONTRACT contract)
+  MESSAGE(WARNING "!!Building wawaka contract ${contract} for experimental AoT mode. Not ready for production use!!")
   ADD_EXECUTABLE(${contract} ${ARGN} ${COMMON_SOURCE} ${LIBRARY_SOURCE} )
   SET(b64contract ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.b64)
+  SET(comp_report ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.cdi)
   ADD_CUSTOM_COMMAND(
     TARGET ${contract}
     POST_BUILD
     COMMAND $ENV{WASM_SRC}/wamr-compiler/build/wamrc
     ARGS -sgx --format=aot -o ${contract}.aot ${contract}.wasm
+    COMMAND ${PDO_TOP_DIR}/contracts/cdi/build/gen-cdi-report
+    ARGS -c ${contract}.aot -k ${CDI_SIGNING_KEY} -o ${comp_report}
     COMMAND base64
     ARGS -w 0 ${contract}.aot > ${b64contract})
   SET_SOURCE_FILES_PROPERTIES(${b64contract} PROPERTIES GENERATED TRUE)
   SET_DIRECTORY_PROPERTIES(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${b64contract})
   # this can be replaced in later versions of CMAKE with target_link_properties
   SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${EMCC_LINK_OPTIONS}")
-  INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
+  INSTALL(FILES ${b64contract} ${comp_report} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
 ENDFUNCTION()

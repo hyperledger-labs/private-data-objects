@@ -21,6 +21,7 @@ from pdo.submitter.create import create_submitter
 from pdo.contract.request import ContractRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
+from pdo.contract.compilation_report import ContractCompilationReport
 
 import logging
 logger = logging.getLogger(__name__)
@@ -48,7 +49,10 @@ class Contract(object) :
 
         try :
             code_info = contract_info['contract_code']
-            code = ContractCode(code_info['Code'], code_info['Name'], code_info['Nonce'])
+            comp_report = None
+            if not code_info['CompilationReport'].get('CompilerVerifyingKey') is None:
+                comp_report = ContractCompilationReport.init_from_dict(code_info['CompilationReport'])
+            code = ContractCode(code_info['Code'], code_info['Name'], code_info['Nonce'], compilation_report=comp_report)
         except KeyError as ke :
             logger.error('invalid contract data file; missing %s', str(ke))
             raise Exception("invalid contract file; {}".format(filename))

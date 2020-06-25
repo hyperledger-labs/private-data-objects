@@ -146,7 +146,7 @@ RUN apt-get install -y \
 
 RUN mkdir -p /opt/intel
 WORKDIR /opt/intel
-RUN wget https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin && \
+RUN wget -q https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin && \
     chmod +x sgx_linux_x64_sdk_${SDKBIN}.bin && \
     echo -e "no\n/opt/intel" | ./sgx_linux_x64_sdk_${SDKBIN}.bin
 RUN echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
@@ -154,7 +154,7 @@ RUN echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 # LVI mitigations, needed to compile sgxssl requires a
 #   recent version of binutils (>= 2.32). Ubuntu 18.04 only
 #   has 2.30 but Intel ships binary distro for 2.32.51.20190719
-RUN wget "https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/as.ld.objdump.gold.r1.tar.gz"
+RUN wget -q https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/as.ld.objdump.gold.r1.tar.gz
 RUN mkdir sgxsdk.extras && \
     cd sgxsdk.extras && \
     tar -zxf ../as.ld.objdump.gold.r1.tar.gz
@@ -167,7 +167,7 @@ RUN cd intel-sgx-ssl && \
     . /opt/intel/sgxsdk/environment && \
     git checkout lin_${SGXSSL} && \
     cd openssl_source && \
-    wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
+    wget -q https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
     cd ../Linux && \
     make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test && \
     make install
@@ -179,7 +179,7 @@ RUN echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 #   Install Tinyscheme
 RUN mkdir -p /opt/tinyscheme
 WORKDIR /opt/tinyscheme
-RUN wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
+RUN wget -q https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
  && unzip tinyscheme-1.41.zip \
  && rm tinyscheme-1.41.zip  \
  && cd tinyscheme-1.41  \

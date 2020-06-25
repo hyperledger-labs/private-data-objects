@@ -74,6 +74,74 @@
                             "maxLength": 32,
                             "required": true
                         }
+                        "CompilationReport": {
+                            "type": "object",
+                            "description": [
+                                "signed proof of code provenance and integrity"
+                            ],
+                            "properties": {
+                                "CompilerName": {
+                                    "description": [
+                                        "the name of the compiler that built the code"
+                                    ],
+                                    "type": "string",
+                                    "maxLength": 32,
+                                    "required": true
+                                },
+                                "CompilerVersion": {
+                                    "description": [
+                                        "the version number of the compiler that built the code"
+                                    ],
+                                    "type": "string",
+                                    "maxLength": 32,
+                                    "required": true
+                                },
+                                "CompilerConfiguration": {
+                                    "description": [
+                                        "a string of all compiler flags"
+                                    ],
+                                    "type": "string",
+                                    "maxLength": 128,
+                                    "required": true
+                                },
+                                "SourceHash": {
+                                    "description": [
+                                        "hash of the source/byte code compiler input"
+                                    ],
+                                    "$ref": "#/pdo/basetypes/encoded-hash",
+                                    "required": true
+                                },
+                                "BinaryHash": {
+                                    "description": [
+                                        "hash of the native binary code compiler output"
+                                    ],
+                                    "$ref": "#/pdo/basetypes/encoded-hash",
+                                    "required": true
+                                },
+                                "CompilerSignature": {
+                                    "description": [
+                                        "signature over the compiler inputs and output"
+                                    ],
+                                    "$ref": "#escda-signature",
+                                    "required": true
+                                },
+                                "CompilerVerifyingKey": {
+                                    "description": [
+                                        "identifier for the compiler that built the code"
+                                    ],
+                                    "$ref": "#transactor-id",
+                                    "required": true
+                                },
+                                "CompilerKeyLedgerSig": {
+                                    "description": [
+                                        "ledger signature over the compiler's key"
+                                    ],
+                                    "$ref": "#escda-signature",
+                                    "required": false
+                                }
+                            },
+                            "required": false
+                        }
                     },
                     "required": false
                 },
@@ -151,7 +219,8 @@
             "properties": {
                 "Status": {
                     "description": [
-                        "flag to indicate success/failure of the invocation"
+                        "flag to indicate success/failure of the invocation",
+                        "TODO: distinguish between contract/policy failure"
                     ],
                     "type": "boolean",
                     "required": true

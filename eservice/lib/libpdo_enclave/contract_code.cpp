@@ -33,6 +33,7 @@
 void ContractCode::Unpack(const JSON_Object* object)
 {
     const char* pvalue = nullptr;
+    JSON_Object *pobj = nullptr;
     try
     {
         // contract code
@@ -51,6 +52,13 @@ void ContractCode::Unpack(const JSON_Object* object)
             !pvalue, "invalid request; failed to retrieve Nonce");
         nonce_.assign(pvalue);
 
+        // compilation report (might be empty)
+        pobj = json_object_dotget_object(object, "CompilationReport");
+        pdo::error::ThrowIf<pdo::error::ValueError>(!pobj,
+            "invalid request; failed to retrieve CompilationReport");
+        if (json_object_get_count(pobj))
+            compilation_report_.Unpack(pobj);
+
         ComputeHash(code_hash_);
     }
     catch (std::exception& e)
@@ -61,9 +69,9 @@ void ContractCode::Unpack(const JSON_Object* object)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractCode::FetchFromState(
-    const ContractState& state,
-    const ByteArray& code_hash)
+void ContractCode::FetchFromState(const ContractState& state,
+                                  bool policyDefaultDeny,
+                                  const ByteArray& code_hash)
 {
     try
     {
@@ -74,6 +82,22 @@ void ContractCode::FetchFromState(
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract code missing");
             code_ = ByteArrayToString(v);
+        }
+
+        if (policyDefaultDeny) {
+            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires CDI report", __func__);
+            std::string str = "ContractCode.CompilationReport";
+            ByteArray k(str.begin(), str.end());
+            ByteArray v(state.state_.PrivilegedGet(k));
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                v.size() == 0, "contract compilation report missing");
+            compilation_report_.Unpack(ByteArrayToString(v));
+
+            // validate the compilation report before
+            // we keep fetching from state
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                !compilation_report_.VerifySignature(code_),
+                "contract code compilation report verification failed");
         }
 
         {
@@ -113,10 +137,25 @@ void ContractCode::FetchFromState(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractCode::SaveToState(ContractState& state)
+void ContractCode::SaveToState(ContractState& state,
+                               bool policyDefaultDeny)
 {
     try
     {
+        if (policyDefaultDeny) {
+            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires CDI report", __func__);
+            // validate the compilation report before we save the state
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                !compilation_report_.VerifySignature(code_),
+                "contract code compilation report validation failed");
+
+            std::string str = "ContractCode.CompilationReport";
+            ByteArray k(str.begin(), str.end());
+            std::string serialized_report = compilation_report_.Pack();
+            ByteArray v(serialized_report.begin(), serialized_report.end());
+            state.state_.PrivilegedPut(k, v);
+        }
+
         {
             std::string str = "ContractCode.Code";
             ByteArray k(str.begin(), str.end());
@@ -159,6 +198,15 @@ ByteArray ContractCode::SerializeForHashing(void) const
     std::copy(code_.begin(), code_.end(), std::back_inserter(message));
     std::copy(name_.begin(), name_.end(), std::back_inserter(message));
     std::copy(nonce_.begin(), nonce_.end(), std::back_inserter(message));
+
+    // the compilation report is optional in a contract
+    // if the compiler verfying key is present, we assume we have a full report
+    if (!compilation_report_.CompilerVerifyingKey().empty()) {
+        std::string report_hash = compilation_report_.ComputeHash();
+        message.reserve(message.size() + report_hash.size());
+        std::copy(report_hash.begin(), report_hash.end(),
+                  std::back_inserter(message));
+    }
 
     return message;
 }

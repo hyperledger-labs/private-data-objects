@@ -87,7 +87,6 @@ WORKDIR /project/pdo/
 RUN mkdir src && cd src \
  && git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} private-data-objects
 
-
 # Build ..
 FROM ${PDO_DEV_IMAGE}
 

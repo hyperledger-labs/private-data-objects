@@ -85,6 +85,7 @@ ContractResponse::ContractResponse(
 
     contract_id_ = request.contract_id_;
     creator_id_ = request.creator_id_;
+    // FIXME: distinguish between contract and CDI policy failures
     operation_succeeded_ = false;
     state_changed_ = false;
 
