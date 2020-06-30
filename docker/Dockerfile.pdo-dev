@@ -54,7 +54,6 @@ ARG UBUNTU_VERSION=18.04
 FROM ubuntu:${UBUNTU_VERSION}
 
 ARG UBUNTU_VERSION=18.04-server
-ARG UBUNTU_NAME=bionic
 # for bizare docker reason, we have to redefine it here ...
 
 ARG SGXSDK=2.9.1
@@ -98,7 +97,7 @@ RUN apt-get update \
     virtualenv \
     wget \
     $ADD_APT_PKGS \
- && if [ "$UBUNTU_NAME" = "bionic" ] || [ "$UBUNTU_NAME" = "artful" ]; then \
+ && if [ "$UBUNTU_VERSION" = "18.04-server" ] || [ "$UBUNTU_VERSION" = "17.10" ]; then \
 	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
     fi \
  && apt-get -y -q upgrade \
@@ -127,34 +126,35 @@ RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.k
 RUN apt-get update
 
 # Install PSW packages
+RUN apt-get install -y \
 # - dependencies
-RUN apt-get install -y build-essential python
+   build-essential python \
 # - sgx packages
-RUN apt-get install -y libsgx-enclave-common sgx-aesm-service
+  libsgx-enclave-common sgx-aesm-service \
 # -> do not really need aesmd, there is now some option
 # by which we can prevent installing aesmd ..
 # proxy config?!
 # additional packages
 # - launch service
-RUN apt-get install -y libsgx-launch libsgx-urts
+  libsgx-launch libsgx-urts \
 # - EPID-based attestation service
-RUN apt-get install -y libsgx-epid libsgx-urts
+  libsgx-epid \
 # - algorithm agnostic attestation service
-RUN apt-get install -y libsgx-quote-ex libsgx-urts
+  libsgx-quote-ex
 
 RUN mkdir -p /opt/intel
 WORKDIR /opt/intel
-RUN wget https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin
-RUN chmod +x sgx_linux_x64_sdk_${SDKBIN}.bin
-RUN echo -e "no\n/opt/intel" | ./sgx_linux_x64_sdk_${SDKBIN}.bin
+RUN wget https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin && \
+    chmod +x sgx_linux_x64_sdk_${SDKBIN}.bin && \
+    echo -e "no\n/opt/intel" | ./sgx_linux_x64_sdk_${SDKBIN}.bin
 RUN echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 
-# - LVI mitigations, needed to compile sgxssl requires a
+# LVI mitigations, needed to compile sgxssl requires a
 #   recent version of binutils (>= 2.32). Ubuntu 18.04 only
 #   has 2.30 but Intel ships binary distro for 2.32.51.20190719
 RUN wget "https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/as.ld.objdump.gold.r1.tar.gz"
-RUN mkdir sgxsdk.extras
-RUN cd sgxsdk.extras && \
+RUN mkdir sgxsdk.extras && \
+    cd sgxsdk.extras && \
     tar -zxf ../as.ld.objdump.gold.r1.tar.gz
 RUN echo "export PATH=/opt/intel/sgxsdk.extras/external/toolset:${PATH}" >> /etc/profile.d/pdo.sh
 ENV PATH="/opt/intel/sgxsdk.extras/external/toolset:${PATH}"
@@ -162,11 +162,12 @@ ENV PATH="/opt/intel/sgxsdk.extras/external/toolset:${PATH}"
 # SGXSSL
 RUN git clone 'https://github.com/intel/intel-sgx-ssl.git'
 RUN cd intel-sgx-ssl && \
+    . /opt/intel/sgxsdk/environment && \
     git checkout lin_${SGXSSL} && \
     cd openssl_source && \
     wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
     cd ../Linux && \
-    make DESTDIR=/opt/intel/sgxssl all && \
+    make DESTDIR=/opt/intel/sgxssl SGX_MODE=SIM all test && \
     make install
 RUN echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 

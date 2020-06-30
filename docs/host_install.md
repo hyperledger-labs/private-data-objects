@@ -15,6 +15,7 @@ installation is described below.
 - Setup the basic development environment
 - Download TinyScheme source
 - Install SGX SDK
+- Install LVI-aware binutils
 - Install SGX SSL
 - Install required build dependencies
 - Set up environment variables to configure the build
@@ -97,6 +98,23 @@ You can also build and install the SGX SDK from source. Instructions for
 building from source are available
 [Intel SGX SDK git repository](https://github.com/intel/linux-sgx).
 
+## Install binutils with LVI mitigations
+
+Ubuntu 18.04 does not ship a version of `binutils` that
+includes mitigations for LVI attacks. However, recent
+releases of SGX SSL expect these mitigations to be in place.
+
+Intel provides binary distributions of `binutils` (version 2.32)
+that contain the necessary LVI mitigations. The following
+commands will download and install these binaries:
+
+```bash
+wget "https://download.01.org/intel-sgx/sgx-linux/2.9.1/as.ld.objdump.gold.r1.tar.gz"
+mkdir /opt/intel/sgxsdk.extras
+tar -xzf as.ld.objdump.gold.r1.tar.gz -C /opt/intel/sgxsdk.extras
+export PATH=/opt/intel/sgxsdk.extras/external/toolset:${PATH}
+```
+
 ## Build and Install SGX SSL
 
 SGX OpenSSL is a compilation of OpenSSL specifically for use within SGX
@@ -106,7 +124,7 @@ Detailed instructions for building and installing SGX SSL is available
 from the
 [Intel SGX SSL github repository](https://github.com/intel/intel-sgx-ssl).
 
-Follow these steps to compile and install version 2.4.1:
+Follow these steps to compile and install version 2.9.1:
 
 - Ensure you have the SGX SDK environment variables activated:
 ```bash
@@ -118,7 +136,7 @@ source /opt/intel/sgxsdk/environment
 git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
 
-- Check out the recommended version (v2.4.1):
+- Check out the recommended version (lin_2.9_1.1.1d):
 
 ```bash
 cd intel-sgx-ssl
