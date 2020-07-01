@@ -55,8 +55,7 @@ not supported by their respective communities at this time.
 Private Data Objects uses the trusted execution capabilities provided by
 Intel SGX to protect integrity and confidentiality. More information
 about SGX can be found on the
-[Intel SGX website](https://software.intel.com/en-us/sgx) including
-[detailed installation instructions](https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_DCAP_Linux_SW_Installation_Guide.pdf).
+[Intel SGX website](https://software.intel.com/en-us/sgx).
 
 SGX can operate in either simulation mode or hardware mode. Simulation
 mode does not require any processor support for SGX and can be useful
@@ -73,28 +72,18 @@ SGX hardware mode uses capabilities for trusted execution in the
 processor to protect confidentiality and integrity of computation. SGX
 hardware mode requires processor support for SGX
 ([commonly available on recent Intel processors](https://ark.intel.com/content/www/us/en/ark/search/featurefilter.html)).
-
-Note: Our installation is based on the Intel Data Center Attestation
-Primitives (DCAP) software. To use all features of DCAP, e.g.,
-ECDSA-based Third-Party Attestation, you also would need hardware which
-supports Flexible Launch Control (FLC) and FLC does not exist on all
-parts yet. See [An update on 3rd
-Party Attestation](https://software.intel.com/en-us/blogs/2018/12/09/an-update-on-3rd-party-attestation)
-for more information on this. EPID-based attestation, on which
-PDO software relies on right now, is supported by DCAP, though, on all
-SGX-enabled Hardware and, hence, you do not require FLC-enabled HW to
-run PDO.
+PDO currently relies on EPID-based SGX attestation, which is supported
+on all SGX-enabled hardware (including FLC-enabled hardware).
 
 To use SGX in hardware mode set the `SGX_MODE` environment variable to
 `HW`:
-
 
 ```bash
 export SGX_MODE=HW
 ```
 
-The remainder of this section provides information about preparing to
-run Private Data Objects using SGX in hardware mode. Specifically, there
+The remainder of this section provides information about preparing to run
+Private Data Objects using SGX in hardware mode. Specifically, there
 are steps that must be taken to enable attestation of the hardware
 platform using the Intel Attestation Service (IAS).
 
@@ -143,16 +132,16 @@ page. Copy the contents of the SPID into the file
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
 hardware support, it is necessary to install the SGX kernel driver. The
-following commands will download and install the DCAP v1.2 version of
+following commands will download and install the driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
 apt-get install dkms
 
-DCAP_VERSION=1.2
-UBUNTU_VERSION=ubuntuServer18.04
-DRIVER_REPO=https://download.01.org/intel-sgx/dcap-${DCAP_VERSION}/linux/dcap_installers/${UBUNTU_VERSION}/
-DRIVER_FILE=$(cd /tmp; wget --spider -r --no-parent $DRIVER_REPO 2>&1 | perl  -ne 'if (m|'${DRIVER_REPO}'(.*driver.*)|) { print "$1\n"; }')
+DRIVER_VERSION=2.6.0_95eea6f
+UBUNTU_VERSION=18.04-server
+DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/ubuntu${UBUNTU_VERSION}/
+DRIVER_FILE=sgx_linux_x64_driver_${DRIVER_VERSION}.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE}
 chmod 777 ./${DRIVER_FILE}
@@ -162,29 +151,7 @@ sudo ./${DRIVER_FILE}
    Note: docu 'apt install build-essential ocaml automake autoconf
    libtool wget python libssl-dev' all of which are not necessary
    but omits necessary 'kms' ..
--->
-
-
-#### Install SGX Platform Services
-
-You also need the SGX Platform Services (PSW) so an (HW) enclave can properly be launched and can receive quotes for remote attestation.
-Following commands will download and install PSW:
-
-```bash
-echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
-wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
-apt-get update
-
-apt-get install -y libsgx-enclave-common libsgx-dcap-ql
-```
-
-if you want to debug and/or develop, also install following packages
-```bash
-apt-get install -y libsgx-enclave-common-dbgsym libsgx-dcap-ql-dbg libsgx-enclave-common-dev libsgx-dcap-ql-dev
-
-```
-
-If the installation of PSW (and kernel driver) was successfull, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.
+   -->
 
 ## Configuration
 
@@ -207,3 +174,5 @@ While the docker installation simplifies installation and execution,
 sometimes it is helpful to have more control over the
 process. Instructions for host system installation are available
 [here](host_install.md).
+
+**Note:** If the installation of PSW (and kernel driver) was successful, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.
