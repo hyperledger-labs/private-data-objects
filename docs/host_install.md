@@ -14,7 +14,7 @@ installation is described below.
 
 - Setup the basic development environment
 - Download TinyScheme source
-- Install SGX SDK
+- Install SGX SDK and untrusted platform libraries/services
 - Install LVI-aware binutils
 - Install SGX SSL
 - Install required build dependencies
@@ -63,6 +63,25 @@ shell script (`~/.bashrc` or similar):
 
 ```bash
 export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
+```
+
+## Install SGX Platform Libraries and Services
+
+You also need the SGX Platform Services (PSW) so an enclave can properly
+be launched and can receive quotes for remote attestation.
+Following commands will download and install PSW:
+
+```bash
+echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
+wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
+apt-get update
+apt-get build-essential python #dependencies
+apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-urts libsgx-launch libsgx-epid libsgx-quote-ex libsgx-uae-service
+```
+
+if you want to debug and/or develop, also install following packages
+```bash
+apt-get install -y libsgx-enclave-common-dbgsym libsgx-enclave-common-dev
 ```
 
 ## Install the SGX SDK

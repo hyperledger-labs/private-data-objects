@@ -78,13 +78,12 @@ on all SGX-enabled hardware (including FLC-enabled hardware).
 To use SGX in hardware mode set the `SGX_MODE` environment variable to
 `HW`:
 
-
 ```bash
 export SGX_MODE=HW
 ```
 
-The remainder of this section provides information about preparing to
-run Private Data Objects using SGX in hardware mode. Specifically, there
+The remainder of this section provides information about preparing to run
+Private Data Objects using SGX in hardware mode. Specifically, there
 are steps that must be taken to enable attestation of the hardware
 platform using the Intel Attestation Service (IAS).
 
@@ -152,28 +151,7 @@ sudo ./${DRIVER_FILE}
    Note: docu 'apt install build-essential ocaml automake autoconf
    libtool wget python libssl-dev' all of which are not necessary
    but omits necessary 'kms' ..
--->
-
-#### Install SGX Platform Services
-
-You also need the SGX Platform Services (PSW) so an enclave can properly be launched
-and can receive quotes for remote attestation.
-Following commands will download and install PSW:
-
-```bash
-echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
-wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
-apt-get update
-apt-get build-essential python #dependencies
-apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-urts libsgx-launch libsgx-epid libsgx-quote-ex
-```
-
-if you want to debug and/or develop, also install following packages
-```bash
-apt-get install -y libsgx-enclave-common-dbgsym libsgx-enclave-common-dev
-```
-
-If the installation of PSW (and kernel driver) was successfull, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.
+   -->
 
 ## Configuration
 
@@ -196,3 +174,5 @@ While the docker installation simplifies installation and execution,
 sometimes it is helpful to have more control over the
 process. Instructions for host system installation are available
 [here](host_install.md).
+
+**Note:** If the installation of PSW (and kernel driver) was successful, you should have a running PSW daemon (aesm_service) which you can confirm by running `systemctl status aesmd.service`.

@@ -140,7 +140,9 @@ RUN apt-get install -y \
 # - EPID-based attestation service
   libsgx-epid \
 # - algorithm agnostic attestation service
-  libsgx-quote-ex
+  libsgx-quote-ex \
+# - untrusted architectural enclave (AE) service; needed for HW mode
+  libsgx-uae-service
 
 RUN mkdir -p /opt/intel
 WORKDIR /opt/intel
@@ -167,7 +169,7 @@ RUN cd intel-sgx-ssl && \
     cd openssl_source && \
     wget https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
     cd ../Linux && \
-    make DESTDIR=/opt/intel/sgxssl SGX_MODE=SIM all test && \
+    make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test && \
     make install
 RUN echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 
