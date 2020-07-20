@@ -24,7 +24,7 @@ namespace ccfapp
 {
 
 
-    bool TPHandler::verify_sig_static(vector<uint8_t> signature, const tls::PublicKeyPtr & pubk_verifier, \
+    bool TPHandlerRegistry ::verify_sig_static(vector<uint8_t> signature, const tls::PublicKeyPtr & pubk_verifier, \
             const vector<uint8_t>& contents) {
 
         // verify & return true or false
@@ -32,7 +32,7 @@ namespace ccfapp
 
     }
 
-    bool TPHandler::verify_sig(vector<uint8_t> signature, const string & verifying_key, \
+    bool TPHandlerRegistry ::verify_sig(vector<uint8_t> signature, const string & verifying_key, \
             const vector<uint8_t>& contents) {
 
         // format the verifying key as needed by CCF to create the verifier
@@ -42,7 +42,7 @@ namespace ccfapp
 
     }
 
-    bool TPHandler::verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
+    bool TPHandlerRegistry ::verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
         const EnclaveInfo & enclave_info){
 
             string message = verifying_key;
@@ -58,7 +58,7 @@ namespace ccfapp
             return verify_sig(signature, verifying_key, contents);
     }
 
-    bool TPHandler::verify_pdo_transaction_signature_register_contract(const vector<uint8_t>& signature, const string & verifying_key, \
+    bool TPHandlerRegistry ::verify_pdo_transaction_signature_register_contract(const vector<uint8_t>& signature, const string & verifying_key, \
         const vector<uint8_t> & contract_code_hash, const string & nonce, const vector<string> & provisioning_service_ids){
 
 
@@ -77,7 +77,7 @@ namespace ccfapp
             return verify_sig(signature, verifying_key, contents);
     }
 
-    bool TPHandler::verify_pdo_transaction_signature_add_enclave(const vector<uint8_t>& signature, const string & verifying_key, \
+    bool TPHandlerRegistry ::verify_pdo_transaction_signature_add_enclave(const vector<uint8_t>& signature, const string & verifying_key, \
         const string & contract_id, const string &  enclave_info_json_string){
 
             string message = verifying_key;
@@ -89,7 +89,7 @@ namespace ccfapp
             return verify_sig(signature, verifying_key, contents);
     }
 
-    bool TPHandler::verify_enclave_signature_add_enclave(const string& signature, const tls::PublicKeyPtr & pubk_verifier, \
+    bool TPHandlerRegistry ::verify_enclave_signature_add_enclave(const string& signature, const tls::PublicKeyPtr & pubk_verifier, \
         const string & contract_creator_key, const string & contract_id, const vector<ProvisioningKeysToSecretMap> & prov_key_maps, \
         const string & encrypted_state_encryption_key){
 
@@ -121,7 +121,7 @@ namespace ccfapp
     }
 
 
-    bool TPHandler::verify_pdo_transaction_signature_update_contract_state(const vector<uint8_t>& signature, \
+    bool TPHandlerRegistry ::verify_pdo_transaction_signature_update_contract_state(const vector<uint8_t>& signature, \
         const string & verifying_key, const string & contract_enclave_id, const vector<uint8_t>& contract_enclave_signature, \
         const string & state_update_info) {
 
@@ -137,7 +137,7 @@ namespace ccfapp
             return verify_sig(signature, verifying_key, contents);
     }
 
-    bool TPHandler::verify_enclave_signature_update_contract_state(const vector<uint8_t>& signature, \
+    bool TPHandlerRegistry ::verify_enclave_signature_update_contract_state(const vector<uint8_t>& signature, \
         const tls::PublicKeyPtr & pubk_verifier, const vector<uint8_t> & nonce, const string & contract_creator_verifying_key_PEM, \
         const vector<uint8_t> & contract_code_hash, const StateUpdateInfo & state_update_info) {
 

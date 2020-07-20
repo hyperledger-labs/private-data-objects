@@ -21,7 +21,11 @@ TP. Make sure the following env variables are defined:
 3) PDO_HOME : `export PDO_HOME=${PDO_INSTALL_ROOT}/opt/pdo/`.
 
 4) HOSTNAME : CCF's first node will be deployed at HOSTNAME:6006. One can simply set HOSTNAME to be the ip address
-of the VM that can be used to ping the VM from other machines.
+of the VM that can be used to ping the VM from other machines. For local testing, set HOSTNAME to `127.0.0.1`.
+
+5) PDO_ENCLAVE_CODE_SIGN_PEM : The PDO TP enclave app will be signed by the RSA private key
+who location is pointed to by this env variable. Note that this is the same key that will be
+used to sign the pdo contract enclaves.
 
 ## Get CCF Source Code
 
@@ -30,8 +34,7 @@ submodule using the following commands:
 
 ```bash
 cd $PDO_SOURCE_ROOT
-git submodule init
-git submodule update
+git submodule update --init
 ```
 
 ## Install CCF Dependencies
@@ -88,6 +91,13 @@ make clean
 make
 ```
 
+Note that CCF uses `ninja` tool for build. If the VM has a small memory (< 4GB), it might be required to reduce the parallelism in the build process by setting the env NINJA_OPTION. For example, the following env restricts ninja
+to 2 parallel jobs.
+
+```bash
+export NINJA_OPTION=-j2
+```
+
 ## Configure
 
 See the CCF documentation for information about configuring CCF. The
@@ -127,7 +137,7 @@ utilize the client authentication feature provided by CCF. However to
 satisfy the CCF's requirement that only authorized CCF users can submit
 transactions to CCF, share `user0_cert.pem` and `user0_privk.pem` with
 all the PDO clients. These two keys and the network certificate
-`networkcert.pem` must be stored under $PDO_LEDGER_KEY_ROOT (as part of
+`networkcert.pem` must be stored under the path $PDO_LEDGER_KEY_ROOT (as part of
 PDO deployment). The user keys must be renamed as `userccf_cert.pem` and
 `userccf_privk.pem` respectively.
 
@@ -180,15 +190,16 @@ based PDO-TP deployment. The information below can be found at
 
 ```bash
 export PDO_LEDGER_TYPE=ccf
-export PDO_LEDGER_URL=http://ip-address:6006
+export PDO_LEDGER_URL=http://ccf-ip-address:6006
 ```
 
-Here, ip-address is the address of the node which hosts the CCF instance.
+Note that ccf-ip-address is the ip-address that was set in the env variable HOSTNAME (see above) during CCF
+deployment. 
 
-2. Set env PDO_LEDGER_KEY_ROOT and save CCF's network certificate
-   `networkcert.pem` and user keys @ PDO_LEDGER_KEY_ROOT. Note that the
-   user cert and private keys must be named as `userccf_cert.pem` and
-   `userccf_privk.pem` respectively.
+2. Set env PDO_LEDGER_KEY_ROOT, which denotes the directory location
+    where save CCF's network certificate `networkcert.pem` and user keys
+    will be saved. Note that the user cert and private keys must be named as
+    `userccf_cert.pem` and `userccf_privk.pem` respectively.
 
 3. Do a clean build of PDO
 
@@ -199,7 +210,14 @@ make
 ```
 
 A clean build is an easy way to ensure updated creation of config files
-and PDO keys that are compatible with CCF.
+and PDO keys that are compatible with CCF. Alternatively, the overhead of a clean build
+can be avoided by executing the following two commands (in place of `make clean`) if
+the intention is to switch between PDO ledgers.
+
+```bash
+source ${PDO_SOURCE_ROOT}/build/common-config.sh
+make -C ${PDO_SOURCE_ROOT}/build force-conf keys
+```bash
 
 4. Run unit tests
 ```bash
