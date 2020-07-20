@@ -23,7 +23,7 @@ using namespace tls;
 namespace ccfapp
 {
 
-    TPHandler::TPHandler(Store& store):
+    TPHandlerRegistry ::TPHandlerRegistry (Store& store):
         UserHandlerRegistry(store),
         enclavetable(store.create<string, EnclaveInfo>("enclaves")),
         contracttable(store.create<string, ContractInfo>("contracts")),
@@ -33,13 +33,13 @@ namespace ccfapp
         ledger_signer_local = NULL;
     }
 
-    string TPHandler::sign_document(const string& document){
+    string TPHandlerRegistry ::sign_document(const string& document){
         vector<uint8_t> doc_vector(document.begin(), document.end());
         auto sign = ledger_signer_local->sign(doc_vector);
         return b64_from_raw(sign.data(), sign.size());
     }
 
-    void TPHandler::init_handlers(Store& store){
+    void TPHandlerRegistry ::init_handlers(Store& store){
 
         UserHandlerRegistry::init_handlers(store);
 
@@ -473,7 +473,7 @@ namespace ccfapp
                 doc_to_sign += enclave_r.value().proof_data;
                 doc_to_sign += enclave_r.value().registration_block_context;
                 doc_to_sign += enclave_r.value().EHS_verifying_key;
-                auto signature = TPHandler::sign_document(doc_to_sign);
+                auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
                 return make_success(Verify_enclave::Out{in.enclave_id, enclave_r.value().encryption_key, \
                 enclave_r.value().proof_data, enclave_r.value().registration_block_context, \
@@ -513,7 +513,7 @@ namespace ccfapp
                     doc_to_sign += pservice_id;
                 }
                 doc_to_sign += enclave_info_string;
-                auto signature = TPHandler::sign_document(doc_to_sign);
+                auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
                 return make_success(Verify_contract::Out{in.contract_id, encoded_code_hash, \
                 contract_r.value().contract_creator_verifying_key_PEM, contract_r.value().provisioning_service_ids, \
@@ -547,7 +547,7 @@ namespace ccfapp
             auto current_state_hash = contract_r.value().current_state_hash;
             auto encoded_state_hash = b64_from_raw(current_state_hash.data(), current_state_hash.size());
             string doc_to_sign = in.contract_id + encoded_state_hash;
-            auto signature = TPHandler::sign_document(doc_to_sign);
+            auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
             return make_success(Get_current_state_info::Out{encoded_state_hash, contract_r.value().is_active, signature});
 
@@ -588,7 +588,7 @@ namespace ccfapp
             doc_to_sign += encoded_mh;
             doc_to_sign += encoded_txnid;
             doc_to_sign += dep_list_string;
-            auto signature = TPHandler::sign_document(doc_to_sign);
+            auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
             return make_success(Get_state_details::Out{encoded_txnid, encoded_psh, encoded_mh, dep_list_string, signature});
 

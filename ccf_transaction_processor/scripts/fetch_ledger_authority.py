@@ -112,7 +112,7 @@ def Main() :
 
     fetch_ledger_authority(user_client, options, config)
 
-    LOG.info('successfully generated ledger authority')
+    LOG.info('successfully fetched ledger authority')
     sys.exit(0)
 
 # -----------------------------------------------------------------

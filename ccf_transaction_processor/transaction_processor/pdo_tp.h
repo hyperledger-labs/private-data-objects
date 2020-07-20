@@ -57,13 +57,11 @@ namespace ccfapp
     static constexpr auto GET_CURRENT_STATE_INFO_FOR_CONTRACT = "get_current_state_info_for_contract";
     static constexpr auto GET_DETAILS_ABOUT_STATE = "get_details_about_state";
 
-    //method that read the ledger verifying key. The very first invocation of this rpc will
-    //create the keys and globally commit it.
-
+    //methods that create and read ledger authority keys.
     static constexpr auto GEN_SIGNING_KEY = "generate_signing_key_for_read_payloads";
     static constexpr auto GET_LEDGER_KEY = "get_ledger_verifying_key";
 
-    class TPHandler : public UserHandlerRegistry
+    class TPHandlerRegistry  : public UserHandlerRegistry
     {
         private:
 
@@ -105,7 +103,7 @@ namespace ccfapp
 
         public:
 
-            TPHandler(Store& store);
+            TPHandlerRegistry (Store& store);
             void init_handlers(Store& store) override;
             map<string, tls::PublicKeyPtr> enclave_pubk_verifier; // the key is the enclave verifying key
                               // shouldn't there be a table for this?
@@ -116,7 +114,7 @@ namespace ccfapp
     class TransactionProcessor : public ccf::UserRpcFrontend
     {
     private:
-        TPHandler tp_handlers;
+        TPHandlerRegistry  tp_handlers;
 
     public:
         TransactionProcessor(Store& store);
