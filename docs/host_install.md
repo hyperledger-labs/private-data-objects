@@ -74,34 +74,36 @@ Following commands will download and install PSW:
 ```bash
 echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
 wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
-apt-get update
-apt-get build-essential python #dependencies
-apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-urts libsgx-launch libsgx-epid libsgx-quote-ex libsgx-uae-service
+sudo apt-get update
+sudo apt-get build-essential python #dependencies
+sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 ```
 
-if you want to debug and/or develop, also install following packages
+if you want to debug, also install following packages
 ```bash
-apt-get install -y libsgx-enclave-common-dbgsym libsgx-enclave-common-dev
+sudo apt-get install -y libsgx-enclave-common-dbgsym sgx-aesm-service-dbgsym libsgx-urts-dbgsym libsgx-uae-service-dbgsym
 ```
+
+Note: If you are behind a proxy, you will have to configure the proxy settings
+in `/etc/aesmd.confg` and restart aesmd with `systemctl restart aesmd.
 
 ## Install the SGX SDK
 
-Private Data Objects has been tested with version 2.9.1 of the SGX
+Private Data Objects has been tested with version 2.10 of the SGX
 SDK. You can download prebuilt binaries for the SDK and kernel drivers
-from [01.org](https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/ubuntu18.04-server/).
+from [01.org](https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server/).
 
-The following commands will download and install version 2.9.1 of the SGX
+The following commands will download and install version 2.10 of the SGX
 SDK. When asked for the installation directory, we suggest that you install
 the SDK into the directory `/opt/intel`.
 
 ```bash
-UBUNTU_VERSION=ubuntu18.04-server
-DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/${UBUNTU_VERSION}/
-SDK_FILE=sgx_linux_x64_sdk_2.9.101.2.bin
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server/
+SDK_FILE=sgx_linux_x64_sdk_2.10.100.2.bin
 
-wget ${DRIVER_REPO}/${SDK_FILE}
-chmod 777 ./${SDK_FILE}
-echo -e "no\n/opt/intel" | ./${SDK_FILE}
+wget ${DRIVER_REPO}/${SDK_FILE} -P /tmp
+chmod a+x /tmp/${SDK_FILE}
+echo -e "no\n/opt/intel" | sudo /tmp/${SDK_FILE}
 ```
 
 The installer includes a file that sets environment variables to
@@ -128,22 +130,22 @@ that contain the necessary LVI mitigations. The following
 commands will download and install these binaries:
 
 ```bash
-wget "https://download.01.org/intel-sgx/sgx-linux/2.9.1/as.ld.objdump.gold.r1.tar.gz"
-mkdir /opt/intel/sgxsdk.extras
-tar -xzf as.ld.objdump.gold.r1.tar.gz -C /opt/intel/sgxsdk.extras
-export PATH=/opt/intel/sgxsdk.extras/external/toolset:${PATH}
+wget "https://download.01.org/intel-sgx/sgx-linux/2.10/as.ld.objdump.gold.r2.tar.gz" -P /tmp
+sudo mkdir /opt/intel/sgxsdk.extras
+sudo tar -xzf /tmp/as.ld.objdump.gold.r2.tar.gz -C /opt/intel/sgxsdk.extras
+export PATH=/opt/intel/sgxsdk.extras/external/toolset/ubuntu18.04:${PATH}
 ```
 
 ## Build and Install SGX SSL
 
 SGX OpenSSL is a compilation of OpenSSL specifically for use within SGX
-enclaves. We have tested PDO with SGX SSL version 2.9.1.
+enclaves. We have tested PDO with SGX SSL version `lin_2.10_1.1.1g`
 
 Detailed instructions for building and installing SGX SSL is available
 from the
 [Intel SGX SSL github repository](https://github.com/intel/intel-sgx-ssl).
 
-Follow these steps to compile and install version 2.9.1:
+Follow these steps to compile and install version `lin_2.10_1.1.1g`:
 
 - Ensure you have the SGX SDK environment variables activated:
 ```bash
@@ -155,11 +157,11 @@ source /opt/intel/sgxsdk/environment
 git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
 
-- Check out the recommended version (lin_2.9_1.1.1d):
+- Check out the recommended version (`lin_2.10_1.1.1g`):
 
 ```bash
 cd intel-sgx-ssl
-git checkout lin_2.9_1.1.1d
+git checkout lin_2.10_1.1.1g
 ```
 
 - Download the OpenSSL source package that will form the base of this
@@ -167,7 +169,7 @@ SGX SSL install:
 
 ```bash
 cd openssl_source
-wget 'https://www.openssl.org/source/openssl-1.1.1d.tar.gz'
+wget 'https://www.openssl.org/source/openssl-1.1.1g.tar.gz'
 cd ..
 ```
 

@@ -28,19 +28,15 @@ ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
 endif
 ifdef http_proxy
-   DOCKER_BUILD_OPTS += --build-arg http_proxy=${http_proxy}
    DO_PROXY = 1
 endif
 ifdef https_proxy
-   DOCKER_BUILD_OPTS += --build-arg https_proxy=${https_proxy}
    DO_PROXY = 1
 endif
 ifdef ftp_proxy
-   DOCKER_BUILD_OPTS += --build-arg ftp_proxy=${ftp_proxy}
    DO_PROXY = 1
 endif
 ifdef no_proxy
-   DOCKER_BUILD_OPTS += --build-arg no_proxy=${no_proxy}
    DO_PROXY = 1
 endif
 ifdef DO_PROXY

@@ -136,22 +136,18 @@ following commands will download and install the driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-apt-get install dkms
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server
+DRIVER_FILE=sgx_linux_x64_driver_2.6.0_602374c.bin
 
-DRIVER_VERSION=2.6.0_95eea6f
-UBUNTU_VERSION=18.04-server
-DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/ubuntu${UBUNTU_VERSION}/
-DRIVER_FILE=sgx_linux_x64_driver_${DRIVER_VERSION}.bin
-
-wget ${DRIVER_REPO}/${DRIVER_FILE}
-chmod 777 ./${DRIVER_FILE}
+wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
+chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
-<!--
-   Note: docu 'apt install build-essential ocaml automake autoconf
-   libtool wget python libssl-dev' all of which are not necessary
-   but omits necessary 'kms' ..
-   -->
+
+Note: above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
+(If you have HW which has FLC (and hence can run DCAP), you could also 
+ alternatively install the kernel module which is part of DCAP. 
+ That supports DKMS and would save you from the re-install ...)
 
 ## Configuration
 

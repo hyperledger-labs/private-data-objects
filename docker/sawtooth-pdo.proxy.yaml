@@ -18,7 +18,8 @@
 # https_proxy and no_proxy defined
 # Note: for vanilla docker >=17.07 you can define proxy in ~/.docker/config.json 
 # (see https://docs.docker.com/network/proxy/) but this seems to be ignored by
-# docker-compose ...
+# docker-compose installed in docker-compose versions in ubuntu 18.04. Later
+# versions, e.g., the one in 20.04, will honor that and will make this file obsolete ..
 
 version: "2.1"
 
@@ -26,11 +27,6 @@ services:
 
   # PDO EHS, PS and client ...
   pdo-build:
-    build:
-      args:
-        http_proxy: ${http_proxy}
-        https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
@@ -38,11 +34,6 @@ services:
 
   # PDO Transaction processor
   pdo-tp:
-    build:
-      args:
-        http_proxy: ${http_proxy}
-        https_proxy: ${https_proxy}
-        no_proxy: ${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
