@@ -74,7 +74,7 @@ $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
 
 build :
 	mkdir $@
-	cd $@ ; cmake .. -G "Unix Makefiles"
+	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
 	easy_install $<
@@ -84,8 +84,8 @@ install: $(EGG_FILE)
 # paths as the installed libraries
 test:
 	@echo run the local secrets and requests tests
-	cd tests; python test-secrets.py --logfile __screen__ --loglevel warn
-	cd tests; pdo-test-request --no-ledger --iterations 10 --logfile __screen__ --loglevel warn
+	cd tests && python test-secrets.py --logfile __screen__ --loglevel warn
+	cd tests && pdo-test-request --no-ledger --iterations 10 --logfile __screen__ --loglevel warn
 
 clean:
 	rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)

@@ -17,7 +17,7 @@ $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
 all : build
-	@cd build; make all
+	@cd build && make all
 
 clean :
 	@echo Remove build directory
@@ -25,10 +25,10 @@ clean :
 
 install : build
 	@echo install contracts
-	@cd build; make install
+	@cd build && make install
 
 build :
 	mkdir -p $@
-	cd $@ ; emcmake cmake ..
+	cd $@ && emcmake cmake ..
 
 .PHONY : all build clean install

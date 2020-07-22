@@ -71,30 +71,30 @@ clean-install :
 	rm -rf $(DSTDIR)
 
 clean-build : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; $(CLEAN)
+	. $(abspath $(DSTDIR)/bin/activate) && $(CLEAN)
 
 environment : $(DSTDIR) $(PYTHON_DIR)
 
 $(PYTHON_DIR) :
 	virtualenv -p python3 --no-download $(DSTDIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pip
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade setuptools
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade toml
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests_toolbelt
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade colorlog
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade twisted
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pyyaml
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade google
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade protobuf
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade secp256k1
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade cryptography
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade pyparsing
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade lmdb
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade loguru
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade requests_http_signature
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade websocket-client
-	. $(abspath $(DSTDIR)/bin/activate) ; pip install --upgrade msgpack
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pip
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade setuptools
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade toml
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_toolbelt
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade colorlog
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade twisted
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyyaml
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade google
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade protobuf
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade secp256k1
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade cryptography
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyparsing
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade lmdb
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade loguru
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_http_signature
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade websocket-client
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade msgpack
 
 
 $(DSTDIR) :
@@ -108,7 +108,7 @@ verify-pre-conf :
 	$(VERIFY_PRE_CONF)
 
 build : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; $(BUILD)
+	. $(abspath $(DSTDIR)/bin/activate) && $(BUILD)
 
 verified-build : verify-pre-build
 	${MAKE} build
@@ -135,10 +135,10 @@ user_indexes := 1 2 3 4 5 6 7 8 9 10
 USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.pem))
 
 %.skf :
-	. $(abspath $(DSTDIR)/bin/activate) ; $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
+	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
 
 %.pem :
-	. $(abspath $(DSTDIR)/bin/activate) ; $(KEYGEN) --keyfile $(subst _private,,$*) --format pem
+	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem
 
 keys : $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
 
@@ -164,35 +164,35 @@ $(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
 
 $(ESERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			multiple --file-base $(basename $(notdir $<)) --count 5
 
 $(SSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/sservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			multiple --file-base $(basename $(notdir $<)) --count 5
 
 $(PSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pservice.toml
 	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			multiple --file-base $(basename $(notdir $<)) --count 5
 
 $(ENCLAVE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
 	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
 $(CONTRACT_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
 	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) ; \
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
@@ -208,16 +208,16 @@ template : $(PYTHON_DIR)
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
 	@ echo registering enclave and IAS public key on the ledger
-	. $(abspath $(DSTDIR)/bin/activate) ; $(SRCDIR)/eservice/bin/register-with-ledger.sh
+	. $(abspath $(DSTDIR)/bin/activate) && $(SRCDIR)/eservice/bin/register-with-ledger.sh
 
 .PHONY : register
 endif
 
 test : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTSCRIPT)
+	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
 
 benchmark : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; $(BENCHMARKSCRIPT)
+	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)
 
 .PHONY : all build verified-build clean clean-build clean-install conf verified-conf environment
 .PHONY : install keys rebuild system-keys template test verify-pre-build verify-pre-conf

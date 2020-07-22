@@ -43,7 +43,7 @@ install: $(EGG_FILE)
 	easy_install $<
 
 test: install
-	(cd ../common/tests/crypto; python test_cryptoWrapper.py)
+	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
 
 clean:
 	rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
