@@ -71,7 +71,7 @@ $(SWIG_TARGET) : $(SWIG_FILES)
 
 build :
 	mkdir $@
-	cd $@ ; cmake .. -G "Unix Makefiles"
+	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
 	easy_install $<

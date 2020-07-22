@@ -20,7 +20,7 @@ SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
 all : build
-	@cd build; make all
+	@cd build && make all
 
 clean :
 	@echo Remove build directory
@@ -31,16 +31,16 @@ debug :
 	@echo No debug build defined
 
 test :
-	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interface-test --expressions ${SCRIPTDIR}/interface-test/test-short.json
-	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract mock-contract --expressions ${SCRIPTDIR}/mock-contract/test-short.json
-	. $(abspath $(DSTDIR)/bin/activate) ; pdo-test-contract --no-ledger --contract interpreter-test --expressions ${SCRIPTDIR}/interpreter-test/test-short.json
+	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract interface-test --expressions ${SCRIPTDIR}/interface-test/test-short.json
+	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract mock-contract --expressions ${SCRIPTDIR}/mock-contract/test-short.json
+	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract interpreter-test --expressions ${SCRIPTDIR}/interpreter-test/test-short.json
 
 install : build
 	@echo install contracts
-	@cd build; make install
+	@cd build && make install
 
 build :
 	mkdir $@
-	cd $@ ; emcmake cmake ..
+	cd $@ && emcmake cmake ..
 
 .PHONY : all clean debug install test
