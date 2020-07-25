@@ -87,7 +87,7 @@ class CCFSubmitter(sub.Submitter):
                                                 description=None,
                                                 version="2.0",
                                                 format="json",
-                                                prefix="users",
+                                                prefix="app",
                                                 connection_timeout=3,
                                                 request_timeout=3,
                                             )
@@ -117,7 +117,7 @@ class CCFSubmitter(sub.Submitter):
                 raise
 
         #read failed even after retries
-        raise Exception(response.error['message'])
+        raise Exception(response.error)
 
 # -----------------------------------------------------------------
     def submit_rpc_to_ccf(self, tx_method, tx_params) :
@@ -152,7 +152,7 @@ class CCFSubmitter(sub.Submitter):
             if response.result: # result will be "True" for enclave registration transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
-                raise Exception(response.error['message'])
+                raise Exception(response.error)
         except Exception as e:
             raise
 
@@ -175,7 +175,7 @@ class CCFSubmitter(sub.Submitter):
             if response.result: # result will be "True" for contract registration transaction
                 return crypto.byte_array_to_hex(tx_params['signature'])
             else:
-                raise Exception(response.error['message'])
+                raise Exception(response.error)
         except Exception as e:
             raise
 
@@ -198,7 +198,7 @@ class CCFSubmitter(sub.Submitter):
             if response.result: # result will be "True" for add encalve to contract transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
-                raise Exception(response.error['message'])
+                raise Exception(response.error)
         except Exception as e:
             raise
 
@@ -237,7 +237,7 @@ class CCFSubmitter(sub.Submitter):
             if response.result: # result will be True for successful init transaction
                 return tx_params['nonce'] # this will represent the transaction id
             else:
-                raise Exception(response.error['message'])
+                raise Exception(response.error)
         except Exception as e:
             raise
 
@@ -283,7 +283,7 @@ class CCFSubmitter(sub.Submitter):
             if response.result: # result will be True for successful init transaction
                 return tx_params['nonce'] #this will represent the transaction id
             else:
-                raise Exception(response.error['message'])
+                raise Exception(response.error)
         except Exception as e:
             raise
 

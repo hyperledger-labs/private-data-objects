@@ -43,7 +43,7 @@ def fetch_ledger_authority(client, options, config):
             sys.exit(-1)
 
         if result.result is None :
-            LOG.error('failed to generate ledger authority: {0}, '.format(result.error['message']))
+            LOG.error('failed to generate ledger authority: {0}, '.format(result.error))
             sys.exit(-1)
 
     except :
@@ -68,7 +68,7 @@ def Main() :
     parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
 
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "user0", type=str)
+    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
     parser.add_argument("--output-file", help="Name of the file where the key will be saved", default = default_output, type=str)
 
     options = parser.parse_args()
@@ -101,7 +101,7 @@ def Main() :
             key=user_key_file,
             ca = network_cert,
             format='json',
-            prefix='users',
+            prefix='app',
             description="none",
             version="2.0",
             connection_timeout=3,
