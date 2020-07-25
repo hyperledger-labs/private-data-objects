@@ -52,7 +52,7 @@ def generate_ledger_authority(client, options, config):
 
 # -----------------------------------------------------------------
 def Main() :
-    default_config = os.path.join(CCF_Etc, 'cchost.toml')
+    default_config = os.path.join(CCF_Etc, 'cchost_start.toml')
     default_output = os.path.join(CCF_Keys, 'ledger_authority.pem')
 
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
@@ -61,7 +61,7 @@ def Main() :
     parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
 
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "user0", type=str)
+    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
 
     options = parser.parse_args()
 
@@ -93,7 +93,7 @@ def Main() :
             key=user_key_file,
             ca = network_cert,
             format='json',
-            prefix='users',
+            prefix='app',
             description="none",
             version="2.0",
             connection_timeout=3,

@@ -28,13 +28,15 @@ from loguru import logger as LOG
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 CCF_Bin = os.path.join(ContractHome, "ccf", "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
-CCF_Keys = os.path.join(ContractHome, "ccf", "keys")
+CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 sys.path.insert(1, CCF_Bin)
+sys.path.insert(1, "../CCF/tests")
+
 from infra.clients import CCFClient
 
 # -----------------------------------------------------------------
-def ping_test(client, options, config):
+def ping_test(client, options):
     num_pings = options.num_pings
 
     start_time = time.time()
@@ -55,10 +57,8 @@ def Main() :
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', default='INFO', type=str)
-
-    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = os.path.join(CCF_Etc, 'cchost.toml'), type=str)
-    parser.add_argument('--member-name', help="Name of the member adding the user", default = "member0", type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "user0", type=str)
+    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = os.path.join(CCF_Etc, 'cchost_start.toml'), type=str)
+    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
     parser.add_argument("--num-pings", help="Number of ping operations to do", default = 100, type=int)
 
     options = parser.parse_args()
@@ -71,13 +71,17 @@ def Main() :
     try :
         config = toml.load(options.ccf_config)
     except :
-        LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
+        LOG.info('unable to load ccf configuration file {0}'.format(options.ccf_config))
         pass
 
-    member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
-    member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
-    network_cert = config["start"]["network-cert-file"]
-    (host, port) = config["rpc-address"].split(':')
+    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
+
+    if os.environ.get("PDO_LEDGER_URL") is not None:
+        url =  os.environ.get("PDO_LEDGER_URL")
+        _, host_port = url.split('//')
+        (host, port) = host_port.split(':')
+    else :
+        (host, port) = config["rpc-address"].split(':')
 
     user_cert_file = os.path.join(CCF_Keys, "{}_cert.pem".format(options.user_name))
     user_key_file = os.path.join(CCF_Keys, "{}_privk.pem".format(options.user_name))
@@ -90,7 +94,7 @@ def Main() :
             key=user_key_file,
             ca = network_cert,
             format='json',
-            prefix='users',
+            prefix='app',
             description="none",
             version="2.0",
             connection_timeout=3,
@@ -99,7 +103,7 @@ def Main() :
         LOG.error('failed to connect to CCF service')
         sys.exit(-1)
 
-    ping_test(user_client, options, config)
+    ping_test(user_client, options)
 
     sys.exit(0)
 

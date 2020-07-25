@@ -87,7 +87,7 @@ class CCFSubmitter(sub.Submitter):
                                                 description=None,
                                                 version="2.0",
                                                 format="json",
-                                                prefix="users",
+                                                prefix="app",
                                                 connection_timeout=3,
                                                 request_timeout=3,
                                             )

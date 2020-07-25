@@ -1,0 +1,10 @@
+
+enclave-file = "${home}/ccf/lib/libpdoenc.virtual.so"
+enclave-type = "virtual"
+consensus = "raft"
+rpc-address = "${host_address}:${{6600+_count_}}"
+node-address = "${host_address}:${{7700+_count_}}"
+
+[join]
+network-cert-file = "${ledger_key_root}/networkcert.pem"
+target-rpc-address = "${host_address}:6600"

@@ -75,14 +75,21 @@ clean-build:
 clean-install :
 	rm -rf $(CCFDSTDIR)
 
-config : $(ETCDIR)/cchost.toml $(ETCDIR)/gov.lua
+config : $(ETCDIR)/cchost_start.toml $(ETCDIR)/cchost_join1.toml $(ETCDIR)/gov.lua
 
-$(ETCDIR)/cchost.toml : etc/cchost.toml
-	@ echo create configuration files for cchost
+$(ETCDIR)/cchost_start.toml : etc/cchost_start.toml
+	@ echo create configuration file for cchost first node
 	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
+
+$(ETCDIR)/cchost_join1.toml : etc/cchost_join.toml
+	@ echo create configuration files for cchost 2 additional nodes
+	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+			--output-directory $(dir $@) \
+			multiple --file-base $(basename $(notdir $<)) --count 2
 
 $(ETCDIR)/gov.lua : $(CCFDIR)/src/runtime_config/gov.lua
 	cp $(CCFDIR)/src/runtime_config/gov.lua $(ETCDIR)/gov.lua
@@ -113,7 +120,7 @@ install : install-ccf install-pdo-tp
 install-ccf : build-ccf
 	cd $(CCFDIR)/build && $(NINJA) install
 
-PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
+PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh add_node_to_ccf_network.sh
 PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py
 
 install-pdo-tp : build-pdo-tp
@@ -123,8 +130,8 @@ install-pdo-tp : build-pdo-tp
 	cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
 
 keys :
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name=member0 --gen-key-share
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name=user0 --gen-key-share
+	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name memberccf --gen-enc-key
+	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name userccf --gen-enc-key
 
 .PHONY : all build build-ccf build-pdo-tp
 .PHONY : clean clean-build clean-install

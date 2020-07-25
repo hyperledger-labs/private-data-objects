@@ -65,10 +65,10 @@ namespace ccfapp
     {
         private:
 
-            Store::Map<string, EnclaveInfo>& enclavetable; // key is encalve_id
-            Store::Map<string, ContractInfo>& contracttable; // key is contract_id
-            Store::Map<string, ContractStateInfo>& ccltable; // key is contract_id + state_hash (string addition)
-            Store::Map<string, map<string, string>>& signer; //There is at most one entry in this map. if there is an
+            kv::Map<string, EnclaveInfo>& enclavetable; // key is encalve_id
+            kv::Map<string, ContractInfo>& contracttable; // key is contract_id
+            kv::Map<string, ContractStateInfo>& ccltable; // key is contract_id + state_hash (string addition)
+            kv::Map<string, map<string, string>>& signer; //There is at most one entry in this map. if there is an
                                                             //entry key="signer".  value is pubk:privk
 
             // functions to verify signatures, only wite methods sign transactions, read methods do not.
@@ -103,8 +103,8 @@ namespace ccfapp
 
         public:
 
-            TPHandlerRegistry (Store& store);
-            void init_handlers(Store& store) override;
+            TPHandlerRegistry (kv::Store& store);
+            void init_handlers(kv::Store& store) override;
             map<string, tls::PublicKeyPtr> enclave_pubk_verifier; // the key is the enclave verifying key
                               // shouldn't there be a table for this?
 
@@ -117,7 +117,7 @@ namespace ccfapp
         TPHandlerRegistry  tp_handlers;
 
     public:
-        TransactionProcessor(Store& store);
+        TransactionProcessor(kv::Store& store);
     };
 }
 

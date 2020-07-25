@@ -23,6 +23,7 @@ import http
 import os
 import sys
 import toml
+import time
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
@@ -35,10 +36,24 @@ CCF_Keys = os.path.join(ContractHome, "ccf", "keys")
 
 sys.path.insert(1, CCF_Bin)
 from infra.clients import CCFClient
+import infra.node
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def open_network_script(client, options, config) :
+
+    # activate the member (new from ccf release 0.11)
+    try:
+        r = client.rpc("ack/update_state_digest")
+        state_digest = bytearray(r.result["state_digest"])
+        r = client.rpc("ack", params={"state_digest": list(state_digest)}, signed=True)
+        if r.error is not None:
+            LOG.error('failed to activate the member {}'.format(r.error))
+            sys.exit(-1)
+    except :
+        LOG.error('failed to activate the member')
+        sys.exit(-1)
+
     script = """
     tables = ...
     return Calls:call("open_network")
@@ -56,10 +71,41 @@ def open_network_script(client, options, config) :
         sys.exit(-1)
 
     if r.status != http.HTTPStatus.OK.value:
+        LOG.info(r)
         LOG.error('failed to open network: {}'.format(r.status))
         sys.exit(-1)
 
     LOG.info('successfully created proposal to open network with proposal id {}'.format(r.result["proposal_id"]))
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def add_node_script(client, options, config) :
+
+    node_id = options.node_id
+
+    # create the rpc to propose the new node as a trusted node
+    script = """
+    tables, node_id = ...
+    return Calls:call("trust_node", node_id)
+    """
+
+    rpc_params = dict()
+    rpc_params['parameter'] = node_id
+    rpc_params['script'] = {"text": script}
+    rpc_params['ballot'] = {"text": ("return true")}
+
+    try :
+        r = client.rpc("propose", rpc_params, signed=True)
+    except :
+        LOG.error('ccf add_node invocation failed')
+        sys.exit(-1)
+
+    if r.status != http.HTTPStatus.OK.value:
+        LOG.error('failed to propose new node: {}'.format(r.status))
+        sys.exit(-1)
+
+    LOG.info('successfully created proposal to add user node proposal id {}'.format(r.result["proposal_id"]))
+
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -99,15 +145,16 @@ def add_user_script(client, options, config) :
 
 # -----------------------------------------------------------------
 def Main() :
-    default_config = os.path.join(CCF_Etc, 'cchost.toml')
     parser = argparse.ArgumentParser(description='Script to enable the CCF network')
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
-
-    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--member-name', help="Name of the member adding the user", default = "member0", type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "user0", type=str)
+    parser.add_argument('--ccf-config-path', help='Path to locate the ccf config file', default = CCF_Etc, type=str)
+    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', required=True, type=str)
+    parser.add_argument('--member-name', help="Name of the member adding the user", default = "memberccf", type=str)
+    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
+    parser.add_argument('--add-node', help="Add a new node to existing CCF network", action="store_true")
+    parser.add_argument('--node-id', help="id of the node to be added to the ccf network", type=int)
 
     options = parser.parse_args()
 
@@ -120,7 +167,7 @@ def Main() :
 
     # -----------------------------------------------------------------
     try :
-        config = toml.load(options.ccf_config)
+        config = toml.load(os.path.join(options.ccf_config_path, options.ccf_config))
     except :
         LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
         pass
@@ -138,7 +185,7 @@ def Main() :
             key=member_key,
             ca = network_cert,
             format='json',
-            prefix='members',
+            prefix='gov',
             description="none",
             version="2.0",
             connection_timeout=3,
@@ -147,8 +194,11 @@ def Main() :
         LOG.error('failed to connect to CCF service')
         sys.exit(-1)
 
-    open_network_script(member_client, options, config)
-    add_user_script(member_client, options, config)
+    if options.add_node:
+        add_node_script(member_client, options, config)
+    else:
+        open_network_script(member_client, options, config)
+        add_user_script(member_client, options, config)
 
     LOG.info('CCF network ready for use')
     sys.exit(0)
