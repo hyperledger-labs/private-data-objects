@@ -23,7 +23,7 @@ using namespace tls;
 namespace ccfapp
 {
 
-    TPHandlerRegistry ::TPHandlerRegistry (Store& store):
+    TPHandlerRegistry ::TPHandlerRegistry (kv::Store& store):
         UserHandlerRegistry(store),
         enclavetable(store.create<string, EnclaveInfo>("enclaves")),
         contracttable(store.create<string, ContractInfo>("contracts")),
@@ -39,19 +39,19 @@ namespace ccfapp
         return b64_from_raw(sign.data(), sign.size());
     }
 
-    void TPHandlerRegistry ::init_handlers(Store& store){
+    void TPHandlerRegistry::init_handlers(kv::Store& store){
 
         UserHandlerRegistry::init_handlers(store);
 
         //======================================================================================================
         // ping handler implementation
-        auto ping = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto ping = [this](kv::Tx& tx, const nlohmann::json& params) {
             return make_success(true);
         };
 
         //======================================================================================================
         // gen_signing_key implementation
-        auto gen_signing_key = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto gen_signing_key = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             auto signer_view = tx.get_view(signer);
 
@@ -88,7 +88,7 @@ namespace ccfapp
 
         //======================================================================================================
         // get_ledger_key implementation
-        auto get_ledger_key = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto get_ledger_key = [this](kv::Tx& tx, const nlohmann::json& params) {
             auto signer_view = tx.get_view(signer);
 
             auto signer_global = signer_view->get_globally_committed("signer");
@@ -121,7 +121,7 @@ namespace ccfapp
 
         //======================================================================================================
         // register enclave handler implementation
-        auto register_enclave = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto register_enclave = [this](kv::Tx& tx, const nlohmann::json& params) {
             const auto in = params.get<Register_enclave::In>();
 
             // Capture  the current view of the K-V store
@@ -178,7 +178,7 @@ namespace ccfapp
 
         //======================================================================================================
         // register contract handler implementation
-        auto register_contract = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto register_contract = [this](kv::Tx& tx, const nlohmann::json& params) {
             const auto in = params.get<Register_contract::In>();
 
             // Capture  the current view
@@ -224,7 +224,7 @@ namespace ccfapp
 
         //======================================================================================================
         // add_enclave (to contract) handler implementation
-        auto add_enclave = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto add_enclave = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             const auto in = params.get<Add_enclave::In>();
 
@@ -313,7 +313,7 @@ namespace ccfapp
 
         //======================================================================================================
         // update contract state (ccl tables) handler implementation
-        auto update_contract_state = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto update_contract_state = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             const auto in = params.get<Update_contract_state::In>();
 
@@ -452,7 +452,7 @@ namespace ccfapp
 
         ///======================================================================================================
         // verify enclave handler implementation
-        auto verify_enclave = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto verify_enclave = [this](kv::Tx& tx, const nlohmann::json& params) {
             const auto in = params.get<Verify_enclave::In>();
             auto enclave_view = tx.get_view(enclavetable);
             auto enclave_r = enclave_view->get_globally_committed(in.enclave_id);
@@ -460,11 +460,17 @@ namespace ccfapp
             if (enclave_r.has_value())
             {
                 if (ledger_signer_local == NULL) {
-                    return make_error(
-                        // OK this needs to be fixed : if locally not present, get it from the table.
-                        // Question is how do I write a reuable method for this? (that can take tx
-                        // as input and possibily even throw json rpc errors)
-                        HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally. Use the get_ledger_key rpc to read the key once & try again.");
+                    auto signer_view = tx.get_view(signer);
+                    auto signer_global = signer_view->get_globally_committed("signer");
+                    if (signer_global.has_value()){
+                        auto key_pair = signer_global.value();
+                        auto privk_pem = tls::Pem(key_pair["privk"]);
+                        ledger_signer_local = make_key_pair(privk_pem, nullb, false);
+                    }
+                    else {
+                        return make_error(
+                            HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger authority for signing read rpcs");
+                    }
                 }
 
                 string doc_to_sign;
@@ -480,13 +486,13 @@ namespace ccfapp
                 enclave_r.value().EHS_verifying_key, signature});
             }
             return make_error(
-                    HTTP_STATUS_BAD_REQUEST, "Enclave not found");
+                HTTP_STATUS_BAD_REQUEST, "Enclave not found");
 
         };
 
         //======================================================================================================
         // verify_contract handler implementation
-        auto verify_contract = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto verify_contract = [this](kv::Tx& tx, const nlohmann::json& params) {
             const auto in = params.get<Verify_contract::In>();
             auto view = tx.get_view(contracttable);
             auto contract_r = view->get_globally_committed(in.contract_id);
@@ -498,8 +504,17 @@ namespace ccfapp
                 string enclave_info_string = j.dump();
 
                 if (ledger_signer_local == NULL) {
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
+                    auto signer_view = tx.get_view(signer);
+                    auto signer_global = signer_view->get_globally_committed("signer");
+                    if (signer_global.has_value()){
+                        auto key_pair = signer_global.value();
+                        auto privk_pem = tls::Pem(key_pair["privk"]);
+                        ledger_signer_local = make_key_pair(privk_pem, nullb, false);
+                    }
+                    else {
+                        return make_error(
+                            HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger authority for signing read rpcs");
+                    }
                 }
 
                 auto contract_code_hash = contract_r.value().contract_code_hash;
@@ -525,7 +540,7 @@ namespace ccfapp
 
         //======================================================================================================
         // get current state info handler implementation
-        auto get_current_state_info_for_contract = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto get_current_state_info_for_contract = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             const auto in = params.get<Get_current_state_info::In>();
             auto view = tx.get_view(contracttable);
@@ -541,7 +556,17 @@ namespace ccfapp
             }
 
             if (ledger_signer_local == NULL) {
-                return make_error(HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
+                auto signer_view = tx.get_view(signer);
+                auto signer_global = signer_view->get_globally_committed("signer");
+                if (signer_global.has_value()){
+                    auto key_pair = signer_global.value();
+                    auto privk_pem = tls::Pem(key_pair["privk"]);
+                    ledger_signer_local = make_key_pair(privk_pem, nullb, false);
+                }
+                else {
+                    return make_error(
+                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger authority for signing read rpcs");
+                }
             }
 
             auto current_state_hash = contract_r.value().current_state_hash;
@@ -555,7 +580,7 @@ namespace ccfapp
 
         //======================================================================================================
         // get state details handler implementation
-        auto get_details_about_state = [this](Store::Tx& tx, const nlohmann::json& params) {
+        auto get_details_about_state = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             const auto in = params.get<Get_state_details::In>();
             auto view = tx.get_view(ccltable);
@@ -574,12 +599,28 @@ namespace ccfapp
             string dep_list_string = j.dump();
 
             if (ledger_signer_local == NULL) {
-                return make_error(
-                    HTTP_STATUS_BAD_REQUEST, "Cannot find signer locally");
+                auto signer_view = tx.get_view(signer);
+                auto signer_global = signer_view->get_globally_committed("signer");
+                if (signer_global.has_value()){
+                    auto key_pair = signer_global.value();
+                    auto privk_pem = tls::Pem(key_pair["privk"]);
+                    ledger_signer_local = make_key_pair(privk_pem, nullb, false);
+                }
+                else {
+                    return make_error(
+                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger authority for signing read rpcs");
+                }
             }
 
             auto ccl_value = ccl_r.value();
-            auto encoded_psh = b64_from_raw(ccl_value.previous_state_hash.data(), ccl_value.previous_state_hash.size());
+            string encoded_psh;
+            if(ccl_value.previous_state_hash.size()==0){ // to address the case when the current state is "init".
+                encoded_psh="";                          // this used to work automatically with ccf 0.9, but with
+            }                                            // ccf 0.11, the b64_from_raw fails for empty input
+            else{
+                encoded_psh = b64_from_raw(ccl_value.previous_state_hash.data(), ccl_value.previous_state_hash.size());
+            }
+
             auto encoded_mh = b64_from_raw(ccl_value.message_hash.data(), ccl_value.message_hash.size());
             auto encoded_txnid = b64_from_raw(ccl_value.transaction_id.data(), ccl_value.transaction_id.size());
 
@@ -594,7 +635,7 @@ namespace ccfapp
 
         };
 
-        install(PingMe, json_adapter(ping), Write);
+        install(PingMe, json_adapter(ping), Read);
         install(GEN_SIGNING_KEY, json_adapter(gen_signing_key), Write);
         install(GET_LEDGER_KEY, json_adapter(get_ledger_key), Write);
 
@@ -612,7 +653,7 @@ namespace ccfapp
     }
 
     // Constructor for the app class: Point to rpc handlers
-    TransactionProcessor::TransactionProcessor(Store& store) :
+    TransactionProcessor::TransactionProcessor(kv::Store& store) :
         UserRpcFrontend(store, tp_handlers),
         tp_handlers(store)
         {
@@ -622,10 +663,9 @@ namespace ccfapp
 
     // This the entry point to the application. Point to the app class
     std::shared_ptr<ccf::UserRpcFrontend> get_rpc_handler(
-    NetworkTables& nwt, AbstractNotifier& notifier)
+    NetworkTables& nwt, ccfapp::AbstractNodeContext& context)
     {
         return make_shared<TransactionProcessor>(*nwt.tables);
     }
 
 }
-

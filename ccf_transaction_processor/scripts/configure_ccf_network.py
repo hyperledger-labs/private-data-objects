@@ -23,6 +23,7 @@ import http
 import os
 import sys
 import toml
+import time
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
@@ -39,6 +40,19 @@ from infra.clients import CCFClient
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def open_network_script(client, options, config) :
+
+    # activate the member (new from ccf release 0.11)
+    try:
+        r = client.rpc("ack/update_state_digest")
+        state_digest = bytearray(r.result["state_digest"])
+        r = client.rpc("ack", params={"state_digest": list(state_digest)}, signed=True)
+        if r.error is not None:
+            LOG.error('failed to activate the member {}'.format(r.error))
+            sys.exit(-1)
+    except :
+        LOG.error('failed to activate the member')
+        sys.exit(-1)
+
     script = """
     tables = ...
     return Calls:call("open_network")
@@ -104,10 +118,11 @@ def Main() :
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
-
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--member-name', help="Name of the member adding the user", default = "member0", type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "user0", type=str)
+    parser.add_argument('--member-name', help="Name of the member adding the user", default = "memberccf", type=str)
+    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
+    parser.add_argument('--add-node', help="Add a new node to existing CCF network", action="store_true")
+    parser.add_argument('--node-id', help="id of the node to be added to the ccf network", type=int)
 
     options = parser.parse_args()
 
@@ -138,7 +153,7 @@ def Main() :
             key=member_key,
             ca = network_cert,
             format='json',
-            prefix='members',
+            prefix='gov',
             description="none",
             version="2.0",
             connection_timeout=3,

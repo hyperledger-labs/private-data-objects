@@ -25,7 +25,7 @@ include(${CCF_DIR}/cmake/ccf_app.cmake)
 # the PDO TP app will be signed with the RSA key whose locaation is
 # pointed to by PDO_ENCLAVE_CODE_SIGN_PEM
 IF (NOT EXISTS "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
-  MESSAGE(FATAL_ERROR "PDO_ENCLAVE_CODE_SIGN_PEM environment variable not defined!")
+  MESSAGE(FATAL_ERROR "The enclave signing key pointed to by PDO_ENCLAVE_CODE_SIGN_PEM environment variable does not exist!")
 ENDIF()
 SET(PDO_ENCLAVE_CODE_SIGN_PEM "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
 

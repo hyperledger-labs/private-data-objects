@@ -78,7 +78,7 @@ clean-install :
 config : $(ETCDIR)/cchost.toml $(ETCDIR)/gov.lua
 
 $(ETCDIR)/cchost.toml : etc/cchost.toml
-	@ echo create configuration files for cchost
+	@ echo create configuration file for cchost
 	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
@@ -123,8 +123,8 @@ install-pdo-tp : build-pdo-tp
 	cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
 
 keys :
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name=member0 --gen-key-share
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name=user0 --gen-key-share
+	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name memberccf --gen-enc-key
+	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name userccf --gen-enc-key
 
 .PHONY : all build build-ccf build-pdo-tp
 .PHONY : clean clean-build clean-install

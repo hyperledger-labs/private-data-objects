@@ -28,20 +28,9 @@ if [ $SGX_MODE == "SIM" ]; then
    CCHOST=${F_SERVICEHOME}/bin/cchost.virtual
 fi
 
-if [ -f ${F_SERVICEHOME}/run/cchost.pid ]; then
-    if ps -p $(cat ${F_SERVICEHOME}/run/cchost.pid) > /dev/null
-    then
-        yell cchost appears to be running already
-        exit -1
-    fi
-fi
-
-rm -f ${F_SERVICEHOME}/run/*
-rm -f ${F_SERVICEHOME}/logs/*.log
-
 EFILE="${F_SERVICEHOME}/logs/error.log"
 OFILE="${F_SERVICEHOME}/logs/output.log"
 
 cd ${F_SERVICEHOME}/run
-${CCHOST} --config ${F_SERVICEHOME}/etc/cchost.toml $1 > $OFILE 2> $EFILE &
+${CCHOST} --config ${F_SERVICEHOME}/etc/cchost.toml > $OFILE 2> $EFILE &
 echo $! > ${F_SERVICEHOME}/run/cchost.pid

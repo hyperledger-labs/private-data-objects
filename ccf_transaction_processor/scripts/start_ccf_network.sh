@@ -33,15 +33,18 @@ if [ -f ${F_SERVICEHOME}/run/cchost.pid ]; then
     fi
 fi
 
-rm -f ${F_SERVICEHOME}/keys/network_cert.pem ${F_SERVICEHOME}/keys/network_enc_pubk.pem
+rm -rf ${F_SERVICEHOME}/run/*
+rm -f ${F_SERVICEHOME}/logs/*.log
+
+rm -f ${F_SERVICEHOME}/keys/networkcert.pem ${F_SERVICEHOME}/keys/network_enc_pubk.pem
 rm -f ${F_SERVICEHOME}/keys/ledger_authority_pub.pem
 
-say attempt to start cchost
-try ${F_SERVICEHOME}/bin/start_cchost.sh start
+say attempt to start ccf node
+try ${F_SERVICEHOME}/bin/start_cchost.sh
 
 sleep 5
 
-say configure ccf network
+say configure ccf network : ACK the member, open network, add user
 try ${F_SERVICEHOME}/bin/configure_ccf_network.py --logfile __screen__ --loglevel WARNING
 
 sleep 5
@@ -52,6 +55,4 @@ try ${F_SERVICEHOME}/bin/generate_ledger_authority.py --logfile __screen__ --log
 sleep 5
 
 echo save the ledger authority key
-try ${F_SERVICEHOME}/bin/fetch_ledger_authority.py --loglevel WARNING
-
-echo CCF service ready for use
+try ${F_SERVICEHOME}/bin/fetch_ledger_authority.py --logfile __screen__ --loglevel WARNING
