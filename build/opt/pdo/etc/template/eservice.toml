@@ -73,10 +73,11 @@ BaseName = "${identity}"
 # EnclavePolicy -- configuration of CDI policy for the enclave
 # --------------------------------------------------
 [EnclavePolicy]
-# The DefaulDeny flag indicates whether the CDI policy
+# The AcceptAllCode flag indicates whether the CDI policy
 # only allows contract code built using trusted toolchains.
-# When true, a list of one or more trusted compiler keys is expected
-DefaultDeny = false
+# When false, the eservice checks whether the code is signed
+# by a trusted source
+AcceptAllCode = true
 
 # TrustedCompilerKeys is a list of public keys corresponding
 # to trusted WASM AoT compilers that sign CDI compilation reports

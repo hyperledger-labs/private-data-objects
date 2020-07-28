@@ -22,7 +22,6 @@
 #include <string>
 
 #include "crypto.h"
-#include "enclave_policy.h"
 
 // JSON format for private data:
 // {

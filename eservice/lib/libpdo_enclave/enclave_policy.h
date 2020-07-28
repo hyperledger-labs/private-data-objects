@@ -21,7 +21,7 @@
 class EnclavePolicy
 {
  protected:
-    bool default_deny_;
+    bool accept_all_code_;
     std::vector<std::string> trusted_contract_compiler_keys_;
     // TODO: Support multiple trusted ledgers
     std::string trusted_ledger_key_;
@@ -31,7 +31,7 @@ class EnclavePolicy
 
  public:
     EnclavePolicy(void){};
-    bool DefaultDeny(void) { return default_deny_; };
+    bool AcceptAllCode(void) { return accept_all_code_; };
     bool ValidateContractCompiler(const ContractCompilationReport& compilationReport);
     void DeserializePolicy(const char *serializedPolicy);
 };

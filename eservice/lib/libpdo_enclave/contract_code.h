@@ -22,6 +22,7 @@
 
 #include "contract_compilation_report.h"
 #include "contract_state.h"
+#include "enclave_policy.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -43,8 +44,8 @@ public:
     void Unpack(const JSON_Object* object);
 
     void FetchFromState(const ContractState& state,
-                        bool policyDefaultDeny,
+                        EnclavePolicy& policy,
                         const ByteArray& code_hash);
     void SaveToState(ContractState& state,
-                     bool policyDefaultDeny);
+                     EnclavePolicy& policy);
 };
