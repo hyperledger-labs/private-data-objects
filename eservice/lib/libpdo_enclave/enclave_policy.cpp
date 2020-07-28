@@ -45,7 +45,7 @@ void EnclavePolicy::AddTrustedCompilerKey(const std::string& newCompilerKey) {
 
 bool EnclavePolicy::ValidateContractCompiler(const ContractCompilationReport& compilationReport) {
     // return immediately if this is not default-deny policy
-    if (!default_deny_)
+    if (accept_all_code_)
         return true;
 
     SAFE_LOG(PDO_LOG_DEBUG, "[%s] Get compilation report %s\n", __func__,
@@ -98,10 +98,10 @@ void EnclavePolicy::DeserializePolicy(const char *serializedPolicy) {
     const char *pvalue = nullptr;
     const JSON_Array *keys_arr = nullptr;
 
-    int default_deny = json_object_dotget_boolean(object, "DefaultDeny");
-    pdo::error::ThrowIf<pdo::error::ValueError>(default_deny == -1,
-        "invalid policy; bad default deny flag");
-    default_deny_ = (default_deny == 1);
+    int accept_all = json_object_dotget_boolean(object, "AcceptAllCode");
+    pdo::error::ThrowIf<pdo::error::ValueError>(accept_all == -1,
+        "invalid policy; bad accept all code flag");
+    accept_all_code_ = (accept_all == 1);
 
     // TrustedLedger key is optional
     pvalue = json_object_dotget_string(object, "TrustedLedgerKey");

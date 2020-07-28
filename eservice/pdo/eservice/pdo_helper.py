@@ -55,7 +55,7 @@ def __parse_pem_file_list(key_list, search_path):
     return keys
 
 def __parse_enclave_policy(policy_config, key_path):
-    enclave_policy = { "DefaultDeny" : policy_config['DefaultDeny'] } # convert str to bool
+    enclave_policy = { "AcceptAllCode" : policy_config['AcceptAllCode'] } # convert str to bool
     enclave_policy["TrustedCompilerKeys"] = __parse_pem_file_list(policy_config['TrustedCompilerKeys'], key_path)
     enclave_policy["TrustedLedgerKey"] = policy_config['TrustedLedgerKey']
     return enclave_policy

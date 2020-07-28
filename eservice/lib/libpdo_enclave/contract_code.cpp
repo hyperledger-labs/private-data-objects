@@ -70,7 +70,7 @@ void ContractCode::Unpack(const JSON_Object* object)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractCode::FetchFromState(const ContractState& state,
-                                  bool policyDefaultDeny,
+                                  EnclavePolicy& policy,
                                   const ByteArray& code_hash)
 {
     try
@@ -84,8 +84,8 @@ void ContractCode::FetchFromState(const ContractState& state,
             code_ = ByteArrayToString(v);
         }
 
-        if (policyDefaultDeny) {
-            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires CDI report", __func__);
+        if (!policy.AcceptAllCode()) {
+            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires report", __func__);
             std::string str = "ContractCode.CompilationReport";
             ByteArray k(str.begin(), str.end());
             ByteArray v(state.state_.PrivilegedGet(k));
@@ -138,12 +138,12 @@ void ContractCode::FetchFromState(const ContractState& state,
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractCode::SaveToState(ContractState& state,
-                               bool policyDefaultDeny)
+                               EnclavePolicy& policy)
 {
     try
     {
-        if (policyDefaultDeny) {
-            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires CDI report", __func__);
+        if (!policy.AcceptAllCode()) {
+            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires report", __func__);
             // validate the compilation report before we save the state
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 !compilation_report_.VerifySignature(code_),
