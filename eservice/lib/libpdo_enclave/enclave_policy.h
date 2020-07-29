@@ -16,7 +16,7 @@
 #include "types.h"
 #include "parson.h"
 
-#include "contract_compilation_report.h"
+#include "contract_code.h"
 
 class EnclavePolicy
 {
@@ -32,6 +32,6 @@ class EnclavePolicy
  public:
     EnclavePolicy(void){};
     bool AcceptAllCode(void) { return accept_all_code_; };
-    bool ValidateContractCompiler(const ContractCompilationReport& compilationReport);
+    bool ValidateContract(const ContractCode& contractCode);
     void DeserializePolicy(const char *serializedPolicy);
 };

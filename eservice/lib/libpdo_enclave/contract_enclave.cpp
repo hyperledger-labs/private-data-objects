@@ -258,24 +258,19 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
             request.contract_id_hash_);
 
         if(request.is_initialize()) {
-            // validate contract compiler before saving to state for
-            // the first time
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                !enclave_policy.ValidateContractCompiler(request.contract_code_.compilation_report_),
-                "Contract compiler not trusted!");
-            request.contract_code_.SaveToState(contract_state,
-                                               enclave_policy);
+            request.contract_code_.SaveToState(contract_state);
         }
         else {
             request.contract_code_.FetchFromState(contract_state,
-                                                  enclave_policy,
                                                   request.code_hash_);
-            // validate contract compiler after fetching from state,
-            // but before processing the request
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                !enclave_policy.ValidateContractCompiler(request.contract_code_.compilation_report_),
-                "Contract compiler not trusted!");
         }
+
+        // Check the CDI policy after fetching from state,
+        // but before processing the request
+        bool passCheck =
+            enclave_policy.ValidateContract(request.contract_code_);
+        pdo::error::ThrowIf<pdo::error::ValueError>(!passCheck,
+            "Contract origins not trusted!");
 
         ContractResponse response(request.process_request(contract_state));
         last_result = response.SerializeAndEncrypt(session_key, enclaveData);
