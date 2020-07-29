@@ -70,7 +70,6 @@ void ContractCode::Unpack(const JSON_Object* object)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractCode::FetchFromState(const ContractState& state,
-                                  EnclavePolicy& policy,
                                   const ByteArray& code_hash)
 {
     try
@@ -84,20 +83,13 @@ void ContractCode::FetchFromState(const ContractState& state,
             code_ = ByteArrayToString(v);
         }
 
-        if (!policy.AcceptAllCode()) {
-            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires report", __func__);
+        {
             std::string str = "ContractCode.CompilationReport";
             ByteArray k(str.begin(), str.end());
             ByteArray v(state.state_.PrivilegedGet(k));
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 v.size() == 0, "contract compilation report missing");
             compilation_report_.Unpack(ByteArrayToString(v));
-
-            // validate the compilation report before
-            // we keep fetching from state
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                !compilation_report_.VerifySignature(code_),
-                "contract code compilation report verification failed");
         }
 
         {
@@ -137,18 +129,11 @@ void ContractCode::FetchFromState(const ContractState& state,
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractCode::SaveToState(ContractState& state,
-                               EnclavePolicy& policy)
+void ContractCode::SaveToState(ContractState& state)
 {
     try
     {
-        if (!policy.AcceptAllCode()) {
-            SAFE_LOG(PDO_LOG_INFO, "[%s] CDI policy requires report", __func__);
-            // validate the compilation report before we save the state
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                !compilation_report_.VerifySignature(code_),
-                "contract code compilation report validation failed");
-
+        {
             std::string str = "ContractCode.CompilationReport";
             ByteArray k(str.begin(), str.end());
             std::string serialized_report = compilation_report_.Pack();
