@@ -61,18 +61,9 @@ void writeBinaryFile(std::string filename, std::string out) {
 // Generate the compilation report
 // TODO: generalize this more
 std::string GenerateCompilationReport(const ByteArray& contractBytecode,
-                                      const ByteArray& contractAotCode,
                                       const std::string signingKey)
 {
-    std::string compilerName("wamrc");
-    std::string compilerVersion("0.1");
-    std::string compilerConfig("flags"); // FIXME
-
-    ContractCompilationReport compilationReport(compilerName,
-                                                compilerVersion,
-                                                compilerConfig,
-                                                contractBytecode,
-                                                contractAotCode);
+    ContractCompilationReport compilationReport(contractBytecode);
 
     compilationReport.Sign(signingKey);
 
@@ -121,21 +112,20 @@ int main(int argc, char* argv[])
 
     ByteArray contract_source(32, 0xFF); // default is dummy source
     if (!contract_source_file.empty()) {
-        std::cout << "opening contract " << contract_source_file << std::endl;
+        SAFE_LOG(PDO_LOG_DEBUG, "opening contract %s\n", contract_source_file.c_str());
         contract_source = readBinaryFile(contract_source_file);
     }
 
-    std::cout << "opened contract " << contract_code_file << std::endl;
+    SAFE_LOG(PDO_LOG_DEBUG, "opened contract %s\n", ntract_code_file.c_str());
 
     SAFE_LOG(PDO_LOG_DEBUG, "Generating compilation report for contract %s\n", contract_code_file.c_str());
 
     std::string key_path = getPdoInstallRoot() + "/opt/pdo/keys/" + key_file;
     std::string signing_key = ByteArrayToString(readBinaryFile(key_path));
 
-    std::cout << "opened key " << key_path << std::endl;
+    SAFE_LOG(PDO_LOG_DEBUG, "opened key %s\n" key_path.c_str());
 
-    std::string compilation_report =
-        GenerateCompilationReport(contract_source, contract_code, signing_key);
+    std::string compilation_report = GenerateCompilationReport(contract_code, signing_key);
 
     SAFE_LOG(PDO_LOG_DEBUG, "Got report %s\n", compilation_report.c_str());
 

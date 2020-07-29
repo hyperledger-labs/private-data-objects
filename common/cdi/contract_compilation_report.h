@@ -36,6 +36,7 @@ class ContractCompilationReport {
 
  public:
     ContractCompilationReport(void){};
+    ContractCompilationReport(const ByteArray& binary);
     ContractCompilationReport(std::string compilerName,
                               std::string compilerVersion,
                               std::string compilerConfiguration,
