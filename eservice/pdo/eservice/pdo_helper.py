@@ -40,13 +40,13 @@ from pdo.submitter.create import create_submitter
 import logging
 logger = logging.getLogger(__name__)
 
-__all__ = [ "Enclave", "initialize_enclave", "shutdown_enclave" ]
+__all__ = [ "Enclave", "initialize_enclave", "shutdown_enclave", "parse_enclave_policy" ]
 
 # helper function to read list of .pem key files
 def __parse_pem_file_list(key_list, search_path):
     keys = []
     for key_file in key_list:
-        logger.error('opening key file %s', key_file)
+        logger.debug('opening key file %s', key_file)
         full_file = putils.find_file_in_path(key_file, search_path)
         with open(full_file, 'r') as k:
             key = k.read()
@@ -54,7 +54,7 @@ def __parse_pem_file_list(key_list, search_path):
         keys.append(key)
     return keys
 
-def __parse_enclave_policy(policy_config, key_path):
+def parse_enclave_policy(policy_config, key_path):
     enclave_policy = { "AcceptAllCode" : policy_config['AcceptAllCode'] } # convert str to bool
     enclave_policy["TrustedCompilerKeys"] = __parse_pem_file_list(policy_config['TrustedCompilerKeys'], key_path)
     enclave_policy["TrustedLedgerKey"] = policy_config['TrustedLedgerKey']
@@ -78,7 +78,7 @@ def initialize_enclave(config) :
     try :
         enclave_config = config['EnclaveModule']
         # add the enclave policy
-        enclave_config['EnclavePolicy'] = __parse_enclave_policy(config['EnclavePolicy'], config['Key']['SearchPath'])
+        enclave_config['EnclavePolicy'] = parse_enclave_policy(config['EnclavePolicy'], config['Key']['SearchPath'])
         pdo_enclave.initialize_with_configuration(enclave_config)
     except KeyError as ke :
         raise Exception('missing enclave module configuration')
@@ -100,10 +100,10 @@ def shutdown_enclave() :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def get_enclave_service_info(spid) :
+def get_enclave_service_info(spid, config=None) :
     """get_enclave_service_info -- Retrieve enclave MRENCLAVE & BASENAME
     """
-    return pdo_enclave.get_enclave_service_info(spid)
+    return pdo_enclave.get_enclave_service_info(spid, config=config)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

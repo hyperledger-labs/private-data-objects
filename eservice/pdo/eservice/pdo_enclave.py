@@ -97,7 +97,7 @@ def __set_cdi_policy(config):
     """
     global _cdi_policy
 
-    if _cdi_policy is None:
+    if config and _cdi_policy is None:
         _cdi_policy = json.dumps(config['EnclavePolicy'])
 
     logger.debug("Enclave CDI policy: %s", _cdi_policy)
@@ -224,7 +224,7 @@ def send_to_contract_encoded(sealed_data, encrypted_session_key, encrypted_reque
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def get_enclave_service_info(spid) :
+def get_enclave_service_info(spid, config=None) :
     """Retrieve information about the enclave. This function should
     only be called outside of the normal initialization of the enclave
     and corresponding libraries.
@@ -235,10 +235,10 @@ def get_enclave_service_info(spid) :
     if _pdo :
         raise Exception('get_enclave_service_info must be called exclusively')
 
-    if _cdi_policy is None:
-        raise Exception('cannot load enclave without cdi policy')
-
     enclave.SetLogger(logger)
+
+    # set the policy based on the configuration
+    __set_cdi_policy(config)
 
     signed_enclave = __find_enclave_library(None)
     logger.debug("Attempting to load enclave at: %s", signed_enclave)
