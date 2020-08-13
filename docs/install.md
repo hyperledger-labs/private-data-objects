@@ -131,7 +131,28 @@ page. Copy the contents of the SPID into the file
 
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
-hardware support, it is necessary to install the SGX kernel driver. The
+hardware support, it is necessary to install the SGX kernel driver. 
+
+<!-- DCAP kernel driver installation -->
+The following commands will download and install the driver version 1.3 of
+the DCAP SGX kernel driver (for Ubuntu 18.04 server):
+
+```bash
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-dcap/1.7/linux/distro/ubuntu18.04-server/
+DRIVER_FILE=sgx_linux_x64_driver_1.35.bin
+
+wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
+chmod a+x /tmp/${DRIVER_FILE}
+sudo ./${DRIVER_FILE}
+```
+Note:
+- as of early August 2020, the sdk drivers (e.g., `sgx_linux_x64_driver_2.6.0_602374c.bin`) will cause BUS errors in some circumstance and is currently not supported by PDO
+- the DCAP driver, though, requires hardware which supports FLC (Flexible Launch Control)
+- the DCAP driver supports DKMS, so contrary to the sdk driver, you will _not_ have to re-install
+  the kernel driver after each kernel update.
+
+<!-- SDK kernel driver installation: currently disabled due to BUS Errors
+The
 following commands will download and install the driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
@@ -143,11 +164,11 @@ wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
-
 Note: above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
 (If you have HW which has FLC (and hence can run DCAP), you could also 
  alternatively install the kernel module which is part of DCAP. 
  That supports DKMS and would save you from the re-install ...)
+-->
 
 ## Configuration
 
