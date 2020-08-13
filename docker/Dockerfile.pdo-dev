@@ -213,8 +213,8 @@ RUN mkdir -p /project/pdo/wasm/src \
  && cd /project/pdo/wasm/src \
  && git clone https://github.com/emscripten-core/emsdk.git \
  && cd emsdk \
- && ./emsdk install latest-fastcomp \
- && ./emsdk activate latest-fastcomp \
+ && ./emsdk install latest \
+ && ./emsdk activate latest \
  && echo 'cd /project/pdo/wasm/src/emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
 # Note: above convoluted BASH_SOURCE hack is necessary as (a) emsdk_env.sh 
 #       assumes we run in bash but (b) as we build we actually run in sh
