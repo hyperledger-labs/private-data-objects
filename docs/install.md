@@ -131,8 +131,12 @@ page. Copy the contents of the SPID into the file
 
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
-hardware support, it is necessary to install the SGX kernel driver. 
+hardware support, it is necessary to install the SGX kernel driver.
+Depending on your particular hardware, you will have to install
+different drivers.
 
+
+##### HW with support for DCAP / Flexible Launch Control (FLC)
 <!-- DCAP kernel driver installation -->
 The following commands will download and install the driver version 1.3 of
 the DCAP SGX kernel driver (for Ubuntu 18.04 server):
@@ -146,14 +150,15 @@ chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
 Note:
-- as of early August 2020, the sdk drivers (e.g., `sgx_linux_x64_driver_2.6.0_602374c.bin`) will cause BUS errors in some circumstance and is currently not supported by PDO
-- the DCAP driver, though, requires hardware which supports FLC (Flexible Launch Control)
+- the DCAP driver will _not_ work if your hardware does not supports FLC (Flexible Launch Control).
 - the DCAP driver supports DKMS, so contrary to the sdk driver, you will _not_ have to re-install
   the kernel driver after each kernel update.
 
-<!-- SDK kernel driver installation: currently disabled due to BUS Errors
-The
-following commands will download and install the driver version 2.6 of
+
+##### HW which does not support Flexible Launch Control (FLC)
+<!-- SDK kernel driver installation -->
+
+The following commands will download and install the SDK driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
@@ -164,11 +169,25 @@ wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
-Note: above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
-(If you have HW which has FLC (and hence can run DCAP), you could also 
- alternatively install the kernel module which is part of DCAP. 
- That supports DKMS and would save you from the re-install ...)
--->
+Note:
+- as of August 2020, the sdk drivers will cause BUS errors in some circumstance on FLC HW and PDO is currently not supported in that configuration.
+- above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
+
+
+#### Validating HW mode
+
+To validate that your SGX HW installation & and corresponding PDO
+configuration is working properly, the  easiest way is to install
+docker as discussed below and then run
+```bash
+	make SGX_MODE=HW -C docker test
+```
+This will build PDO and automatically execute the tests described in
+the Section [Validate the Installation](usage.md#validating) in HW mode.
+Without docker, just define the SGX_MODE environment variable to
+hardware mode (`export SGX_MODE=HW`) and manually follow the steps in
+that section.
+
 
 ## Configuration
 
