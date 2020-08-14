@@ -18,8 +18,9 @@ env:
   matrix:
     # parallelize builds for the different interpreters
     - PDO_INTERPRETER=gipsy
-    - PDO_INTERPRETER=wawaka
-    - PDO_INTERPRETER=wawaka-opt
+    # TODO: Re-enable below once wawaka builds again with standard (non-fastcomp) emsdk backend
+    #- PDO_INTERPRETER=wawaka
+    #- PDO_INTERPRETER=wawaka-opt
 
 before_install:
 
