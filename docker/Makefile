@@ -28,19 +28,15 @@ ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
 endif
 ifdef http_proxy
-   DOCKER_BUILD_OPTS += --build-arg http_proxy=${http_proxy}
    DO_PROXY = 1
 endif
 ifdef https_proxy
-   DOCKER_BUILD_OPTS += --build-arg https_proxy=${https_proxy}
    DO_PROXY = 1
 endif
 ifdef ftp_proxy
-   DOCKER_BUILD_OPTS += --build-arg ftp_proxy=${ftp_proxy}
    DO_PROXY = 1
 endif
 ifdef no_proxy
-   DOCKER_BUILD_OPTS += --build-arg no_proxy=${no_proxy}
    DO_PROXY = 1
 endif
 ifdef DO_PROXY
@@ -54,17 +50,24 @@ DOCKER_COMPOSE_OPTS += $(foreach cf, $(DOCKER_COMPOSE_FILES), -f $(cf))
 all:
 
 pdo-dev-image:
-	# sparse lmdb files cause docker to run out of disk space. As we include ..
-	# as git root for build of pdo-build docker file, we should  not have run tests
-	# inside the default build location
-	if [ -x ../build/_dev/opt/pdo/data ]; then \
-		echo -e "\n\nWARNING: you have a local "bare-metal" build in ../build/_dev. If that includes lmdb-files, below docker-compose might run out of disk space!!\n\n"; \
-	fi
 	# unconditionally build, count on docker caching to not rebuild if not necessary
 	docker build $(DOCKER_BUILD_OPTS) -f Dockerfile.pdo-dev -t pdo-dev .
 
 pdo-composition: pdo-dev-image
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) build
+	# Note:
+	# - using `sawtooth-pdo.local-code.yaml` in above will cause the docker context to be `../`.
+	#   To make sure that we do not pull in (too much) unnecessary stuff, we explicitly excludes 
+	#   various files/dirs in `../.dockerignore`.
+	#   There are two negative effect for not excluding enough
+	#   - if some non-essential file changed (e.g., build artificats on host which are
+	#     all not needed in docker), docker caching might not work well and docker will rebuild
+	#     layers even though it could have cached (and hence run faster).
+	#   - the the build-time layer will become unecessarily big (note: as we do multi-stage, the size of
+	#     of the built container image should not be affected). This is in particular an issue with lmdb
+	#     files which are created by tests in default location ../build/_dev. These files are
+	#     sparse but docker expands to them to their nominal size (several gb) and could cause
+	#     running out of disk space during the build...
 
 test: pdo-composition test-with-no-build
 

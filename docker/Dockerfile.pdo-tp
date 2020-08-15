@@ -19,25 +19,20 @@
 #    only 18.04 we need a separate container from the main PDO container pdo-build)
 #
 #  Configuration (build) paramaters
-#  - proxy configuration:               https_proxy http_proxy ftp_proxy  (default: undefined)
 #  - pdo repo to use:                   PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
 #  - pdo repo branch to use:            PDO_REPO_BRANCH (default: master)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-tp -t pdo-tp docker
-#   if behind a proxy, you might want to add also below options
-#   --build-arg https_proxy=$https_proxy --build-arg http_proxy=$http_proxy --build-arg ftp_proxy=$ftp_proxy
-#   if you want to build with the source locally commented, then use root-directory of
-#   source tree as context directory and add '--build-arg PDO_REPO_URL=file:///tmp/build-src/.git', e.g.,
+#   - if you want to build with the source locally committed, then use root-directory of
+#    source tree as context directory and add '--build-arg PDO_REPO_URL=file:///tmp/build-src/.git', e.g.,
 #      docker build -f docker/Dockerfile.pdo-dev -t pdo-build --build-arg PDO_REPO_URL=file:///tmp/build-src/.git .
+#   - if you are behind a proxy, see the comments in Dockerfile.pdo-dev
 #
 # Run:
 #   $ cd ....../private-datdda-objects
 #   $ docker run -it pdo-tp
-#   Notes:
-#   - if behind a proxy, you might want to add also below options
-#     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy
-#
+#   - if you are behind a proxy, see the comments in Dockerfile.pdo-dev
 
 # Get source of PDO
 # to allow using local development branch we copy whatever docker directory is passed

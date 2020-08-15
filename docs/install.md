@@ -131,27 +131,63 @@ page. Copy the contents of the SPID into the file
 
 SGX can run in either simulation or hardware mode. No kernel driver is
 required to run in simulation mode. However, if you plan to run with SGX
-hardware support, it is necessary to install the SGX kernel driver. The
-following commands will download and install the driver version 2.6 of
+hardware support, it is necessary to install the SGX kernel driver.
+Depending on your particular hardware, you will have to install
+different drivers.
+
+
+##### HW with support for DCAP / Flexible Launch Control (FLC)
+<!-- DCAP kernel driver installation -->
+The following commands will download and install the driver version 1.3 of
+the DCAP SGX kernel driver (for Ubuntu 18.04 server):
+
+```bash
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-dcap/1.7/linux/distro/ubuntu18.04-server/
+DRIVER_FILE=sgx_linux_x64_driver_1.35.bin
+
+wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
+chmod a+x /tmp/${DRIVER_FILE}
+sudo ./${DRIVER_FILE}
+```
+Note:
+- the DCAP driver will _not_ work if your hardware does not supports FLC (Flexible Launch Control).
+- the DCAP driver supports DKMS, so contrary to the sdk driver, you will _not_ have to re-install
+  the kernel driver after each kernel update.
+
+
+##### HW which does not support Flexible Launch Control (FLC)
+<!-- SDK kernel driver installation -->
+
+The following commands will download and install the SDK driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-apt-get install dkms
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server
+DRIVER_FILE=sgx_linux_x64_driver_2.6.0_602374c.bin
 
-DRIVER_VERSION=2.6.0_95eea6f
-UBUNTU_VERSION=18.04-server
-DRIVER_REPO= https://download.01.org/intel-sgx/sgx-linux/2.9.1/distro/ubuntu${UBUNTU_VERSION}/
-DRIVER_FILE=sgx_linux_x64_driver_${DRIVER_VERSION}.bin
-
-wget ${DRIVER_REPO}/${DRIVER_FILE}
-chmod 777 ./${DRIVER_FILE}
+wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
+chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
-<!--
-   Note: docu 'apt install build-essential ocaml automake autoconf
-   libtool wget python libssl-dev' all of which are not necessary
-   but omits necessary 'kms' ..
-   -->
+Note:
+- as of August 2020, the sdk drivers will cause BUS errors in some circumstance on FLC HW and PDO is currently not supported in that configuration.
+- above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
+
+
+#### Validating HW mode
+
+To validate that your SGX HW installation & and corresponding PDO
+configuration is working properly, the  easiest way is to install
+docker as discussed below and then run
+```bash
+	make SGX_MODE=HW -C docker test
+```
+This will build PDO and automatically execute the tests described in
+the Section [Validate the Installation](usage.md#validating) in HW mode.
+Without docker, just define the SGX_MODE environment variable to
+hardware mode (`export SGX_MODE=HW`) and manually follow the steps in
+that section.
+
 
 ## Configuration
 

@@ -17,18 +17,20 @@
 #   Builds the environment with all prerequistes needed to build Private Data Objects.
 #
 #  Configuration (build) paramaters
-#  - proxy configuration: 	https_proxy http_proxy ftp_proxy, no_proxy  (default: undefined)
-#  - ubuntu base image to use: 	UBUNTU_VERSION (default: 18.04-server)
-#  - sgx sdk version: 		SGXSDK (default: 2.9.1)
-#  - openssl version: 		OPENSSL (default: 1.1.1d)
-#  - sgxssl version: 		SGXSSL  (default: 2.9_1.1.1d)
-#  - additional apt packages:	ADD_APT_PKGS (default: )
+#  - ubuntu version to use: 	  UBUNTU_VERSION (default: 18.04)
+#  - ubuntu name to use: 	  UBUNTU_NAME (default: bionic)
+#  - sgx sdk/psw version: 	  SGX (default: 2.10)
+#  - openssl version: 		  OPENSSL (default: 1.1.1g)
+#  - sgxssl version: 		  SGXSSL  (default: 2.10_1.1.1g)
+#  - additional apt packages:	  ADD_APT_PKGS (default: )
 
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
-#   if behind a proxy, you might want to add also below options
-#   --build-arg https_proxy=$https_proxy --build-arg http_proxy=$http_proxy --build-arg ftp_proxy=$ftp_proxy --build-arg=$no_proxy
-#   if you want to build with different version than 16.04/xenial, add a build arg UBUNTU_VERSION, e.g., for 18.04 do --build-arg UBUNTU_VERSION=bionic
+#   - if you want to build with different version than 18.04/bionic, say 20.04/focal, 
+#     add --build-arg UBUNTU_VERSION=18.04  --build-arg UBUNTU_NAME=focal
+#   - if behind a proxy, make sure you've configured ~/.docker/config.json with your proxy setting
+#     and the docker daemon itself also has the proxy properly configured, for systemd based hosts
+#     like ubuntu see https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
 #
 # Run:
 #   $ cd <directory where you checked out private-data-objects>
@@ -40,26 +42,30 @@
 #     etc etc
 #     Note: your host SGX PSW runtime should be at a similar level than the one in the container
 #     or the PSW/aesmd might cause enclave launch problems
-#   - if behind a proxy, you might want to add also below options
-#     --env https_proxy=$https_proxy --env http_proxy=$http_proxy --env ftp_proxy=$ftp_proxy --env no_proxy=$no_proxy
+#   - if behind a proxy, make sure you've configured ~/.docker/config.json with your proxy setting
 #   - if you want to debug with gdb and alike, you also might want to add options
 #     '--security-opt seccomp=unconfined --security-opt apparmor=unconfined --cap-add=SYS_PTRACE '
 #   - for develooping based on source in host you might map source into container with an option
 #     like -v $(pwd):/project/pdo/src/private-data-objects/
 
 ARG UBUNTU_VERSION=18.04
-# 16.04 -> xenial, 17.10 -> artful, 18.04 -> bionic
-# NOTE: xenial might not work anymore (see below), preferred choice is bionic ..
+ARG UBUNTU_NAME=bionic
+# NOTE: 
+# - unfortunately, we do need both name (for repo) and version (for sgx directories), only docker image supports both ..
+#   18.04 <-> bionic, 20.04 <-> focal
+# - right now, full sgx support exists only for bionic; 
+#   xenial (16.04) has support only PSW but not SDK; 
+#   support for focal is still in the making but hopefully will exist soon...
 
 FROM ubuntu:${UBUNTU_VERSION}
 
-ARG UBUNTU_VERSION=18.04-server
-# for bizare docker reason, we have to redefine it here ...
+# Dockerfile limitations force a repetition of global args
+ARG UBUNTU_VERSION
+ARG UBUNTU_NAME
 
-ARG SGXSDK=2.9.1
-ARG SDKBIN=2.9.101.2
-ARG OPENSSL=1.1.1d
-ARG SGXSSL=2.9_1.1.1d
+ARG SGX=2.10
+ARG OPENSSL=1.1.1g
+ARG SGXSSL=2.10_1.1.1g
 
 ARG ADD_APT_PKGS=
 
@@ -67,7 +73,9 @@ ARG ADD_APT_PKGS=
 # TODO(xenial): we need to manually install protobuf 3 as xenial has v2
 # Note: ocamlbuild is required by PREREQ but does not exist for xenial. However, the relevant componets are part of 'ocaml' package, later ubuntu split up that package ...
 RUN apt-get update \
- && apt-get install -y -q\
+ && DEBIAN_FRONTEND="noninteractive" \
+  # above makes sure any install of 'tzdata' or alike (as e.g., pulled in via ubuntu 20.04) does not hang ...
+  apt-get install -y -q\
     autoconf \
     automake \
     build-essential \
@@ -80,10 +88,12 @@ RUN apt-get update \
     libcurl4-openssl-dev \
     liblmdb-dev \
     libprotobuf-dev \
+    libsecp256k1-dev \
     libssl-dev \
     libtool \
     make \
     ocaml \
+    ocamlbuild \
     pkg-config \
     protobuf-compiler \
     python \
@@ -96,10 +106,8 @@ RUN apt-get update \
     unzip \
     virtualenv \
     wget \
+    xxd \
     $ADD_APT_PKGS \
- && if [ "$UBUNTU_VERSION" = "18.04-server" ] || [ "$UBUNTU_VERSION" = "17.10" ]; then \
-	apt-get install -y -q libsecp256k1-dev ocamlbuild xxd; \
-    fi \
  && apt-get -y -q upgrade \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
@@ -111,67 +119,81 @@ RUN apt-get update \
 #   also does not work as it is not always called
  && sed -i '1s;^;. /etc/profile.d/pdo.sh\n;' /etc/bash.bashrc
 
+# Install SGX PSW packages
+RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
+ && wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - \
+ && apt-get update \
+ && apt-get install -y \
+    # We do not need daemons like AESMD as we run them on host (side-steps also
+    # issues with config of /etc/aesmd.conf like proxy ..). Without this option
+    # aesmd and lots of other plugsin are automatically pulled in. 
+    # See SGX Installation notes and, in particular, linux/installer/docker/Dockerfile
+    # in linux-sgx git repo of sdk/psw source. 
+    --no-install-recommends \
+    # - dependencies
+      build-essential python \
+    # - sgx packages
+    #   - runtime
+      libsgx-urts \
+    # (also pulls in libsgx-enclave-common)
+    #   - basic architectural services, e.g., launch & attestation
+      # sgx-aesm-service (see above why commented out)
+      libsgx-uae-service
+      # Note: 
+      # - above is "old" style from epid days. Since sdk 2.7 libsgx-uae-service is
+      #   split into subpackages
+      #   - launch service
+      #     libsgx-launch 
+      #   - algorithm agnostic attestation service
+      #     libsgx-quote-ex 
+      #   - EPID-based attestation service 
+      #     libsgx-epid 
+      #   - DCAP-based attesation service
+      #     libsgx-dcap* ...
+      #   correspondingly, also libsgx_uae_service.so and <sgx_uae_service.h>
+      #   is split into corresponding smaller libraries and header-files to make
+      #   integration with DCAP easier and minimize pulling in unnecessary dependencies
+
 # Install SGX SDK
-# we install from source as with binary distribution it's difficult to get library dependencies correct
-# and work-around the somewhat hacky way we have to install PSW (where we really only need the rts libs
-# but not the aesmd service which we assume to run in the host)
-# Notes:
-# - to make PSW installer work we have to
-#   - disable test for presence of kernel modules (as during build we are not really seeing them)
-#   - skip install and configure of aesmd service
-# - install before openssl as this might cause additional trouble
-
-RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' >> /etc/apt/sources.list
-RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
-RUN apt-get update
-
-# Install PSW packages
-RUN apt-get install -y \
-# - dependencies
-   build-essential python \
-# - sgx packages
-  libsgx-enclave-common sgx-aesm-service \
-# -> do not really need aesmd, there is now some option
-# by which we can prevent installing aesmd ..
-# proxy config?!
-# additional packages
-# - launch service
-  libsgx-launch libsgx-urts \
-# - EPID-based attestation service
-  libsgx-epid \
-# - algorithm agnostic attestation service
-  libsgx-quote-ex \
-# - untrusted architectural enclave (AE) service; needed for HW mode
-  libsgx-uae-service
-
 RUN mkdir -p /opt/intel
 WORKDIR /opt/intel
-RUN wget -q https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/distro/ubuntu${UBUNTU_VERSION}/sgx_linux_x64_sdk_${SDKBIN}.bin && \
-    chmod +x sgx_linux_x64_sdk_${SDKBIN}.bin && \
-    echo -e "no\n/opt/intel" | ./sgx_linux_x64_sdk_${SDKBIN}.bin
-RUN echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
+RUN SGX_SDK_BIN_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX}/distro/ubuntu${UBUNTU_VERSION}-server \
+  && SGX_SDK_BIN_FILE=$(cd /tmp; wget --spider --recursive --level=1 --no-parent ${SGX_SDK_BIN_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BIN_REPO}'/(sgx_linux_x64_sdk.*)|) { print "$1\n"; }') \
+  && wget -q ${SGX_SDK_BIN_REPO}/${SGX_SDK_BIN_FILE} \
+  && chmod +x ${SGX_SDK_BIN_FILE} \
+  && echo -e "no\n/opt/intel" | ./${SGX_SDK_BIN_FILE} \
+  && rm ${SGX_SDK_BIN_FILE} \
+  && echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 
-# LVI mitigations, needed to compile sgxssl requires a
+# LVI mitigations, needed to compile sgxssl, requires a
 #   recent version of binutils (>= 2.32). Ubuntu 18.04 only
 #   has 2.30 but Intel ships binary distro for 2.32.51.20190719
-RUN wget -q https://download.01.org/intel-sgx/sgx-linux/${SGXSDK}/as.ld.objdump.gold.r1.tar.gz
-RUN mkdir sgxsdk.extras && \
-    cd sgxsdk.extras && \
-    tar -zxf ../as.ld.objdump.gold.r1.tar.gz
-RUN echo "export PATH=/opt/intel/sgxsdk.extras/external/toolset:${PATH}" >> /etc/profile.d/pdo.sh
-ENV PATH="/opt/intel/sgxsdk.extras/external/toolset:${PATH}"
+RUN [ "$UBUNTU_VERSION" = "18.04" ] \
+  && SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
+  && SGX_SDK_BINUTILS_FILE=$(cd /tmp; wget --spider --recursive --level=1 --no-parent ${SGX_SDK_BINUTILS_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BINUTILS_REPO}'/(as.ld.objdump.*)|) { print "$1\n"; }') \
+  && wget -q ${SGX_SDK_BINUTILS_REPO}/${SGX_SDK_BINUTILS_FILE} \
+  && mkdir sgxsdk.extras \
+  && cd sgxsdk.extras \
+  && tar -zxf ../${SGX_SDK_BINUTILS_FILE} \
+  && rm ../${SGX_SDK_BINUTILS_FILE} \
+  && echo "export PATH=/opt/intel/sgxsdk.extras/external/toolset/ubuntu${UBUNTU_VERSION}:${PATH}" >> /etc/profile.d/pdo.sh
+# Note: above install file contains binutitls for all supported distros. 
+#   So to same some space (~100m) & make smaller images one could delete
+#   all subdirectores other than ${UBUNTU_VERSION} ...
+ENV PATH="/opt/intel/sgxsdk.extras/external/toolset/ubuntu${UBUNTU_VERSION}:${PATH}"
 
 # SGXSSL
-RUN git clone 'https://github.com/intel/intel-sgx-ssl.git'
-RUN cd intel-sgx-ssl && \
-    . /opt/intel/sgxsdk/environment && \
-    git checkout lin_${SGXSSL} && \
-    cd openssl_source && \
-    wget -q https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz && \
-    cd ../Linux && \
-    make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test && \
-    make install
-RUN echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
+RUN git clone 'https://github.com/intel/intel-sgx-ssl.git' \
+  && cd intel-sgx-ssl \
+  && . /opt/intel/sgxsdk/environment \
+  && git checkout lin_${SGXSSL} \
+  && cd openssl_source \
+  && wget -q https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz \
+  && cd ../Linux \
+  && make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl all test \
+  && make install \
+  && make clean \
+  && echo "export SGX_SSL=/opt/intel/sgxssl" >> /etc/profile.d/pdo.sh
 
 # Install contract interpreter related stuff
 
@@ -191,11 +213,11 @@ RUN mkdir -p /project/pdo/wasm/src \
  && cd /project/pdo/wasm/src \
  && git clone https://github.com/emscripten-core/emsdk.git \
  && cd emsdk \
- && ./emsdk install latest-fastcomp \
- && ./emsdk activate latest-fastcomp \
+ && ./emsdk install latest \
+ && ./emsdk activate latest \
  && echo 'cd /project/pdo/wasm/src/emsdk/; if [ -z "$BASH_SOURCE" ]; then BASH_SOURCE=./emsdk_env.sh; . ./emsdk_env.sh; unset BASH_SOURCE; else . ./emsdk_env.sh; fi' >> /etc/profile.d/pdo.sh
 # Note: above convoluted BASH_SOURCE hack is necessary as (a) emsdk_env.sh 
-#   assumes we run in bash but (b) as we build we actually run in sh
+#       assumes we run in bash but (b) as we build we actually run in sh
 
 # environment setup as required by PDO
 # Note

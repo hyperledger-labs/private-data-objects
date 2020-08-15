@@ -33,12 +33,14 @@ import time
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 
-def GetBasename(spid, save_path) :
+def GetBasename(spid, save_path, config) :
     attempts = 0
     while True :
         try :
             logger.debug('initialize the enclave')
-            info = pdo_enclave_helper.get_enclave_service_info(spid)
+            enclave_config = {}
+            enclave_config['EnclavePolicy'] = pdo_enclave_helper.parse_enclave_policy(config['EnclavePolicy'], config['Key']['SearchPath'])
+            info = pdo_enclave_helper.get_enclave_service_info(spid, config=enclave_config)
 
             logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
             with open(save_path, "w") as file :
@@ -72,6 +74,8 @@ def GetIasCertificates(config) :
     # the creation of signup info includes getting a verification report from IAS
     try :
         enclave_config = config['EnclaveModule']
+        # add the enclave policy
+        enclave_config['EnclavePolicy'] = pdo_enclave_helper.parse_enclave_policy(config['EnclavePolicy'], config['Key']['SearchPath'])
         pdo_enclave.initialize_with_configuration(enclave_config)
         nonce = '{0:016X}'.format(123456789)
         enclave_data = pdo_enclave.create_signup_info(nonce, nonce)
@@ -94,7 +98,7 @@ def GetIasCertificates(config) :
     return
 
 def LocalMain(config, spid, save_path) :
-    GetBasename(spid, save_path)
+    GetBasename(spid, save_path, config)
     GetIasCertificates(config)
 
     sys.exit(0)
