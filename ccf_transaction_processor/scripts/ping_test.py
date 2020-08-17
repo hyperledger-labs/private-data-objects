@@ -27,12 +27,12 @@ from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_Bin = os.path.join(ContractHome, "ccf", "bin")
+CCF_BASE = os.environ.get("CCF_BASE")
+CCF_Bin = os.path.join(CCF_BASE, "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 sys.path.insert(1, CCF_Bin)
-sys.path.insert(1, "../CCF/tests")
 
 from infra.clients import CCFClient
 
@@ -99,8 +99,8 @@ def Main() :
             version="2.0",
             connection_timeout=3,
             request_timeout=3)
-    except :
-        LOG.error('failed to connect to CCF service')
+    except Exception as e :
+        LOG.error('failed to connect to CCF service: {}'.format(str(e)))
         sys.exit(-1)
 
     ping_test(user_client, options)

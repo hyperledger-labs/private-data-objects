@@ -221,6 +221,8 @@ the SIMULATE mode for PDO enclaves, and virtual mode for CCF enclaves.
 See [HERE](../ccf_transaction_processor/Readme.md) to learn more about the ccf based transaction processor.
 The default ledger choice for PDO is Sawtooth. CCF based ledger can be enabled by setting the
 environment variable PDO_LEDGER_TYPE=ccf (assuming that a CCF ledger has already been set up).
+When using CCF based ledger, every pdo client must install CCF base using tarball from CCF release page.
+This enables use of CCF client modules from the CCF base package. Please see instructions in (../ccf_transaction_processor/Readme.md) for installation details.
 
 ## Build and Install PDO
 

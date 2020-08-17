@@ -1,1 +1,0 @@
-../../../../../ccf_transaction_processor/CCF/tests/infra/clients.py

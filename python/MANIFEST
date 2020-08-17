@@ -48,6 +48,4 @@
 ./pdo/submitter/sawtooth/sawtooth_protos/transaction_pb2.py
 ./pdo/submitter/ccf/__init__.py
 ./pdo/submitter/ccf/ccf_submitter.py
-./pdo/submitter/ccf/helpers/__init__.py
-./pdo/submitter/ccf/helpers/clients.py
 ./setup.py

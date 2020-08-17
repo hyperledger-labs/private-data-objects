@@ -25,10 +25,14 @@ ifndef SGX_MODE
 $(error Incomplete configuration, SGX_MODE is not defined)
 endif
 
+ifndef CCF_BASE
+$(error Incomplete configuration, CCF_BASE is not defined)
+endif
+
+
 NINJA ?= ninja $(NINJA_OPTIONS)
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-CCFDIR := $(SCRIPTDIR)/CCF
 CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 KEYDIR := $(CCFDSTDIR)/keys/
@@ -48,21 +52,9 @@ all: environment keys config install
 
 build: build-ccf build-pdo-tp
 
-build-ccf :
-	mkdir -p $(CCFDIR)/build
-	cd $(CCFDIR)/build && cmake -GNinja \
-		-DCOMPILE_TARGETS=virtual \
-		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR) \
-		-DBUILD_END_TO_END_TESTS=OFF \
-		-DBUILD_SMALLBANK=OFF \
-		-DBUILD_TESTS=OFF \
-		-DBUILD_UNIT_TESTS=OFF \
-		..
-	cd $(CCFDIR)/build && $(NINJA) && $(NINJA) install
-
-build-pdo-tp : install-ccf $(BLDDIR)
+build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
-		-DCCF_DIR=$(CCFDSTDIR) \
+		-DCCF_DIR=$(CCF_BASE) \
 		-DCOMPILE_TARGETS=virtual \
 		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
@@ -70,7 +62,7 @@ build-pdo-tp : install-ccf $(BLDDIR)
 clean : clean-build clean-install
 
 clean-build:
-	rm -rf $(BLDDIR) $(CCFDIR)/build
+	rm -rf $(BLDDIR)
 
 clean-install :
 	rm -rf $(CCFDSTDIR)
@@ -84,8 +76,8 @@ $(ETCDIR)/cchost.toml : etc/cchost.toml
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
-$(ETCDIR)/gov.lua : $(CCFDIR)/src/runtime_config/gov.lua
-	cp $(CCFDIR)/src/runtime_config/gov.lua $(ETCDIR)/gov.lua
+$(ETCDIR)/gov.lua : etc/gov.lua
+	cp etc/gov.lua $(ETCDIR)/gov.lua
 
 environment : $(CCFDSTDIR) $(PYTHON_DIR)
 
@@ -106,12 +98,9 @@ $(PYTHON_DIR) :
 	virtualenv -p python3.7 --no-download $(CCFDSTDIR)
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade pip
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade setuptools
-	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade -r $(CCFDIR)/tests/requirements.txt
+	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade -r $(CCF_BASE)/bin/requirements.txt
 
 install : install-ccf install-pdo-tp
-
-install-ccf : build-ccf
-	cd $(CCFDIR)/build && $(NINJA) install
 
 PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
 PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py
@@ -123,8 +112,8 @@ install-pdo-tp : build-pdo-tp
 	cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
 
 keys :
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name memberccf --gen-enc-key
-	cd $(KEYDIR) && $(CCFDIR)/tests/keygenerator.sh --name userccf --gen-enc-key
+	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name memberccf --gen-enc-key
+	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name userccf --gen-enc-key
 
 .PHONY : all build build-ccf build-pdo-tp
 .PHONY : clean clean-build clean-install

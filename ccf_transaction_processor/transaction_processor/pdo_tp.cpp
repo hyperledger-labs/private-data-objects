@@ -292,8 +292,6 @@ namespace ccfapp
                 }
 
                 //verify enclave signature
-                // To Do: This signature verification does not work. The following function returns "true" until this is fixed
-                // see git issues for status
                 if (!verify_enclave_signature_add_enclave(enclave_info_temp.signature, this->enclave_pubk_verifier[enclave_r.value().verifying_key], \
                     contract_info.contract_creator_verifying_key_PEM, in.contract_id, enclave_info_temp.provisioning_key_state_secret_pairs, \
                     enclave_info_temp.encrypted_state_encryption_key)){

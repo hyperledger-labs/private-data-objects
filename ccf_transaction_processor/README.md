@@ -14,9 +14,12 @@ guaranteed.
 The instructions below  can be used to build and deploy CCF based PDO
 TP. Make sure the following env variables are defined:
 
+1) CCF_BASE : directory where CCF base is installed using the tarball from CCF release page.
+We recommend setting `export CCF_BASE=/opt/intel/ccf`.
+
 1) PDO_SOURCE_ROOT : points to PDO local git repo directory.
 
-2) PDO_INSTALL_ROOT : CCF will be installed at PDO_INSTALL_ROOT/opt/pdo/ccf/.
+2) PDO_INSTALL_ROOT : PTO TP will be installed at PDO_INSTALL_ROOT/opt/pdo/ccf/.
 
 3) HOSTNAME : CCF's first node will be deployed at HOSTNAME:6600. One can simply set HOSTNAME to be the `ip-address` of the VM that can be used to ping the VM from other machines. For local testing, set HOSTNAME to `127.0.0.1`.
 
@@ -30,17 +33,23 @@ used to sign the pdo contract enclaves.
 IMPORTANT: When installing CCF and PDO on the same VM for local testing, please install PDO first and
 then CCF. See [PDO docs](../docs) for detailed instructions on installing PDO.
 
-## Get CCF Source Code
+## Install CCF Base
 
-CCF tag 0.11.7 is included as a submodule within PDO. Download the
-submodule via the following commands:
+CCF Base with tag 0.11.7 is to be directly installed using the tarball from CCF release page.
+The following commands will install CCF base @ CCF_BASE folder
 
 ```bash
-cd $PDO_SOURCE_ROOT
-git submodule update --init
+wget https://github.com/microsoft/CCF/releases/download/ccf-0.11.7/ccf.tar.gz -P /tmp
+tar -xvf /tmp/ccf.tar.gz -C /tmp
+mv /tmp/ccf-0.11.7 $CCF_BASE
 ```
 
-## Install CCF Dependencies
+We note that CCF Base needs to be installed in PDO clients/eservice nodes when CCF is used as PDO ledger.
+The CCF base contains CCFClient modules that will be ued by PDO clients/eservice when submitting
+transactions to the CCF ledger. The rest of the steps below are only needed on the node
+where CCF based pdo-tp is getting built.
+
+## Install CCF Dependencies for building PDO TP
 
 CCF/PDO combo has been tested under a scenario where CCF is deployed in
 a standalone VM, and where PDO cients/services are deployed either locally
@@ -49,7 +58,7 @@ The dependencies needed to deploy CCF in an Ubuntu 18.04 VM with virtual enclave
 installed by running the following command:
 
 ```bash
-cd $PDO_SOURCE_ROOT/ccf_transaction_processor/CCF/getting_started/setup_vm/
+cd $CCF_BASE/getting_started/setup_vm/
 ./run.sh ccf-dev.yml
 ```
 
@@ -104,15 +113,21 @@ export NINJA_OPTION=-j2
 See the CCF documentation for information about configuring CCF. The
 `cchost` configuration file used by the PDO control scripts can be found
 at `${PDO_HOME}/ccf/etc/cchost.toml`. The CCF governance script can be
-found at `${PDO_HOME}/ccf/etc/gov.lua`.
-
+found at `${PDO_HOME}/ccf/etc/gov.lua`. We note that this governance script is
+the template governance script found as part of the CCF repo.
 
 ## Start/Stop CCF Network
 
 You can start a new CCF network with the PDO transaction processor using
-the script at `${PDO_HOME}/ccf/bin/start_ccf_network.sh`. That script
-will start the first node in the CCF network, open the network, add the
-user account that will be used for other PDO transactions, and generate
+the following commands:
+
+```bash
+source $PDO_HOME/ccf/bin/activate
+${PDO_HOME}/ccf/bin/start_ccf_network.sh
+```
+
+The above script will start the first node in the CCF network, open the network,
+add the user account that will be used for other PDO transactions, and generate
 the ledger authority key. The ledger authority key will be stored in the
 file `${PDO_HOME}/ccf/keys/ledger_authority_pub.pem`. This key can be
 used to verify claims about the state of the ledger.
