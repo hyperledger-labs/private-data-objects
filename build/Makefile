@@ -37,6 +37,12 @@ ifndef PDO_INTERPRETER
 $(error Incomplete configuration, PDO_INTERPRETER is not defined)
 endif
 
+ifeq ($(PDO_LEDGER_TYPE),ccf)
+ifndef CCF_BASE
+$(error Incomplete configuration, CCF_BASE is not defined)
+endif
+endif
+
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)

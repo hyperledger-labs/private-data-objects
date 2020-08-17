@@ -16,8 +16,12 @@ import json
 import logging
 import time
 import os
+import sys
 
-import pdo.submitter.ccf.helpers.clients as ccf_helper
+CCF_BASE = os.environ.get("CCF_BASE")
+CCF_Bin = os.path.join(CCF_BASE, "bin")
+sys.path.insert(1, CCF_Bin)
+from infra.clients import CCFClient
 
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
@@ -78,19 +82,19 @@ class CCFSubmitter(sub.Submitter):
 
             # create the reuest client
             logger.info("Creating the CCF Request client")
-            CCFSubmitter.ccf_client = ccf_helper.CCFClient(
-                                                host=self.host,
-                                                port=int(self.port),
-                                                cert=self.cert_file,
-                                                key=self.key_file,
-                                                ca=self.ca_file,
-                                                description=None,
-                                                version="2.0",
-                                                format="json",
-                                                prefix="app",
-                                                connection_timeout=3,
-                                                request_timeout=3,
-                                            )
+            CCFSubmitter.ccf_client = CCFClient(
+                                            host=self.host,
+                                            port=int(self.port),
+                                            cert=self.cert_file,
+                                            key=self.key_file,
+                                            ca=self.ca_file,
+                                            description=None,
+                                            version="2.0",
+                                            format="json",
+                                            prefix="app",
+                                            connection_timeout=3,
+                                            request_timeout=3,
+                                        )
 
             CCFSubmitter.ccf_client.rpc_loggers = () #avoid the default logging to screen
 

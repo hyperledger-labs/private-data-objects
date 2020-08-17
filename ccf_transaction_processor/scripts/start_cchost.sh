@@ -23,9 +23,9 @@ fi
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
 source ${F_SERVICEHOME}/bin/lib/pdo_common.sh
 
-CCHOST=${F_SERVICEHOME}/bin/cchost
+CCHOST=${CCF_BASE}/bin/cchost
 if [ $SGX_MODE == "SIM" ]; then
-   CCHOST=${F_SERVICEHOME}/bin/cchost.virtual
+   CCHOST=${CCF_BASE}/bin/cchost.virtual
 fi
 
 EFILE="${F_SERVICEHOME}/logs/error.log"

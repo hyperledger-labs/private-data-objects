@@ -17,9 +17,6 @@ import os
 
 logger = logging.getLogger(__name__)
 
-import pdo.submitter.sawtooth.sawtooth_submitter as sw_sub
-import pdo.submitter.ccf.ccf_submitter as ccf_sub
-
 # -----------------------------------------------------------------
 #   Create a new Submitter
 # -----------------------------------------------------------------
@@ -28,8 +25,10 @@ def create_submitter(ledger_config, *args, **kwargs) :
     ledger_type = ledger_config.get('LedgerType', os.environ.get('PDO_LEDGER_TYPE'))
 
     if ledger_type == 'sawtooth':
+        import pdo.submitter.sawtooth.sawtooth_submitter as sw_sub
         return sw_sub.SawtoothSubmitter(ledger_config, *args, **kwargs)
     elif ledger_type == 'ccf':
+        import pdo.submitter.ccf.ccf_submitter as ccf_sub
         return ccf_sub.CCFSubmitter(ledger_config, *args, **kwargs)
     else:
         logger.error("Invalid Ledger Type. Must be either 'sawtooth' or 'ccf'")
