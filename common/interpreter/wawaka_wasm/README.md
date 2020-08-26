@@ -35,6 +35,7 @@ cd ${PDO_SOURCE_ROOT}
 
 git clone https://github.com/emscripten-core/emsdk.git
 cd ${PDO_SOURCE_ROOT}/emsdk
+git checkout 1.39.20 # last release to support fastcomp backend
 
 ./emsdk install latest-fastcomp
 ./emsdk activate latest-fastcomp
