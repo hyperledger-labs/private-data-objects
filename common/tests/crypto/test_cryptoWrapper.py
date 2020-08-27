@@ -272,7 +272,7 @@ else:
   exit(-1)
 
 c = list(ciphertext)
-c[0] = c[0] + 1
+c[0] = (c[0] + 1) % 256 # Make sure it stays a byte or swig might fail find the correct C++ function below
 ciphertext = tuple(c)
 try:
  crypto.SKENC_DecryptMessage(key, ciphertext)
