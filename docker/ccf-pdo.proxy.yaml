@@ -28,17 +28,17 @@ services:
   # PDO EHS, PS and client ...
   pdo-build:
     build:
-      args:
+      args: #used during the build time
         http_proxy: "${http_proxy}"
         https_proxy: "${https_proxy}"
         no_proxy: "${no_proxy}"
-    environment:
+    environment: #used during run time
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build"
 
   # PDO Transaction processor
-  pdo-tp:
+  pdo-tp-ccf:
     build:
       args:
         http_proxy: "${http_proxy}"
@@ -47,28 +47,5 @@ services:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build"
 
-  settings-tp:
-    environment:
-      http_proxy: "${http_proxy}"
-      https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
-
-  validator:
-    environment:
-      http_proxy: "${http_proxy}"
-      https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
-
-  rest-api:
-    environment:
-      http_proxy: "${http_proxy}"
-      https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
-
-  shell:
-    environment:
-      http_proxy: "${http_proxy}"
-      https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"

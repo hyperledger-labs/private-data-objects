@@ -1,0 +1,83 @@
+# Copyright 2020 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+# Description:
+#   Build Container for PDO CCF Transaction Processor
+#
+# Build:
+#   $ docker build --build-arg host_ip=<host-ip-address> -f Dockerfile.pdo-tp-ccf -t pdo-tp-ccf .
+#
+# Run:
+#   $ docker run --net=host --expose 6600 -it pdo-tp-ccf
+#
+# A CCF instance will be availble for business transctions at http://host-ip:6600.
+#
+# If you are behind proxy, (and if building the image using this dockerfile rather than docker-compose),
+# make sure that proxy settings are set in the host machine @ ~/.docker/config.json
+# The settings from this file will be inherited by the container. See https://docs.docker.com/network/proxy/ for details.
+
+# we start from ccf base container that comes preinstalled with ccf base and the depdencies for building the application
+FROM ccfciteam/ccf-app-ci:0.11.7
+
+#install a few extra utilities
+RUN apt-get update && apt-get install -y python3-pip vim net-tools
+RUN pip3 install virtualenv
+
+# get the pdo tp source code
+RUN mkdir -p /pdo/dev
+RUN cd /pdo \
+	&& git clone --recurse-submodules https://github.com/hyperledger-labs/private-data-objects.git
+WORKDIR /pdo/
+
+# Env variables needed to build pdo-tp-ccf. Also generate the enclave signing key
+RUN cd private-data-objects/ccf_transaction_processor/ \
+	&& openssl genrsa -3 3072 > enclave.pem
+ENV CCF_BASE=/opt/ccf-0.11.7/
+ENV PDO_INSTALL_ROOT=/pdo/dev/
+ENV PDO_SOURCE_ROOT=/pdo/private-data-objects/
+ENV PDO_ENCLAVE_CODE_SIGN_PEM=/pdo/private-data-objects/ccf_transaction_processor/enclave.pem
+ENV PDO_LEDGER_KEY_ROOT=/pdo/dev/opt/pdo/ccf/keys/
+ENV SGX_MODE=SIM
+ENV PDO_HOME=/pdo/dev/opt/pdo/
+#note that currently we have only tested for SIM SGX mode for pdo/ccf combo
+
+# build pdo-tp
+# remove the config file. The ip addresses in this need to be populated during runtime
+RUN `/pdo/private-data-objects/build/common-config.sh -e` \
+	&& cd private-data-objects/ccf_transaction_processor/ \
+	&& make \
+	&& rm /pdo/dev/opt/pdo/ccf/etc/cchost.toml
+
+# Need to add the docker contrainer ip to no proxy at entry
+RUN touch set_no_proxy.sh \
+	&& echo "export no_proxy=\${no_proxy},\`getent hosts \${HOSTNAME} | awk '{ print \$1 }'\`" > set_no_proxy.sh
+
+# start pdo-tp, share keys, (and, do not exit!)
+# Note that keys are copied to a new folder since user keys are generated during build itself (and not run time)
+# we create config as part of entry since container ip address is needed for config
+# Also for configuring ccf network, the container ip address must be added to no_proxy
+ENTRYPOINT `/pdo/private-data-objects/build/common-config.sh -e` \
+	&& cd private-data-objects/ccf_transaction_processor/ \
+        && make config\
+	&& cd /pdo \
+	&& . dev/opt/pdo/ccf/bin/activate \
+	&& . /pdo/set_no_proxy.sh \
+	&& dev/opt/pdo/ccf/bin/start_ccf_network.sh \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_cert.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_privk.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
+	&& chmod a+rw /ccf_keys/* \
+	&& tail -f /dev/null
+
