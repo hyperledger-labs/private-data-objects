@@ -17,6 +17,7 @@ import logging
 import time
 import os
 import sys
+import socket
 
 CCF_BASE = os.environ.get("CCF_BASE")
 CCF_Bin = os.path.join(CCF_BASE, "bin")
@@ -66,6 +67,7 @@ class CCFSubmitter(sub.Submitter):
             try:
                 _, host_port = self.url.split('//')
                 self.host, self.port = host_port.split(':')
+                self.host = socket.gethostbyname(self.host) # convert HOSTNMAE to IP address
             except Exception as e:
                 raise Exception("Unable to parse CCF ledger URL. Must be of the form http://ip:port : %s", str(e))
 

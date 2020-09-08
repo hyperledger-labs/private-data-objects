@@ -181,8 +181,8 @@ mode you must have installed the [SGX kernel driver](install.md).
 - Compile and install the SGX SSL project.
 ```bash
 cd Linux
-make DESTDIR=/opt/intel/sgxssl all
-sudo make install
+make all
+sudo make DESTDIR=/opt/intel/sgxssl install
 ```
 
 - Export the `SGX_SSL` environment variable to enable the build

@@ -55,6 +55,9 @@ services:
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-master}
         SGX_MODE: SIM
         PDO_INTERPRETER: ${PDO_INTERPRETER:-gipsy}
+        PDO_LEDGER_URL: http://rest-api:8008
+        PDO_LEDGER_TYPE: sawtooth
+        PDO_LEDGER_KEY_ROOT: /project/pdo/build/opt/pdo/etc/keys/ledger/
     container_name: sawtooth-pdo-sim-build
     hostname: sawtooth-pdo-build
     depends_on:
@@ -138,5 +141,4 @@ services:
         \""
     volumes:
        - ./:/mnt/pdo
-
 
