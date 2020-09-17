@@ -6,7 +6,7 @@ rpc-address = "${host_address}:6600"
 node-address = "${host_address}:7700"
 
 [start]
-network-cert-file = "${home}/ccf/keys/networkcert.pem"
-network-enc-pubk-file = "${home}/ccf/keys/network_enc_pubk.pem"
-member-info = "${home}/ccf/keys/memberccf_cert.pem,${home}/ccf/keys/memberccf_enc_pubk.pem"
+network-cert-file = "${ledger_key_root}/networkcert.pem"
+network-enc-pubk-file = "${ledger_key_root}/network_enc_pubk.pem"
+member-info = "${ledger_key_root}/memberccf_cert.pem,${ledger_key_root}/memberccf_enc_pubk.pem"
 gov-script = "${home}/ccf/etc/gov.lua"

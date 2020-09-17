@@ -33,7 +33,7 @@ ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 CCF_BASE = os.environ.get("CCF_BASE")
 CCF_Bin = os.path.join(CCF_BASE, "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
-CCF_Keys = os.path.join(ContractHome, "ccf", "keys")
+CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 sys.path.insert(1, CCF_Bin)
 from infra.clients import CCFClient

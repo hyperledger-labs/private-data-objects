@@ -21,6 +21,10 @@ ifndef PDO_INSTALL_ROOT
 $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
+ifndef PDO_LEDGER_KEY_ROOT
+$(error Incomplete configuration, PDO_LEDGER_KEY_ROOT is not defined)
+endif
+
 ifndef SGX_MODE
 $(error Incomplete configuration, SGX_MODE is not defined)
 endif
@@ -35,7 +39,7 @@ NINJA ?= ninja $(NINJA_OPTIONS)
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
-KEYDIR := $(CCFDSTDIR)/keys/
+KEYDIR := $(PDO_LEDGER_KEY_ROOT)
 ETCDIR := $(CCFDSTDIR)/etc/
 BINDIR := $(CCFDSTDIR)/bin/
 BLDDIR := $(SCRIPTDIR)/build
@@ -88,10 +92,10 @@ $(BLDDIR) :
 $(CCFDSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(CCFDSTDIR)
 	mkdir -p $(CCFDSTDIR)
-	mkdir -p $(CCFDSTDIR)/keys
-	mkdir -p $(CCFDSTDIR)/etc
 	mkdir -p $(CCFDSTDIR)/logs
 	mkdir -p $(CCFDSTDIR)/run
+	mkdir -p $(ETCDIR)
+	mkdir -p $(KEYDIR)
 
 $(PYTHON_DIR) :
 	echo ${PYTHON_DIR}
