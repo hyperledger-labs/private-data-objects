@@ -91,7 +91,7 @@ else:
     print("Cannot configure eservice keys. Invalid ledger type, Must be 'sawtooth' or 'ccf'" )
     sys.exit(-1)
 
-ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHost = os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
 ContractHostAddress = socket.gethostbyname(ContractHost)
 ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")

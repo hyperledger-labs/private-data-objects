@@ -88,6 +88,13 @@ operation. These files include configuration files, data files, compiled
 contracts, contract user keys and service scripts.
 
 <!-- -------------------------------------------------- -->
+### `PDO_HOSTNAME`
+(default: `${HOSTNAME}`):
+
+`PDO_HOSTNAME` identifies the hostname where service interfaces
+will be exported. Defaults to HOSTNAME.
+
+<!-- -------------------------------------------------- -->
 ### `PDO_DEBUG_BUILD`
 (default: 0)
 

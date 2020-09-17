@@ -7,55 +7,60 @@ https://creativecommons.org/licenses/by/4.0/
 
 This folder contains software for PDO transaction processor (TP) based
 on Microsoft's CCF blockchain.  The software is located under
-$PDO_SOURCE_ROOT/transaction_processor/. The TP software is written and
-tested for CCF tag 0.11.7. Compatibility with other CCF versions is not
-guaranteed.
+`${PDO_SOURCE_ROOT}/ccf_transaction_processor/`. The TP software is
+written and tested for CCF tag 0.11.7. Compatibility with other CCF
+versions is not guaranteed.
 
-The instructions below  can be used to build and deploy CCF based PDO
-TP. Make sure the following env variables are defined:
+The instructions below can be used to build and deploy the CCF-based PDO
+TP. The PDO TP uses many of environment variables defined in the PDO
+configuration script `common-config.sh`. We recommend that you read the
+[PDO environment variables documentation](../docs/environment.md) first.
 
-1) CCF_BASE : directory where CCF base is installed using the tarball from CCF release page.
-We recommend setting `export CCF_BASE=/opt/intel/ccf`.
+In some circumstances you may wish to override the default values of the
+variables for the PDO TP.
 
-1) PDO_SOURCE_ROOT : points to PDO local git repo directory.
+* `PDO_HOSTNAME` : the name of host interface used to access the TP;
+typically this would be set to `localhost` for local testing or the
+external name of the host to provide network access.
 
-2) PDO_INSTALL_ROOT : PTO TP will be installed at PDO_INSTALL_ROOT/opt/pdo/ccf/.
+* `PDO_LEDGER_KEY_ROOT` : the directory where PDO TP keys will be
+created; if you are only running the PDO TP on a server you may find it
+easier to point this to a directory in the CCF tree such as
+`${PDO_HOME}/ccf/keys`.
 
-3) HOSTNAME : CCF's first node will be deployed at HOSTNAME:6600. One can simply set HOSTNAME to be the `ip-address` of the VM that can be used to ping the VM from other machines. For local testing, set HOSTNAME to `127.0.0.1`.
+In addition, the PDO TP assumes that the environment variable `CCF_BASE`
+points to the directory where CCF is installed.
 
-4) PDO_ENCLAVE_CODE_SIGN_PEM : The PDO TP enclave app will be signed by the RSA private key
-who location is pointed to by this env variable. Note that this is the same key that will be
-used to sign the pdo contract enclaves.
-
-5) `source ${PDO_SOURCE_ROOT}/build/common-config.sh` to define some of the dependent env variables
-(such as PDO_HOME)
-
-IMPORTANT: When installing CCF and PDO on the same VM for local testing, please install PDO first and
-then CCF. See [PDO docs](../docs) for detailed instructions on installing PDO.
+IMPORTANT: When installing CCF and PDO on the same VM for local testing,
+please install PDO first and then CCF. See [PDO docs](../docs) for
+detailed instructions on installing PDO.
 
 ## Install CCF Base
 
-CCF Base with tag 0.11.7 is to be directly installed using the tarball from CCF release page.
-The following commands will install CCF base @ CCF_BASE folder
+CCF Base with tag 0.11.7 is to be directly installed using the tarball
+from CCF release page.  The following commands will install CCF in the
+folder pointed to be the `CCF_BASE` environment variable.
 
 ```bash
 wget https://github.com/microsoft/CCF/releases/download/ccf-0.11.7/ccf.tar.gz -P /tmp
 tar -xvf /tmp/ccf.tar.gz -C /tmp
-mv /tmp/ccf-0.11.7 $CCF_BASE
+mv /tmp/ccf-0.11.7 ${CCF_BASE}
 ```
 
-We note that CCF Base needs to be installed in PDO clients/eservice nodes when CCF is used as PDO ledger.
-The CCF base contains CCFClient modules that will be ued by PDO clients/eservice when submitting
-transactions to the CCF ledger. The rest of the steps below are only needed on the node
-where CCF based pdo-tp is getting built.
+We note that CCF Base needs to be installed in PDO clients/eservice
+nodes when CCF is used as PDO ledger.  The CCF base contains CCF client
+modules that will be ued by PDO clients/eservice when submitting
+transactions to the CCF ledger. The rest of the steps below are only
+needed on the node where CCF based pdo-tp is getting built.
 
-## Install CCF Dependencies for building PDO TP
+## Install CCF Dependencies
 
 CCF/PDO combo has been tested under a scenario where CCF is deployed in
-a standalone VM, and where PDO cients/services are deployed either locally
-or at other VMs. Further, the CCF/PDO combo has been tested only for the CCF virtual enclave mode.
-The dependencies needed to deploy CCF in an Ubuntu 18.04 VM with virtual enclave mode can be
-installed by running the following command:
+a standalone VM, and where PDO cients/services are deployed either
+locally or at other VMs. Further, the CCF/PDO combo has been tested only
+for the CCF virtual enclave mode.  The dependencies needed to deploy CCF
+in an Ubuntu 18.04 VM with virtual enclave mode can be installed by
+running the following command:
 
 ```bash
 cd $CCF_BASE/getting_started/setup_vm/
@@ -89,20 +94,23 @@ C. Add the repo used by ansible scripts for installing python 3.7
 sudo add-apt-repository ppa:deadsnakes/ppa
 ```
 
-## Build and Install
+## Build and Install PDO TP
 
-To build CCF and the PDO-TP the PDO environment variables must be
-set. See the PDO configuration script for more information.
+To build the PDO TP the [PDO environment variables](../docs/environment.md)
+must be set. See the PDO configuration script `common-config.sh` for
+more information.
 
-To build and install CCF and the PDO-TP,
+To build and install the PDO TP,
 ```bash
 cd ${PDO_SOURCE_ROOT}/ccf_transaction_processor
 make clean
 make
 ```
 
-Note that CCF uses `ninja` tool for build. If the VM has a small memory (< 4GB), it might be required to reduce the parallelism in the build process by setting the env NINJA_OPTION. For example, the following env restricts ninja
-to 2 parallel jobs.
+Note that CCF uses `ninja` tool for build. If the VM has a small memory
+(< 4GB), it might be required to reduce the parallelism in the build
+process by setting the env `NINJA_OPTION`. For example, the following
+environment restricts ninja to 2 parallel jobs.
 
 ```bash
 export NINJA_OPTION=-j2
@@ -122,14 +130,14 @@ You can start a new CCF network with the PDO transaction processor using
 the following commands:
 
 ```bash
-source $PDO_HOME/ccf/bin/activate
+source ${PDO_HOME}/ccf/bin/activate
 ${PDO_HOME}/ccf/bin/start_ccf_network.sh
 ```
 
 The above script will start the first node in the CCF network, open the network,
 add the user account that will be used for other PDO transactions, and generate
 the ledger authority key. The ledger authority key will be stored in the
-file `${PDO_HOME}/ccf/keys/ledger_authority_pub.pem`. This key can be
+file `${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem`. This key can be
 used to verify claims about the state of the ledger.
 
 Note that a CCF network must run continuously; it cannot be fully
@@ -137,12 +145,13 @@ stopped and restarted. Directions for adding additional nodes will be
 forthcoming.
 
 The script `${PDO_HOME}/ccf/bin/stop_cchost.sh` can be used to stop the
-instance of `cchost` running on the local server.
+instance of `cchost` running on the local server. When the final instance
+of `cchost` terminates, the ledger will be irretrievably terminated.
 
 ## Share CCF (TLS) Authentication Keys
 
 CCF uses mutually authenticated TLS channels for transactions. Keys are
-located at `$PDO_HOME/ccf/keys`. The network certificate is
+located at `${PDO_HOME}/ccf/keys`. The network certificate is
 `networkcert.pem`. User public certificate is `userccf_cert.pem` and
 private key is `userccf_privk.pem`.  Note that the keys are created as
 part of CCF deployment and are unique to the specific instance of CCF.
@@ -153,13 +162,13 @@ utilize the client authentication feature provided by CCF. However to
 satisfy the CCF's requirement that only authorized CCF users can submit
 transactions to CCF, share `userccf_cert.pem` and `userccf_privk.pem` with
 all the PDO clients. These two keys and the network certificate
-`networkcert.pem` must be stored under the path $PDO_LEDGER_KEY_ROOT
+`networkcert.pem` must be stored under the path `${PDO_LEDGER_KEY_ROOT}`
 (as part of PDO deployment).
 
 ## Test the Deployment with Ping Test
 
 PDO TP contains a simple `ping` rpc that returns success every time it
-is queried. Test the PDO-TP deployment using this rpc. Invoke the
+is queried. Test the PDO TP deployment using this rpc. Invoke the
 following commands to issue 100 ping rpcs. The net througput is reported
 at the end of the test.
 
@@ -168,17 +177,19 @@ source $PDO_HOME/ccf/bin/activate
 ${PDO_SOURCE_ROOT}/ccf_transaction_processor/scripts/ping_test.py
 ```
 
-While invoking the test from a remote machine, make sure to 1) store the
-ccf keys under a path pointed to by the env variable PDO_LEDGER_KEY_ROOT, and
-2) set PDO_LEDGER_URL to http://ccf-ip-address:6600, where ccf-ip-address is the
-ip-address that was set in the env variable HOSTNAME (see above) during CCF
-deployment.
+While invoking the test from a remote machine, be sure to 1) copy the
+CCF keys from the directory pointed to by the environment variable
+`PDO_LEDGER_KEY_ROOT` on the server where the transaction processor is
+running to the directory pointed to by `PDO_LEDGER_KEY_ROOT` on the
+client host, and 2) set `PDO_LEDGER_URL` to http://ccf-ip-address:6600,
+where `ccf-ip-address` is the IP address associated with the host name
+where CCF listens (see `PDO_HOSTNAME` above).
 
 ## Generate Ledger Authority Key
 
 Responses to read-transactions include a payload signature, where the
-signature is generated within PDO-TP.  The required signing keys must be
-generated before PDO-TP can be opened up for business from PDO
+signature is generated within PDO TP.  The required signing keys must be
+generated before PDO TP can be opened up for business from PDO
 clients. This will be done automatically if you start the CCF network
 with the script `${PDO_HOME}/ccf/bin/start_ccf_network.sh`.
 
@@ -196,7 +207,7 @@ commit. The ledger authority verifying key can be obtained using the
 `get_ledger_verifying_key` rpc. The verifying key is returned only after
 global commit is successful.
 
-The read-payload-signature feature may be used by PDO clients to
+The `read-payload-signature` feature may be used by PDO clients to
 establish offline verifiable proof of transaction commits as desired by
 the PDO smart contract application. Note that for trust purposes, it is
 recommended that any entity that uses the verifying_key gets it directly
@@ -205,7 +216,7 @@ from the CCF service using the `get_ledger_verifying_key` rpc.
 ## Using CCF ledger using PDO
 
 We highlight some quick details about how PDO clients can use a CCF
-based PDO-TP deployment. The information below can be found at
+based PDO TP deployment. The information below can be found at
 [PDO docs](../docs) as well.
 
 1. Set the following environment variables:
@@ -215,19 +226,21 @@ export PDO_LEDGER_TYPE=ccf
 export PDO_LEDGER_URL=http://ccf-ip-address:6600
 ```
 
-Note that as noted above ccf-ip-address is the ip-address that was set in the env variable HOSTNAME
-(see above) during CCF deployment.
+As noted above `ccf-ip-address` is the IP address associated with the
+host named in the variable `PDO_HOSTNAME` (see above) during CCF
+deployment.
 
-2. Set env PDO_LEDGER_KEY_ROOT, which denotes the directory location
-    where save CCF's network certificate `networkcert.pem` and user keys
-    will be saved. Note that the user cert and private keys are named as
-    `userccf_cert.pem` and `userccf_privk.pem` respectively.
+2. Ensure that the PDO TP keys are stored in the directory
+`${PDO_LEDGER_KEY_ROOT}`. The directory should contain the CCF
+network certificate, `networkcert.pem`, and the user keys
+`userccf_cert.pem` and `userccf_privk.pem`.
 
-3. Do a clean build of PDO (if installing on the same VM CCF is installed, this will wipe out CCF,
-so as noted above install PDO first and then CCF)
+3. Do a clean build of PDO (if installing on the same VM CCF is
+installed, this will wipe out CCF, so as noted above install PDO first
+and then CCF)
 
 ```bash
-cd $PDO_SOURCE_ROOT/build/
+cd ${PDO_SOURCE_ROOT}/build
 make clean
 make
 ```
@@ -240,11 +253,10 @@ the intention is to switch between PDO ledgers.
 ```bash
 source ${PDO_SOURCE_ROOT}/build/common-config.sh
 make -C ${PDO_SOURCE_ROOT}/build force-conf keys
-```bash
+```
 
 4. Run unit tests
 ```bash
-source $PDO_INSTALL_ROOT/bin/activate
-cd $PDO_SOURCE_ROOT/build/__tools__
-./run-tests.sh
+cd ${PDO_SOURCE_ROOT}/build
+make test
 ```
