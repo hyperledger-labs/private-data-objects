@@ -36,8 +36,8 @@ fi
 rm -rf ${F_SERVICEHOME}/run/*
 rm -f ${F_SERVICEHOME}/logs/*.log
 
-rm -f ${F_SERVICEHOME}/keys/networkcert.pem ${F_SERVICEHOME}/keys/network_enc_pubk.pem
-rm -f ${F_SERVICEHOME}/keys/ledger_authority_pub.pem
+rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/network_enc_pubk.pem
+rm -f ${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem
 
 say attempt to start ccf node
 try ${F_SERVICEHOME}/bin/start_cchost.sh

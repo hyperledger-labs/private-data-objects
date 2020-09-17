@@ -138,13 +138,7 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_SPID_API_KEY"; i=$i+1; export PDO_SPID_API_KEY=${env_val[PDO_SPID_API_KEY]}
 
-	if [[ "${PDO_LEDGER_TYPE}" == "ccf" ]]
-	then
-		env_val[PDO_LEDGER_KEY_ROOT]="${PDO_LEDGER_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/ccf/keys}"
-	else
-		env_val[PDO_LEDGER_KEY_ROOT]="${PDO_LEDGER_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/ledger}"
-	fi
-
+	env_val[PDO_LEDGER_KEY_ROOT]="${PDO_LEDGER_KEY_ROOT:-${PDO_INSTALL_ROOT}/opt/pdo/etc/keys/ledger}"
 	env_desc[PDO_LEDGER_KEY_ROOT]="
 		PDO_LEDGER_KEY_ROOT is the root directory where the system keys are stored
 		for ledger integration; files in this directory are not automatically generated. When ccf is used
