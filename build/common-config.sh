@@ -104,6 +104,13 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_HOME"; i=$i+1; export PDO_HOME=${env_val[PDO_HOME]}
 
+	env_val[PDO_HOSTNAME]="${PDO_HOSTNAME:-${HOSTNAME}}"
+	env_desc[PDO_HOSTNAME]="
+		PDO_HOSTNAME identifies the hostname where service interfaces
+                will be exported. Defaults to HOSTNAME.
+	"
+	env_key_sort[$i]="PDO_HOSTNAME"; i=$i+1; export PDO_HOSTNAME=${env_val[PDO_HOSTNAME]}
+
     env_val[PDO_SGX_KEY_ROOT]="${PDO_SGX_KEY_ROOT:-${SCRIPTDIR}/keys/sgx_mode_${SGX_MODE,,}}"
 	env_desc[PDO_SGX_KEY_ROOT]="
 		PDO_SGX_KEY_ROOT is the root directory where SGX & IAS related keys are stored.

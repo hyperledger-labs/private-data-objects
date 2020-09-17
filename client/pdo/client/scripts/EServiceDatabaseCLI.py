@@ -188,7 +188,7 @@ def do_verify_cmd(config, args) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHost = os.environ.get("PDO_HOSTNAME", "localhost")
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
