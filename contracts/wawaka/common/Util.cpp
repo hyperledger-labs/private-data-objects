@@ -16,6 +16,8 @@
 #include <malloc.h>
 #include <stdint.h>
 
+#include "Util.h"
+
 #include <new>
 
 void * operator new(size_t sz) throw(std::bad_alloc)
@@ -31,4 +33,23 @@ void * operator new[](size_t sz) throw(std::bad_alloc)
 void operator delete(void *ptr) _NOEXCEPT
 {
     free(ptr);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: copy_internal_pointer
+ * ----------------------------------------------------------------- */
+bool copy_internal_pointer(
+    StringArray& result,
+    uint8_t* pointer,
+    uint32_t size)
+{
+#ifdef SAFE_INTERNAL_COPY
+    // the safe way
+    bool success = result.assign(pointer, size);
+    free(pointer);
+    return success;
+#else
+    // the efficient way
+    return result.take(pointer, size);
+#endif
 }

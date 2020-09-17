@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <malloc.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -43,11 +44,9 @@ StringArray::StringArray(const size_t size)
 StringArray::StringArray(const uint8_t* buffer, size_t size)
 {
     size_ = size;
-    value_ = new uint8_t[size_];
-    if (value_ == NULL)
-        return;
+    value_ = NULL;
 
-    memcpy(value_, buffer, size_);
+    (void) assign(buffer, size);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -64,44 +63,46 @@ StringArray::StringArray(const char* buffer)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 StringArray::StringArray(const StringArray& value)
 {
-    size_ = value.size_;
-    value_ = new uint8_t[size_];
-    if (value_ == NULL)
-        return;
+    size_ = 0;
+    value_ = NULL;
 
-    memcpy(value_, value.value_, size_);
+    (void) assign(value.value_, value.size_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 StringArray::~StringArray(void)
 {
-    if (value_ != NULL)
-        delete value_;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool StringArray::resize(const size_t size)
-{
-    if (value_ != NULL)
-        delete value_;
-
-    size_ = size;
-    value_ = new uint8_t[size_];
-    if (value_ == NULL)
-        return false;
-
-    return true;
+    clear();
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool StringArray::clear(void)
 {
     if (value_ != NULL)
-        delete value_;
+    {
+        free(value_);
+    }
 
     size_ = 0;
     value_ = NULL;
 
+    return true;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool StringArray::resize(const size_t size)
+{
+    clear();
+
+    if (size == 0)
+        return true;
+
+    size_ = size;
+    value_ = (uint8_t*)malloc(size_);
+    if (value_ == NULL)
+        return false;
+
+    memset(value_, 0, size_);
     return true;
 }
 
@@ -165,8 +166,7 @@ bool StringArray::take(uint8_t* buffer, size_t size)
     if (size == 0)
         return false;
 
-    if (value_ != NULL)
-        delete value_;
+    clear();
 
     size_ = size;
     value_ = buffer;

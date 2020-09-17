@@ -20,13 +20,14 @@
 
 #include "Dispatch.h"
 
-#include "KeyValue.h"
+#include "Cryptography.h"
 #include "Environment.h"
+#include "KeyValue.h"
 #include "Message.h"
 #include "Response.h"
 #include "StringArray.h"
 #include "Value.h"
-#include "WasmExtensions.h"
+//#include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 static KeyValueStore value_store("values");
@@ -54,8 +55,7 @@ bool initialize_contract(const Environment& env, Response& rsp)
     StringArray public_key;
     StringArray private_key;
 
-    if (! ecdsa_create_signing_keys((char**)&private_key.value_, &private_key.size_,
-                                    (char**)&public_key.value_, &public_key.size_))
+    if (! ww::crypto::ecdsa::generate_keys(private_key, public_key))
         return rsp.error("failed to create contract ecdsa keys");
 
     if (! meta_store.set(verifying_key, public_key))
@@ -67,7 +67,7 @@ bool initialize_contract(const Environment& env, Response& rsp)
     // ---------- Create and save the AES key ----------
     StringArray aes_key;
 
-    if (! aes_generate_key(&aes_key.value_, &aes_key.size_))
+    if (! ww::crypto::aes::generate_key(aes_key))
         return rsp.error("failed to create the AES key");
 
     if (! meta_store.set(symmetric_key, aes_key))
@@ -77,8 +77,7 @@ bool initialize_contract(const Environment& env, Response& rsp)
     StringArray rsa_private_key;
     StringArray rsa_public_key;
 
-    if (! rsa_generate_keys((char**)&rsa_private_key.value_, &rsa_private_key.size_,
-                            (char**)&rsa_public_key.value_, &rsa_public_key.size_))
+    if (! ww::crypto::rsa::generate_keys(rsa_private_key, rsa_public_key))
         return rsp.error("failed to create rsa keys");
 
     if (! meta_store.set(public_encrypt_key, rsa_public_key))
@@ -109,23 +108,18 @@ bool ecdsa_test(const Message& msg, const Environment& env, Response& rsp)
 
     // ---------- sign the message ----------
     StringArray signature;
-    if (! ecdsa_sign_message(message.value_, message.size_,
-                             (const char*)private_key.value_, private_key.size_,
-                             &signature.value_, &signature.size_))
+    if (! ww::crypto::ecdsa::sign_message(message, private_key, signature))
         return rsp.error("failed to sign message");
 
-    StringArray encoded;
-    if (! b64_encode(signature.value_, signature.size_, (char**)&encoded.value_, &encoded.size_))
-        return rsp.error("failed to encode signature");
-
-
-    if (! ecdsa_verify_signature(message.value_, message.size_,
-                             (const char*)public_key.value_, public_key.size_,
-                             signature.value_, signature.size_))
+    if (! ww::crypto::ecdsa::verify_signature(message, public_key, signature))
         return rsp.error("failed to verify the signature");
 
     // ---------- return the signature ----------
-    ww::value::String v((char*)encoded.value_);
+    StringArray encoded;
+    if (! ww::crypto::b64_encode(signature, encoded))
+        return rsp.error("failed to encode signature");
+
+    ww::value::String v((char*)encoded.c_data());
     return rsp.value(v, false);
 }
 
@@ -141,40 +135,29 @@ bool aes_test(const Message& msg, const Environment& env, Response& rsp)
     if (! meta_store.get(symmetric_key, key))
         return rsp.error("failed to find private key");
 
-    StringArray identifier(32);
-    if (! random_identifier(identifier.size(), identifier.data()))
-        return rsp.error("failed to create random identifier");
-
     StringArray iv;
-    if (! aes_generate_iv(identifier.c_data(), identifier.size(),
-                          &iv.value_, &iv.size_))
+    if (! ww::crypto::aes::generate_iv(iv))
         return rsp.error("failed to generate iv");
 
     // ---------- encrypt the message ----------
     StringArray cipher;
-    if (! aes_encrypt_message(message.c_data(), message.size(),
-                              key.c_data(), key.size(),
-                              iv.c_data(), iv.size(),
-                              &cipher.value_, &cipher.size_))
+    if (! ww::crypto::aes::encrypt_message(message, key, iv, cipher))
         return rsp.error("failed to encrypt the message");
-
-    StringArray encoded;
-    if (! b64_encode(cipher.value_, cipher.size_, (char**)&encoded.value_, &encoded.size_))
-        return rsp.error("failed to encode cipher text");
 
     // ---------- decrypt the message ----------
     StringArray newmessage;
-    if (! aes_decrypt_message(cipher.c_data(), cipher.size(),
-                              key.c_data(), key.size(),
-                              iv.c_data(), iv.size(),
-                              &newmessage.value_, &newmessage.size_))
+    if (! ww::crypto::aes::decrypt_message(cipher, key, iv, newmessage))
         return rsp.error("failed to decrypt the message");
 
     if (! message.equal(newmessage))
         return rsp.error("decrypted message differs from original message");
 
     // ---------- return the signature ----------
-    ww::value::String v((char*)encoded.value_);
+    StringArray encoded;
+    if (! ww::crypto::b64_encode(cipher, encoded))
+        return rsp.error("failed to encode cipher text");
+
+    ww::value::String v((char*)encoded.c_data());
     return rsp.value(v, false);
 }
 
@@ -198,27 +181,23 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 
     // ---------- encrypt the aes key ----------
     StringArray cipher;
-    if (! rsa_encrypt_message(aes_key.c_data(), aes_key.size(),
-                              (char*)rsa_public.c_data(), rsa_public.size(),
-                              &cipher.value_, &cipher.size_))
+    if (! ww::crypto::rsa::encrypt_message(aes_key, rsa_public, cipher))
         return rsp.error("failed to encrypt the key");
-
-    StringArray encoded;
-    if (! b64_encode(cipher.value_, cipher.size_, (char**)&encoded.value_, &encoded.size_))
-        return rsp.error("failed to encode cipher text");
 
     // ---------- decrypt the message ----------
     StringArray new_aes_key;
-    if (! rsa_decrypt_message(cipher.c_data(), cipher.size(),
-                              (char*)rsa_private.c_data(), rsa_private.size(),
-                              &new_aes_key.value_, &new_aes_key.size_))
+    if (! ww::crypto::rsa::decrypt_message(cipher, rsa_private, new_aes_key))
         return rsp.error("failed to decrypt the key");
 
     if (! aes_key.equal(new_aes_key))
         return rsp.error("decrypted key differs from the original key");
 
     // ---------- return the signature ----------
-    ww::value::String v((char*)encoded.value_);
+    StringArray encoded;
+    if (! ww::crypto::b64_encode(cipher, encoded))
+        return rsp.error("failed to encode cipher text");
+
+    ww::value::String v((char*)encoded.c_data());
     return rsp.value(v, false);
 }
 

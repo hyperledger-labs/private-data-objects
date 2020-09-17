@@ -15,8 +15,25 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#include "StringArray.h"
+
+#define ASSERT_CONDITION(_cond, _rsp) \
+    do { \
+    if (! _cond)
+
+
 #define ASSERT_SENDER_IS_OWNER(_env, _rsp)                              \
     do {                                                                \
         if (strcmp(_env.creator_id_, _env.originator_id_) != 0)         \
             return _rsp.error("only the owner may invoke this method"); \
     } while (0)
+
+// set to 0 for more memory efficient implementation
+#define SAFE_INTERNAL_COPY
+
+bool copy_internal_pointer(
+    StringArray& result,
+    uint8_t* pointer,
+    uint32_t size);
