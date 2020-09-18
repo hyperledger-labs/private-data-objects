@@ -55,6 +55,15 @@ function cleanup {
 trap cleanup EXIT
 
 # -----------------------------------------------------------------
+# some checks to make sure we are ready to run
+# -----------------------------------------------------------------
+if [ "${PDO_LEDGER_TYPE}" == "ccf" ]; then
+    if [ ! -f "${PDO_LEDGER_KEY_ROOT}/networkcert.pem" ]; then
+        die "CCF ledger keys are missing, please copy and try again"
+    fi
+fi
+
+# -----------------------------------------------------------------
 yell run unit tests for python, common, contracts and eservice
 # -----------------------------------------------------------------
 say run unit tests for python package
