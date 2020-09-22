@@ -50,6 +50,8 @@ namespace value
     {
     public:
         Boolean(const bool value);
+        Boolean(void) : Boolean(true) {};
+
         bool get(void) const;
         bool set(bool value);
     };
@@ -58,6 +60,8 @@ namespace value
     {
     public:
         String(const char* value);
+        String(void) : String("") {};
+
         const char* get(void) const;
         const char* set(const char* value);
     };
@@ -66,6 +70,8 @@ namespace value
     {
     public:
         Number(const double value);
+        Number(void) : Number(0.0) {};
+
         double get(void) const;
         double set(double value);
     };
