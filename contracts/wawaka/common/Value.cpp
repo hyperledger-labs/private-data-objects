@@ -118,6 +118,11 @@ bool ww::value::Value::serialize(StringArray& result) const
     if (serialized_response == NULL)
         return false;
 
+    // as we understand the stability of allocation more
+    // fully we can avoid the copy by using take rather
+    // than assign
+    // bool success = result.take(serialized_reponse);
+
     bool success = result.assign(serialized_response);
     free(serialized_response);
 
@@ -302,7 +307,7 @@ bool ww::value::Object::set_value(const char* name, const ww::value::Value& valu
         return false;
     }
 
-    if (json_object_set_value(json_object(value_), name, new_json_value) != JSONSuccess)
+    if (json_object_dotset_value(json_object(value_), name, new_json_value) != JSONSuccess)
     {
         CONTRACT_SAFE_LOG(1, "object set value; failed to save property %s", name);
         json_value_free(new_json_value);
@@ -352,7 +357,7 @@ bool ww::value::Structure::set_value(const char* name, const ww::value::Value& v
 {
     // for a structure, the value we are assignment must already exist in the
     // object and the type must match
-    const JSON_Value *json_value = json_object_get_value(json_object(value_), name);
+    const JSON_Value *json_value = json_object_dotget_value(json_object(value_), name);
     if (json_value == NULL)
     {
         CONTRACT_SAFE_LOG(4, "key %s does not exist in the structure", name);

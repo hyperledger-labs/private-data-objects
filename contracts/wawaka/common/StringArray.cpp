@@ -92,8 +92,12 @@ bool StringArray::clear(void)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool StringArray::resize(const size_t size)
 {
+    // StringArray does not attempt to reuse memory, we clear
+    // the allocation and start afresh
     clear();
 
+    // if size is 0, then this is equivalent to a clear meaning
+    // that space is deallocated
     if (size == 0)
         return true;
 

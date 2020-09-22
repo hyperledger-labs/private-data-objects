@@ -27,7 +27,6 @@
 #include "Response.h"
 #include "StringArray.h"
 #include "Value.h"
-//#include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 static KeyValueStore value_store("values");
