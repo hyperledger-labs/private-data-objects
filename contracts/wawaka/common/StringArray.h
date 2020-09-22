@@ -20,15 +20,17 @@
 
 class StringArray
 {
-public:
-    uint8_t *value_;
-    size_t size_;
+protected:
+    uint8_t *value_ = NULL;
+    size_t size_ = 0;
 
+public:
     StringArray(void);
     StringArray(const size_t size);
     StringArray(const uint8_t* buffer, size_t size);
     StringArray(const char* buffer);
     StringArray(const StringArray& value);
+
     ~StringArray(void);
 
     bool clear(void);
@@ -36,9 +38,10 @@ public:
     bool assign(const uint8_t* buffer, size_t size);
     bool assign(const char* buffer);
     bool set(uint8_t v, size_t p);
-    bool take(uint8_t* buffer, size_t size);
     bool equal(const StringArray& sarray) const;
     bool null_terminated(void) const;
+
+    bool take(uint8_t* buffer, size_t size);
 
     const size_t size(void) const;
     uint8_t* data(void);

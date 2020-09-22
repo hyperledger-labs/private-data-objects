@@ -93,7 +93,7 @@ bool ww::value::Value::deserialize(const char* value)
     if (json_value_get_type(json_value) != expected_value_type_)
     {
         CONTRACT_SAFE_LOG(3, "value deserialize; type mismatch on objects");
-        free(json_value);
+        json_value_free(json_value);
         return false;
     }
 
@@ -114,47 +114,31 @@ bool ww::value::Value::serialize(StringArray& result) const
         return false;
     }
 
-    // serialize the result
-    size_t serialized_size = json_serialization_size(value_);
-    char *serialized_response = (char *)malloc(serialized_size + 1);
+    char *serialized_response = (char *)serialize();
     if (serialized_response == NULL)
-    {
-        CONTRACT_SAFE_LOG(1, "failed serialization; failed allocation");
         return false;
-    }
 
-    JSON_Status jret = json_serialize_to_buffer(value_, serialized_response, serialized_size + 1);
-    if (jret != JSONSuccess)
-    {
-        CONTRACT_SAFE_LOG(1, "failed serialization; invalid value");
-        free(serialized_response);
-        return false;
-    }
+    // as we understand the stability of allocation more
+    // fully we can avoid the copy by using take rather
+    // than assign
+    // bool success = result.take(serialized_reponse);
 
-    return result.take((uint8_t*)serialized_response, serialized_size+1);
+    bool success = result.assign(serialized_response);
+    free(serialized_response);
+
+    return success;
 }
 
 // -----------------------------------------------------------------
 char* ww::value::Value::serialize(void) const
 {
-    // serialize the result
-    size_t serialized_size = json_serialization_size(value_);
-    char *serialized_response = (char *)malloc(serialized_size + 1);
-    if (serialized_response == NULL)
+    if (value_ == NULL)
     {
-        CONTRACT_SAFE_LOG(1, "failed serialization; failed allocation");
+        CONTRACT_SAFE_LOG(1, "failed serialization; no value");
         return NULL;
     }
 
-    JSON_Status jret = json_serialize_to_buffer(value_, serialized_response, serialized_size + 1);
-    if (jret != JSONSuccess)
-    {
-        CONTRACT_SAFE_LOG(1, "failed serialization; invalid value");
-        free(serialized_response);
-        return NULL;
-    }
-
-    return serialized_response;
+    return json_serialize_to_string(value_);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -290,7 +274,7 @@ int ww::value::Object::get_boolean(const char* key) const
 // -----------------------------------------------------------------
 bool ww::value::Object::get_value(const char* name, ww::value::Value& value) const
 {
-    const JSON_Value *json_value = json_object_get_value(json_object(value_), name);
+    const JSON_Value *json_value = json_object_dotget_value(json_object(value_), name);
     if (json_value == NULL)
         return false;
 
@@ -309,17 +293,24 @@ bool ww::value::Object::set_value(const char* name, const ww::value::Value& valu
     if (name == NULL)
         return false;
 
-    JSON_Value *json_value = json_value_deep_copy(value.get());
-    if (json_value == NULL)
+    const JSON_Value *old_json_value = value.get();
+    if (old_json_value == NULL)
+    {
+        CONTRACT_SAFE_LOG(1, "unable to set value for NULL object");
+        return false;
+    }
+
+    JSON_Value *new_json_value = json_value_deep_copy(old_json_value);
+    if (new_json_value == NULL)
     {
         CONTRACT_SAFE_LOG(1, "object set value; allocation failed");
         return false;
     }
 
-    if (json_object_set_value(json_object(value_), name, json_value) != JSONSuccess)
+    if (json_object_dotset_value(json_object(value_), name, new_json_value) != JSONSuccess)
     {
         CONTRACT_SAFE_LOG(1, "object set value; failed to save property %s", name);
-        free(json_value);
+        json_value_free(new_json_value);
         return false;
     }
 
@@ -366,7 +357,7 @@ bool ww::value::Structure::set_value(const char* name, const ww::value::Value& v
 {
     // for a structure, the value we are assignment must already exist in the
     // object and the type must match
-    const JSON_Value *json_value = json_object_get_value(json_object(value_), name);
+    const JSON_Value *json_value = json_object_dotget_value(json_object(value_), name);
     if (json_value == NULL)
     {
         CONTRACT_SAFE_LOG(4, "key %s does not exist in the structure", name);
@@ -448,7 +439,7 @@ bool ww::value::Array::append_value(const ww::value::Value& value)
 
     if (json_array_append_value(json_array(value_), json_value) != JSONSuccess)
     {
-        free(json_value);
+        json_value_free(json_value);
         return false;
     }
 

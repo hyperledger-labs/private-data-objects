@@ -57,7 +57,7 @@ bool many_keys_test(const Message& msg, const Environment& env, Response& rsp)
     int i = 0;
     for (i = 0; i < num_keys; i++) {
         StringArray key(12);
-        sprintf((char *)key.value_, "%d", i);
+        sprintf((char *)key.data(), "%d", i);
         if (!meta_store.set(key, default_val))
             return rsp.error("failed to store value");
     }
@@ -94,7 +94,7 @@ bool big_value_test(const Message& msg, const Environment& env, Response& rsp)
 
     StringArray value(num_chars);
     for (int i = 0; i < num_chars; i++) {
-        value.set((char)*default_val.value_, i);
+        value.set((char)*default_val.c_data(), i);
     }
 
     if (!meta_store.set(default_key, value))
@@ -115,12 +115,12 @@ bool many_kv_pairs_test(const Message& msg, const Environment& env, Response& rs
     int i = 0;
     StringArray value(num_chars);
     for (i = 0; i < num_chars; i++) {
-        value.set((char)*default_val.value_, i);
+        value.set((char)*default_val.c_data(), i);
     }
 
     for (i = 0; i < num_keys; i++) {
         StringArray key(12);
-        sprintf((char *)key.value_, "%d", i);
+        sprintf((char *)key.data(), "%d", i);
         if (!meta_store.set(key, value))
             return rsp.error("failed to store value");
     }
