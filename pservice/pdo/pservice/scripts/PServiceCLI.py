@@ -161,7 +161,7 @@ class ProvisioningServer(resource.Resource):
         except Exception as err:
             logger.error('exception occurred when getting ledger information for enclave %s; %s', enclave_id, str(err))
             raise Exception('could not retrieve enclave state; {0}'.format(err))
-        
+
         # Get contract state
         try:
             logger.debug('retrieve information for contract <%s>', contract_id)
@@ -170,7 +170,7 @@ class ProvisioningServer(resource.Resource):
         except Exception as err:
             logger.error('exception occurred when getting ledger information for contract %s; %s', contract_id, str(err))
             raise Exception('could not retrieve contract state; {0}'.format(err))
-        
+
 
         # make sure that the signer of this request is really the owner of the contract
         try :
@@ -419,7 +419,7 @@ def LocalMain(config) :
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 ## -----------------------------------------------------------------
-ContractHost = os.environ.get("HOSTNAME", "localhost")
+ContractHost = os.environ.get("PDO_HOSTNAME", "localhost")
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath(".")
 ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")

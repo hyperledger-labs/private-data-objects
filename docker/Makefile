@@ -57,7 +57,7 @@ pdo-composition: pdo-dev-image
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) build
 	# Note:
 	# - using `sawtooth-pdo.local-code.yaml` in above will cause the docker context to be `../`.
-	#   To make sure that we do not pull in (too much) unnecessary stuff, we explicitly excludes 
+	#   To make sure that we do not pull in (too much) unnecessary stuff, we explicitly excludes
 	#   various files/dirs in `../.dockerignore`.
 	#   There are two negative effect for not excluding enough
 	#   - if some non-essential file changed (e.g., build artificats on host which are
@@ -84,7 +84,7 @@ test-env-setup-with-no-build:
 	   exec validator sawset proposal create --url http://rest-api:8008 --key /root/.sawtooth/keys/my_key.priv sawtooth.validator.transaction_families='[{"family": "intkey", "version": "1.0"}, {"family":"sawtooth_settings", "version":"1.0"}, {"family": "pdo_contract_enclave_registry", "version": "1.0"}, {"family":  "pdo_contract_instance_registry", "version": "1.0"}, {"family": "ccl_contract", "version": "1.0"}]'
 	if [ "$(SGX_MODE)" = "HW" ]; then \
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
-	      exec pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
+	      exec pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
 	fi
 
 test-with-no-build: test-env-setup-with-no-build
