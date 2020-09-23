@@ -1,0 +1,295 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Exchange Interface",
+    "id": "http://tradenet.org/pdo/wawaka/exchange/issuer#",
+
+    "description": [
+        ""
+    ],
+
+    "interface": {
+        "initialize": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "initialize the issuer with the authority granted to issue assets",
+                "this operation must be invoked before any other operation",
+                "it must be invoked by creator"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "asset_authority_chain": {
+                    "description": "",
+                    "type": {
+                        "$ref": "#pdo/wawaka/exchange/basetypes/issuer_authority_chain_type"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "get_asset_type_identifier": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "returns the asset type id associated with the vetting organization"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#/pdo/basetypes/contract-id",
+            }
+            "PositionalParameters": [],
+            "KeywordParameters":  {},
+        },
+
+        "get_verifying_key": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "returns the asset type id associated with the vetting organization"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#/pdo/basetypes/ecdsa-public-key",
+            }
+            "PositionalParameters": [],
+            "KeywordParameters":  {},
+        },
+
+        "add_approved_issuer": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "register the verifying key of an issuer of assets of the type associated",
+                "with the vetting organization",
+                "the vetting organization attests that the verifying key may be used to sign",
+                "asset issuances"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "issuer_verifying_key": {
+                    "description": "the ECDSA verifying key associated with an issuer object",
+                    "type": {
+                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "get_issuer_authority": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "return a verifiable authority object",
+                "dependency will include the current state hash of the vetting organization object"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#pdo/wawaka/exchange/basetypes/issuer_authority_chain_type"
+            },
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "issuer_verifying_key": {
+                    "description": "the ECDSA verifying key associated with an issuer object, must be authorized",
+                    "type": {
+                        "$ref": "#/pod/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "get_authority": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "return a verifiable authority object",
+                "this is the object that establishes this issuers authority"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#pdo/wawaka/exchange/basetypes/issuer_authority_chain_type"
+            },
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "issuer_verifying_key": {
+                    "description": "the ECDSA verifying key associated with an issuer object, must be authorized",
+                    "type": {
+                        "$ref": "#/pod/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "issue": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "issue assets to an identity",
+                "assigns ownership of assets in the issuers ledger",
+                "must be invoked by the creator of the issuer object"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "owner_identity": {
+                    "description": "ECDSA key for the new owner of the assets",
+                    "type": {
+                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                },
+                "count": {
+                    "description": "number of assets to be assigned to the new owner",
+                    "type": "integer",
+                    "required": true
+                }
+            }
+        },
+
+        "get_balance": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "get the current number of assets assigned to the invoker",
+                "if the identity is unknown to the issuer, then the balance is 0"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": "integer",
+            "PositionalParameters": [],
+            "KeywordParameters":  {}
+        },
+
+        "transfer": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "transfer ownership of some number of assets from the invoker to",
+                "the specified identity"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "new_owner_identity": {
+                    "description": "ECDSA key for the new owner of the assets",
+                    "type": {
+                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                },
+                "count": {
+                    "description": "number of assets to be assigned to the new owner",
+                    "type": "integer",
+                    "required": true
+                }
+            }
+        },
+
+        "escrow": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "place the assets assigned to the invoker in escrow to a given identity;",
+                "the asset balance will be marked inactive.",
+                "note that this method changes the state of the asset balance, but does",
+                "not return an escrow attestion since the state change in this function",
+                "must be committed first."
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "escrow_agent_identity": {
+                    "description": "ECDSA key for the new owner of the assets",
+                    "type": {
+                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "escrow_attestation": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "create an attestation that assets owned by the invoker",
+                "have been escrowed to a particular escrow agent"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#/pdo/wawaka/exchange/basetypes/authoritative_asset_type"
+            },
+            "PositionalParameters": [],
+            "KeywordParameters":  {}
+        },
+
+        "disburse": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "release from escrow the assets owned by the invoker",
+                "sets transaction dependencies based on the input"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "escrow_agent_state_reference": {
+                    "description": [
+                        "state reference for the escrow object",
+                        "release from escrow is only valid if this state is committed to the ledger"
+                    ],
+                    "type": {
+                        "$ref": "#/pdo/basetypes/state-reference"
+                    },
+                    "required": true
+                },
+
+                "escrow_agent_signature": {
+                    "description": [
+                        "signature of the escrow that verifies that the asset should be release from escrow",
+                        "signature is computed over the serialized asset and state reference of the escrow agent"
+                    ],
+                    "type": {
+                        "$ref": "#/pdo/basetypes/escda-signature"
+                    },
+                    "required": true
+                }
+            }
+        },
+
+        "claim": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "claim ownership of assets based on the signature of an escrow agent",
+                "sets transaction dependencies based on the input"
+            ],
+            "type": "method",
+            "modifies_state": true,
+            "returns": "boolean",
+            "PositionalParameters": [],
+            "KeywordParameters":  {
+                "escrow_claim": {
+                    "description": "a claim of ownership change from an escrow agent",
+                    "type": {
+                        "$ref": "#/pdo/wawaka/exchange/basetypes/escrow_claim_type"
+                    },
+                    "required": true
+                }
+            }
+        }
+    }
+}
+
+// Local Variables:
+// mode: hs-minor
+// End:
