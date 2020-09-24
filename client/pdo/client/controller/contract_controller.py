@@ -19,6 +19,7 @@ import argparse
 
 import copy
 import cmd
+import json
 import shlex
 import time
 import random
@@ -242,6 +243,45 @@ class ContractController(cmd.Cmd) :
 
         return False
 
+    # -----------------------------------------------------------------
+    def do_parse(self, args) :
+        """parse -- parse a JSON expression and retrieve values
+        """
+        if self.deferred > 0 : return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+
+            parser = argparse.ArgumentParser(prog='parse')
+            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
+            parser.add_argument('-e', '--expression', help='json expression to parse', type=str, required=True)
+            parser.add_argument('-p', '--path', help='path to retrieve within the expression', type=str, required=True)
+            parser.add_argument('-s', '--symbol', help='symbol in which to store the result', required=True)
+
+            options = parser.parse_args(pargs)
+
+            try :
+                expression = json.loads(options.expression)
+            except ValueError as ve :
+                return self.__error__('parse', args, 'invalid json expression')
+
+            try :
+                python_value = eval(options.path, None, expression)
+            except Exception as e :
+                return self.__error__('parse', args, 'invalid path')
+
+            value = json.dumps(python_value)
+
+            self.bindings.bind(options.symbol,value)
+            if not options.quiet :
+                print("${} = {}".format(options.symbol, value))
+
+        except SystemExit as se :
+            return self.__arg_error__('parse', args, se.code)
+        except Exception as e :
+            return self.__error__('parse', args, str(e))
+
+        return False
 
     # -----------------------------------------------------------------
     def do_set(self, args) :
