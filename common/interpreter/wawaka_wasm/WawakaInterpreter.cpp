@@ -93,7 +93,7 @@ void WawakaInterpreter::parse_response_string(
 {
     // Convert the wasm address for the result string into an
     // address in the native code
-    int32 response_app_beg, response_app_end;
+    uint32 response_app_beg, response_app_end;
 
     pe::ThrowIf<pe::RuntimeError>(
         response_app == 0,

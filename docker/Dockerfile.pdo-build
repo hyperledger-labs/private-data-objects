@@ -24,7 +24,7 @@
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 #  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
-#  - wamr version:		                WAMR    (default: WAMR-07-10-2020)
+#  - wamr version:		                WAMR    (default: WAMR-09-29-2020)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -100,7 +100,7 @@ ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 
 # - web-assembly/wasm/wawaka
 #   - Configure WAMR source
-ARG WAMR=WAMR-07-10-2020
+ARG WAMR=WAMR-09-29-2020
 RUN cd /project/pdo/src/private-data-objects/interpreters/wasm-micro-runtime \
  && git checkout ${WAMR}\
  && echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
