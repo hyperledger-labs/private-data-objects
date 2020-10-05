@@ -48,14 +48,14 @@ source ./emsdk_env.sh
 If wawaka is configured as the contract interpreter, the libraries implementing the WASM interpreter
 will be built for use with Intel SGX. The source for the WAMR interpreter is
 included as a submodule in the interpreters/ folder, and will
-always point to the latest tagged commit that we have validated: `WAMR-07-10-2020`.
+always point to the latest tagged commit that we have validated: `WAMR-09-29-2020`.
 If the PDO parent repo was not cloned with the `--recurse-submodules` flag,
 you will have to explictly pull the submodule source.
 
 ```
 cd ${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 git submodule update --init
-git checkout WAMR-07-10-2020 # optional
+git checkout WAMR-09-29-2020 # optional
 ```
 
 The WAMR API is built during the Wawaka build, so no additional
