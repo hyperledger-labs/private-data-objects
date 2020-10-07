@@ -35,10 +35,17 @@ FROM ccfciteam/ccf-app-ci:0.11.7
 RUN apt-get update && apt-get install -y python3-pip vim net-tools
 RUN pip3 install virtualenv
 
+ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
+ARG PDO_REPO_BRANCH=master
+
+# This helps using the local git repo to test docker (needed for travis tests)
+RUN mkdir /tmp/build-src
+COPY . /tmp/build-src
+
 # get the pdo tp source code
 RUN mkdir -p /pdo/dev
 RUN cd /pdo \
-	&& git clone --recurse-submodules https://github.com/hyperledger-labs/private-data-objects.git
+	&& git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} private-data-objects
 WORKDIR /pdo/
 
 # Env variables needed to build pdo-tp-ccf. Also generate the enclave signing key

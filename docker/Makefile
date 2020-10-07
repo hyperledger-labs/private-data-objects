@@ -24,7 +24,7 @@ DOCKER_COMPOSE_OPTS_CCF=
 -include make.loc
 
 DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
-DOCKER_COMPOSE_FILES_CCF += ccf-pdo.yaml
+DOCKER_COMPOSE_FILES_CCF += ccf-pdo.yaml ccf-pdo.local-code.yaml
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.sgx.yaml
    SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx" ]; then echo "/dev/sgx"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
@@ -76,7 +76,7 @@ pdo-composition: pdo-dev-image
 	#     running out of disk space during the build...
 
 pdo-composition-ccf: pdo-dev-image
-	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) build
+	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) build
 
 
 test-stl: pdo-composition test-with-no-build
@@ -96,7 +96,7 @@ test-env-setup-with-no-build:
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
 	   exec validator sawset proposal create --url http://rest-api:8008 --key /root/.sawtooth/keys/my_key.priv sawtooth.validator.transaction_families='[{"family": "intkey", "version": "1.0"}, {"family":"sawtooth_settings", "version":"1.0"}, {"family": "pdo_contract_enclave_registry", "version": "1.0"}, {"family":  "pdo_contract_instance_registry", "version": "1.0"}, {"family": "ccl_contract", "version": "1.0"}]'
 	if [ "$(SGX_MODE)" = "HW" ]; then \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
 	      exec pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
 	fi
 
@@ -109,7 +109,7 @@ test-env-setup-with-no-build-ccf:
 test-with-no-build: test-env-setup-with-no-build
 	# 'sawtooth-pdo.debugging.yaml' doesn't start pdo-tp, so we will have to manually start it
 	if [ ! -z "$(PDO_DEBUG_BUILD)" ]; then  \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
 	      exec -d pdo-tp bash -c "/project/pdo/src/private-data-objects/sawtooth/bin/pdo-tp -v -v --connect tcp://validator:4004 --debug-on"; \
 	fi
 	# - run automated tests
@@ -123,11 +123,16 @@ test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 	# - run automated tests
 	# the pdo container must add the ip address of the pdo-tp-ccf container to its no proxy list (if behind a proxy)
 	if [ ! -z "$(no_proxy)" ]; then \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	else \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	fi
 
+	# remove ccf keys from local folder
+	rm ccf_keys/networkcert.pem
+	rm ccf_keys/userccf_cert.pem
+	rm ccf_keys/userccf_privk.pem
+	
 	# - teardown
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) down
 
