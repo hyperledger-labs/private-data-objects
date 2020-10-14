@@ -1,0 +1,330 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Exchange Interface",
+    "id": "http://tradenet.org/pdo/contract/wawaka/exchange#",
+    "definitions": {
+        "issuer_authority_type": {
+            "//": "-----------------------------------------------------------------",
+            "id": "#authority_type",
+            "description": [
+                "attestation of the authority given to an issuer by an organization authorized",
+                "to vet issuers of a specific asset type, this may be a vetting organization",
+                "or an authorized issuer of the the asset type",
+                "the holder of the issuer_signing_key associated with the issuer_verifying_key is",
+                "authorized to issue assets of a particular asset type"
+            ],
+            "type": "object",
+            "properties": {
+                "authorized_issuer_verifying_key": {
+                    "description": [
+                        "public key for the issuer"
+                    ],
+                    "$ref": "#/pdo/basetypes/ecdsa-public-key",
+                    "required": true
+                },
+                "authorizing_issuer_state_reference": {
+                    "description": [
+                        "state reference for the authorized issuer object",
+                        "ensures that the issuer object state is committed on the ledger"
+                    ],
+                    "$ref": "#/pdo/basetypes/state-reference",
+                    "required": true
+                },
+                "authorizing_signature": {
+                    "description": [
+                        "signature of the entity that authorizes the use of the verifying key",
+                        "signature is computed over the asset type identifier, authorized_issuer_verifying_key,"
+                        "and the authorizing_issuer_state_reference"
+
+                    ],
+                    "$ref": "#/pdo/basetypes/escda-signature",
+                    "required": true
+                }
+            }
+        },
+        "issuer_authority_chain_type": {
+            "//": "-----------------------------------------------------------------",
+            "id": "#authority_chain_type",
+            "description": [
+                "authority chain that captures the authorization chain from a vetting organization",
+                "to the verifying key of an asset issuer"
+            ],
+            "type": "object",
+            "properties": {
+                "asset_type_identifier": {
+                    "description": [
+                        "the asset type identifier"
+                    ],
+                    "$ref": "#/pdo/basetypes/contract-id",
+                    "required": true
+                },
+                "vetting_organization_verifying_key": {
+                    "description": [
+                        "verifying key associated with the vetting organization",
+                        "this is the root of trust for issuance"
+                    ],
+                    "$ref": "#/pdo/basetypes/ecdsa-public-key",
+                    "required": true
+                },
+                "authority_chain": {
+                    "description": [],
+                    "type": "array",
+                    "items": {
+                        "$ref": "#issuer_authority_type",
+                        "minItems" : 1,
+                        "uniqueItems": true
+                    },
+                    "required": true
+                },
+            }
+        },
+        "asset_type_object": {
+            "description": [
+                "an object that serves as a common reference for assets of a particular type",
+                "the object must be initialized by invoking the initialize method"
+            ],
+            "interface": {
+                "initialize": {
+                    "description": [
+                        "sets the basic information associated with the asset type",
+                        "must be invoked by the creator",
+                        "may only be invoked one time and must be invoked before any other operation"
+                    ],
+                    "type": "method",
+                    "modifies_state": true,
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters": {
+                        "description": {
+                            "description": "textual description of the asset type"
+                            "type": "string",
+                            "required": true
+                        },
+                        "link": {
+                            "description": "URL for further information about the asset type",
+                            "type": "string",
+                            "required": true
+                        },
+                        "name": {
+                            "description": "human understandable name of the asset type",
+                            "type": "string",
+                            "required": true
+                        }
+                    }
+                },
+                "get_identifier": {
+                    "description": [
+                        "returns the unique identifier for the asset type",
+                        "the unique identifier is the contract id for the object"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": {
+                        "$ref": "#/pdo/basetypes/contract-id"
+                    },
+                    "PositionalParameters": [],
+                    "KeywordParameters": {}
+                },
+                "get_description": {
+                    "description": [
+                        "returns the description associated with the asset type"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": "string",
+                    "PositionalParameters": [],
+                    "KeywordParameters": {}
+                },
+                "get_link": {
+                    "description": [
+                        "returns the link associated with the asset type"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": "string",
+                    "PositionalParameters": [],
+                    "KeywordParameters": {}
+                },
+                "get_name": {
+                    "description": [
+                        "returns the name associated with the asset type"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": "string",
+                    "PositionalParameters": [],
+                    "KeywordParameters": {}
+                }
+            }
+        },
+        "vetting_organization_object": {
+            "description": [
+                "an object that serves as the signing authority for an organization",
+                "that vets issuers of a specific asset type",
+                "the vetting organization object represents a root of trust for issuers"
+            ],
+            "interface": {
+                "initialize": {
+                    "description": [
+                        "set the basic information associated with the vetting organization",
+                        "must be invoked before any other operations"
+                    ],
+                    "type": "method",
+                    "modifies_state": true,
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "asset_type_identifier": {
+                            "description": "the identity of the asset type that may be issued",
+                            "$ref": "#/pdo/basetypes/contract-id",
+                            "required": true
+                        }
+                    }
+                },
+                "get_asset_type_identifier": {
+                    "description": [
+                        "returns the asset type id associated with the vetting organization"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": {
+                        "$ref": "#/pdo/basetypes/contract-id",
+                    }
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {},
+                },
+                "add_approved_issuer": {
+                    "description": [
+                        "register the verifying key of an issuer of assets of the type associated",
+                        "with the vetting organization",
+                        "the vetting organization attests that the verifying key may be used to sign",
+                        "asset issuances"
+                    ],
+                    "type": "method",
+                    "modifies_state": true,
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "issuer_verifying_key": {
+                            "description": "the ECDSA verifying key associated with an issuer object",
+                            "type": {
+                                "$ref": "#/pod/basetypes/ecdsa-public-key"
+                            },
+                            "required": true
+                        }
+                    }
+                },
+                "get_issuer_authority": {
+                    "description": [
+                        "return a verifiable authority object",
+                        "dependency will include the current state hash of the vetting organization object"
+                    ],
+                    "type": "method",
+                    "modifies_state": false,
+                    "returns": {
+                        "$ref": "#pdo/contract/wawaka/exchange/issuer_authority_chain_type"
+                    },
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "issuer_verifying_key": {
+                            "description": "the ECDSA verifying key associated with an issuer object, must be authorized",
+                            "type": {
+                                "$ref": "#/pod/basetypes/ecdsa-public-key"
+                            },
+                            "required": true
+                        }
+                    }
+                }
+            }
+        },
+        "issuer_object": {
+            "description": [
+                ""
+            ],
+            "interface": {
+                "initialize": {
+                    "description": [
+                        ""
+                    ],
+                    "type": "method",
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "asset_type_identifier": {
+                            "description": "",
+                            "type": "",
+                            "required": true
+                        }
+                    }
+                }
+                "method1": {
+                    "description": [
+                        ""
+                    ],
+                    "type": "method",
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "parameter1": {
+                            "description": "",
+                            "type": "",
+                            "required": true
+                        }
+                    }
+                }
+                "method1": {
+                    "description": [
+                        ""
+                    ],
+                    "type": "method",
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "parameter1": {
+                            "description": "",
+                            "type": "",
+                            "required": true
+                        }
+                    }
+                }
+                "method1": {
+                    "description": [
+                        ""
+                    ],
+                    "type": "method",
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "parameter1": {
+                            "description": "",
+                            "type": "",
+                            "required": true
+                        }
+                    }
+                }
+            }
+        },
+        "template_contract": {
+            "description": [
+                ""
+            ],
+            "interface": {
+                "method1": {
+                    "description": [
+                        ""
+                    ],
+                    "type": "method",
+                    "returns": "boolean",
+                    "PositionalParameters": [],
+                    "KeywordParameters":  {
+                        "parameter1": {
+                            "description": "",
+                            "type": "",
+                            "required": true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
