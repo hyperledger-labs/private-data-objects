@@ -146,7 +146,8 @@ pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
     uint8_t* outEncryptedContractKey,
     size_t inEncryptedContractKeyLength,
     uint8_t* outEncryptedContractKeySignature,
-    size_t inEncryptedContractKeySignatureLength)
+    size_t inEncryptedContractKeySignatureMaxLength,
+    size_t* outEncryptedContractKeySignatureActualLength)
 {
     pdo_err_t result = PDO_SUCCESS;
 
@@ -157,7 +158,8 @@ pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
         pdo::error::ThrowIfNull(inContractCreatorId, "Contract creator ID pointer is NULL");
         pdo::error::ThrowIfNull(inSerializedSecretList, "Secret list pointer is NULL");
         pdo::error::ThrowIfNull(outEncryptedContractKey, "Contract key pointer is NULL");
-        pdo::error::ThrowIfNull(outEncryptedContractKeySignature, "Contract key signature is NULL");
+        pdo::error::ThrowIfNull(outEncryptedContractKeySignature, "Contract key signature pointer is NULL");
+        pdo::error::ThrowIfNull(outEncryptedContractKeySignatureActualLength, "Contract key signature length pointer is NULL");
 
         pdo_err_t presult;
 
@@ -198,12 +200,13 @@ pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
 
         const ByteArray signature = enclaveData.sign_message(message);
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            inEncryptedContractKeySignatureLength < signature.size(),
+            inEncryptedContractKeySignatureMaxLength < signature.size(),
             "Contract key signature is too short");
 
-        Zero(outEncryptedContractKeySignature, inEncryptedContractKeySignatureLength);
-        memcpy_s(outEncryptedContractKeySignature, inEncryptedContractKeySignatureLength,
+        Zero(outEncryptedContractKeySignature, inEncryptedContractKeySignatureMaxLength);
+        memcpy_s(outEncryptedContractKeySignature, inEncryptedContractKeySignatureMaxLength,
             signature.data(), signature.size());
+        *outEncryptedContractKeySignatureActualLength=signature.size();
     }
     catch (pdo::error::Error& e)
     {

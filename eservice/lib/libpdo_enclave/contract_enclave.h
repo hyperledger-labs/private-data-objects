@@ -41,7 +41,8 @@ extern pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
     char* outEncryptedContractKey,
     size_t inEncryptedContractKeyLength,
     char* outEncryptedContractKeySignature,
-    size_t inEncryptedContractKeySignatureLength);
+    size_t inEncryptedContractKeySignatureMaxLength,
+    size_t* outEncryptedContractKeySignatureActualLength);
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_InitializeContract(const uint8_t* inSealedSignupData,
