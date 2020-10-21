@@ -16,11 +16,15 @@
 # Description:
 #   Build Container for PDO CCF Transaction Processor
 #
+# It is reccomneded that this dockerfile is use along with ccf-pdo.yaml docker-compose file. Stand alone run will fail,
+# since there is an ENTYPOINT that tries to mount the key directory. But if this line is commented out, the following comamnds
+# can be used to build and run pdo-tp-ccf using this dockerfile itself.
+#
 # Build:
-#   $ docker build --build-arg host_ip=<host-ip-address> -f Dockerfile.pdo-tp-ccf -t pdo-tp-ccf .
+#   $ docker build --build-arg -f Dockerfile.pdo-tp-ccf -t pdo-tp-ccf .
 #
 # Run:
-#   $ docker run --net=host --expose 6600 -it pdo-tp-ccf
+#   $ docker run --expose 6600 -it pdo-tp-ccf
 #
 # A CCF instance will be availble for business transctions at http://host-ip:6600.
 #

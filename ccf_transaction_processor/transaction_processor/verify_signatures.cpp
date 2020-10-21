@@ -104,18 +104,7 @@ namespace ccfapp
             vector<uint8_t> temp = raw_from_b64(encrypted_state_encryption_key);
             contents.insert(contents.end(), temp.begin(), temp.end());
 
-           auto signature_byte_array = raw_from_b64(signature);
-
-           //remove any trailing zeros (null characters) in the signature array
-           //this seems to be necessary for verifying this sign
-            while(true){
-                if (signature_byte_array.back() == 0){
-                    signature_byte_array.pop_back();
-                }
-                else{
-                    break;
-                }
-            }
+            auto signature_byte_array = raw_from_b64(signature);
 
             return verify_sig_static(signature_byte_array, pubk_verifier, contents);
     }
