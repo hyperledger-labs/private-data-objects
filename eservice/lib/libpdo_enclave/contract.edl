@@ -43,8 +43,9 @@ enclave {
             [in, string] const char* inSerializedSecretList,
             [out, size=inEncryptedContractKeyLength] uint8_t* outEncryptedContractKey,
             size_t inEncryptedContractKeyLength,
-            [out, size=inEncryptedContractKeySignatureLength] uint8_t* outEncryptedContractKeySignature,
-            size_t inEncryptedContractKeySignatureLength
+            [out, size=inEncryptedContractKeySignatureMaxLength] uint8_t* outEncryptedContractKeySignature,
+            size_t inEncryptedContractKeySignatureMaxLength,
+            [out] size_t* outEncryptedContractKeySignatureActualLength
             );
 
         // inEncryptedSessionKey is binary encoding of the encrypted session key

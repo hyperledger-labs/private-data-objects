@@ -87,7 +87,8 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
     {
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
         ByteArray encrypted_contract_key(pdo::enclave_api::contract::EncryptedContractKeySize(inContractId.size(), enclaveIndex));
-        ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureSize());
+        ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureMaxSize());
+	size_t contract_key_signature_length;
 
         // xxxxx call the enclave
 
@@ -101,12 +102,13 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
                 [
                     enclaveid,
                     &presult,
-                    sealed_enclave_data, // not sure why this needs to be passed by reference...
+                    sealed_enclave_data,
                     inContractId,
                     inContractCreatorId,
                     inSerializedSecretList,
                     &encrypted_contract_key,
-                    &contract_key_signature
+                    &contract_key_signature,
+		    &contract_key_signature_length
                 ]
                 ()
                 {
@@ -121,12 +123,15 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
                         encrypted_contract_key.data(),
                         encrypted_contract_key.size(),
                         contract_key_signature.data(),
-                        contract_key_signature.size());
+                        contract_key_signature.size(),
+			&contract_key_signature_length);
                     return pdo::error::ConvertErrorStatus(sresult_inner, presult);
                 }
                 );
         pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (VerifySecrets)");
         g_Enclave[enclaveIndex].ThrowPDOError(presult);
+
+	contract_key_signature.resize(contract_key_signature_length);
 
         outEncryptedContractKey = ByteArrayToBase64EncodedString(encrypted_contract_key);
         outContractKeySignature = ByteArrayToBase64EncodedString(contract_key_signature);
