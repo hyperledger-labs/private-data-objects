@@ -134,7 +134,7 @@ yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
 say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
-try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel info \
+try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel warn \
     --eservice-db ${ESDB_FILE} \
     --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
     --ledger ${PDO_LEDGER_URL}
@@ -254,7 +254,7 @@ fi
 # -----------------------------------------------------------------
 yell test pdo-shell
 # -----------------------------------------------------------------
-try ${SRCDIR}/build/tests/shell-test.psh --loglevel info
+try ${SRCDIR}/build/tests/shell-test.psh --loglevel warn 
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
