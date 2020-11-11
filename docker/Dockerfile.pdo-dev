@@ -19,9 +19,9 @@
 #  Configuration (build) paramaters
 #  - ubuntu version to use: 	  UBUNTU_VERSION (default: 18.04)
 #  - ubuntu name to use: 	  UBUNTU_NAME (default: bionic)
-#  - sgx sdk/psw version: 	  SGX (default: 2.10)
+#  - sgx sdk/psw version: 	  SGX (default: 2.12)
 #  - openssl version: 		  OPENSSL (default: 1.1.1g)
-#  - sgxssl version: 		  SGXSSL  (default: 2.10_1.1.1g)
+#  - sgxssl version: 		  SGXSSL  (default: 2.11_1.1.1g)
 #  - additional apt packages:	  ADD_APT_PKGS (default: )
 
 # Build:
@@ -63,7 +63,7 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG UBUNTU_VERSION
 ARG UBUNTU_NAME
 
-ARG SGX=2.10
+ARG SGX=2.12
 ARG OPENSSL=1.1.1g
 ARG SGXSSL=2.10_1.1.1g
 
@@ -73,7 +73,7 @@ ARG ADD_APT_PKGS=
 # TODO(xenial): we need to manually install protobuf 3 as xenial has v2
 # Note: ocamlbuild is required by PREREQ but does not exist for xenial. However, the relevant componets are part of 'ocaml' package, later ubuntu split up that package ...
 RUN apt-get update \
- && DEBIAN_FRONTEND="noninteractive" \
+ && DEBIAN_FRONTEND="noninteractive" TZ="UTC" \
   # above makes sure any install of 'tzdata' or alike (as e.g., pulled in via ubuntu 20.04) does not hang ...
   apt-get install -y -q\
     autoconf \
@@ -169,9 +169,10 @@ RUN SGX_SDK_BIN_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX}/distro/u
 
 # LVI mitigations, needed to compile sgxssl, requires a
 #   recent version of binutils (>= 2.32). Ubuntu 18.04 only
-#   has 2.30 but Intel ships binary distro for 2.32.51.20190719
-RUN [ "$UBUNTU_VERSION" = "18.04" ] \
-  && SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
+#   has 2.30 but Intel ships binary distro for 2.32.51.20190719.
+#   As sgx ships tools also for 20.04, use these for simplicity and uniformity reason
+RUN \
+     SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
   && SGX_SDK_BINUTILS_FILE=$(cd /tmp; wget --spider --recursive --level=1 --no-parent ${SGX_SDK_BINUTILS_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BINUTILS_REPO}'/(as.ld.objdump.*)|) { print "$1\n"; }') \
   && wget -q ${SGX_SDK_BINUTILS_REPO}/${SGX_SDK_BINUTILS_FILE} \
   && mkdir sgxsdk.extras \
