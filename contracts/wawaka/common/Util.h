@@ -19,10 +19,12 @@
 
 #include "StringArray.h"
 
-#define ASSERT_CONDITION(_cond, _rsp) \
-    do { \
-    if (! _cond)
-
+#define ASSERT_SUCCESS(_rsp_, _condition_, _message_)   \
+    do {                                                \
+        if (_condition_) {                              \
+            return _rsp_.error(_message_);              \
+        }                                               \
+    } while (0)
 
 #define ASSERT_SENDER_IS_OWNER(_env, _rsp)                              \
     do {                                                                \
