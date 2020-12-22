@@ -43,6 +43,36 @@ bool KeyValueStore::make_key(const StringArray& key, StringArray& prefixed_key) 
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+int KeyValueStore::create(const StringArray& key)
+{
+    return ::key_value_create(key.c_data(), key.size());
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+int KeyValueStore::open(const StringArray& block_hash, const StringArray& key)
+{
+    return ::key_value_open(block_hash.c_data(), block_hash.size(), key.c_data(), key.size());
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool KeyValueStore::finalize(const int kv_store_handle, StringArray& block_hash)
+{
+    uint8_t* datap;
+    size_t size;
+
+    if (! ::key_value_finalize(kv_store_handle, &datap, &size))
+        return false;
+
+    if (datap == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "data allocation failed");
+        return false;
+    }
+
+    return copy_internal_pointer(block_hash, datap, size);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool KeyValueStore::get(const StringArray& key, uint32_t& val) const
 {
     StringArray prefixed_key;
@@ -52,7 +82,7 @@ bool KeyValueStore::get(const StringArray& key, uint32_t& val) const
     uint8_t* datap;
     size_t size;
 
-    if (! key_value_get(prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
+    if (! key_value_get(handle_, prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
         return false;
 
     if (datap == NULL)
@@ -84,7 +114,7 @@ bool KeyValueStore::set(const StringArray& key, const uint32_t val) const
     if (! make_key(key, prefixed_key))
         return false;
 
-    return key_value_set(prefixed_key.c_data(), prefixed_key.size(), (uint8_t*)&val, sizeof(val));
+    return key_value_set(handle_, prefixed_key.c_data(), prefixed_key.size(), (uint8_t*)&val, sizeof(val));
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -97,7 +127,7 @@ bool KeyValueStore::get(const StringArray& key, StringArray& val) const
     uint8_t* datap;
     size_t size;
 
-    if (! key_value_get(prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
+    if (! key_value_get(handle_, prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
         return false;
 
     // this should not happen if the result was true
@@ -117,5 +147,5 @@ bool KeyValueStore::set(const StringArray& key, const StringArray& val) const
     if (! make_key(key, prefixed_key))
         return false;
 
-    return key_value_set(prefixed_key.c_data(), prefixed_key.size(), val.c_data(), val.size());
+    return key_value_set(handle_, prefixed_key.c_data(), prefixed_key.size(), val.c_data(), val.size());
 }

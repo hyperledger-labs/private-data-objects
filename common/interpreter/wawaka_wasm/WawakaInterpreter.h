@@ -26,6 +26,8 @@ extern "C" {
 #include "bh_platform.h"
 }
 
+#define KV_STORE_POOL_MAX_SIZE 8
+
 namespace pc = pdo::contracts;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -40,12 +42,13 @@ private:
     wasm_module_inst_t wasm_module_inst = NULL;
     wasm_exec_env_t wasm_exec_env = NULL;
     ByteArray binary_code_;
+    pdo::state::Basic_KV_Plus* kv_store_pool[KV_STORE_POOL_MAX_SIZE] = { 0 };
 
     void parse_response_string(
         int32 response_app,
         std::string& outResult,
         bool& outStateChanged,
-        std::map<string,string>& outDependencies);
+        std::map<std::string,std::string>& outDependencies);
 
     const char* report_interpreter_error(
         const char* message,
@@ -81,7 +84,7 @@ public:
         const pdo::state::StateBlockId& inContractStateHash,
         pdo::state::Basic_KV_Plus& inoutContractState,
         bool& outStateChangedFlag,
-        std::map<string,string>& outDependencies,
+        std::map<std::string,std::string>& outDependencies,
         std::string& outMessageResult
         );
 

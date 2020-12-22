@@ -22,6 +22,7 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern "C" bool key_value_set_wrapper(
     wasm_exec_env_t exec_env,
+    const int32 kv_store_handle,
     const uint8_t* key_buffer,
     const int32 key_buffer_length,
     const uint8_t* val_buffer,
@@ -29,7 +30,26 @@ extern "C" bool key_value_set_wrapper(
 
 extern "C" bool key_value_get_wrapper(
     wasm_exec_env_t exec_env,
+    const int32 kv_store_handle,
     const uint8_t* key_buffer,
     const int32 key_buffer_length,
     int32 val_buffer_pointer_offset,  /* uint8_t** */
     int32 val_length_pointer_offset); /* size_t* */
+
+extern "C" int key_value_create_wrapper(
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
+    const int32 key_buffer_length);
+
+extern "C" int key_value_open_wrapper(
+    wasm_exec_env_t exec_env,
+    const uint8_t* id_hash_buffer,
+    const int32 id_hash_buffer_length,
+    const uint8_t* key_buffer,
+    const int32 key_buffer_length);
+
+extern "C" bool key_value_finalize_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 kv_start_handle,
+    int32 id_hash_buffer_pointer_offset,  /* uint8_t** */
+    int32 id_hash_length_pointer_offset); /* size_t* */
