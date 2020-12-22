@@ -105,8 +105,6 @@ bool ww::crypto::aes::generate_key(StringArray& key)
         return false;
     }
 
-    verify_null_terminated((const char*)data_pointer, data_size);
-
     return copy_internal_pointer(key, data_pointer, data_size);
 }
 
@@ -143,8 +141,6 @@ bool ww::crypto::aes::encrypt_message(
     const StringArray& iv,
     StringArray& cipher)
 {
-    verify_null_terminated((const char*)key.c_data(), key.size());
-
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
@@ -173,8 +169,6 @@ bool ww::crypto::aes::decrypt_message(
     const StringArray& iv,
     StringArray& message)
 {
-    verify_null_terminated((const char*)key.c_data(), key.size());
-
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
