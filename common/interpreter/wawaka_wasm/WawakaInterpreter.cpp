@@ -348,7 +348,12 @@ void WawakaInterpreter::create_initial_contract_state(
     // this doesn't really set thread local data since it is
     // not supported for sgx, it does however attach the data
     // to the module so we can use it in the extensions
-    wasm_runtime_set_custom_data(wasm_module_inst, (void*)&inoutContractState);
+    kv_store_pool[0] = &inoutContractState;
+    for (size_t i = 1; i < KV_STORE_POOL_MAX_SIZE; i++)
+        kv_store_pool[i] = NULL;
+
+    //wasm_runtime_set_custom_data(wasm_module_inst, (void*)&inoutContractState);
+    wasm_runtime_set_custom_data(wasm_module_inst, (void*)kv_store_pool);
 
     // serialize the environment parameter for the method
     std::string env;
@@ -361,6 +366,13 @@ void WawakaInterpreter::create_initial_contract_state(
     bool outStateChangedFlag;
     std::map<std::string,std::string> outDependencies;
     parse_response_string(response_app, outMessageResult, outStateChangedFlag, outDependencies);
+
+    // We could throw an exception if the store is not finalized
+    // or we could just finalize and throw away the block id, which
+    // effectively loses access to the kv store, seems like throwing
+    // an exception is the right idea
+    for (size_t i = 1; i < KV_STORE_POOL_MAX_SIZE; i++)
+        pe::ThrowIf<pe::RuntimeError>(kv_store_pool[i] != NULL, "failed to close contract KV store");
 
     // this should be in finally... later...
     wasm_runtime_set_custom_data(wasm_module_inst, NULL);
@@ -384,10 +396,13 @@ void WawakaInterpreter::send_message_to_contract(
     // load the contract code
     load_contract_code(inContractCode.Code);
 
-    // this doesn't really set thread local data since it is
-    // not supported for sgx, it does however attach the data
-    // to the module so we can use it in the extensions
-    wasm_runtime_set_custom_data(wasm_module_inst, (void*)&inoutContractState);
+    // set up the key value store information
+    kv_store_pool[0] = &inoutContractState;
+    for (size_t i = 1; i < KV_STORE_POOL_MAX_SIZE; i++)
+        kv_store_pool[i] = NULL;
+
+    //wasm_runtime_set_custom_data(wasm_module_inst, (void*)&inoutContractState);
+    wasm_runtime_set_custom_data(wasm_module_inst, (void*)kv_store_pool);
 
     // serialize the environment parameter for the method
     std::string env;
@@ -395,6 +410,13 @@ void WawakaInterpreter::send_message_to_contract(
 
     int32 response_app = evaluate_function(inMessage.Message, env);
     parse_response_string(response_app, outMessageResult, outStateChangedFlag, outDependencies);
+
+    // We could throw an exception if the store is not finalized
+    // or we could just finalize and throw away the block id, which
+    // effectively loses access to the kv store, seems like throwing
+    // an exception is the right idea
+    for (size_t i = 1; i < KV_STORE_POOL_MAX_SIZE; i++)
+        pe::ThrowIf<pe::RuntimeError>(kv_store_pool[i] != NULL, "failed to close contract KV store");
 
     // this should be in finally... later...
     wasm_runtime_set_custom_data(wasm_module_inst, NULL);
