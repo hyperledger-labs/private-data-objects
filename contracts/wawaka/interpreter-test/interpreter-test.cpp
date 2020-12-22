@@ -27,6 +27,7 @@
 #include "Response.h"
 #include "StringArray.h"
 #include "Value.h"
+#include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 static KeyValueStore value_store("values");
@@ -38,6 +39,9 @@ const StringArray verifying_key("ecdsa-public-key");
 const StringArray symmetric_key("aes-encryption-key");
 const StringArray public_encrypt_key("rsa-public-key");
 const StringArray private_decrypt_key("rsa-private-key");
+
+const StringArray kv_test_key("test");
+const StringArray kv_hash_id("kv-store-hash-id");
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // NAME: initialize
@@ -134,6 +138,10 @@ bool aes_test(const Message& msg, const Environment& env, Response& rsp)
     if (! meta_store.get(symmetric_key, key))
         return rsp.error("failed to find private key");
 
+    StringArray encoded_key;
+    if (!  ww::crypto::b64_encode(key, encoded_key))
+        return rsp.error("failed to encode the aes key");
+
     StringArray iv;
     if (! ww::crypto::aes::generate_iv(iv))
         return rsp.error("failed to generate iv");
@@ -201,10 +209,74 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// kv store test
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool kv_test_set(const Message& msg, const Environment& env, Response& rsp)
+{
+    StringArray aes_key;
+    if (! meta_store.get(symmetric_key, aes_key))
+        return rsp.error("failed to find aes key");
+
+    int handle = KeyValueStore::create(aes_key);
+    if (handle < 0)
+        return rsp.error("failed to create the key value store");
+
+    KeyValueStore temp_store("temp", handle);
+
+    uint32_t value = 1;
+    if (! temp_store.set(kv_test_key, value))
+        return rsp.error("failed to save the value");
+
+    StringArray block_id;
+    if (! KeyValueStore::finalize(handle, block_id))
+        return rsp.error("failed to finalize block store");
+
+    if (! meta_store.set(kv_hash_id, block_id))
+        return rsp.error("failed to save the new block identifier");
+
+    return rsp.success(true);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// kv store test
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool kv_test_get(const Message& msg, const Environment& env, Response& rsp)
+{
+    StringArray aes_key;
+    if (! meta_store.get(symmetric_key, aes_key))
+        return rsp.error("failed to find aes key");
+
+    StringArray block_id;
+    if (! meta_store.get(kv_hash_id, block_id))
+        return rsp.error("failed to find the new block identifier");
+
+    int handle = KeyValueStore::open(block_id, aes_key);
+    if (handle < 0)
+        return rsp.error("failed to create the key value store");
+
+    KeyValueStore temp_store("temp", handle);
+
+    uint32_t value;
+    if (! temp_store.get(kv_test_key, value))
+        return rsp.error("failed to retrieve the value");
+
+    if (value != 1)
+        return rsp.error("failed to get the correct value");
+
+    if (! KeyValueStore::finalize(handle, block_id))
+        return rsp.error("failed to finalize block store");
+
+    ww::value::Number v((double)value);
+    return rsp.value(v, false);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(ecdsa_test),
     CONTRACT_METHOD(aes_test),
     CONTRACT_METHOD(rsa_test),
+    CONTRACT_METHOD(kv_test_set),
+    CONTRACT_METHOD(kv_test_get),
     { NULL, NULL }
 };

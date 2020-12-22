@@ -1,5 +1,7 @@
 [
     { "MethodName" : "ecdsa_test", "KeywordParameters": { "message" : "hello there" } },
     { "MethodName" : "aes_test", "KeywordParameters": { "message" : "hello there" } },
-    { "MethodName" : "rsa_test"}
+    { "MethodName" : "rsa_test"},
+    { "MethodName" : "kv_test_set", "expected" : "[tT]rue"},
+    { "MethodName" : "kv_test_get", "expected" : "1"}
 ]
