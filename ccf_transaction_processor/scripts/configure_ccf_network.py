@@ -78,6 +78,35 @@ def open_network_script(client, options, config) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+def add_node_script(client, options, config) :
+
+    node_id = options.node_id
+
+    # create the rpc to propose the new node as a trusted node
+    script = """
+    tables, node_id = ...
+    return Calls:call("trust_node", node_id)
+    """
+
+    rpc_params = dict()
+    rpc_params['parameter'] = node_id
+    rpc_params['script'] = {"text": script}
+    rpc_params['ballot'] = {"text": ("return true")}
+
+    try :
+        r = client.rpc("propose", rpc_params, signed=True)
+    except :
+        LOG.error('ccf add_node invocation failed')
+        sys.exit(-1)
+
+    if r.status != http.HTTPStatus.OK.value:
+        LOG.error('failed to propose new node: {}'.format(r.status))
+        sys.exit(-1)
+
+    LOG.info('Successfully submitted proposal to add a new node. Proposal id is {}'.format(r.result["proposal_id"]))
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 def add_user_script(client, options, config) :
 
     user_cert_file = os.path.join(CCF_Keys, "{}_cert.pem".format(options.user_name))
@@ -143,8 +172,13 @@ def Main() :
 
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
-    network_cert = config["start"]["network-cert-file"]
-    (host, port) = config["rpc-address"].split(':')
+
+    if options.add_node:
+        (host, port) = config["join"]["target-rpc-address"].split(':')
+        network_cert = config["join"]["network-cert-file"]
+    else:
+        (host, port) = config["rpc-address"].split(':')
+        network_cert = config["start"]["network-cert-file"]
 
     try :
         member_client = CCFClient(
@@ -163,8 +197,11 @@ def Main() :
         LOG.error('failed to connect to CCF service')
         sys.exit(-1)
 
-    open_network_script(member_client, options, config)
-    add_user_script(member_client, options, config)
+    if options.add_node:
+        add_node_script(member_client, options, config)
+    else:
+        open_network_script(member_client, options, config)
+        add_user_script(member_client, options, config)
 
     LOG.info('CCF network ready for use')
     sys.exit(0)

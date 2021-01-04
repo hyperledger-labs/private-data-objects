@@ -42,7 +42,7 @@ RUN pip3 install virtualenv
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
 ARG PDO_REPO_BRANCH=master
 
-# This helps using the local git repo to test docker (needed for travis tests)
+# This helps using the local git repo to test docker
 RUN mkdir /tmp/build-src
 COPY . /tmp/build-src
 
@@ -55,39 +55,53 @@ WORKDIR /pdo/
 # Env variables needed to build pdo-tp-ccf. Also generate the enclave signing key
 RUN cd private-data-objects/ccf_transaction_processor/ \
 	&& openssl genrsa -3 3072 > enclave.pem
+ARG PDO_HOSTNAME
+ENV PDO_HOSTNAME=${PDO_HOSTNAME}
+ARG CCF_FIRST_NODE_IP
+ENV CCF_FIRST_NODE_IP=${CCF_FIRST_NODE_IP}
 ENV CCF_BASE=/opt/ccf-0.11.7/
 ENV PDO_INSTALL_ROOT=/pdo/dev/
 ENV PDO_SOURCE_ROOT=/pdo/private-data-objects/
 ENV PDO_ENCLAVE_CODE_SIGN_PEM=/pdo/private-data-objects/ccf_transaction_processor/enclave.pem
 ENV PDO_LEDGER_KEY_ROOT=/pdo/dev/opt/pdo/ccf/keys/
-ENV SGX_MODE=SIM
+ARG SGX_MODE=SIM
+ENV SGX_MODE=${SGX_MODE}
 ENV PDO_HOME=/pdo/dev/opt/pdo/
-#note that currently we have only tested for SIM SGX mode for pdo/ccf combo
+
+# needed only for HW mode. the current azure dcap library gives an error if the variable is not set while computing quote
+ARG AZDCAP_DEBUG_LOG_LEVEL=INFO
+ENV AZDCAP_DEBUG_LOG_LEVEL=${AZDCAP_DEBUG_LOG_LEVEL}
 
 # build pdo-tp
-# remove the config file. The ip addresses in this need to be populated during runtime
-RUN `/pdo/private-data-objects/build/common-config.sh -e` \
-	&& cd private-data-objects/ccf_transaction_processor/ \
-	&& make \
-	&& rm /pdo/dev/opt/pdo/ccf/etc/cchost.toml
+RUN if [ -z "$CCF_FIRST_NODE_IP" ] ; \
+	then `/pdo/private-data-objects/build/common-config.sh -e` \
+		&& cd private-data-objects/ccf_transaction_processor/ \
+		&& make ; \
+	else  `/pdo/private-data-objects/build/common-config.sh -e` \
+		&& cd private-data-objects/ccf_transaction_processor/ \
+		&& make join; fi
 
-# Need to add the docker contrainer ip to no proxy at entry
-RUN touch set_no_proxy.sh \
-	&& echo "export no_proxy=\${no_proxy},\`getent hosts \${HOSTNAME} | awk '{ print \$1 }'\`" > set_no_proxy.sh
+# Create the init script based on whether we are starting governor or adding a node
+RUN touch init_ccf_node.sh && chmod a+rwx init_ccf_node.sh
 
-# start pdo-tp, share keys, (and, do not exit!)
-# Note that keys are copied to a new folder since user keys are generated during build itself (and not run time)
-# we create config as part of entry since container ip address is needed for config
-# Also for configuring ccf network, the container ip address must be added to no_proxy
+# init script that needs to be run as part of entry point. Sequence depends if init is for the
+# first node or a joining node. The presence of CCF_FIRST_NODE_IP indicates joining node
+RUN if [ -z "$CCF_FIRST_NODE_IP" ] ; \
+	then echo "dev/opt/pdo/ccf/bin/start_ccf_network.sh" > init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/userccf_cert.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/userccf_privk.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/memberccf_cert.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/memberccf_privk.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_pubk.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_privk.pem /ccf_keys/" >> init_ccf_node.sh \
+		&& echo "chmod a+rw /ccf_keys/*" >> init_ccf_node.sh ; \
+	else echo "cp /ccf_keys/* ${PDO_LEDGER_KEY_ROOT}/" > init_ccf_node.sh \
+		&& echo "dev/opt/pdo/ccf/bin/add_node_to_ccf_network.sh" >> init_ccf_node.sh ; fi
+
+# define the entrypoint
 ENTRYPOINT `/pdo/private-data-objects/build/common-config.sh -e` \
-	&& cd private-data-objects/ccf_transaction_processor/ \
-    && make config\
 	&& cd /pdo \
 	&& . dev/opt/pdo/ccf/bin/activate \
-	&& . /pdo/set_no_proxy.sh \
-	&& dev/opt/pdo/ccf/bin/start_ccf_network.sh \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_cert.pem /ccf_keys/ \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_privk.pem /ccf_keys/ \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
-	&& chmod a+rw /ccf_keys/* \
+	&& /pdo/init_ccf_node.sh \
 	&& tail -f /dev/null

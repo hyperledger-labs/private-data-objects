@@ -99,6 +99,14 @@ ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
 LedgerKeyRoot = os.environ.get("PDO_LEDGER_KEY_ROOT", os.path.join(ContractEtc, "keys", "ledger"))
 HttpsProxy = os.environ.get("https_proxy", "")
+CcfPdotpFirstNodeIp = os.environ.get("CCF_FIRST_NODE_IP", "127.0.0.1")
+
+SGX_MODE = os.environ.get("SGX_MODE", "SIM")
+CCFEnclaveType = "virtual"
+CCFEnclaveFileType = "virtual.so"
+if SGX_MODE=="HW":
+    CCFEnclaveType = "release"
+    CCFEnclaveFileType = "enclave.so.signed"
 
 config_map = {
     'data' : ContractData,
@@ -114,7 +122,10 @@ config_map = {
     'eservice_key_format': EserviceKeyFormat,
     'proxy' : HttpsProxy,
     'spid' : SPID,
-    'spid_api_key' : SPID_API_KEY
+    'spid_api_key' : SPID_API_KEY,
+    'ccf_pdotp_first_node_ip' : CcfPdotpFirstNodeIp,
+    'enclave_type' : CCFEnclaveType,
+    'enclave_file_type' : CCFEnclaveFileType
 }
 
 # -----------------------------------------------------------------

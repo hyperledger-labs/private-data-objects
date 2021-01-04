@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
 if [[ $PY3_VERSION -lt 5 ]]; then
     echo activate python3 first
@@ -36,28 +37,16 @@ fi
 rm -rf ${F_SERVICEHOME}/run/*
 rm -f ${F_SERVICEHOME}/logs/*.log
 
-rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/network_enc_pubk.pem
-rm -f ${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem
-
-say attempt to start ccf node
-try ${F_SERVICEHOME}/bin/start_cchost.sh
+say attempt to start a new ccf node
+try ${F_SERVICEHOME}/bin/start_cchost.sh _join
 
 sleep 5
 
-if [ $SGX_MODE == 'HW' ]; then
-    say get quote, retrieve mrenclave and compare against expected mrenclave
-    try ${F_SERVICEHOME}/bin/get_quote_and_verify_mrenclave.py --logfile __screen__ --oesign ${CCF_BASE}/openenclave/bin/oesign
-fi
+# need to get node_id from the logs after starting the network.
+# CCF network will assign a unique node_id to every node that joins the network
+node_id=`grep -oP "Node \K.*" ${F_SERVICEHOME}/logs/output.log | grep -m1 "is waiting for votes of members to be trusted" | awk '{print $1;}'`
 
-say configure ccf network : ACK the member, open network, add user
-try ${F_SERVICEHOME}/bin/configure_ccf_network.py --logfile __screen__ --loglevel WARNING
+say attempt to join node ${node_id} to existing ccf network
+try ${F_SERVICEHOME}/bin/configure_ccf_network.py --add-node --logfile __screen__ --loglevel WARNING --ccf-config ${F_SERVICEHOME}/etc/cchost_join.toml --node-id ${node_id}
 
-sleep 5
-
-echo generate the ledger authority
-try ${F_SERVICEHOME}/bin/generate_ledger_authority.py --logfile __screen__ --loglevel WARNING
-
-sleep 5
-
-echo save the ledger authority key
-try ${F_SERVICEHOME}/bin/fetch_ledger_authority.py --logfile __screen__ --loglevel WARNING
+echo Added a New Node to the CCF network

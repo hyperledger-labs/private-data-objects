@@ -11,8 +11,12 @@ on Microsoft's CCF blockchain.  The software is located under
 written and tested for CCF tag 0.11.7. Compatibility with other CCF
 versions is not guaranteed.
 
-The instructions below can be used to build and deploy the CCF-based PDO
-TP. The PDO TP uses many of environment variables defined in the PDO
+The instructions below can be used to build and deploy the a single node CCF-based PDO
+TP, operating under SGX virtual mode, on bare-metal. Multi-node CCF deployment as well as
+deployment of CCF on SGX hardware are supported via docker containers (see below after instructions for
+bare-metal installation).
+
+The PDO TP uses many of environment variables defined in the PDO
 configuration script `common-config.sh`. We recommend that you read the
 [PDO environment variables documentation](../docs/environment.md) first.
 
@@ -44,7 +48,7 @@ folder pointed to be the `CCF_BASE` environment variable.
 ```bash
 wget https://github.com/microsoft/CCF/releases/download/ccf-0.11.7/ccf.tar.gz -P /tmp
 tar -xvf /tmp/ccf.tar.gz -C /tmp
-mv /tmp/ccf-0.11.7 ${CCF_BASE}
+mv /tmp/ccf-0.11.7/ ${CCF_BASE}
 ```
 
 We note that CCF Base needs to be installed in PDO clients/eservice
@@ -57,8 +61,7 @@ needed on the node where CCF based pdo-tp is getting built.
 
 CCF/PDO combo has been tested under a scenario where CCF is deployed in
 a standalone VM, and where PDO cients/services are deployed either
-locally or at other VMs. Further, the CCF/PDO combo has been tested only
-for the CCF virtual enclave mode.  The dependencies needed to deploy CCF
+locally or at other VMs. The dependencies needed to deploy CCF
 in an Ubuntu 18.04 VM with virtual enclave mode can be installed by
 running the following command:
 
@@ -141,8 +144,7 @@ file `${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem`. This key can be
 used to verify claims about the state of the ledger.
 
 Note that a CCF network must run continuously; it cannot be fully
-stopped and restarted. Directions for adding additional nodes will be
-forthcoming.
+stopped and restarted.
 
 The script `${PDO_HOME}/ccf/bin/stop_cchost.sh` can be used to stop the
 instance of `cchost` running on the local server. When the final instance
@@ -260,3 +262,40 @@ make -C ${PDO_SOURCE_ROOT}/build force-conf keys
 cd ${PDO_SOURCE_ROOT}/build
 make test
 ```
+## CCF based PDO TP deployment on SGX enabled HW
+
+As per CCF documentation (https://microsoft.github.io/CCF/ccf-0.11.7/quickstart/index.html), CCF with full security guarantees requires SGX hardware with FLC. Below we provide instructions to deployment for CCF on SGX HW via docker containers running on Azure Confidential Compute (ACC) VMs. For instructions on how to deploy an ACC VM suitable for CCF installation, please see https://microsoft.github.io/CCF/ccf-0.11.7/quickstart/index.html. Essentially, the only requirement from the host platform is that the DCAP aware SGX driver (See https://github.com/intel/SGXDataCenterAttestationPrimitives/tree/master/driver/linux) is installed and loaded. If installed, the device nodes can be found at /dev/sgx (/dev/sgx/enclave and /dev/sgx/provision). The rest of the dependencies required to deploy PDO TP will be automatically taken care of within the docker container.
+
+Note: The instructions below have been tested only on ACC VMs and not on other SGX enabled platforms.
+
+Set the env variable HOST_IP to the ip-address of the host machine. (The docker container will use HOST networking mode). Run the following commands to build and deploy a single node docker container running PDO TP that is available for business transactions at http://HOST_IP:6600
+
+```bash
+cd ${PDO_SOURCE_ROOT}
+docker-compose -f docker/ccf-pdo.accvm.yaml build
+docker-compose -f docker/ccf-pdo.accvm.yaml up
+```
+Once the container starts, CCF keys can be found at ${PDO_SOURCE_ROOT}/docker/ccf_keys. As noted earlier, share the user keys and network certificate with PDO clients. Usage of the PDO TP remains same as described earlier.
+
+### Multi-Node CCF Deployment
+
+We now provide instructions for adding an additional node to an already running CCF network. Once again, we provide deployment instructions via docker containers.
+
+Note: Multi-node CCF deployment under SGX HW mode has been tested only on ACC VMs.
+
+Set the env variables HOST_IP and CCF_FIRST_NODE_IP. HOST_IP refers to the ip-address of the host machine where the additional CCF node will be deployed. CCF_FIRST_NODE_IP refers to the ip-address of the remote machine where the first CCF node is already running.
+
+Get the CCF keys, including member keys, from the first CCF node and store them under ${PDO_SOURCE_ROOT}/docker/ccf_keys in this second node. Member keys are required to add the second node as trusted node to the existing CCF network. (This way of multi-node deployment where keys of the single member are shared across nodes is suitable for scenarios where the multiple nodes are hosted in a cloud platform such as ACC, and where all nodes are managed by the same member.)
+
+Run the following commands to build and deploy the additional CCF node.
+
+```bash
+cd ${PDO_SOURCE_ROOT}
+docker-compose -f docker/ccf-pdo.accvm.yaml build
+docker-compose -f docker/ccf-pdo.accvm.yaml up
+```
+Note these above commands are exactly the same as the ones used to deploy the first node. The presence of the env variable CCF_FIRST_NODE_IP on the second node is used to automatically decide if the new node will join an existing network or start a new CCF network.
+
+Assuming that the deployment is successful, business transactions can be issued to either of the two nodes. If the host ips of the two nodes are HOST_IP_1 and HOST_IP_2, the CCF network is available for  business transactions at http://HOST_IP_1:6600 as well as at http://HOST_IP_2:6600.
+
+Further nodes can be added in a similar manner as described above. CCF-based PDO-TP uses Raft as the consensus algorithm. In this case, CCF tolerates up to (N-1)/2 crashed nodes, where N is the number of nodes in the CCF network. If more than (N-1)/2 nodes fail, catastrophic recovery must be performed to bring back PDO TP. Please see https://microsoft.github.io/CCF/ccf-0.11.7/operators/recovery.html for additional details.

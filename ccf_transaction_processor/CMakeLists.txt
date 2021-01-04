@@ -35,6 +35,13 @@ add_ccf_app(pdoenc
   INCLUDE_DIRS ${CCF_DIR}/include/ccf ${CCF_DIR}/include/3rdparty ${CCF_DIR}/include}
 )
 
-install(TARGETS pdoenc.virtual DESTINATION lib)
+# sign and install target
+IF ("virtual" IN_LIST COMPILE_TARGETS)
+  install(TARGETS pdoenc.virtual DESTINATION lib)
+ENDIF()
 
-sign_app_library(pdoenc.enclave ../etc/oe_sign.conf ${PDO_ENCLAVE_CODE_SIGN_PEM})
+IF ("sgx" IN_LIST COMPILE_TARGETS)
+  sign_app_library(pdoenc.enclave ../etc/oe_sign.conf ${PDO_ENCLAVE_CODE_SIGN_PEM})
+  install(TARGETS pdoenc.enclave DESTINATION lib)
+  install(FILES build/libpdoenc.enclave.so.signed DESTINATION lib)
+ENDIF()

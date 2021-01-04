@@ -49,17 +49,21 @@ CNFGEN=$(abspath $(PDO_SOURCE_ROOT)/build/__tools__/expand-config)
 
 PYTHON_DIR=$(CCFDSTDIR)/lib/python3.7
 
-# this should be determined by SGX_MODE
-CCF_MODE=virtual
+COMPILE_TARGET = virtual
+ifeq ($(SGX_MODE), HW)
+COMPILE_TARGET = sgx
+endif
 
 all: environment keys config install
+
+join: environment config_join install
 
 build: build-ccf build-pdo-tp
 
 build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
 		-DCCF_DIR=$(CCF_BASE) \
-		-DCOMPILE_TARGETS=virtual \
+		-DCOMPILE_TARGETS=$(COMPILE_TARGET) \
 		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
 
@@ -73,12 +77,21 @@ clean-install :
 
 config : $(ETCDIR)/cchost.toml $(ETCDIR)/gov.lua
 
+config_join : $(ETCDIR)/cchost_join.toml
+
 $(ETCDIR)/cchost.toml : etc/cchost.toml
 	@ echo create configuration file for cchost
 	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
 		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
+
+$(ETCDIR)/cchost_join.toml : etc/cchost_join.toml
+	@ echo create configuration file for cchost join operation
+	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
+		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
+		--output-directory $(dir $@) \
+		single --file $(notdir $@)
 
 $(ETCDIR)/gov.lua : etc/gov.lua
 	cp etc/gov.lua $(ETCDIR)/gov.lua
@@ -106,8 +119,8 @@ $(PYTHON_DIR) :
 
 install : install-ccf install-pdo-tp
 
-PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
-PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py
+PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh add_node_to_ccf_network.sh
+PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py get_quote_and_verify_mrenclave.py
 
 install-pdo-tp : build-pdo-tp
 	cd $(BLDDIR) && $(NINJA) install
@@ -121,5 +134,5 @@ keys :
 
 .PHONY : all build build-ccf build-pdo-tp
 .PHONY : clean clean-build clean-install
-.PHONY : config environment
+.PHONY : config config_join environment
 .PHONY : install install-ccf install-pdo-tp keys

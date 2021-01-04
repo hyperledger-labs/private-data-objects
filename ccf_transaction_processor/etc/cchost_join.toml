@@ -5,8 +5,6 @@ consensus = "raft"
 rpc-address = "${host_address}:6600"
 node-address = "${host_address}:7700"
 
-[start]
+[join]
 network-cert-file = "${ledger_key_root}/networkcert.pem"
-network-enc-pubk-file = "${ledger_key_root}/network_enc_pubk.pem"
-member-info = "${ledger_key_root}/memberccf_cert.pem,${ledger_key_root}/memberccf_enc_pubk.pem"
-gov-script = "${home}/ccf/etc/gov.lua"
+target-rpc-address = "${ccf_pdotp_first_node_ip}:6600"
