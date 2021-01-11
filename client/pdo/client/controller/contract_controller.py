@@ -421,7 +421,19 @@ class ContractController(cmd.Cmd) :
         if self.deferred > 0 : return False
 
         try :
-            print(self.bindings.expand(args))
+            pargs = self.__arg_parse__(args)
+
+            parser = argparse.ArgumentParser(prog='echo')
+            parser.add_argument('-r', '--raw', help='prevent expansion of escape characters', action='store_true')
+            (options, rest) = parser.parse_known_args(pargs)
+
+            expanded_string = ' '.join(rest)
+            if options.raw :
+                print(expanded_string)
+            else :
+                decoded_string = bytes(expanded_string, "utf-8").decode("unicode_escape")
+                print(decoded_string)
+
         except Exception as e :
             return self.__error__('echo', args, str(e))
 
