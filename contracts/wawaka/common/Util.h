@@ -21,7 +21,7 @@
 
 #define ASSERT_SUCCESS(_rsp_, _condition_, _message_)   \
     do {                                                \
-        if (_condition_) {                              \
+        if (! ( _condition_) ) {                        \
             return _rsp_.error(_message_);              \
         }                                               \
     } while (0)
