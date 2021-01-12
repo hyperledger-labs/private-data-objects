@@ -31,7 +31,10 @@
 
 static KeyValueStore exchange_base_store("exchange_base");
 
+#if 0
 static const StringArray md_owner_key("owner");
+#endif
+
 static const StringArray md_initialized_key("initialized");
 
 static const StringArray md_signing_key("ecdsa_private_key");
@@ -61,15 +64,19 @@ bool ww::exchange::exchange_base::initialize_contract(
     const Environment& env,
     Response& rsp)
 {
+    ASSERT_SENDER_IS_OWNER(env, rsp);
+
     // ---------- Mark as uninitialized ----------
     const int initialized = 0;
     if (! exchange_base_store.set(md_initialized_key, initialized))
         return rsp.error("failed to save initialization state");
 
+#if 0
     // ---------- Save owner information ----------
     const StringArray owner_val(env.creator_id_);
     if (! exchange_base_store.set(md_owner_key, owner_val))
         return rsp.error("failed to save creator metadata");
+#endif
 
     // ---------- Create and save the ECDSA key pair ----------
     StringArray public_key;

@@ -97,8 +97,5 @@ bool ww::exchange::LedgerStore::add_entry(
     if (! entry.set_active())
         return false;
 
-    if (! entry.initialize_escrow_identifier())
-        return false;
-
     return set_entry(owner_identity, entry);
 }

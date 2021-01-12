@@ -62,8 +62,6 @@ bool ww::exchange::issuer_authority_base::initialize_root_authority(
     const Environment& env,
     Response& rsp)
 {
-    CONTRACT_SAFE_LOG(4, "initialize_root_authority");
-
     ASSERT_SENDER_IS_OWNER(env, rsp);
     ASSERT_UNINITIALIZED(rsp);
 
@@ -102,8 +100,6 @@ bool ww::exchange::issuer_authority_base::initialize_root_authority(
     if (! issuer_authority_common_store.set(md_authority_chain_key, serialized_authority_chain))
         return rsp.error("failed to save authority chain; failed to store data");
 
-    CONTRACT_SAFE_LOG(3, "AUTHORITY: %s", (const char*)serialized_authority_chain.c_data());
-
     // Mark as initialized
     ww::exchange::exchange_base::mark_initialized();
 
@@ -140,7 +136,7 @@ bool ww::exchange::issuer_authority_base::initialize_derived_authority(
     if (! ww::exchange::exchange_base::get_verifying_key(verifying_key))
         return rsp.error("corrupted state; verifying key not found");
 
-    if (! authority_chain.validate(verifying_key))
+    if (! authority_chain.validate_issuer_key(verifying_key))
         return rsp.error("invalid parameter; authority chain validation failed");
 
     // Save the serialized authority chain object

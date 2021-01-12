@@ -48,8 +48,6 @@ const StringArray md_name_key("name");
 // -----------------------------------------------------------------
 bool initialize_contract(const Environment& env, Response& rsp)
 {
-    CONTRACT_SAFE_LOG(4, "initialize_contract");
-
     if (! ww::exchange::exchange_base::initialize_contract(env, rsp))
         return false;
 
@@ -76,8 +74,6 @@ bool initialize_contract(const Environment& env, Response& rsp)
 // -----------------------------------------------------------------
 bool initialize(const Message& msg, const Environment& env, Response& rsp)
 {
-    CONTRACT_SAFE_LOG(4, "initialize");
-
     ASSERT_SENDER_IS_OWNER(env, rsp);
     ASSERT_UNINITIALIZED(rsp);
 
@@ -121,7 +117,6 @@ bool initialize(const Message& msg, const Environment& env, Response& rsp)
 bool get_asset_type_identifier(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
-    CONTRACT_SAFE_LOG(4, "get_identifier");
 
     StringArray asset_type_identifier;
     if (! asset_type_store.get(md_asset_type_id_key, asset_type_identifier))
@@ -144,7 +139,6 @@ bool get_asset_type_identifier(const Message& msg, const Environment& env, Respo
 bool get_description(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
-    CONTRACT_SAFE_LOG(4, "get_description");
 
     StringArray description;
     if (! asset_type_store.get(md_description_key, description))
@@ -167,7 +161,6 @@ bool get_description(const Message& msg, const Environment& env, Response& rsp)
 bool get_link(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
-    CONTRACT_SAFE_LOG(4, "get_link");
 
     StringArray link;
     if (! asset_type_store.get(md_link_key, link))
@@ -190,7 +183,6 @@ bool get_link(const Message& msg, const Environment& env, Response& rsp)
 bool get_name(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
-    CONTRACT_SAFE_LOG(4, "get_name");
 
     StringArray name;
     if (! asset_type_store.get(md_name_key, name))

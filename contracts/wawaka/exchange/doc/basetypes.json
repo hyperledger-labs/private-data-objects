@@ -191,6 +191,39 @@
             }
         },
 
+        "escrow_release_type": {
+            "//": "-----------------------------------------------------------------",
+            "id": "#escrow_release_type",
+            "description": [
+                "information necessary to release the escrow on an asset"
+            ],
+            "type": "object",
+            "properties": {
+                "escrow_agent_state_reference": {
+                    "description": [
+                        "state reference for the escrow object",
+                        "release from escrow is only valid if this state is committed to the ledger"
+                    ],
+                    "type": {
+                        "$ref": "#/pdo/basetypes/state-reference"
+                    },
+                    "required": true
+                },
+
+                "escrow_agent_signature": {
+                    "description": [
+                        "signature of the escrow that verifies that the asset should be release from escrow",
+                        "signature is computed over the serialized asset and state reference of the escrow agent"
+                    ],
+                    "type": {
+                        "$ref": "#/pdo/basetypes/escda-signature"
+                    },
+                    "required": true
+                }
+            }
+
+        },
+
         "escrow_claim_type": {
             "//": "-----------------------------------------------------------------",
             "id": "#escrow_claim_type",
@@ -257,6 +290,18 @@
 
                 "owner_identity": {
                     "description": "ECDSA key for the new owner of the assets",
+                    "type": {
+                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
+                    },
+                    "required": false
+                },
+
+                "root_authority_verifying_key": {
+                    "description": [
+                        "verifying key associated with a vetting organization or issuer",
+                        "this is the root of trust for issuance, exchanged assets must be",
+                        "authorized by the specified key"
+                    ],
                     "type": {
                         "$ref": "#/pdo/basetypes/ecdsa-public-key"
                     },

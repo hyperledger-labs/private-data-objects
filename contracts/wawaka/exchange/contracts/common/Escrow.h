@@ -20,8 +20,13 @@
 #include "Common.h"
 #include "StateReference.h"
 
+#define ESCROW_RELEASE_SCHEMA "{"                                       \
+    "\"escrow_agent_state_reference\":" STATE_REFERENCE_SCHEMA ","      \
+    SCHEMA_KW(escrow_agent_signature,"")                                \
+    "}"
+
 #define ESCROW_CLAIM_SCHEMA "{"                                         \
-    SCHEMA_KW(old_owner_identity,"") ","                              \
+    SCHEMA_KW(old_owner_identity,"") ","                                \
     "\"escrow_agent_state_reference\":" STATE_REFERENCE_SCHEMA ","      \
     SCHEMA_KW(escrow_agent_signature,"")                                \
     "}"
@@ -30,31 +35,52 @@ namespace ww
 {
 namespace exchange
 {
-
-    class EscrowClaim : public ww::value::Structure
+    class EscrowBase : public ww::value::Structure
     {
-    private:
+    protected:
         bool serialize_for_signing(
-            const ww::value::String& escrow_identifier,
-            StringArray& serialized) const;
+            const ww::exchange::Asset& asset,
+            StringArray& serialized) const { return true; };
 
+        EscrowBase(const char* schema) : ww::value::Structure(schema) {};
+
+    public:
         bool get_escrow_agent_signature(ww::value::String& value) const;
         bool set_escrow_agent_signature(const ww::value::String& value);
 
-    public:
-        bool get_old_owner_identity(ww::value::String& value) const;
         bool get_escrow_agent_state_reference(ww::exchange::StateReference& value) const;
-
-        bool set_old_owner_identity(const ww::value::String& value);
         bool set_escrow_agent_state_reference(const ww::exchange::StateReference& value);
 
         bool verify_signature(
-            const ww::value::String& escrow_identifier,
+            const ww::exchange::Asset& asset,
             const StringArray& escrow_agent_verifying_key) const;
 
         bool sign(
-            const ww::value::String& escrow_identifier,
+            const ww::exchange::Asset& asset,
             const StringArray& escrow_agent_signing_key);
+    };
+
+    class EscrowRelease : public ww::exchange::EscrowBase
+    {
+    private:
+        bool serialize_for_signing(
+            const ww::exchange::Asset& asset,
+            StringArray& serialized) const;
+
+    public:
+        EscrowRelease(void);
+    };
+
+    class EscrowClaim : public ww::exchange::EscrowBase
+    {
+    private:
+        bool serialize_for_signing(
+            const ww::exchange::Asset& asset,
+            StringArray& serialized) const;
+
+    public:
+        bool get_old_owner_identity(ww::value::String& value) const;
+        bool set_old_owner_identity(const ww::value::String& value);
 
         EscrowClaim(void);
     };

@@ -17,7 +17,7 @@
 load_plugin -f plugins/asset_type.py
 load_plugin -f plugins/vetting.py
 load_plugin -f plugins/issuer.py
-## load_plugin -c exchange
+load_plugin -f plugins/exchange.py
 ## load_plugin -c auction
 
 ## load the eservice database
@@ -26,3 +26,11 @@ eservice_db load --database ${dbfile}
 
 ## load the eservice and pservice groups for the site
 script -f ${home}/etc/site.psh
+
+## some definitions to make it easier to display text
+set -q -s _ENDC_   -v "\033[0m"
+set -q -s _BOLD_   -v '\033[1m'
+set -q -s _HEADER_ -v "\033[95m"
+set -q -s _ERROR_  -v "\033[91m"
+set -q -s _WARN_   -v "\033[93m"
+set -q -s _INFO_   -v "\033[92m"

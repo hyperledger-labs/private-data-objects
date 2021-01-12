@@ -85,6 +85,12 @@ def __command_issuer__(state, bindings, pargs) :
         help='binding symbol for result',
         type=str)
 
+    subparser = subparsers.add_parser('get_entry')
+    subparser.add_argument(
+        '-s', '--symbol',
+        help='binding symbol for result',
+        type=str)
+
     subparser = subparsers.add_parser('issue')
     subparser.add_argument(
         '-o', '--owner',
@@ -110,22 +116,22 @@ def __command_issuer__(state, bindings, pargs) :
     subparser.add_argument(
         '-a', '--agent',
         help='identity of the escrow agent',
-        type=str, required=True)
+        type=invocation_parameter, required=True)
     subparser.add_argument(
         '-s', '--symbol',
         help='binding symbol for result',
         type=str)
 
-    subparser = subparsers.add_parser('disburse')
+    subparser = subparsers.add_parser('release')
     subparser.add_argument(
         '-a', '--attestation',
-        help='Disburse attestation from the escrow agent',
+        help='Release attestation from the escrow agent',
         type=invocation_parameter, required=True)
 
     subparser = subparsers.add_parser('claim')
     subparser.add_argument(
         '-a', '--attestation',
-        help='Disburse attestation from the escrow agent',
+        help='Claim attestation from the escrow agent',
         type=invocation_parameter, required=True)
 
     options = parser.parse_args(pargs)
@@ -190,6 +196,15 @@ def __command_issuer__(state, bindings, pargs) :
         return
 
     # -------------------------------------------------------
+    if options.command == 'get_entry' :
+        extraparams['commit'] = False
+        message = invocation_request('get_entry')
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        if options.symbol :
+            bindings.bind(options.symbol, result)
+        return
+
+    # -------------------------------------------------------
     if options.command == 'issue' :
         message = invocation_request('issue', owner_identity=options.owner, count=options.count)
         send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
@@ -217,22 +232,15 @@ def __command_issuer__(state, bindings, pargs) :
         return
 
     # -------------------------------------------------------
-    if options.command == 'disburse' :
-        assert type(options.attestation) is list
-        dependencies = options.attestation[0]
-        signature = options.attestation[1]
-        message = invocation_request('disburse', dependencies, signature)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+    if options.command == 'release' :
+        message = invocation_request('release', release_request=options.attestation)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'claim' :
-        assert type(options.attestation) is list
-        old_owner_identity = options.attestation[0]
-        dependencies = options.attestation[1]
-        signature = options.attestation[2]
-        message = invocation_request('claim', old_owner_identity, dependencies, signature)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        message = invocation_request('claim', claim_request=options.attestation)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         return
 
 ## -----------------------------------------------------------------

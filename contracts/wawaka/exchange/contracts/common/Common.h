@@ -28,4 +28,35 @@
         return set_value(#KEY, value);                          \
     }
 
+// macros for getting and setting simple properties with a
+// consistent message
+#define SAFE_GET(_RSP_, _VAL_, _OBJ_, _KEY_)                    \
+    do {                                                        \
+        if (! _OBJ_.get_##_KEY_(_VAL_))                         \
+            return _RSP_.error("failed to retrieve " #_KEY_);   \
+    } while (0)
+
+#define SAFE_SET(_RSP_, _VAL_, _OBJ_, _KEY_)                    \
+    do {                                                        \
+        if (! _OBJ_.set_##_KEY_(_VAL_))                         \
+            return _RSP_.error("failed to store " #_KEY_);      \
+    } while (0)
+
+#define SAFE_STRING_ARRAY_GET(_RSP_, _VAL_, _OBJ_, _KEY_)       \
+    do {                                                        \
+        ww::value::String _v_;                                  \
+        if (! _OBJ_.get_##_KEY_(_v_))                           \
+            return _RSP_.error("failed to retrieve " #_KEY_);   \
+        _VAL_.assign(_v_.get());                                \
+    } while (0)
+
+#define SAFE_STRING_ARRAY_SET(_RSP_, _VAL_, _OBJ_, _KEY_)               \
+    do {                                                                \
+        if (! _VAL_.null_terminated())                                  \
+            return _RSP_.error("expected null terminated value for " #_KEY_); \
+        ww::value::String _v_((const char*)_VAL_.c_data());             \
+        if (! _OBJ_.set_##_KEY_(_v_))                                   \
+            return _RSP_.error("failed to store " #_KEY_);              \
+    } while (0)
+
 #define SCHEMA_KW(kw,v) "\"" #kw "\":" #v

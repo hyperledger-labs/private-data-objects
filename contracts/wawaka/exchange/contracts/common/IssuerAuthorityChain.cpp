@@ -60,6 +60,25 @@ SIMPLE_PROPERTY_SET(IssuerAuthorityChain, vetting_organization_verifying_key, ww
 SIMPLE_PROPERTY_SET(IssuerAuthorityChain, authority_chain, ww::value::Array);
 
 // -----------------------------------------------------------------
+bool ww::exchange::IssuerAuthorityChain::get_issuer_identity(ww::value::String& issuer_verifying_key) const
+{
+    ww::value::Array authorities;
+    if (! get_authority_chain(authorities))
+        return false;
+
+    size_t count = authorities.get_count();
+
+    ww::exchange::IssuerAuthority authority;
+    if (! authorities.get_value(count-1, authority))
+        return false;
+
+    if (! authority.get_authorized_issuer_verifying_key(issuer_verifying_key))
+        return false;
+
+    return true;
+}
+
+// -----------------------------------------------------------------
 bool ww::exchange::IssuerAuthorityChain::add_issuer_authority(const ww::exchange::IssuerAuthority& value)
 {
     // there are a lot of copies in here, definitely not the
@@ -83,7 +102,7 @@ bool ww::exchange::IssuerAuthorityChain::add_issuer_authority(const ww::exchange
 // validate -- verify that the chain establishes the authority of the
 // provided issuer verifying key
 // -----------------------------------------------------------------
-bool ww::exchange::IssuerAuthorityChain::validate(const StringArray& issuer_verifying_key) const
+bool ww::exchange::IssuerAuthorityChain::validate_issuer_key(const StringArray& issuer_verifying_key) const
 {
     if (! validate_schema(issuer_authority_chain_schema))
         return false;
@@ -107,9 +126,13 @@ bool ww::exchange::IssuerAuthorityChain::validate(const StringArray& issuer_veri
 
         // the key in this authority is used to verify the next authority
         verifying_key.assign(authority.get_string("authorized_issuer_verifying_key"));
+
+        // if this is the key that we are validating, then we're done
+        if (verifying_key.equal(issuer_verifying_key))
+            return true;
     }
 
-    return verifying_key.equal(issuer_verifying_key);
+    return false;
 }
 
 // -----------------------------------------------------------------

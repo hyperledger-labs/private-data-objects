@@ -120,7 +120,31 @@ bool ww::exchange::AuthoritativeAsset::verify_signature(const StringArray& autho
 // -----------------------------------------------------------------
 bool ww::exchange::AuthoritativeAsset::validate(void) const
 {
-    return true;
+    // verify the authority of the issuer
+    ww::exchange::IssuerAuthorityChain authority_chain;
+    if (! get_issuer_authority_chain(authority_chain))
+        return false;
+
+    ww::value::String issuer_verifying_key;
+    if (! authority_chain.get_issuer_identity(issuer_verifying_key))
+        return false;
+
+    const StringArray verifying_key(issuer_verifying_key.get());
+    if (! authority_chain.validate_issuer_key(verifying_key))
+        return false;
+
+    // verify the issuer's signature on the asset
+    return verify_signature(verifying_key);
+}
+
+// -----------------------------------------------------------------
+bool ww::exchange::AuthoritativeAsset::get_issuer_identity(ww::value::String& issuer_verifying_key) const
+{
+    ww::exchange::IssuerAuthorityChain authority_chain;
+    if (! get_issuer_authority_chain(authority_chain))
+        return false;
+
+    return authority_chain.get_issuer_identity(issuer_verifying_key);
 }
 
 // -----------------------------------------------------------------

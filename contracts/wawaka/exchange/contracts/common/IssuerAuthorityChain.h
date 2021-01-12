@@ -38,6 +38,7 @@ namespace exchange
         bool get_vetting_organization_verifying_key(ww::value::String& value) const;
         bool get_authority_chain(ww::value::Array& value) const;
         bool get_dependencies(ww::value::Array& dependencies) const;
+        bool get_issuer_identity(ww::value::String& value) const;
 
         bool set_asset_type_identifier(const ww::value::String& value);
         bool set_vetting_organization_verifying_key(const ww::value::String& value);
@@ -45,7 +46,7 @@ namespace exchange
 
         bool add_issuer_authority(const ww::exchange::IssuerAuthority& value);
 
-        bool validate(const StringArray& issuer_verifying_key) const;
+        bool validate_issuer_key(const StringArray& issuer_verifying_key) const;
         bool add_dependencies_to_response(Response& rsp) const;
 
         IssuerAuthorityChain(void);

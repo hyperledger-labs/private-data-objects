@@ -32,6 +32,12 @@ namespace exchange
 
     class LedgerEntry : public ww::value::Structure
     {
+    protected:
+        bool initialize_escrow_identifier(void);
+
+        bool get_escrow_identifier(ww::value::String& value) const;
+        bool set_escrow_identifier(const ww::value::String& value);
+
     public:
         bool is_active(void) const;
         bool set_active();
@@ -43,18 +49,11 @@ namespace exchange
         uint32_t get_count(void) const;
         bool set_count(const uint32_t count);
 
-        const char* get_owner_identity(void) const;
         bool get_owner_identity(ww::value::String& value) const;
         bool set_owner_identity(const ww::value::String& value);
 
-        const char* get_escrow_agent_identity(void) const;
         bool get_escrow_agent_identity(ww::value::String& value) const;
         bool set_escrow_agent_identity(const ww::value::String& value);
-
-        const char* get_escrow_identifier(void) const;
-        bool get_escrow_identifier(ww::value::String& value) const;
-        bool set_escrow_identifier(const ww::value::String& value);
-        bool initialize_escrow_identifier(void);
 
         LedgerEntry(const StringArray& serialized);
         LedgerEntry(void);

@@ -167,6 +167,18 @@
             "KeywordParameters":  {}
         },
 
+        "get_entry": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "dump all information about the ledger entry assigned to the invoker"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": "#/pdo/basetypes/ledger-entry",
+            "PositionalParameters": [],
+            "KeywordParameters":  {}
+        },
+
         "transfer": {
             "//": "-----------------------------------------------------------------",
             "description": [
@@ -232,7 +244,7 @@
             "KeywordParameters":  {}
         },
 
-        "disburse": {
+        "release": {
             "//": "-----------------------------------------------------------------",
             "description": [
                 "release from escrow the assets owned by the invoker",
@@ -243,24 +255,10 @@
             "returns": "boolean",
             "PositionalParameters": [],
             "KeywordParameters":  {
-                "escrow_agent_state_reference": {
-                    "description": [
-                        "state reference for the escrow object",
-                        "release from escrow is only valid if this state is committed to the ledger"
-                    ],
+                "release_request": {
+                    "description": "a cancel escrow attestaton from an escrow agent",
                     "type": {
-                        "$ref": "#/pdo/basetypes/state-reference"
-                    },
-                    "required": true
-                },
-
-                "escrow_agent_signature": {
-                    "description": [
-                        "signature of the escrow that verifies that the asset should be release from escrow",
-                        "signature is computed over the serialized asset and state reference of the escrow agent"
-                    ],
-                    "type": {
-                        "$ref": "#/pdo/basetypes/escda-signature"
+                        "$ref": "#/pdo/wawaka/exchange/basetypes/escrow_release_type"
                     },
                     "required": true
                 }

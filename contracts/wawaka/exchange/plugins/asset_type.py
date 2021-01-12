@@ -62,7 +62,6 @@ def __command_asset_type__(state, bindings, pargs) :
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
-        print("IDENTIFIER: {0}".format(result))
         return
 
     # -------------------------------------------------------

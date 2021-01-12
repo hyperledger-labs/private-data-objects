@@ -31,7 +31,8 @@
 #include "issuer_authority_base.h"
 
 #include "common/AuthoritativeAsset.h"
-#include "common/EscrowClaim.h"
+#include "common/Common.h"
+#include "common/Escrow.h"
 #include "common/LedgerEntry.h"
 #include "common/LedgerStore.h"
 
@@ -206,6 +207,27 @@ bool get_balance(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // -----------------------------------------------------------------
+// METHOD: get_entry
+//
+// JSON PARAMETERS:
+//   none
+//
+// RETURNS:
+//   current number of assets assigned to the requestor
+// -----------------------------------------------------------------
+bool get_entry(const Message& msg, const Environment& env, Response& rsp)
+{
+    ASSERT_INITIALIZED(rsp);
+
+    const StringArray owner(env.originator_id_);
+
+    ww::exchange::LedgerEntry entry;
+    ASSERT_SUCCESS(rsp, ledger_store.get_entry(owner, entry), "no entry for originator");
+
+    return rsp.value(entry, false);
+}
+
+// -----------------------------------------------------------------
 // METHOD: transfer
 //
 // JSON PARAMETERS:
@@ -290,8 +312,6 @@ bool transfer(const Message& msg, const Environment& env, Response& rsp)
 
 bool escrow(const Message& msg, const Environment& env, Response& rsp)
 {
-    CONTRACT_SAFE_LOG(4, "escrow");
-
     ASSERT_INITIALIZED(rsp);
 
     if (! msg.validate_schema(ESCROW_PARAMETER_SCHEMA))
@@ -352,14 +372,10 @@ bool escrow_attestation(const Message& msg, const Environment& env, Response& rs
         return rsp.error("failed to retrieve issuer authority");
 
     ww::exchange::AuthoritativeAsset authoritative_asset;
-    if (! authoritative_asset.set_issuer_state_reference(state_reference))
-        return rsp.error("failed to create escrow attestation; state_reference");
 
-    if (! authoritative_asset.set_asset(asset))
-        return rsp.error("failed to create escrow attestation; authoritative_asset");
-
-    if (! authoritative_asset.set_issuer_authority_chain(authority_chain))
-        return rsp.error("failed to create escrow attestation; issuer_authority_chain");
+    SAFE_SET(rsp, state_reference, authoritative_asset, issuer_state_reference);
+    SAFE_SET(rsp, asset, authoritative_asset, asset);
+    SAFE_SET(rsp, authority_chain, authoritative_asset, issuer_authority_chain);
 
     StringArray signing_key;
     if (! ww::exchange::exchange_base::get_signing_key(signing_key))
@@ -372,7 +388,7 @@ bool escrow_attestation(const Message& msg, const Environment& env, Response& rs
 }
 
 // -----------------------------------------------------------------
-// METHOD: disburse
+// METHOD: release
 //
 // JSON PARAMETERS:
 //   escrow_agent_state_reference
@@ -381,50 +397,52 @@ bool escrow_attestation(const Message& msg, const Environment& env, Response& rs
 // RETURNS:
 //   boolean
 // -----------------------------------------------------------------
-#define DISBURSE_PARAMETER_SCHEMA "{"                                   \
-    "\"escrow_agent_state_reference\":" STATE_REFERENCE_SCHEMA ","      \
-    SCHEMA_KW(escrow_agent_signature,"")                                \
+#define RELEASE_PARAMETER_SCHEMA "{"                     \
+    "\"release_request\":" ESCROW_RELEASE_SCHEMA        \
     "}"
 
-bool disburse(const Message& msg, const Environment& env, Response& rsp)
+bool release(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
 
-    if (! msg.validate_schema(DISBURSE_PARAMETER_SCHEMA))
-        return rsp.error("invalid request, missing required parameters");
+    // handle the parameters
+    ASSERT_SUCCESS(rsp, msg.validate_schema(RELEASE_PARAMETER_SCHEMA),
+                   "invalid request, missing required parameters");
 
-    const StringArray owner(env.originator_id_);
+    ww::exchange::EscrowRelease release_request;
+    ASSERT_SUCCESS(rsp, msg.get_value("release_request", release_request),
+                   "invalid request, malformed parameter, release_request");
 
-    ww::exchange::LedgerEntry entry;
-    if (! ledger_store.get_entry(owner, entry))
-        return rsp.error("invalid disburse request, no entry for requestor");
+    // get the ledger entry and make sure it has actually been escrowed
+    const StringArray current_owner(env.originator_id_);
 
-    if (entry.is_active())
-        return rsp.error("invalid disburse request, assets are not escrowed");
+    ww::exchange::LedgerEntry ledger_entry;
+    ASSERT_SUCCESS(rsp, ledger_store.get_entry(current_owner, ledger_entry),
+                   "invalid request, assets are not escrowed");
+    ASSERT_SUCCESS(rsp, ! ledger_entry.is_active(),
+                   "invalid request, assets are not escrowed");
 
-    // verify that escrow agent signature
-    const StringArray signature(msg.get_string("escrow_agent_signature"));
-    const StringArray escrow_agent(entry.get_escrow_agent_identity());
-
-    ww::exchange::StateReference escrow_agent_state_reference;
-    if (! msg.get_value("escrow_agent_state_reference", escrow_agent_state_reference))
-        return rsp.error("invalid request, malformed parameter, escrow_agent_state_reference");
+    // verify the escrow agent signature
+    StringArray ledger_escrow_agent_identity;
+    SAFE_STRING_ARRAY_GET(rsp, ledger_escrow_agent_identity, ledger_entry, escrow_agent_identity);
 
     ww::exchange::Asset asset;
-    if (! entry.get_asset(asset))
-        return rsp.error("unexpected error; failed to serialize asset");
+    SAFE_GET(rsp, asset, ledger_entry, asset);
 
-    if (! asset.verify_escrow_signature(escrow_agent_state_reference, signature))
-        return rsp.error("escrow signature verification failed");
+    ASSERT_SUCCESS(rsp, release_request.verify_signature(asset, ledger_escrow_agent_identity),
+                   "escrow signature verification failed");
 
     // now modify the entry to mark it as active
-    entry.set_active();
-    if (! ledger_store.set_entry(owner, entry))
-        return rsp.error("escrow failed, unable to update entry");
+    ledger_entry.set_active();
+    ASSERT_SUCCESS(rsp, ledger_store.set_entry(current_owner, ledger_entry),
+                   "escrow failed, unable to update entry");
 
     // add the dependency to the response
-    if (! escrow_agent_state_reference.add_to_response(rsp))
-        return rsp.error("disburse request failed, unable to save state reference");
+    ww::exchange::StateReference escrow_agent_state_reference;
+    SAFE_GET(rsp, escrow_agent_state_reference, release_request, escrow_agent_state_reference);
+
+    ASSERT_SUCCESS(rsp, escrow_agent_state_reference.add_to_response(rsp),
+                   "release request failed, unable to save state reference");
 
     return rsp.success(true);
 }
@@ -439,77 +457,89 @@ bool disburse(const Message& msg, const Environment& env, Response& rsp)
 //   boolean
 // -----------------------------------------------------------------
 #define CLAIM_PARAMETER_SCHEMA "{"              \
-    "\"escrow_claim\":" ESCROW_CLAIM_SCHEMA     \
+    "\"claim_request\":" ESCROW_CLAIM_SCHEMA     \
     "}"
 
 bool claim(const Message& msg, const Environment& env, Response& rsp)
 {
     ASSERT_INITIALIZED(rsp);
 
-    if (! msg.validate_schema(CLAIM_PARAMETER_SCHEMA))
-        return rsp.error("invalid request, missing required parameters");
+    // handle the parameters
+    ASSERT_SUCCESS(rsp, msg.validate_schema(CLAIM_PARAMETER_SCHEMA),
+                   "invalid request, missing required parameters");
 
-    ww::exchange::EscrowClaim escrow_claim;
-    if (! msg.get_value("escrow_claim", escrow_claim))
-        return rsp.error("invalid request, malformed parameter, escrow_claim");
+    ww::exchange::EscrowClaim claim_request;
+    ASSERT_SUCCESS(rsp, msg.get_value("claim_request", claim_request),
+                   "invalid request, malformed parameter, claim_request");
 
     // get the old owner's entry from the ledger
-    ww::value::String old_owner_identity_string;
-    if (! escrow_claim.get_old_owner_identity(old_owner_identity_string))
-        return rsp.error("invalid claim request, malformed parameter, escrow_claim");
-    const StringArray old_owner_identity(old_owner_identity_string.get());
+    StringArray old_owner_identity;
+    SAFE_STRING_ARRAY_GET(rsp, old_owner_identity, claim_request, old_owner_identity);
 
     ww::exchange::LedgerEntry old_owner_entry;
-    if (! ledger_store.get_entry(old_owner_identity, old_owner_entry))
-        return rsp.error("invalid claim request, no such asset");
+    ASSERT_SUCCESS(rsp, ledger_store.get_entry(old_owner_identity, old_owner_entry),
+                   "invalid claim request, no such asset");
 
     // make sure the old entry is actually escrowed
-    if (! old_owner_entry.is_active())
-        return rsp.error("invalid claim request, state mismatch");
+    ASSERT_SUCCESS(rsp, ! old_owner_entry.is_active(),
+                   "invalid claim request, state mismatch");
 
     // check the signature from the escrow agent
-    ww::value::String escrow_agent_identity_string;
-    if (! old_owner_entry.get_escrow_agent_identity(escrow_agent_identity_string))
-        return rsp.error("contract state corrupted, no escrow agent identity");
+    StringArray escrow_agent_identity;
+    SAFE_STRING_ARRAY_GET(rsp, escrow_agent_identity, old_owner_entry, escrow_agent_identity);
 
-    ww::value::String escrow_identifier;
-    if (! old_owner_entry.get_escrow_identifier(escrow_identifier))
-        return rsp.error("contract state corrupted, no escrow identifier");
+    ww::exchange::Asset asset;
+    SAFE_GET(rsp, asset, old_owner_entry, asset);
 
-    const StringArray escrow_agent_identity(escrow_agent_identity_string.get());
-    if (! escrow_claim.verify_signature(escrow_identifier, escrow_agent_identity))
-        return rsp.error("invalid claim request, signature verification failed");
+    ASSERT_SUCCESS(rsp, claim_request.verify_signature(asset, escrow_agent_identity),
+                   "invalid claim request, signature verification failed");
 
     // get the new owner's entry from the ledger, create an empty
     // entry if one does not already exist
     const StringArray new_owner_identity(env.originator_id_);
-    ww::exchange::LedgerEntry new_owner_entry;
     if (! ledger_store.exists(new_owner_identity))
     {
         const int count = 0;
 
         StringArray asset_type_identifier;
-        if (! ww::exchange::issuer_authority_base::get_asset_type_identifier(asset_type_identifier))
-            return rsp.error("contract state corrupted, no asset type identifier");
-
-        if (! ledger_store.add_entry(new_owner_identity, asset_type_identifier, (uint32_t)count))
-            return rsp.error("ledger operation failed, unable to save issuance");
+        ASSERT_SUCCESS(rsp, ww::exchange::issuer_authority_base::get_asset_type_identifier(asset_type_identifier),
+                       "contract state corrupted, no asset type identifier");
+        ASSERT_SUCCESS(rsp, ledger_store.add_entry(new_owner_identity, asset_type_identifier, (uint32_t)count),
+                       "ledger operation failed, unable to save issuance");
     }
 
-    if (! ledger_store.get_entry(new_owner_identity, new_owner_entry))
-        return rsp.error("contract state corrupted, no issuance located");
+    ww::exchange::LedgerEntry new_owner_entry;
+    ASSERT_SUCCESS(rsp, ledger_store.get_entry(new_owner_identity, new_owner_entry),
+                   "contract state corrupted, no issuance located");
+
+    // -----------------------------------------------------------------
+    // must add support for the case where the claim comes from
+    // an identity that already has an entry in the ledger, we
+    // could end up in a case where bi-lateral escrow can be
+    // manipulated... if we find an existing entry then we should
+    // increment that entry unless it is inactive, for now this
+    // prevents some manipulation
+    // -----------------------------------------------------------------
+    ASSERT_SUCCESS(rsp, new_owner_entry.is_active(), "new owner entry is not active");
 
     // move the balance from the old owner to the new owner
     uint32_t old_owner_balance = old_owner_entry.get_count();
     uint32_t new_owner_balance = new_owner_entry.get_count();
 
     old_owner_entry.set_count(0);
-    if (! ledger_store.set_entry(old_owner_identity, old_owner_entry))
-        return rsp.error("failed to save updated balance");
+    ASSERT_SUCCESS(rsp, ledger_store.set_entry(old_owner_identity, old_owner_entry),
+                   "failed to save updated balance");
 
     new_owner_entry.set_count(old_owner_balance + new_owner_balance);
-    if (! ledger_store.set_entry(new_owner_identity, new_owner_entry))
-        return rsp.error("failed to save updated balance");
+    ASSERT_SUCCESS(rsp, ledger_store.set_entry(new_owner_identity, new_owner_entry),
+                   "failed to save updated balance");
+
+    // add the dependency to the response
+    ww::exchange::StateReference escrow_agent_state_reference;
+    SAFE_GET(rsp, escrow_agent_state_reference, claim_request, escrow_agent_state_reference);
+
+    ASSERT_SUCCESS(rsp, escrow_agent_state_reference.add_to_response(rsp),
+                   "release request failed, unable to save state reference");
 
     return rsp.success(true);
 }
@@ -526,10 +556,11 @@ contract_method_reference_t contract_method_dispatch_table[] = {
 
     CONTRACT_METHOD(issue),
     CONTRACT_METHOD(get_balance),
+    CONTRACT_METHOD(get_entry),
     CONTRACT_METHOD(transfer),
     CONTRACT_METHOD(escrow),
     CONTRACT_METHOD(escrow_attestation),
-    CONTRACT_METHOD(disburse),
+    CONTRACT_METHOD(release),
     CONTRACT_METHOD(claim),
     { NULL, NULL }
 };

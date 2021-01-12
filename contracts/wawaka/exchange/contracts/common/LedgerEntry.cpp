@@ -95,11 +95,6 @@ bool ww::exchange::LedgerEntry::set_count(uint32_t count)
 }
 
 // -----------------------------------------------------------------
-const char* ww::exchange::LedgerEntry::get_owner_identity(void) const
-{
-    return get_string("asset.owner_identity");
-}
-
 bool ww::exchange::LedgerEntry::get_owner_identity(ww::value::String& value) const
 {
     return get_value("asset.owner_identity", value);
@@ -111,11 +106,6 @@ bool ww::exchange::LedgerEntry::set_owner_identity(const ww::value::String& valu
 }
 
 // -----------------------------------------------------------------
-const char* ww::exchange::LedgerEntry::get_escrow_agent_identity(void) const
-{
-    return get_string("asset.escrow_agent_identity");
-}
-
 bool ww::exchange::LedgerEntry::get_escrow_agent_identity(ww::value::String& value) const
 {
     return get_value("asset.escrow_agent_identity", value);
@@ -127,11 +117,6 @@ bool ww::exchange::LedgerEntry::set_escrow_agent_identity(const ww::value::Strin
 }
 
 // -----------------------------------------------------------------
-const char* ww::exchange::LedgerEntry::get_escrow_identifier(void) const
-{
-    return get_string("asset.escrow_identifier");
-}
-
 bool ww::exchange::LedgerEntry::get_escrow_identifier(ww::value::String& value) const
 {
     return get_value("asset.escrow_identifier", value);

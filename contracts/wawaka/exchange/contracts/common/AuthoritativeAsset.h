@@ -22,11 +22,12 @@
 #include "IssuerAuthorityChain.h"
 #include "StateReference.h"
 
-#define AUTHORITATIVE_ASSET_SCHEMA "{"                             \
-    "\"asset\":" ASSET_SCHEMA ","                                  \
-    "\"issuer_state_reference\":" STATE_REFERENCE_SCHEMA ","            \
-    SCHEMA_KW(issuer_signature,"") ","                                  \
-    "\"issuer_authority_chain\":" ISSUER_AUTHORITY_CHAIN_SCHEMA    \
+#define AUTHORITATIVE_ASSET_SCHEMA "{"                          \
+    "\"asset\":" ASSET_SCHEMA ","                               \
+    "\"issuer_state_reference\":" STATE_REFERENCE_SCHEMA ","    \
+    SCHEMA_KW(issuer_signature,"") ","                          \
+    SCHEMA_KW(issuer_identity,"") ","                           \
+    "\"issuer_authority_chain\":" ISSUER_AUTHORITY_CHAIN_SCHEMA \
     "}"
 
 namespace ww
@@ -44,6 +45,8 @@ namespace exchange
         bool get_issuer_state_reference(ww::exchange::StateReference& value) const;
         bool get_issuer_signature(ww::value::String& value) const;
         bool get_issuer_authority_chain(ww::exchange::IssuerAuthorityChain& value) const;
+
+        bool get_issuer_identity(ww::value::String& value) const;
 
         bool set_asset(const ww::exchange::Asset& value);
         bool set_issuer_state_reference(const ww::exchange::StateReference& value);

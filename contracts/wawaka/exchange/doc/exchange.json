@@ -8,6 +8,20 @@
     ],
 
     "interface": {
+        "get_verifying_key": {
+            "//": "-----------------------------------------------------------------",
+            "description": [
+                "returns the asset type id associated with the vetting organization"
+            ],
+            "type": "method",
+            "modifies_state": false,
+            "returns": {
+                "$ref": "#/pdo/basetypes/ecdsa-public-key",
+            }
+            "PositionalParameters": [],
+            "KeywordParameters":  {},
+        },
+
         "initialize": {
             "//": "-----------------------------------------------------------------",
             "description": [
@@ -28,32 +42,6 @@
                     "required": true
                 },
 
-                "authority_verifying_key": {
-                    "description": [
-                        "verifying key associated with a vetting organization or issuer",
-                        "this is the root of trust for issuance, exchanged assets must be",
-                        "authorized by the specified key"
-                    ],
-                    "type": {
-                        "$ref": "#/pdo/basetypes/ecdsa-public-key"
-                    },
-                    "required": true
-                }
-            }
-        },
-
-        "offer_asset": {
-            "//": "-----------------------------------------------------------------",
-            "description": [
-                "offer an asset through the exchange contract",
-                "the offered asset must be escrowed to the exchange contract object",
-                "it must be invoked by creator"
-            ],
-            "type": "method",
-            "modifies_state": true,
-            "returns": "boolean",
-            "PositionalParameters": [],
-            "KeywordParameters":  {
                 "offered_authoritative_asset": {
                     "description": "",
                     "type": {
@@ -64,7 +52,7 @@
             }
         },
 
-        "cancel_offer": {
+        "cancel": {
             "//": "-----------------------------------------------------------------",
             "description": [
                 ""
@@ -73,31 +61,21 @@
             "modifies_state": true,
             "returns": "boolean",
             "PositionalParameters": [],
-            "KeywordParameters":  {
-                "parameter1": {
-                    "description": "",
-                    "type": "",
-                    "required": true
-                }
-            }
+            "KeywordParameters":  {}
         },
 
-        "cancel_offer_attestation": {
+        "cancel_attestation": {
             "//": "-----------------------------------------------------------------",
             "description": [
                 ""
             ],
             "type": "method",
             "modifies_state": false,
-            "returns": "boolean",
+            "returns": {
+                "$ref": "#/pdo/wawaka/exchange/basetypes/escrow_cancel_type"
+            },
             "PositionalParameters": [],
-            "KeywordParameters":  {
-                "parameter1": {
-                    "description": "",
-                    "type": "",
-                    "required": true
-                }
-            }
+            "KeywordParameters":  {}
         },
 
         "examine_offered_asset": {
@@ -108,7 +86,7 @@
             "type": "method",
             "modifies_state": false,
             "returns": {
-                "$ref": "#/pdo/wawaka/exchange/basetypes/escrow_claim_type"
+                "$ref": "#/pdo/wawaka/exchange/basetypes/authoritative_asset_type"
             }
             "PositionalParameters": [],
             "KeywordParameters":  {}
@@ -140,7 +118,7 @@
             "returns": "boolean",
             "PositionalParameters": [],
             "KeywordParameters":  {
-                "offered_authoritative_asset": {
+                "exchanged_authoritative_asset": {
                     "description": "",
                     "type": {
                         "$ref": "#/pdo/wawaka/exchange/basetypes/authoritative_asset_type"
@@ -150,7 +128,7 @@
             }
         },
 
-        "claim_exchange": {
+        "claim_exchanged_asset": {
             "//": "-----------------------------------------------------------------",
             "description": [
                 "create a claim object that can be used to redeem the exchange asset",
@@ -165,7 +143,7 @@
             "KeywordParameters":  {}
         },
 
-        "claim_offer": {
+        "claim_offered_asset": {
             "//": "-----------------------------------------------------------------",
             "description": [
                 "create a claim object that can be used to redeem the offered asset",

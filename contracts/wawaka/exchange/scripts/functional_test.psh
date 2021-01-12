@@ -31,38 +31,38 @@ set -q -s _user4_key -i user4
 set -q -s _user5_key -i user5
 
 ## =================================================================
-echo create the asset type for green marbles
+echo ${_HEADER_} create the asset type for green marbles ${_ENDC_}
 ## =================================================================
 identity -n green_type
 create -c asset_type -s _asset_type -f ${save}/green_type.pdo
 asset_type -q -w -f ${save}/green_type.pdo initialize -n "green marbles" -d "green marble description" -l "http://"
 
 ## -----------------------------------------------------------------
-echo basic asset type tests
+echo ${_HEADER_} basic asset type tests ${_ENDC_}
 ## -----------------------------------------------------------------
 asset_type -q -f ${save}/green_type.pdo describe
 asset_type -q -f ${save}/green_type.pdo get_asset_type_identifier -s _green_type_id_
 echo green marble type identifier is ${_green_type_id_}
 
 ## =================================================================
-echo create and initialize the vetting organization for green marbles
+echo ${_HEADER_} create and initialize the vetting organization for green marbles ${_ENDC_}
 ## =================================================================
 identity -n green_vetting
 create -c vetting-organization-contract -s _vetting_organization -f ${save}/green_vetting.pdo
 vetting -q -w -f ${save}/green_vetting.pdo initialize -t ${_green_type_id_}
 
 ## -----------------------------------------------------------------
-echo basic vetting organization tests
+echo ${_HEADER_} basic vetting organization tests ${_ENDC_}
 ## -----------------------------------------------------------------
 vetting -q -f ${save}/green_vetting.pdo get_verifying_key -s _green_vetting_id_
 vetting -q -f ${save}/green_vetting.pdo get_asset_type_identifier -s _tmp_
 if --not -e ${_green_type_id_} ${_tmp_}
-   echo type identifier mismatch
+   echo ${_ERROR_} type identifier mismatch ${_ENDC_}
    exit -v -1
 fi
 
 ## =================================================================
-echo create and initialize the green marble issuer
+echo ${_HEADER_} create and initialize the green marble issuer ${_ENDC_}
 ## =================================================================
 identity -n green_issuer
 create -c issuer-contract -s _issuer -f ${save}/green_issuer.pdo
@@ -73,23 +73,24 @@ vetting -q -f ${save}/green_vetting.pdo approve_issuer -i ${_green_issuer_id_}
 
 identity -n green_issuer
 vetting -q -f ${save}/green_vetting.pdo get_issuer_authority -i ${_green_issuer_id_} -s _authority_
-echo ISSUER AUTHORITY: ${_authority_}
+echo ISSUER AUTHORITY:
+echo -r ${_authority_}
 
 issuer -q -f ${save}/green_issuer.pdo initialize -a ${_authority_}
 
 ## -----------------------------------------------------------------
-echo basic issuer tests
+echo ${_HEADER_} basic issuer tests ${_ENDC_}
 ## -----------------------------------------------------------------
 identity -n green_issuer
 issuer -q -f ${save}/green_issuer.pdo get_asset_type_identifier -s _tmp_
 if --not -e ${_green_type_id_} ${_tmp_}
-   echo type identifier mismatch
+   echo ${_ERROR_} type identifier mismatch ${_ENDC_}
    exit -v -1
 fi
 
 issuer -q -f ${save}/green_issuer.pdo get_authority -s _tmp_
 if --not -e ${_authority_} ${_tmp_}
-   echo authority does not match
+   echo ${_ERROR_} authority does not match ${_ENDC_}
    exit -v -1
 fi
 
@@ -102,7 +103,7 @@ issuer -q -w -f ${save}/green_issuer.pdo issue -o ${_user5_key} -c 55
 identity -n user1
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 51
-   echo balance does not match, ${_balance}
+   echo ${_ERROR_} balance does not match, ${_balance} ${_ENDC_}
    exit -v -1
 fi
 echo user1 balance matched
@@ -110,7 +111,7 @@ echo user1 balance matched
 identity -n user2
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 52
-   echo balance does not match, ${_balance}
+   echo ${_ERROR_} balance does not match, ${_balance} ${_ENDC_}
    exit -v -1
 fi
 echo user2 balance matched
@@ -118,7 +119,7 @@ echo user2 balance matched
 identity -n user3
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 53
-   echo balance does not match, ${_balance}
+   echo ${_ERROR_} balance does not match, ${_balance} ${_ENDC_}
    exit -v -1
 fi
 echo user3 balance matched
@@ -126,7 +127,7 @@ echo user3 balance matched
 identity -n user4
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 54
-   echo balance does not match, ${_balance}
+   echo ${_ERROR_} balance does not match, ${_balance} ${_ENDC_}
    exit -v -1
 fi
 echo user4 balance matched
@@ -134,7 +135,7 @@ echo user4 balance matched
 identity -n user5
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 55
-   echo balance does not match, ${_balance}
+   echo ${_ERROR_} balance does not match, ${_balance} ${_ENDC_}
    exit -v -1
 fi
 echo user5 balance matched
@@ -143,32 +144,163 @@ identity -n user1
 issuer -q -w -f ${save}/green_issuer.pdo transfer -n ${_user2_key} -c 50
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 1
-   echo transfer source balance does not match, ${_balance} not 1
+   echo ${_ERROR_} transfer source balance does not match, ${_balance} not 1 ${_ENDC_}
    exit -v -1
 fi
 
 identity -n user2
 issuer -q -f ${save}/green_issuer.pdo get_balance -s _balance
 if --not -e ${_balance} 102
-   echo transfer destination balance does not match, ${_balance} not 102
+   echo ${_ERROR_} transfer destination balance does not match, ${_balance} not 102 ${_ENDC_}
    exit -v -1
 fi
 
 echo transfer balance matched
 
 ## =================================================================
-echo check escrow
+echo ${_HEADER_} create an exchange contract and test basic functions ${_ENDC_}
 ## =================================================================
 identity -n user1
-issuer -q -w -f ${save}/green_issuer.pdo escrow -a user2 -s attestation
-echo ESCROW ATTESTATION ${attestation}
-
-## still to test:
-## disburse
-## claim
+create -c exchange-contract -s _exchange -f ${save}/exchange_test_1.pdo
+exchange -q -f ${save}/exchange_test_1.pdo get_verifying_key -s _exchange_verifying_key_
 
 ## =================================================================
-echo check cascading issuer authority
+echo ${_HEADER_} check escrow ${_ENDC_}
+## =================================================================
+identity -n user1
+issuer -q -w -f ${save}/green_issuer.pdo escrow -a ${_exchange_verifying_key_} -s _user1_escrow_attestation_
+
+## verify that the asset was actually escrowed to the exchange contract
+issuer -q -f ${save}/green_issuer.pdo get_entry -s _user1_entry_
+parse -q -e ${_user1_entry_} -p "active" -s _active_status_
+if --not -e ${_active_status_} false
+   echo ${_ERROR_} failed to escrow asset, ${_active_status_} ${_ENDC_}
+   exit -v -1
+fi
+
+parse -q -e ${_user1_entry_} -p "asset['escrow_agent_identity']" -s _escrow_identity_
+if --not -e "${_escrow_identity_}" "${_exchange_verifying_key_}"
+   echo ${_ERROR_} failed to escrow asset to the exchange identity ${_ENDC_}
+   exit -v -1
+fi
+
+## initialize the exchange with the escrowed asset
+identity -n user1
+exchange -q -w -f ${save}/exchange_test_1.pdo initialize -i ${_green_vetting_id_} -t ${_green_type_id_} -c 10 -a ${_user1_escrow_attestation_}
+
+## take a look at the offered and requested assets in the exchange
+identity -n user2
+echo ${_INFO_} offered asset ${_ENDC_}
+exchange -f ${save}/exchange_test_1.pdo examine_offered_asset
+
+echo ${_INFO_} requested asset ${_ENDC_}
+exchange -f ${save}/exchange_test_1.pdo examine_requested_asset
+
+echo cancel the exchange
+identity -n user1
+exchange -q -w -f ${save}/exchange_test_1.pdo cancel
+exchange -q -f ${save}/exchange_test_1.pdo cancel_attestation -s _user1_cancel_attestation_
+issuer -q -w -f ${save}/green_issuer.pdo release -a ${_user1_cancel_attestation_}
+
+## verify that the asset has in fact been release from escrow
+issuer -q -f ${save}/green_issuer.pdo get_entry -s _user1_entry_
+parse -q -e ${_user1_entry_} -p "active" -s _active_status_
+if --not -e ${_active_status_} true
+   echo ${_ERROR_} failed to release escrowed asset, ${_active_status_} ${_ENDC_}
+   exit -v -1
+fi
+
+## =================================================================
+echo ${_HEADER_} create the red issuer ${_ENDC_}
+## =================================================================
+identity -n red_type
+create -c asset_type -s _asset_type -f ${save}/red_type.pdo
+asset_type -q -w -f ${save}/red_type.pdo initialize -n "red marbles" -d "red marble description" -l "http://"
+asset_type -q -f ${save}/red_type.pdo get_asset_type_identifier -s _red_type_id_
+
+identity -n red_vetting
+create -c vetting-organization-contract -s _vetting_organization -f ${save}/red_vetting.pdo
+vetting -q -w -f ${save}/red_vetting.pdo initialize -t ${_red_type_id_}
+vetting -q -f ${save}/red_vetting.pdo get_verifying_key -s _red_vetting_id_
+
+identity -n red_issuer
+create -c issuer-contract -s _issuer -f ${save}/red_issuer.pdo
+issuer -q -f ${save}/red_issuer.pdo get_verifying_key -s _red_issuer_id_
+
+identity -n red_vetting
+vetting -q -f ${save}/red_vetting.pdo approve_issuer -i ${_red_issuer_id_}
+
+identity -n red_issuer
+vetting -q -f ${save}/red_vetting.pdo get_issuer_authority -i ${_red_issuer_id_} -s _authority_
+issuer -q -f ${save}/red_issuer.pdo initialize -a ${_authority_}
+
+issuer -q -w -f ${save}/red_issuer.pdo issue -o ${_user1_key} -c 51
+issuer -q -w -f ${save}/red_issuer.pdo issue -o ${_user2_key} -c 52
+issuer -q -w -f ${save}/red_issuer.pdo issue -o ${_user3_key} -c 53
+issuer -q -w -f ${save}/red_issuer.pdo issue -o ${_user4_key} -c 54
+issuer -q -w -f ${save}/red_issuer.pdo issue -o ${_user5_key} -c 55
+
+## =================================================================
+echo ${_HEADER_} create an exchange contract and test exchange ${_ENDC_}
+## =================================================================
+
+identity -n user1
+create -c exchange-contract -s _exchange -f ${save}/exchange_test_2.pdo
+exchange -f ${save}/exchange_test_2.pdo get_verifying_key -s _exchange_verifying_key_
+
+identity -n user1
+issuer -q -f ${save}/green_issuer.pdo get_balance -s _user1_green_initial_balance_
+issuer -q -f ${save}/red_issuer.pdo get_balance -s _user1_red_initial_balance_
+issuer -q -w -f ${save}/green_issuer.pdo escrow -a ${_exchange_verifying_key_} -s _user1_escrow_attestation_
+
+## we already tested that the vetting id works for the issuer key, this
+## invocation tests that the issuer id also works
+exchange -q -w -f ${save}/exchange_test_2.pdo initialize -i ${_red_issuer_id_} -t ${_red_type_id_} -c 10 -a ${_user1_escrow_attestation_}
+
+identity -n user2
+issuer -q -f ${save}/green_issuer.pdo get_balance -s _user2_green_initial_balance_
+issuer -q -f ${save}/red_issuer.pdo get_balance -s _user2_red_initial_balance_
+issuer -q -w -f ${save}/red_issuer.pdo escrow -a ${_exchange_verifying_key_} -s _user2_escrow_attestation_
+exchange -q -w -f ${save}/exchange_test_2.pdo exchange -a ${_user2_escrow_attestation_}
+
+identity -n user1
+exchange -q -f ${save}/exchange_test_2.pdo claim_exchanged_asset -s _exchanged_asset_
+echo ${_BOLD_} exchanged asset ${_ENDC_}
+echo -r ${_exchanged_asset_}
+
+identity -n user2
+exchange -q -f ${save}/exchange_test_2.pdo claim_offered_asset -s _offered_asset_
+echo ${_BOLD_} offered asset ${_ENDC_}
+echo -r ${_offered_asset_}
+
+identity -n user1
+issuer -q -w -f ${save}/red_issuer.pdo claim -a ${_exchanged_asset_}
+
+identity -n user2
+issuer -q -w -f ${save}/green_issuer.pdo claim -a ${_offered_asset_}
+
+identity -n user1
+issuer -q -f ${save}/green_issuer.pdo get_balance -s _user1_green_final_balance_
+issuer -q -f ${save}/red_issuer.pdo get_balance -s _user1_red_final_balance_
+
+identity -n user2
+issuer -q -f ${save}/green_issuer.pdo get_balance -s _user2_green_final_balance_
+issuer -q -f ${save}/red_issuer.pdo get_balance -s _user2_red_final_balance_
+
+echo ${_BOLD_} Red Balances ${_ENDC_}
+echo user1 initial red balance = ${_user1_red_initial_balance_}
+echo user2 initial red balance = ${_user2_red_initial_balance_}
+echo user1 final red balance = ${_user1_red_final_balance_}
+echo user2 final red balance = ${_user2_red_final_balance_}
+
+echo ${_BOLD_} Green Balances ${_ENDC_}
+echo user1 initial green balance = ${_user1_green_initial_balance_}
+echo user2 initial green balance = ${_user2_green_initial_balance_}
+echo user2 final green balance = ${_user2_green_final_balance_}
+echo user1 final green balance = ${_user1_green_final_balance_}
+
+## =================================================================
+echo ${_HEADER_} check cascading issuer authority ${_ENDC_}
 ## =================================================================
 
 ## This test cascades issuing authority through several levels
@@ -187,8 +319,6 @@ vetting -q -f ${save}/green_issuer.pdo approve_issuer -i ${_green1_issuer_id_}
 
 identity -n green1_issuer
 issuer -q -f ${save}/green_issuer.pdo get_issuer_authority -i ${_green1_issuer_id_} -s _green1_authority_
-echo GREEN1 ISSUER AUTHORITY: ${_green1_authority_}
-
 issuer -q -f ${save}/green1_issuer.pdo initialize -a ${_green1_authority_}
 
 ## ---------- Green 2 ----------
@@ -202,8 +332,6 @@ vetting -q -f ${save}/green1_issuer.pdo approve_issuer -i ${_green2_issuer_id_}
 
 identity -n green2_issuer
 issuer -q -f ${save}/green1_issuer.pdo get_issuer_authority -i ${_green2_issuer_id_} -s _green2_authority_
-echo GREEN2 ISSUER AUTHORITY: ${_green2_authority_}
-
 issuer -q -f ${save}/green2_issuer.pdo initialize -a ${_green2_authority_}
 
 ## ---------- Green 3 ----------
@@ -217,9 +345,10 @@ vetting -q -f ${save}/green2_issuer.pdo approve_issuer -i ${_green3_issuer_id_}
 
 identity -n green3_issuer
 issuer -q -f ${save}/green2_issuer.pdo get_issuer_authority -i ${_green3_issuer_id_} -s _green3_authority_
-echo GREEN3 ISSUER AUTHORITY: ${_green3_authority_}
-
 issuer -q -f ${save}/green3_issuer.pdo initialize -a ${_green3_authority_}
+
+echo issuer authority for green3 issuer:
+echo -r ${_green3_authority_}
 
 ## ---------- make sure we can issue assets ----------
 issuer -q -w -f ${save}/green3_issuer.pdo issue -o ${_user1_key} -c 51
@@ -230,6 +359,7 @@ issuer -q -w -f ${save}/green3_issuer.pdo issue -o ${_user5_key} -c 55
 
 identity -n user1
 issuer -q -w -f ${save}/green3_issuer.pdo escrow -a user2 -s attestation
-echo escrow attestation for green3 issuer ${attestation}
+echo escrow attestation for green3 issuer:
+echo -r ${attestation}
 
 exit

@@ -56,4 +56,5 @@ fi
 # -----------------------------------------------------------------
 cd "${EXCHANGE_ROOT}"
 
-try scripts/functional_test.psh --loglevel info --ledger ${PDO_LEDGER_URL}
+rm -f ./functional_test.log
+try scripts/functional_test.psh --loglevel info --logfile ./functional_test.log --ledger ${PDO_LEDGER_URL}
