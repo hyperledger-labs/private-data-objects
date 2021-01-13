@@ -21,6 +21,7 @@
 #include "lib_export.h"
 
 #include "basic_kv.h"
+#include "crypto.h"
 #include "error.h"
 #include "interpreter_kv.h"
 #include "log.h"
@@ -40,6 +41,30 @@ namespace pe = pdo::error;
 namespace pstate = pdo::state;
 
 /* ----------------------------------------------------------------- *
+ * NAME: fetch_state_from_handle
+ * ----------------------------------------------------------------- */
+static pstate::Basic_KV_Plus* fetch_state_from_handle(
+    wasm_module_inst_t module_inst,
+    const int32 kv_store_handle)
+{
+    if (kv_store_handle < 0 || kv_store_handle >= KV_STORE_POOL_MAX_SIZE)
+    {
+        SAFE_LOG(PDO_LOG_WARNING, "invalid state handle");
+        return NULL;
+    }
+
+    pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
+    pstate::Basic_KV_Plus* state = kv_store_pool[kv_store_handle];
+    if (state == NULL)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "state was not initialized (set)");
+        return NULL;
+    }
+
+    return state;
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: _key_value_set_wrapper
  * ----------------------------------------------------------------- */
 extern "C" bool key_value_set_wrapper(
@@ -52,19 +77,9 @@ extern "C" bool key_value_set_wrapper(
 {
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        if (kv_store_handle < 0 || kv_store_handle >= KV_STORE_POOL_MAX_SIZE)
-        {
-            SAFE_LOG(PDO_LOG_ERROR, "invalid state handle");
-            return false;
-        }
-
-        pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
-        pstate::Basic_KV_Plus* state = kv_store_pool[kv_store_handle];
+        pstate::Basic_KV_Plus* state = fetch_state_from_handle(module_inst, kv_store_handle);
         if (state == NULL)
-        {
-            SAFE_LOG(PDO_LOG_ERROR, "state was not initialized (set)");
             return false;
-        }
 
         if (key_buffer == NULL)
             return false;
@@ -101,19 +116,9 @@ extern "C" bool key_value_get_wrapper(
 {
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        if (kv_store_handle < 0 || kv_store_handle >= KV_STORE_POOL_MAX_SIZE)
-        {
-            SAFE_LOG(PDO_LOG_ERROR, "invalid state handle");
-            return false;
-        }
-
-        pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
-        pstate::Basic_KV_Plus* state = kv_store_pool[kv_store_handle];
+        pstate::Basic_KV_Plus* state = fetch_state_from_handle(module_inst, kv_store_handle);
         if (state == NULL)
-        {
-            SAFE_LOG(PDO_LOG_ERROR, "state was not initialized (get)");
             return false;
-        }
 
         if (key_buffer == NULL)
             return false;
@@ -146,18 +151,20 @@ extern "C" bool key_value_get_wrapper(
  * ----------------------------------------------------------------- */
 extern "C" int32 key_value_create_wrapper(
     wasm_exec_env_t exec_env,
-    const uint8_t* key_buffer,
-    const int32 key_buffer_length)
+    const uint8_t* aes_key_buffer,
+    const int32 aes_key_buffer_length)
 {
+    SAFE_LOG(PDO_LOG_ERROR, "using experimental feature for multiple key/value stores");
+
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        if (key_buffer == NULL || key_buffer_length != 16)
+        if (aes_key_buffer == NULL || aes_key_buffer_length != pdo::crypto::constants::SYM_KEY_LEN)
         {
-            SAFE_LOG(PDO_LOG_ERROR, "invalid encryption key; %d", key_buffer_length);
+            SAFE_LOG(PDO_LOG_ERROR, "invalid encryption key; %d", aes_key_buffer_length);
             return false;
         }
 
-        ByteArray ba_encryption_key(key_buffer, key_buffer + key_buffer_length);
+        ByteArray ba_encryption_key(aes_key_buffer, aes_key_buffer + aes_key_buffer_length);
 
         // find an empty slot we can use for the kv store
         pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
@@ -199,9 +206,11 @@ extern "C" int32 key_value_open_wrapper(
     wasm_exec_env_t exec_env,
     const uint8_t* id_hash_buffer,
     const int32 id_hash_buffer_length,
-    const uint8_t* key_buffer,
-    const int32 key_buffer_length)
+    const uint8_t* aes_key_buffer,
+    const int32 aes_key_buffer_length)
 {
+    SAFE_LOG(PDO_LOG_ERROR, "using experimental feature for multiple key/value stores");
+
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
         if (id_hash_buffer == NULL || id_hash_buffer_length <= 0)
@@ -209,13 +218,13 @@ extern "C" int32 key_value_open_wrapper(
 
         ByteArray ba_id_hash(id_hash_buffer, id_hash_buffer + id_hash_buffer_length);
 
-        if (key_buffer == NULL || key_buffer_length != 16)
+        if (aes_key_buffer == NULL || aes_key_buffer_length != pdo::crypto::constants::SYM_KEY_LEN)
         {
-            SAFE_LOG(PDO_LOG_ERROR, "invalid encryption key; %d", key_buffer_length);
+            SAFE_LOG(PDO_LOG_ERROR, "invalid encryption key; %d", aes_key_buffer_length);
             return false;
         }
 
-        ByteArray ba_encryption_key(key_buffer, key_buffer + key_buffer_length);
+        ByteArray ba_encryption_key(aes_key_buffer, aes_key_buffer + aes_key_buffer_length);
 
         // find an empty slot we can use for the kv store
         pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
@@ -261,19 +270,15 @@ extern "C" bool key_value_finalize_wrapper(
 {
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     try {
-        if (kv_store_handle <= 0 || kv_store_handle >= KV_STORE_POOL_MAX_SIZE)
+        if (kv_store_handle == 0)
         {
-            SAFE_LOG(PDO_LOG_WARNING, "invalid state handle");
+            SAFE_LOG(PDO_LOG_ERROR, "may not finalize contract state");
             return false;
         }
 
-        pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
-        pstate::Basic_KV_Plus* state = kv_store_pool[kv_store_handle];
+        pstate::Basic_KV_Plus* state = fetch_state_from_handle(module_inst, kv_store_handle);
         if (state == NULL)
-        {
-            SAFE_LOG(PDO_LOG_ERROR, "state was not initialized (finalize)");
             return false;
-        }
 
         // Call finalize and cross your fingers
         ByteArray ba_val;
@@ -287,6 +292,8 @@ extern "C" bool key_value_finalize_wrapper(
 
         // Clean up the memory used
         delete state;
+
+        pstate::Basic_KV_Plus** kv_store_pool = (pstate::Basic_KV_Plus**)wasm_runtime_get_custom_data(module_inst);
         kv_store_pool[kv_store_handle] = NULL;
 
         // Save the block identifier in the output parameters

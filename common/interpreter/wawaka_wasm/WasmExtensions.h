@@ -42,14 +42,14 @@ bool key_value_get(
     size_t* val_length_pointer);
 
 int key_value_create(
-    const uint8_t* key_buffer,
-    const size_t key_buffer_length);
+    const uint8_t* aes_key_buffer,
+    const size_t aes_key_buffer_length);
 
 int key_value_open(
     const uint8_t* id_hash_buffer,
     const size_t id_hash_buffer_length,
-    const uint8_t* key_buffer,
-    const size_t key_buffer_length);
+    const uint8_t* aes_key_buffer,
+    const size_t aes_key_buffer_length);
 
 bool key_value_finalize(
     const int kv_store_handle,
