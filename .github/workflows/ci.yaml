@@ -1,0 +1,25 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: PDO CI
+on: [pull_request, push]
+jobs:
+    pdo_ci:
+        name: PDO CI Job
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                interpreter: [gipsy, wawaka, wawaka-opt]
+
+        steps:
+            - name: Check out repo
+              uses: actions/checkout@v2
+
+            - name: Build and run tests
+              env:
+                  PDO_INTERPRETER: ${{ matrix.interpreter }}
+              run: |
+                  make WASM_MEM_CONFIG=MEDIUM -C docker test
+
