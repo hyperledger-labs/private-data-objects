@@ -21,7 +21,7 @@ PYTHON_SOURCE = $(shell cat MANIFEST)
 all : $(EGG_FILE)
 
 install: $(EGG_FILE)
-	easy_install $<
+	python setup.py install
 
 $(EGG_FILE) : $(PYTHON_SOURCE) bin/pdo-invoke.psh bin/pdo-create.psh
 	@echo Build Distribution

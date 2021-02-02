@@ -77,7 +77,7 @@ build :
 	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
-	easy_install $<
+	python setup.py install
 
 # these cannot be run in the current directory because python tries to
 # pick up the local versions of the library which do not have the same

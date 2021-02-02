@@ -40,7 +40,7 @@ $(SWIG_TARGET) : $(SWIG_FILES) $(COMMON_LIB)
 	python setup.py build_ext --force
 
 install: $(EGG_FILE)
-	easy_install $<
+	python setup.py install
 
 test: install
 	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
@@ -51,5 +51,5 @@ clean:
 
 .phony : all
 .phony : clean
-.phone : install
+.phony : install
 .phony : test
