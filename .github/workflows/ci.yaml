@@ -21,5 +21,10 @@ jobs:
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
               run: |
+                  # The creation of a dummy branch is necessary for the CI tests
+                  # to work on PRs. Based on empirical results, in the absence of
+                  # this command, CI tests work on the master branch and on local
+                  # branches. However, they fail as a PR is created.
+                  git checkout -b we-need-a-branch-for-below-to-work
                   make WASM_MEM_CONFIG=MEDIUM -C docker test
 
