@@ -74,7 +74,7 @@ build :
 	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
-	easy_install $<
+	python setup.py install
 
 clean:
 	rm -f $(addprefix pdo/pservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
