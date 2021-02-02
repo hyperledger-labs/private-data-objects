@@ -47,21 +47,28 @@ set -q --conditional -s pdo_file -v ${save}/${random_id}.pdo
 
 if -e ${identity} '__unknown__'
    echo missing required parameter, identity
-   exit
+   exit -v -1
 fi
 
 if -n ${class}
    echo missing required parameter, class
-   exit
+   exit -v -1
 fi
 
 if -n ${source}
    echo missing required parameter, source
-   exit
+   exit -v -1
 fi
 
 identity -n ${identity}
+
+trap_error
+
 create -c ${class} -s ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup}
+if -o ${_error_code_} 0
+   echo ERROR: ${_error_message_}
+   exit -v ${_error_code_}
+fi
 
 echo contract saved to file ${pdo_file}
 exit
