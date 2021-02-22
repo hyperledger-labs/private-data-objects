@@ -27,17 +27,18 @@ from pdo.contract.response import ContractResponse
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def LocalMain(config) :
-    shell = ContractController(config)
-
     # if there is a script file, process it; the interactive
     # shell will start unless there is an explicit exit in the script
     script_file = config.get("ScriptFile")
     if script_file :
-        logger.info("Processing script file %s", str(script_file))
-        if not ContractController.ProcessScript(shell, script_file) :
-            ContractResponse.exit_commit_workers()
-            sys.exit(shell.exit_code)
+        shell = ContractController.CreateController(config, echo=False, interactive=False)
 
+        logger.info("Processing script file %s", str(script_file))
+        exit_code = ContractController.ProcessScript(shell, script_file)
+        ContractResponse.exit_commit_workers()
+        sys.exit(exit_code)
+
+    shell = ContractController.CreateController(config, echo=True, interactive=True)
     shell.cmdloop()
     print("")
 

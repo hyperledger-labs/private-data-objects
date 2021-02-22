@@ -125,7 +125,7 @@ def command_create(state, bindings, pargs) :
 
     # ---------- load the invoker's keys ----------
     try :
-        keyfile = state.get(['Key', 'FileName'])
+        keyfile = state.private_key_file
         keypath = state.get(['Key', 'SearchPath'])
         client_keys = ServiceKeys.read_from_file(keyfile, keypath)
     except Exception as e :

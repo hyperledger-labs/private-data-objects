@@ -1,4 +1,3 @@
-
 # Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,12 +36,40 @@ from pdo.common.utility import find_file_in_path
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class State(object) :
-    """
+    """A class to capture the execution state for interacting
+    with PDO services (enclave, provisioning, ledger)
     """
 
     # --------------------------------------------------
-    def __init__(self, config) :
-        self.__data__ = copy.deepcopy(config)
+    @classmethod
+    def Clone(cls, state, identity=None, private_key_file=None) :
+        if identity is None :
+            identity = state.identity
+        if private_key_file is None :
+            private_key_file = state.private_key_file
+
+        return cls(state.__data__, identity, private_key_file)
+
+    # --------------------------------------------------
+    def __init__(self, initial_state, identity=None, private_key_file=None) :
+        # note that we do not want this to be a copy, state is a property
+        # of the client, not of the shell instance
+        self.__data__ = initial_state
+
+        # the one exception is the identity which we want to be
+        # specific to each shell instance
+        if identity is None :
+            identity = self.get(['Client', 'Identity'], "__unknown__")
+
+        self.set_identity(identity, private_key_file)
+
+    # --------------------------------------------------
+    def set_identity(self, identity, private_key_file=None) :
+        if private_key_file is None :
+            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(options.name))
+
+        self.identity = identity
+        self.private_key_file = private_key_file
 
     # --------------------------------------------------
     def set(self, keylist, value) :
@@ -74,8 +101,27 @@ class Bindings(object) :
     """
 
     # --------------------------------------------------
+    @classmethod
+    def Clone(cls, bindings) :
+        binding_map = copy.copy(bindings.__bindings__)
+
+        local_keys = [ key for key in binding_map if key.startswith('_') ]
+        for key in local_keys : binding_map.pop(key)
+
+        return cls(bindings=binding_map)
+
+    # --------------------------------------------------
     def __init__(self, bindings = {}) :
-        self.__bindings__ = copy.copy(bindings)
+        self.__bindings__ = copy.deepcopy(bindings)
+
+    # --------------------------------------------------
+    def merge(self, bindings) :
+        binding_map = copy.copy(bindings.__bindings__)
+
+        local_keys = [ key for key in binding_map if key.startswith('_') ]
+        for key in local_keys : binding_map.pop(key)
+
+        self.__bindings__.update(binding_map)
 
     # --------------------------------------------------
     def bind(self, variable, value) :
@@ -108,34 +154,46 @@ class ContractController(cmd.Cmd) :
     """
 
     # -----------------------------------------------------------------
+    @classmethod
+    def CreateController(cls, config, echo=False, interactive=True) :
+        try :
+            identity = config['Client']['Identity']
+            private_key_file = config['Key']['FileName']
+        except :
+            raise Exception('missing required configuration parameters')
+
+        state = State(config, identity=identity, private_key_file=private_key_file)
+        bindings = Bindings(config.get('Bindings', {}))
+
+        return cls(state=state, bindings=bindings, echo=echo, interactive=interactive)
+
+    # -----------------------------------------------------------------
     @staticmethod
-    def ProcessScript(controller, filename, echo=False) :
+    def ProcessScript(controller, filename, echo=False, identity=None, private_key_file=None, local_bindings={}) :
         """
         ProcessScript -- process a file containing commands for the controller
         """
-        saved_echo = controller.echo
-        saved_path = controller.bindings.bind('path', os.path.dirname(os.path.realpath(filename)))
-        saved_script = controller.bindings.bind('script', os.path.basename(os.path.realpath(filename)))
-        saved_non_interactive = controller.non_interactive
+        state = State.Clone(controller.state, identity, private_key_file)
+        bindings = Bindings.Clone(controller.bindings)
+
+        for (s, v) in local_bindings.items() :
+            bindings.bind(s, v)
+
+        subcontroller = ContractController(state=state, bindings=bindings, echo=echo, interactive=False)
+        subcontroller.bindings.bind('_path_', os.path.dirname(os.path.realpath(filename)))
+        subcontroller.bindings.bind('_script_', os.path.basename(os.path.realpath(filename)))
+
         try :
-            controller.echo = echo
-            controller.non_interactive = True
             cmdlines = ContractController.ParseScriptFile(filename)
             for cmdline in cmdlines :
-                if controller.onecmd(cmdline) :
-                    return False
+                if subcontroller.onecmd(cmdline) : break
+
         except Exception as e :
-            controller.echo = saved_echo
-            controller.bindings.bind('script', saved_script)
-            controller.bindings.bind('path', saved_path)
-            raise e
+            return controller.__error__(filename, [], str(e))
 
-        controller.echo = saved_echo
-        controller.bindings.bind('script', saved_script)
-        controller.bindings.bind('path', saved_path)
-        controller.non_interactive = saved_non_interactive
-
-        return True
+        # copy updated bindings
+        controller.bindings.merge(subcontroller.bindings)
+        return subcontroller.exit_code
 
     # -----------------------------------------------------------------
     @staticmethod
@@ -154,24 +212,27 @@ class ContractController(cmd.Cmd) :
         return cmdlines
 
     # -----------------------------------------------------------------
-    def __init__(self, config, non_interactive=False) :
+    def __init__(self, state, bindings, echo=False, interactive=True) :
         cmd.Cmd.__init__(self)
 
-        self.echo = False
-        self.bindings = Bindings(config.get('Bindings',{}))
-        self.state = State(config)
+        self.echo = echo
+        self.bindings = bindings
+        self.state = state
         self.exit_code = 0
-        self.non_interactive = non_interactive
+        self.exit_message = ''
+        self.interactive = interactive
 
         self.deferred = 0
         self.deferred_lines = []
         self.nesting = []
 
-        name = self.state.get(['Client', 'Identity'], "")
-        self.prompt = "{0}> ".format(name)
+        self.bindings.bind('_error_code_', str(0))
+        self.bindings.bind('_error_message_', '')
+        self.__error__ = self.__default_error_handler__
 
-        # save the identity so we can use it programmatically in scripts
-        self.bindings.bind('identity', name)
+        identity = self.state.identity
+        self.prompt = "{0}> ".format(identity)
+        self.bindings.bind('_identity_', identity)
 
     # -----------------------------------------------------------------
     def __arg_parse__(self, args) :
@@ -190,16 +251,30 @@ class ContractController(cmd.Cmd) :
             return False
 
         self.exit_code = code
-        return self.non_interactive
+        return not self.interactive
 
     # -----------------------------------------------------------------
-    def __error__(self, command, args, message) :
+    def __default_error_handler__(self, command, args, message) :
         """handle general errors caused by exceptions
         """
         print('"{0} {1}": {2}'.format(command, args, message))
 
-        self.exit_code = 1
-        return self.non_interactive
+        self.exit_code = -1
+        self.bindings.bind('_error_code_', str(self.exit_code))
+        self.bindings.bind('_error_message_', message)
+
+        return not self.interactive
+
+    # -----------------------------------------------------------------
+    def __trapped_error_handler__(self, command, args, message) :
+        """handle general errors caused by exceptions
+        """
+
+        self.exit_code = -1
+        self.bindings.bind('_error_code_', str(self.exit_code))
+        self.bindings.bind('_error_message_', message)
+
+        return False
 
     # -----------------------------------------------------------------
     def precmd(self, line) :
@@ -215,6 +290,38 @@ class ContractController(cmd.Cmd) :
     # =================================================================
     # STOCK COMMANDS
     # =================================================================
+
+    # -----------------------------------------------------------------
+    def do_trap_error(self, args) :
+        """
+        trap_error -- catch errors and report in the symbol '__error__'
+        """
+        if self.deferred > 0 : return False
+
+        self.__error__ = self.__trapped_error_handler__
+        return False
+
+    # -----------------------------------------------------------------
+    def do_clear_error(self, args) :
+        """
+        clear_error -- clear any error status
+        """
+        if self.deferred > 0 : return False
+
+        self.bindings.bind('_error_code_', str(0))
+        self.bindings.bind('_error_message_', "")
+
+        return False
+
+    # -----------------------------------------------------------------
+    def do_untrap_error(self, args) :
+        """
+        untrap_error -- stop catching errors
+        """
+        if self.deferred > 0 : return False
+
+        self.__error__ = self.__default_error_handler__
+        return False
 
     # -----------------------------------------------------------------
     def do_sleep(self, args) :
@@ -452,15 +559,15 @@ class ContractController(cmd.Cmd) :
             parser.add_argument('-f', '--key-file', help='file that contains the private key used for signing', type=str)
             options = parser.parse_args(pargs)
 
-            self.prompt = "{0}> ".format(options.name)
-            self.state.set(['Client', 'Identity'], options.name)
-            self.state.set(['Key', 'FileName'], "{0}_private.pem".format(options.name))
+            identity = options.name
+            private_key_file = "{0}_private.pem".format(identity)
+            if options.key_file :
+                private_key_file = options.key_file
 
             # save the identity so we can use it programmatically in scripts
-            self.bindings.bind('identity', options.name)
-
-            if options.key_file :
-                self.state.set(['Key', 'FileName'], options.key_file)
+            self.prompt = "{0}> ".format(identity)
+            self.bindings.bind('_identity_', identity)
+            self.state.set_identity(identity, private_key_file)
 
         except SystemExit as se :
             return self.__arg_error__('identity', args, se.code)
@@ -515,9 +622,38 @@ class ContractController(cmd.Cmd) :
             parser = argparse.ArgumentParser(prog='script')
             parser.add_argument('-f', '--file', help='file from which to read commands', required=True)
             parser.add_argument('-e', '--echo', help='turn on command echoing', action='store_true')
+
+            parser.add_argument('-i', '--identity', help='identity to use for transactions', type=str)
+            parser.add_argument('-k', '--key-file', help='file that contains the private key used for signing', type=str)
+
+            parser.add_argument('-m', '--mapvar',
+                                help='Define variables for script use',
+                                nargs=2, action='append', default=[])
+
             options = parser.parse_args(pargs)
 
-            ContractController.ProcessScript(self, options.file, options.echo)
+            identity = self.state.identity
+            private_key_file = self.state.private_key_file
+            if options.identity :
+                identity = options.identity
+                private_key_file = "{0}_private.pem".format(identity)
+
+            if options.key_file :
+                private_key_file = options.key_file
+
+            local_bindings = {}
+            for (k, v) in options.mapvar : local_bindings[k] = v
+
+            exit_code = ContractController.ProcessScript(
+                self,
+                options.file,
+                options.echo,
+                identity,
+                private_key_file,
+                local_bindings)
+
+            self.bindings.bind('_error_code_', str(exit_code))
+            self.bindings.bind('_error_message_', 'exit')
 
         except SystemExit as se :
             return self.__arg_error__('script', args, se.code)
