@@ -60,7 +60,7 @@ STRING(REPLACE ";" " " EMCC_LINK_OPTIONS "${EMCC_LINK_OPTIONS}")
 
 # the -O2 is actually required for the moment because it removes
 # uncalled functions that clutter the wasm file
-SET(CMAKE_CXX_FLAGS "-O2 -fPIC -fno-exceptions ${EMCC_BUILD_OPTIONS}")
+SET(CMAKE_CXX_FLAGS "-O2 -fPIC -fno-exceptions -std=c++11 ${EMCC_BUILD_OPTIONS}")
 SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
 FILE(GLOB COMMON_SOURCE ${PDO_TOP_DIR}/contracts/wawaka/common/*.cpp)
