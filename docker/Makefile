@@ -27,7 +27,7 @@ DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
 DOCKER_COMPOSE_FILES_CCF += ccf-pdo.yaml ccf-pdo.local-code.yaml
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.sgx.yaml
-   SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx" ]; then echo "/dev/sgx"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
+   SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx/enclave" ]; then echo "/dev/sgx/enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
    DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
 endif
 ifdef http_proxy
