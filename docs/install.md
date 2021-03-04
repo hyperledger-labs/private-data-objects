@@ -138,12 +138,12 @@ different drivers.
 
 ##### HW with support for DCAP / Flexible Launch Control (FLC)
 <!-- DCAP kernel driver installation -->
-The following commands will download and install the driver version 1.3 of
+The following commands will download and install the driver version 1.41 of
 the DCAP SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-dcap/1.7/linux/distro/ubuntu18.04-server/
-DRIVER_FILE=sgx_linux_x64_driver_1.35.bin
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server/
+DRIVER_FILE=sgx_linux_x64_driver_1.41.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
@@ -162,7 +162,7 @@ The following commands will download and install the SDK driver version 2.6 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server
 DRIVER_FILE=sgx_linux_x64_driver_2.6.0_602374c.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp

@@ -89,17 +89,17 @@ in `/etc/aesmd.confg` and restart aesmd with `systemctl restart aesmd.
 
 ## Install the SGX SDK
 
-Private Data Objects has been tested with version 2.10 of the SGX
+Private Data Objects has been tested with version 2.13 of the SGX
 SDK. You can download prebuilt binaries for the SDK and kernel drivers
-from [01.org](https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server/).
+from [01.org](https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server/).
 
-The following commands will download and install version 2.10 of the SGX
+The following commands will download and install version 2.13 of the SGX
 SDK. When asked for the installation directory, we suggest that you install
 the SDK into the directory `/opt/intel`.
 
 ```bash
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.10/distro/ubuntu18.04-server/
-SDK_FILE=sgx_linux_x64_sdk_2.10.100.2.bin
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server/
+SDK_FILE=sgx_linux_x64_sdk_2.13.100.4.bin
 
 wget ${DRIVER_REPO}/${SDK_FILE} -P /tmp
 chmod a+x /tmp/${SDK_FILE}
@@ -130,9 +130,9 @@ that contain the necessary LVI mitigations. The following
 commands will download and install these binaries:
 
 ```bash
-wget "https://download.01.org/intel-sgx/sgx-linux/2.10/as.ld.objdump.gold.r2.tar.gz" -P /tmp
+wget "https://download.01.org/intel-sgx/sgx-linux/2.13/as.ld.objdump.gold.r3.tar.gz" -P /tmp
 sudo mkdir /opt/intel/sgxsdk.extras
-sudo tar -xzf /tmp/as.ld.objdump.gold.r2.tar.gz -C /opt/intel/sgxsdk.extras
+sudo tar -xzf /tmp/as.ld.objdump.gold.r3.tar.gz -C /opt/intel/sgxsdk.extras
 export PATH=/opt/intel/sgxsdk.extras/external/toolset/ubuntu18.04:${PATH}
 ```
 
