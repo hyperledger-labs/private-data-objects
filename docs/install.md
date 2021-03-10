@@ -158,12 +158,12 @@ Note:
 ##### HW which does not support Flexible Launch Control (FLC)
 <!-- SDK kernel driver installation -->
 
-The following commands will download and install the SDK driver version 2.6 of
+The following commands will download and install the SDK driver version 2.11 of
 the SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server
-DRIVER_FILE=sgx_linux_x64_driver_2.6.0_602374c.bin
+DRIVER_FILE=ssgx_linux_x64_driver_2.11.0_0373e2e.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
