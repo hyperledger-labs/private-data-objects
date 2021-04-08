@@ -35,6 +35,29 @@ and `no_proxy` environment variables defined, it essentially means:
   systemctl daemon-reload
   systemctl restart docker
 ```
+
+You also need to ensure that your docker configuration file
+(`.docker/config.json`) contains an appropriate configuration for the
+proxies. For example, if you don't currently have a configuration file,
+the following will create one to support currently defined proxies:
+
+```bash
+mkdir ~/.docker
+cat >> ~/.docker/config.json.new << EOM
+{
+  "proxies":
+  {
+    "default":
+    {
+      "httpProxy": "${http_proxy}",
+      "httpsProxy": "${https_proxy}",
+      "noProxy": "${no_proxy}"
+    }
+  }
+}
+EOM
+```
+
 If your system runs systemd-resolved (which is now default for
 ubuntu), make sure you are running a version 18.09 of docker or
 greater. Recently refreshed versions of ubuntu 18.04 should meet this
@@ -77,7 +100,7 @@ By default it will build and run tests only in SGX simulator mode but
 the makefile does honor
 the `SGX_MODE` environment variable if you want to test in SGX HW
 mode (in which case, though, you will have to put proper sgx attestation info
-files (`sgx_spid.txt`,  `sgx_spid_api_key`, `sgx_ias_key.pem`) into the 
+files (`sgx_spid.txt`,  `sgx_spid_api_key`, `sgx_ias_key.pem`) into the
 sgx sub-directory or define the `PDO_SGX_KEY_ROOT` environment variable to
 point to a suiteable destination.
 See `../build/common-config.sh --help` for more information on
