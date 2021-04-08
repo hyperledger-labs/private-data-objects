@@ -15,75 +15,126 @@
 IF(NOT EXISTS $ENV{PDO_HOME})
   MESSAGE(FATAL "PDO_HOME environment variable not defined")
 ENDIF()
+SET(PDO_HOME "$ENV{PDO_HOME}")
+
+IF(NOT EXISTS $ENV{PDO_SOURCE_ROOT})
+  MESSAGE(FATAL "PDO_SOURCE_ROOT environment variable not defined")
+ENDIF()
+SET(PDO_SOURCE_ROOT $ENV{PDO_SOURCE_ROOT})
+SET(WAWAKA_ROOT ${PDO_SOURCE_ROOT}/contracts/wawaka)
+
+IF (NOT DEFINED ENV{WASM_SRC})
+  MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
+ENDIF()
+SET(WASM_SRC "$ENV{WASM_SRC}")
 
 IF (NOT DEFINED ENV{WASM_MEM_CONFIG})
   MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
 ENDIF()
-
-SET(PDO_TOP_DIR $ENV{PDO_SOURCE_ROOT})
-
 SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
 
-SET(CONTRACT_EXPORTS "\"['_ww_dispatch', '_ww_initialize']\"")
+IF (NOT DEFINED ENV{WASI_SDK_DIR})
+  SET(WASI_SDK_DIR "/opt/wasi-sdk")
+ELSE()
+  SET(WASI_SDK_DIR "$ENV{WASI_SDK_DIR}")
+ENDIF()
 
-# Set the memory configuration for emscripten
-# LINEAR_MEMORY: Maximum size for a WASM module's linear memory (module's internal stack + static globals + padding); needs to be multiple of 64KB
-# INTERNAL_STACK_SIZE: Size of a WASM module's internal data stack (part of LINEAR_MEMORY)
+# ---------------------------------------------
+# Set up the memory configuration
+# ---------------------------------------------
+
+# LINEAR_MEMORY: Maximum size for a WASM module's linear memory (module's
+# internal stack + static globals + padding); needs to be multiple of 64KB
+
+# INTERNAL_STACK_SIZE: Size of a WASM module's internal data stack
+# (part of LINEAR_MEMORY)
+
 IF (WASM_MEM_CONFIG STREQUAL "SMALL")
-  SET(INTERNAL_STACK_SIZE 24KB)
-  SET(LINEAR_MEMORY 64KB)
+  SET(INTERNAL_STACK_SIZE 24576)
+  SET(LINEAR_MEMORY 65536)
   message(STATUS "Building contracts for SMALL memory configuration")
 ELSEIF (WASM_MEM_CONFIG STREQUAL "LARGE")
-  SET(INTERNAL_STACK_SIZE 96KB)
-  SET(LINEAR_MEMORY 256KB)
+  SET(INTERNAL_STACK_SIZE 98304)
+  SET(LINEAR_MEMORY 262144)
   message(STATUS "Building contracts for LARGE memory configuration")
 ELSE()
-  SET(INTERNAL_STACK_SIZE 48KB)
-  SET(LINEAR_MEMORY 128KB)
+  SET(INTERNAL_STACK_SIZE 49152)
+  SET(LINEAR_MEMORY 131072)
   message(STATUS "Building contracts for MEDIUM memory configuration")
 ENDIF ()
 
-SET(EMCC_BUILD_OPTIONS)
-LIST(APPEND EMCC_BUILD_OPTIONS "-s WASM=1")
-LIST(APPEND EMCC_BUILD_OPTIONS "-s BINARYEN_TRAP_MODE=clamp")
-LIST(APPEND EMCC_BUILD_OPTIONS "-s ASSERTIONS=1")
-LIST(APPEND EMCC_BUILD_OPTIONS "-s STACK_OVERFLOW_CHECK=2")
-LIST(APPEND EMCC_BUILD_OPTIONS "-s SIDE_MODULE=1")
+# ---------------------------------------------
+# Set up the compiler configuration
+# ---------------------------------------------
 
-SET(EMCC_LINK_OPTIONS "${EMCC_BUILD_OPTIONS}")
-LIST(APPEND EMCC_LINK_OPTIONS "-s TOTAL_MEMORY=${LINEAR_MEMORY}")
-LIST(APPEND EMCC_LINK_OPTIONS "-s TOTAL_STACK=${INTERNAL_STACK_SIZE}")
-LIST(APPEND EMCC_LINK_OPTIONS "-s EXPORTED_FUNCTIONS=${CONTRACT_EXPORTS}")
-
-STRING(REPLACE ";" " " EMCC_BUILD_OPTIONS "${EMCC_BUILD_OPTIONS}")
-STRING(REPLACE ";" " " EMCC_LINK_OPTIONS "${EMCC_LINK_OPTIONS}")
-
-# the -O2 is actually required for the moment because it removes
-# uncalled functions that clutter the wasm file
-SET(CMAKE_CXX_FLAGS "-O2 -fPIC -fno-exceptions -std=c++11 ${EMCC_BUILD_OPTIONS}")
 SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+SET(CMAKE_CXX_COMPILER_TARGET "wasm32")
 
-FILE(GLOB COMMON_SOURCE ${PDO_TOP_DIR}/contracts/wawaka/common/*.cpp)
+SET(CONTRACT_INSTALL_DIRECTORY "${PDO_HOME}/contracts")
 
-SET(LIBRARY_SOURCE ${PDO_TOP_DIR}/common/packages/parson/parson.cpp)
+SET(WASM_BUILD_OPTIONS)
+LIST(APPEND WASM_BUILD_OPTIONS "-O3")
+LIST(APPEND WASM_BUILD_OPTIONS "-fPIC")
+LIST(APPEND WASM_BUILD_OPTIONS "-fno-exceptions")
+LIST(APPEND WASM_BUILD_OPTIONS "-nostdlib")
+LIST(APPEND WASM_BUILD_OPTIONS "-std=c++11")
+LIST(APPEND WASM_BUILD_OPTIONS "-DUSE_WASI_SDK=1")
 
-SET(PACKAGE_INCLUDES
-  ${PDO_TOP_DIR}/contracts/wawaka/common
-  ${PDO_TOP_DIR}/common/interpreter/wawaka_wasm
-  ${PDO_TOP_DIR}/common/packages/parson
-  ${PDO_TOP_DIR}/common)
+SET(WASM_LINK_OPTIONS)
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--initial-memory=${LINEAR_MEMORY}")
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--max-memory=${LINEAR_MEMORY}")
+LIST(APPEND WASM_LINK_OPTIONS "-z stack-size=${INTERNAL_STACK_SIZE}")
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--allow-undefined")
 
-INCLUDE_DIRECTORIES(
-  ${PACKAGE_INCLUDES}
-  ${WASM_SRC}/core/app-framework/base/native
-  ${WASM_SRC}/core/app-framework/app-native-shared/bi-inc
-  ${WASM_SRC}/core/app-framework/base/app)
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_dispatch")
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_initialize")
 
-SET(CONTRACT_INSTALL_DIRECTORY "$ENV{PDO_HOME}/contracts")
-SET(CDI_SIGNING_KEY "cdi_compiler1_private.pem")
+# ---------------------------------------------
+# Set up the library list
+#
+# Note that we are, by default, picking up the the c++ library
+# from WASI_SDK. With the specified options, this should provide
+# access to many of the functions from the standard c++ library.
+# ---------------------------------------------
+SET (WASM_LIBRARIES)
+LIST(APPEND WASM_LIBRARIES "${WASI_SDK_DIR}/share/wasi-sysroot/lib/wasm32-wasi/libc++.a")
 
+# ---------------------------------------------
+# Set up the include list
+# ---------------------------------------------
+SET (WASM_INCLUDES)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/contracts/wawaka/common)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/interpreter/wawaka_wasm)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/packages/parson)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common)
+
+# ---------------------------------------------
+# Set up the default source list
+# ---------------------------------------------
+SET (WASM_SOURCE)
+FILE(GLOB WAWAKA_COMMON_SOURCE ${PDO_SOURCE_ROOT}/contracts/wawaka/common/*.cpp)
+LIST(APPEND WASM_SOURCE ${WAWAKA_COMMON_SOURCE})
+LIST(APPEND WASM_SOURCE ${PDO_SOURCE_ROOT}/common/packages/parson/parson.cpp)
+
+## -----------------------------------------------------------------
+# Define the function for building contracts
+#
+# Intention is that the contract writer add to the WASM_BUILD_OPTIONS,
+# WASM_LINK_OPTIONS, WASM_INCLUDES and WASM_LIBRARIES to add custom
+# files and link options
+## -----------------------------------------------------------------
 FUNCTION(BUILD_CONTRACT contract)
-  ADD_EXECUTABLE(${contract} ${ARGN} ${COMMON_SOURCE} ${LIBRARY_SOURCE} )
+  STRING(REPLACE ";" " " WASM_BUILD_OPTIONS "${WASM_BUILD_OPTIONS}")
+  STRING(REPLACE ";" " " WASM_LINK_OPTIONS "${WASM_LINK_OPTIONS}")
+
+  ADD_EXECUTABLE( ${contract} ${ARGN} ${WASM_SOURCE} )
+
+  SET(CMAKE_CXX_FLAGS ${WASM_BUILD_OPTIONS} CACHE INTERNAL "")
+  SET(CMAKE_CXX_COMPILER_TARGET "wasm32")
+
+  TARGET_INCLUDE_DIRECTORIES(${contract} PUBLIC ${WASM_INCLUDES})
+  TARGET_LINK_LIBRARIES(${contract} LINK_PUBLIC ${WASM_LIBRARIES})
+
   SET(b64contract ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.b64)
   ADD_CUSTOM_COMMAND(
     TARGET ${contract}
@@ -92,28 +143,8 @@ FUNCTION(BUILD_CONTRACT contract)
     ARGS -w 0 ${contract}.wasm > ${b64contract})
   SET_SOURCE_FILES_PROPERTIES(${b64contract} PROPERTIES GENERATED TRUE)
   SET_DIRECTORY_PROPERTIES(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${b64contract})
-  # this can be replaced in later versions of CMAKE with target_link_properties
-  SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${EMCC_LINK_OPTIONS}")
-  INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
-ENDFUNCTION()
 
-FUNCTION(BUILD_AOT_CONTRACT contract)
-  MESSAGE(WARNING "!!Building wawaka contract ${contract} for experimental AoT mode. Not ready for production use!!")
-  ADD_EXECUTABLE(${contract} ${ARGN} ${COMMON_SOURCE} ${LIBRARY_SOURCE} )
-  SET(b64contract ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.b64)
-  SET(comp_report ${CMAKE_CURRENT_BINARY_DIR}/_${contract}.cdi)
-  ADD_CUSTOM_COMMAND(
-    TARGET ${contract}
-    POST_BUILD
-    COMMAND $ENV{WASM_SRC}/wamr-compiler/build/wamrc
-    ARGS -sgx --format=aot -o ${contract}.aot ${contract}.wasm
-    COMMAND ${PDO_TOP_DIR}/contracts/cdi/build/gen-cdi-report
-    ARGS -c ${contract}.aot -k ${CDI_SIGNING_KEY} -o ${comp_report}
-    COMMAND base64
-    ARGS -w 0 ${contract}.aot > ${b64contract})
-  SET_SOURCE_FILES_PROPERTIES(${b64contract} PROPERTIES GENERATED TRUE)
-  SET_DIRECTORY_PROPERTIES(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${b64contract})
   # this can be replaced in later versions of CMAKE with target_link_properties
-  SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${EMCC_LINK_OPTIONS}")
-  INSTALL(FILES ${b64contract} ${comp_report} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
+  SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${WASM_LINK_OPTIONS}")
+  INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
 ENDFUNCTION()

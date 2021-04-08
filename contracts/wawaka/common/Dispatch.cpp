@@ -30,7 +30,7 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static char *dispatch_wrapper(const char *message, const char *environment)
 {
-    // CONTRACT_SAFE_LOG(3, "dispatch_wrapper");
+    //CONTRACT_SAFE_LOG(3, "dispatch_wrapper");
 
     Message msg;
     if (! msg.deserialize(message))
@@ -100,15 +100,36 @@ static char *initialize_wrapper(const char *environment)
 #ifdef __cplusplus
 extern "C" {
 #endif
+extern void __wasm_call_ctors(void);
+
+// for each of these, we should call both the ctors and
+// dtors functions. and that would probably mean making
+// sure that we handle atexit correctly. the lack of global
+// destructors could become a problem if we attempt to re-use
+// an instantiated wamr module or if someone decides to put
+// semantically interesting computation in the destructor of
+// a global variable (which seems like an incredibly bad idea)
+
 char *ww_dispatch(const char *message, const char *environment)
 {
+    __wasm_call_ctors();
     return dispatch_wrapper(message, environment);
 }
 
 char *ww_initialize(const char *environment)
 {
+    __wasm_call_ctors();
     return initialize_wrapper(environment);
 }
+
+#ifdef USE_WASI_SDK
+// -----------------------------------------------------------------
+// these helper functions are necessary to initialize the WASM environment
+// when using the wasi-sdk toolchain
+// -----------------------------------------------------------------
+int __cxa_atexit(void (*f)(void *), void *p, void *d) { return 0; }
+void _start(void) {}
+#endif
 
 #ifdef __cplusplus
 }

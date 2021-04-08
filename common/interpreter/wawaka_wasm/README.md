@@ -16,81 +16,69 @@ set of supporting functions that can be executed inside the contract
 enclave. As such contracts can be implemented in any programming
 language that can be compiled into WASM.
 
-## Building Wawaka ##
+## Build Wawaka ##
 
 The Wawaka interpreter is not built by default. To build a contract
 enclave with Wawaka enabled, you will need to do the following:
 
-  * Install and configure [emscripten](https://emscripten.org/)
+  * Install and configure the WASM development toolchain
   * Pull the WAMR submodule (if the repo was not cloned with the `--recurse-submodules` flag)
   * Set the `PDO_INTERPRETER` environment variable to `wawaka`
 
-### Install emscripten ###
+### Install WASM Development Toolchain ###
 
-There are many toolchains that could be used to build a WASM code. We have tested (and our sample
-and test contracts use) [emscripten](https://emscripten.org/). Note that we currently require the `fastcomp` compiler which is no longer the default compiler.
+There are many toolchains that could be used to build a WASM code. By default, Wawaka contracts are
+developed with the [WASI SDK](https://github.com/WebAssembly/wasi-sdk).
 
 ```bash
 cd ${PDO_SOURCE_ROOT}
+wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk-12.0-linux.tar.gz
+tar -zxf /tmp/wasi-sdk-12.0-linux.tar.gz
 
-git clone https://github.com/emscripten-core/emsdk.git
-cd ${PDO_SOURCE_ROOT}/emsdk
-git checkout 1.39.20 # last release to support fastcomp backend
-
-./emsdk install latest-fastcomp
-./emsdk activate latest-fastcomp
-
-source ./emsdk_env.sh
+export WASI_SDK_DIR=${PDO_SOURCE_ROOT}/wasi-sdk-12.0
 ```
 
-### WAMR setup ###
+These directions assume that the SDK will be installed in the PDO source tree. Typically, the WASI
+SDK would be installed in the directory `/opt/wasi-sdk`. Please set the environment variable
+`WASI_SDK_DIR` to the directory where the SDK is installed.
+
+### Set Up WAMR ###
 
 If wawaka is configured as the contract interpreter, the libraries implementing the WASM interpreter
 will be built for use with Intel SGX. The source for the WAMR interpreter is
 included as a submodule in the interpreters/ folder, and will
-always point to the latest tagged commit that we have validated: `WAMR-01-29-2021`.
+always point to the latest tagged commit that we have validated: `WAMR-03-25-2021`.
 If the PDO parent repo was not cloned with the `--recurse-submodules` flag,
 you will have to explictly pull the submodule source.
 
 ```
 cd ${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 git submodule update --init
-git checkout WAMR-01-29-2021 # optional
+git checkout WAMR-03-25-2021 # optional
 ```
 
 The WAMR API is built during the Wawaka build, so no additional
 build steps are required to set up WAMR.
 
-### Set the environment variables ###
+#### Select the Interpreter ####
 
-By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use).
-
-```bash
-export WASM_SRC=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
-export PDO_INTERPRETER=wawaka
-```
-
-**Optimized Interpreter**
-
-PDO supports two WAMR interpreter modes: classic
-interpreter and optimized interpreter (more details at
-[WAMR documentation](https://github.com/bytecodealliance/wasm-micro-runtime/blob/master/doc/build_wamr.md#configure-interpreter)).
-By default, PDO builds the classic interpreter. To enable the
-optimized interpreter, set the following environment variable:
+PDO supports two WAMR interpreter modes: classic interpreter and optimized interpreter
+(more details at [WAMR documentation]
+(https://github.com/bytecodealliance/wasm-micro-runtime/blob/master/doc/build_wamr.md#configure-interpreter)).
+By default, PDO builds the classic interpreter. To enable the optimized interpreter, set the
+following environment variable:
 
 ```bash
 export PDO_INTERPRETER=wawaka-opt
 ```
 
-### Memory configuration ###
+#### Configure the Interpreter ####
 
 Wawaka has three memory configuration parameters that can
 be adjusted depending on the requirements for a WASM contract:
 - `RUNTIME_MEM_POOL_SIZE`: The WASM runtime's global memory pool size.
-- `STACK_SIZE`: Size of the runtime's operand stack for executing
-the contract.
-- `HEAP_SIZE`: Size of the heap for dynamic allocations
-by the contract.
+- `STACK_SIZE`: Size of the runtime's operand stack for executing the contract.
+- `HEAP_SIZE`: Size of the heap for dynamic allocations by the contract.
 
 To facilitate configuring wawaka's memory, we provide
 three pre-defined memory configurations that meet most
@@ -119,11 +107,16 @@ As a general rule, a contract's globals and
 need to fit into the runtime's memory pool along with
 the stack and heap.
 
-You may also need to specify additional _contract-specific_
-memory settings at compile time to ensure that wawaka has sufficient
-memory to execute your contract. Please refer to
-the emscripten [documentation](https://emscripten.org/docs/tools_reference/emcc.html) for setting the appropriate
-options for your contract.
+### Set Environment Variables ###
+
+By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental
+wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory
+with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use).
+
+```bash
+export WASM_SRC=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
+export PDO_INTERPRETER=wawaka
+```
 
 ### Build PDO ###
 
