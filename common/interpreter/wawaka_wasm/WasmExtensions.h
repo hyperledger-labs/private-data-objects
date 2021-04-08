@@ -24,7 +24,9 @@ provided by the Wawaka interpreter.
 extern "C" {
 #endif
 #include <stdint.h>
-#include <stdio.h>
+
+int snprintf(char *str, size_t size, const char *format, ...);
+int sprintf(char *str, const char *format, ...);
 
 // From WasmStateExtensions
 bool key_value_set(

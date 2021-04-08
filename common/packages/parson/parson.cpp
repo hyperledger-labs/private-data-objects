@@ -28,7 +28,14 @@
 
 #include "parson.h"
 
-#include <stdio.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+int snprintf(char *str, size_t size, const char *format, ...);
+#ifdef __cplusplus
+}
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

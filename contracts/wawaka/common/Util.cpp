@@ -13,12 +13,20 @@
  * limitations under the License.
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #include "Util.h"
 
+#ifdef USE_WASI_SDK
 #include <new>
+
+// this function does not appear to be defined in the wasi-sdk
+// lib c++. we need
+std::new_handler std::get_new_handler() _NOEXCEPT
+{
+    return NULL;
+}
 
 void * operator new(size_t sz) throw(std::bad_alloc)
 {
@@ -34,6 +42,8 @@ void operator delete(void *ptr) _NOEXCEPT
 {
     free(ptr);
 }
+
+#endif
 
 /* ----------------------------------------------------------------- *
  * NAME: copy_internal_pointer
