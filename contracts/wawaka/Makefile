@@ -23,57 +23,63 @@ endif
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
-# skip downloading LLVM and building wamrc unless we're in wawaka-aot mode
-ifeq ($(PDO_INTERPRETER),wawaka-aot)
-BUILD_AOT:=build-wamrc
-endif
+WAMR_ROOT=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
+WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
 
-LLVM_VERSION=10.0.0
-LLVM_REPO=https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VERSION)
-LLVM_TAR=clang+llvm-$(LLVM_VERSION)-x86_64-linux-gnu-ubuntu-18.04
-LLVM_BIN=$(WASM_SRC)/core/deps/llvm/build/llvm/bin/llvm-lto # proxy for llvm dependency
+TEST_LOG_LEVEL ?= warn
+TEST_LOG_FILE ?= /dev/null
 
-CDI_COMPILER_SIGN_PEM=$(PDO_INSTALL_ROOT)/opt/pdo/keys/cdi_compiler1_private.pem
-CDI_COMPILER_VERIF_PEM=$(PDO_INSTALL_ROOT)/opt/pdo/keys/cdi_compiler1_public.pem
+## This would point you to the WAMR version of the built in libraries
+## WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wamr_toolchain.cmake
 
 all : build
 	@cd build && make all
 
 clean :
 	@echo Remove build directory
-	@rm -rf build $(WASM_SRC)/core/deps/llvm/build $(WASM_SRC)/wamr-compiler/build
-	@$(MAKE) -C benchmarks clean
+	@rm -rf build
 
 debug :
 	@echo No debug build defined
 
-test :
-	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract interface-test --expressions ${SCRIPTDIR}/interface-test/test-short.json
-	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract mock-contract --expressions ${SCRIPTDIR}/mock-contract/test-short.json
-	. $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger --contract interpreter-test --expressions ${SCRIPTDIR}/interpreter-test/test-short.json
+test : install interface-test interpreter-test memory-test mock-contract-test
+
+interface-test:
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
+		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
+		--contract $@ \
+		--expressions ${SCRIPTDIR}/$@/test-short.json
+
+interpreter-test:
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
+		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
+		--contract $@ \
+		--expressions ${SCRIPTDIR}/$@/test-short.json
+
+memory-test:
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
+		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
+		--contract $@ \
+		--expressions ${SCRIPTDIR}/$@/test-short.json
+
+mock-contract-test :
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
+		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
+		--contract mock-contract \
+		--expressions ${SCRIPTDIR}/mock-contract/test-short.json
+
+.PHONY: test interface-test mock-contract-test interpreter-test memory-test
 
 install : build
 	@echo install contracts
 	@cd build && make install
 
-build : $(CDI_COMPILER_SIGN_PEM) $(BUILD_AOT)
+build :
 	mkdir -p $@
-	cd $@ && emcmake cmake ..
-
-$(CDI_COMPILER_SIGN_PEM):
-	@echo Generating CDI compiler keys
-	@openssl ecparam -name secp256k1 -genkey -noout -out $(CDI_COMPILER_SIGN_PEM)
-	@openssl ec -in  $(CDI_COMPILER_SIGN_PEM) -pubout -out $(CDI_COMPILER_VERIF_PEM)
-
-$(LLVM_BIN):
-	@echo Downloading LLVM dependencies
-	@cd $(WASM_SRC)/core/deps && mkdir -p llvm/build/ && \
-	wget -q $(LLVM_REPO)/$(LLVM_TAR).tar.xz && \
-	tar -xf $(LLVM_TAR).tar.xz -C llvm/build/ && \
-	cd llvm/build/ && mv $(LLVM_TAR) llvm
-
-build-wamrc: $(LLVM_BIN)
-	@echo Building wamrc
-	@cd $(WASM_SRC)/wamr-compiler && mkdir -p build && cd build && cmake .. && make
+	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
 .PHONY : all clean debug install test
