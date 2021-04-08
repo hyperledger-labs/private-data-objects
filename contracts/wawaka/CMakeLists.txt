@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
 
 INCLUDE(contract-build.cmake)
 
-ADD_SUBDIRECTORY(interface-test)
 ADD_SUBDIRECTORY(mock-contract)
+ADD_SUBDIRECTORY(interface-test)
 ADD_SUBDIRECTORY(interpreter-test)
 ADD_SUBDIRECTORY(memory-test)
 ADD_SUBDIRECTORY(exchange)

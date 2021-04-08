@@ -135,6 +135,11 @@ extern "C" double strtod_wrapper(
     return num;
 }
 
+extern "C" void abort_wrapper(wasm_exec_env_t exec_env)
+{
+    abort();
+}
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 #ifdef __cplusplus
@@ -163,6 +168,7 @@ static NativeSymbol native_symbols[] =
 #if 0
     EXPORT_WASM_API_WITH_SIG2(isascii,"(i)i"),
 #endif
+    EXPORT_WASM_API_WITH_SIG2(abort,"()"),
 
     /* Crypto operations from WasmCryptoExtensions.h */
     EXPORT_WASM_API_WITH_SIG2(b64_encode,"(iiii)i"),
