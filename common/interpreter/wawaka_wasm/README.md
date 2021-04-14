@@ -28,14 +28,14 @@ enclave with Wawaka enabled, you will need to do the following:
 ### Install WASM Development Toolchain ###
 
 There are many toolchains that could be used to build a WASM code. By default, Wawaka contracts are
-developed with the [WASI SDK](https://github.com/WebAssembly/wasi-sdk).
+compiled with the compilers provided by [WASI SDK](https://github.com/WebAssembly/wasi-sdk). To use
+WASI SDK, download and install the appropriate package file from
+https://github.com/WebAssembly/wasi-sdk/releases (we have verified that release wasi-sdk-12 works
+with WAMR version WAMR-03-25-2021).
 
 ```bash
-cd ${PDO_SOURCE_ROOT}
-wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk-12.0-linux.tar.gz
-tar -zxf /tmp/wasi-sdk-12.0-linux.tar.gz
-
-export WASI_SDK_DIR=${PDO_SOURCE_ROOT}/wasi-sdk-12.0
+wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk_12.0_amd64.deb
+sudo dpkg --install /tmp/wasi-sdk_12.0_amd64.deb
 ```
 
 These directions assume that the SDK will be installed in the PDO source tree. Typically, the WASI

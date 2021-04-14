@@ -211,12 +211,8 @@ RUN wget -q https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tiny
  && echo "export TINY_SCHEME_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 #   - get wasi sdk
-RUN mkdir -p /opt/wasi-sdk
-WORKDIR /opt/wasi-sdk
-RUN wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk-12.0-linux.tar.gz \
- && tar --strip-components=1 -zxf wasi-sdk-12.0-linux.tar.gz wasi-sdk-12.0 \
- && rm wasi-sdk-12.0-linux.tar.gz \
- && echo "export WASI_SDK_DIR=$(pwd)" >> /etc/profile.d/pdo.sh
+RUN wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk_12.0_amd64.deb \
+ && dpkg --install /tmp/wasi-sdk_12.0_amd64.deb
 
 # Install ccf client. Unfortunately entire ccf base needs to be installed. there is no
 # installer for client alone
