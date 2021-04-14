@@ -33,10 +33,9 @@ IF (NOT DEFINED ENV{WASM_MEM_CONFIG})
 ENDIF()
 SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
 
-IF (NOT DEFINED ENV{WASI_SDK_DIR})
-  SET(WASI_SDK_DIR "/opt/wasi-sdk")
-ELSE()
-  SET(WASI_SDK_DIR "$ENV{WASI_SDK_DIR}")
+# this should be set by the WAMR toolchain file
+IF (NOT DEFINED WASI_SDK_DIR)
+  MESSAGE(FATAL_ERROR "WASM_SDK_DIR was not defined, check toolchain defines")
 ENDIF()
 
 # ---------------------------------------------
