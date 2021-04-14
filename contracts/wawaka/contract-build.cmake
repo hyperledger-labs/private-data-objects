@@ -24,7 +24,7 @@ SET(PDO_SOURCE_ROOT $ENV{PDO_SOURCE_ROOT})
 SET(WAWAKA_ROOT ${PDO_SOURCE_ROOT}/contracts/wawaka)
 
 IF (NOT DEFINED ENV{WASM_SRC})
-  MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
+  MESSAGE(FATAL_ERROR "WASM_SRC environment variable not defined!")
 ENDIF()
 SET(WASM_SRC "$ENV{WASM_SRC}")
 
