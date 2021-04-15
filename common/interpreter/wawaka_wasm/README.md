@@ -39,8 +39,7 @@ sudo dpkg --install /tmp/wasi-sdk_12.0_amd64.deb
 ```
 
 These directions assume that the SDK will be installed in the PDO source tree. Typically, the WASI
-SDK would be installed in the directory `/opt/wasi-sdk`. Please set the environment variable
-`WASI_SDK_DIR` to the directory where the SDK is installed.
+SDK would be installed in the directory `/opt/wasi-sdk`. 
 
 ### Set Up WAMR ###
 
