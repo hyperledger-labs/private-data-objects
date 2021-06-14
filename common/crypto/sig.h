@@ -15,6 +15,11 @@
 
 #pragma once
 #include <openssl/obj_mac.h>
+
+#ifndef PDO_USE_ECDSA_CURVE
+#define PDO_USE_ECDSA_CURVE NID_secp256k1
+#endif
+
 namespace pdo
 {
 namespace crypto
