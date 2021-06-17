@@ -27,7 +27,7 @@ namespace crypto
     namespace constants
     {
         // Elliptic curve
-        const int CURVE = NID_secp256k1;
+        const int CURVE = PDO_USE_ECDSA_CURVE;
         const int MAX_SIG_SIZE = 72;
     }
 }
