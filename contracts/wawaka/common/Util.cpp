@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "Types.h"
 #include "Util.h"
 
 #ifdef USE_WASI_SDK
@@ -49,17 +50,10 @@ void operator delete(void *ptr) _NOEXCEPT
  * NAME: copy_internal_pointer
  * ----------------------------------------------------------------- */
 bool copy_internal_pointer(
-    StringArray& result,
-    uint8_t* pointer,
-    uint32_t size)
+    ww::types::ByteArray& result,
+    const uint8_t* pointer,
+    const uint32_t size)
 {
-#ifdef SAFE_INTERNAL_COPY
-    // the safe way
-    bool success = result.assign(pointer, size);
-    free(pointer);
-    return success;
-#else
-    // the efficient way
-    return result.take(pointer, size);
-#endif
+    result.assign(pointer,pointer+size);
+    return true;
 }

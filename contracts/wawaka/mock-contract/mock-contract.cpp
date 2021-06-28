@@ -23,15 +23,14 @@
 #include "Environment.h"
 #include "Message.h"
 #include "Response.h"
-#include "StringArray.h"
 #include "Value.h"
 #include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 static KeyValueStore value_store("values");
 
-const StringArray owner_key("owner");
-const StringArray test_key("test");
+const std::string owner_key("owner");
+const std::string test_key("test");
 
 // -----------------------------------------------------------------
 // NAME: originator_is_owner
@@ -39,15 +38,15 @@ const StringArray test_key("test");
 static bool originator_is_owner(const Environment& env, Response& rsp)
 {
     // verify that the owner stored in state is the originator
-    StringArray owner;
+    ww::types::ByteArray owner;
     if (! meta_store.get(owner_key, owner))
     {
         rsp.error("failed to retrieve owner metadata");
         return false;
     }
 
-    const StringArray originator(env.originator_id_);
-    if (! owner.equal(originator))
+    const ww::types::ByteArray originator(env.originator_id_.begin(), env.originator_id_.end());
+    if (owner != originator)
     {
         rsp.error("only the creator can inc the value");
         return false;
@@ -62,7 +61,7 @@ static bool originator_is_owner(const Environment& env, Response& rsp)
 bool initialize_contract(const Environment& env, Response& rsp)
 {
     // save owner information
-    const StringArray owner_val(env.creator_id_);
+    const ww::types::ByteArray owner_val(env.creator_id_.begin(), env.creator_id_.end());
 
     if (! meta_store.set(owner_key, owner_val))
         return rsp.error("failed to save creator metadata");

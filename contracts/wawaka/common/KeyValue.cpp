@@ -17,8 +17,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "Types.h"
+
 #include "KeyValue.h"
-#include "StringArray.h"
 #include "Util.h"
 #include "WasmExtensions.h"
 
@@ -27,35 +28,30 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::make_key(const StringArray& key, StringArray& prefixed_key) const
+bool KeyValueStore::make_key(const ww::types::ByteArray& key, ww::types::ByteArray& prefixed_key) const
 {
-    if (! prefixed_key.resize(prefix_.size() + key.size() + 1))
-        return false;
-
-    // note that this key will include the null terminators, thats fine
-    // since keys are binary anyway
-    uint8_t *buffer = prefixed_key.data();
-    memcpy((void*)buffer, (void*)prefix_.c_data(), prefix_.size());
-    buffer[prefix_.size()] = '#';
-    memcpy((void*)(buffer + (prefix_.size() + 1)), (void*)key.c_data(), key.size());
+    prefixed_key.clear();
+    prefixed_key.insert(prefixed_key.end(), prefix_.begin(), prefix_.end());
+    prefixed_key.push_back((uint8_t)'#');
+    prefixed_key.insert(prefixed_key.end(), key.begin(), key.end());
 
     return true;
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int KeyValueStore::create(const StringArray& key)
+int KeyValueStore::create(const ww::types::ByteArray& key)
 {
-    return ::key_value_create(key.c_data(), key.size());
+    return ::key_value_create(key.data(), key.size());
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-int KeyValueStore::open(const StringArray& block_hash, const StringArray& key)
+int KeyValueStore::open(const ww::types::ByteArray& block_hash, const ww::types::ByteArray& key)
 {
-    return ::key_value_open(block_hash.c_data(), block_hash.size(), key.c_data(), key.size());
+    return ::key_value_open(block_hash.data(), block_hash.size(), key.data(), key.size());
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::finalize(const int kv_store_handle, StringArray& block_hash)
+bool KeyValueStore::finalize(const int kv_store_handle, ww::types::ByteArray& block_hash)
 {
     uint8_t* datap;
     size_t size;
@@ -73,16 +69,16 @@ bool KeyValueStore::finalize(const int kv_store_handle, StringArray& block_hash)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::get(const StringArray& key, uint32_t& val) const
+bool KeyValueStore::get(const ww::types::ByteArray& key, uint32_t& val) const
 {
-    StringArray prefixed_key;
+    ww::types::ByteArray prefixed_key;
     if (! make_key(key, prefixed_key))
         return false;
 
     uint8_t* datap;
     size_t size;
 
-    if (! key_value_get(handle_, prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
+    if (! key_value_get(handle_, prefixed_key.data(), prefixed_key.size(), &datap, &size))
         return false;
 
     if (datap == NULL)
@@ -108,26 +104,26 @@ bool KeyValueStore::get(const StringArray& key, uint32_t& val) const
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::set(const StringArray& key, const uint32_t val) const
+bool KeyValueStore::set(const ww::types::ByteArray& key, const uint32_t val) const
 {
-    StringArray prefixed_key;
+    ww::types::ByteArray prefixed_key;
     if (! make_key(key, prefixed_key))
         return false;
 
-    return key_value_set(handle_, prefixed_key.c_data(), prefixed_key.size(), (uint8_t*)&val, sizeof(val));
+    return key_value_set(handle_, prefixed_key.data(), prefixed_key.size(), (uint8_t*)&val, sizeof(val));
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::get(const StringArray& key, StringArray& val) const
+bool KeyValueStore::get(const ww::types::ByteArray& key, ww::types::ByteArray& val) const
 {
-    StringArray prefixed_key;
+    ww::types::ByteArray prefixed_key;
     if (! make_key(key, prefixed_key))
         return false;
 
     uint8_t* datap;
     size_t size;
 
-    if (! key_value_get(handle_, prefixed_key.c_data(), prefixed_key.size(), &datap, &size))
+    if (! key_value_get(handle_, prefixed_key.data(), prefixed_key.size(), &datap, &size))
         return false;
 
     // this should not happen if the result was true
@@ -141,11 +137,11 @@ bool KeyValueStore::get(const StringArray& key, StringArray& val) const
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-bool KeyValueStore::set(const StringArray& key, const StringArray& val) const
+bool KeyValueStore::set(const ww::types::ByteArray& key, const ww::types::ByteArray& val) const
 {
-    StringArray prefixed_key;
+    ww::types::ByteArray prefixed_key;
     if (! make_key(key, prefixed_key))
         return false;
 
-    return key_value_set(handle_, prefixed_key.c_data(), prefixed_key.size(), val.c_data(), val.size());
+    return key_value_set(handle_, prefixed_key.data(), prefixed_key.size(), val.data(), val.size());
 }

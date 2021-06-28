@@ -17,24 +17,50 @@
 
 #include <stdint.h>
 
-#include "StringArray.h"
+// pick up types from pdo common
+#include "Types.h"
 
 class KeyValueStore
 {
     size_t handle_;
-    const StringArray prefix_;
-    bool make_key(const StringArray& key, StringArray& prefixed_key) const;
+    const ww::types::ByteArray prefix_;
+    bool make_key(const ww::types::ByteArray& key, ww::types::ByteArray& prefixed_key) const;
 
 public:
-    KeyValueStore(const char* prefix, size_t handle = 0) : handle_(handle), prefix_(prefix) {};
+    KeyValueStore(const std::string& prefix, size_t handle = 0)
+        : handle_(handle), prefix_(prefix.begin(), prefix.end()) {};
 
-    static int create(const StringArray& key);
-    static int open(const StringArray& block_hash, const StringArray& key);
-    static bool finalize(const int kv_store_handle, StringArray& block_hash);
+    static int create(const ww::types::ByteArray& key);
+    static int open(const ww::types::ByteArray& block_hash, const ww::types::ByteArray& key);
+    static bool finalize(const int kv_store_handle, ww::types::ByteArray& block_hash);
 
-    bool get(const StringArray& key, uint32_t& val) const;
-    bool set(const StringArray& key, const uint32_t val) const;
+    bool get(const ww::types::ByteArray& key, uint32_t& val) const;
+    bool get(const std::string& key, uint32_t& val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return get(bkey, val);
+    };
 
-    bool get(const StringArray& key, StringArray& val) const;
-    bool set(const StringArray& key, const StringArray& val) const;
+    bool set(const ww::types::ByteArray& key, const uint32_t val) const;
+    bool set(const std::string& key, const uint32_t val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return set(bkey, val);
+    };
+
+
+    bool get(const ww::types::ByteArray& key, ww::types::ByteArray& val) const;
+    bool get(const std::string& key, ww::types::ByteArray& val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return get(bkey, val);
+    };
+
+    bool set(const ww::types::ByteArray& key, const ww::types::ByteArray& val) const;
+    bool set(const std::string& key, const ww::types::ByteArray& val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return set(bkey, val);
+    };
+
 };

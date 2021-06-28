@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 
-#include "StringArray.h"
+#include "Types.h"
 
 #define ASSERT_SUCCESS(_rsp_, _condition_, _message_)   \
     do {                                                \
@@ -36,6 +36,6 @@
 #define SAFE_INTERNAL_COPY
 
 bool copy_internal_pointer(
-    StringArray& result,
-    uint8_t* pointer,
-    uint32_t size);
+    ww::types::ByteArray& result,
+    const uint8_t* pointer,
+    const uint32_t size);

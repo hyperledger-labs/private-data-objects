@@ -17,15 +17,16 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "Types.h"
+
 #include "Cryptography.h"
-#include "StringArray.h"
 #include "Util.h"
 #include "WasmExtensions.h"
 
 /* ----------------------------------------------------------------- *
  * NAME: ww::crypto::random_identifier
  * ----------------------------------------------------------------- */
-bool ww::crypto::random_identifier(StringArray& identifier)
+bool ww::crypto::random_identifier(ww::types::ByteArray& identifier)
 {
     if (identifier.size() == 0)
         identifier.resize(32);
@@ -45,13 +46,13 @@ static void verify_null_terminated(const char *data_pointer, size_t data_size)
  * NAME: ww::crypto::b64_encode
  * ----------------------------------------------------------------- */
 bool ww::crypto::b64_encode(
-    const StringArray& message,
-    StringArray& encoded_message)
+    const ww::types::ByteArray& message,
+    ww::types::ByteArray& encoded_message)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
-    if (! ::b64_encode(message.c_data(), message.size(), (char**)&data_pointer, &data_size))
+    if (! ::b64_encode(message.data(), message.size(), (char**)&data_pointer, &data_size))
         return false;
 
     if (data_pointer == NULL)
@@ -68,15 +69,15 @@ bool ww::crypto::b64_encode(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::b64_decode(
-    const StringArray& encoded_message,
-    StringArray& message)
+    const ww::types::ByteArray& encoded_message,
+    ww::types::ByteArray& message)
 {
     uint8_t *data_pointer = NULL;
     size_t data_size = 0;
 
-    verify_null_terminated((const char*)encoded_message.c_data(), encoded_message.size());
+    verify_null_terminated((const char*)encoded_message.data(), encoded_message.size());
 
-    if (! ::b64_decode((const char*)encoded_message.c_data(), encoded_message.size(), &data_pointer, &data_size))
+    if (! ::b64_decode((const char*)encoded_message.data(), encoded_message.size(), &data_pointer, &data_size))
         return false;
 
     if (data_pointer == NULL)
@@ -91,7 +92,7 @@ bool ww::crypto::b64_decode(
 /* ----------------------------------------------------------------- *
  * NAME: ww::crypto::aes::generate_key
  * ----------------------------------------------------------------- */
-bool ww::crypto::aes::generate_key(StringArray& key)
+bool ww::crypto::aes::generate_key(ww::types::ByteArray& key)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
@@ -111,16 +112,16 @@ bool ww::crypto::aes::generate_key(StringArray& key)
 /* ----------------------------------------------------------------- *
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
-bool ww::crypto::aes::generate_iv(StringArray& iv)
+bool ww::crypto::aes::generate_iv(ww::types::ByteArray& iv)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
-    StringArray identifier(32);
+    ww::types::ByteArray identifier(32);
     if (! ww::crypto::random_identifier(identifier))
         return false;
 
-    if (! ::aes_generate_iv(identifier.c_data(), identifier.size(), &data_pointer, &data_size))
+    if (! ::aes_generate_iv(identifier.data(), identifier.size(), &data_pointer, &data_size))
         return false;
 
     if (data_pointer == NULL)
@@ -136,18 +137,18 @@ bool ww::crypto::aes::generate_iv(StringArray& iv)
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::aes::encrypt_message(
-    const StringArray& message,
-    const StringArray& key,
-    const StringArray& iv,
-    StringArray& cipher)
+    const ww::types::ByteArray& message,
+    const ww::types::ByteArray& key,
+    const ww::types::ByteArray& iv,
+    ww::types::ByteArray& cipher)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::aes_encrypt_message(
-            message.c_data(), message.size(),
-            key.c_data(), key.size(),
-            iv.c_data(), iv.size(),
+            message.data(), message.size(),
+            key.data(), key.size(),
+            iv.data(), iv.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -164,18 +165,18 @@ bool ww::crypto::aes::encrypt_message(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::aes::decrypt_message(
-    const StringArray& cipher,
-    const StringArray& key,
-    const StringArray& iv,
-    StringArray& message)
+    const ww::types::ByteArray& cipher,
+    const ww::types::ByteArray& key,
+    const ww::types::ByteArray& iv,
+    ww::types::ByteArray& message)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::aes_decrypt_message(
-            cipher.c_data(), cipher.size(),
-            key.c_data(), key.size(),
-            iv.c_data(), iv.size(),
+            cipher.data(), cipher.size(),
+            key.data(), key.size(),
+            iv.data(), iv.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -192,8 +193,8 @@ bool ww::crypto::aes::decrypt_message(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::generate_keys(
-    StringArray& private_key,
-    StringArray& public_key)
+    ww::types::ByteArray& private_key,
+    ww::types::ByteArray& public_key)
 {
     uint8_t* priv_data_pointer = NULL;
     size_t priv_data_size = 0;
@@ -236,18 +237,18 @@ bool ww::crypto::ecdsa::generate_keys(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::sign_message(
-    const StringArray& message,
-    const StringArray& private_key,
-    StringArray& signature)
+    const ww::types::ByteArray& message,
+    const ww::types::ByteArray& private_key,
+    ww::types::ByteArray& signature)
 {
-    verify_null_terminated((const char*)private_key.c_data(), private_key.size());
+    verify_null_terminated((const char*)private_key.data(), private_key.size());
 
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::ecdsa_sign_message(
-            message.c_data(), message.size(),
-            (const char*)private_key.c_data(), private_key.size(),
+            message.data(), message.size(),
+            (const char*)private_key.data(), private_key.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -264,27 +265,27 @@ bool ww::crypto::ecdsa::sign_message(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::verify_signature(
-    const StringArray& message,
-    const StringArray& public_key,
-    const StringArray& signature)
+    const ww::types::ByteArray& message,
+    const ww::types::ByteArray& public_key,
+    const ww::types::ByteArray& signature)
 {
-    verify_null_terminated((const char*)public_key.c_data(), public_key.size());
+    verify_null_terminated((const char*)public_key.data(), public_key.size());
 
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     return ::ecdsa_verify_signature(
-        message.c_data(), message.size(),
-        (const char*)public_key.c_data(), public_key.size(),
-        signature.c_data(), signature.size());
+        message.data(), message.size(),
+        (const char*)public_key.data(), public_key.size(),
+        signature.data(), signature.size());
 }
 
 /* ----------------------------------------------------------------- *
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::generate_keys(
-    StringArray& private_key,
-    StringArray& public_key)
+    ww::types::ByteArray& private_key,
+    ww::types::ByteArray& public_key)
 {
     uint8_t* priv_data_pointer = NULL;
     size_t priv_data_size = 0;
@@ -323,16 +324,16 @@ bool ww::crypto::rsa::generate_keys(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::encrypt_message(
-    const StringArray& message,
-    const StringArray& public_key,
-    StringArray& cipher)
+    const ww::types::ByteArray& message,
+    const ww::types::ByteArray& public_key,
+    ww::types::ByteArray& cipher)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::rsa_encrypt_message(
-            message.c_data(), message.size(),
-            (const char*)public_key.c_data(), public_key.size(),
+            message.data(), message.size(),
+            (const char*)public_key.data(), public_key.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -349,16 +350,16 @@ bool ww::crypto::rsa::encrypt_message(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::decrypt_message(
-    const StringArray& cipher,
-    const StringArray& private_key,
-    StringArray& message)
+    const ww::types::ByteArray& cipher,
+    const ww::types::ByteArray& private_key,
+    ww::types::ByteArray& message)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::rsa_decrypt_message(
-            cipher.c_data(), cipher.size(),
-            (const char*)private_key.c_data(), private_key.size(),
+            cipher.data(), cipher.size(),
+            (const char*)private_key.data(), private_key.size(),
             &data_pointer, &data_size))
         return false;
 

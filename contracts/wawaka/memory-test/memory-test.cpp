@@ -17,21 +17,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "Types.h"
 #include "Dispatch.h"
 
 #include "KeyValue.h"
 #include "Environment.h"
 #include "Message.h"
 #include "Response.h"
-#include "StringArray.h"
 #include "Value.h"
 #include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 
-const StringArray owner_key("owner");
-const StringArray default_key("key");
-const StringArray default_val("_");
+const std::string owner_key("owner");
+const std::string default_key("key");
+
+const uint32_t default_value_32 = 13;
+const uint8_t default_value_8 = 13;
 
 // -----------------------------------------------------------------
 // NAME: initialize_contract
@@ -39,7 +41,7 @@ const StringArray default_val("_");
 bool initialize_contract(const Environment& env, Response& rsp)
 {
     // save owner information
-    const StringArray owner_val(env.creator_id_);
+    const ww::types::ByteArray owner_val(env.creator_id_.begin(), env.creator_id_.end());
 
     if (! meta_store.set(owner_key, owner_val))
         return rsp.error("failed to save creator metadata");
@@ -56,9 +58,9 @@ bool many_keys_test(const Message& msg, const Environment& env, Response& rsp)
 
     int i = 0;
     for (i = 0; i < num_keys; i++) {
-        StringArray key(12);
+        ww::types::ByteArray key(12);
         sprintf((char *)key.data(), "%d", i);
-        if (!meta_store.set(key, default_val))
+        if (! meta_store.set(key, default_value_32))
             return rsp.error("failed to store value");
     }
 
@@ -72,13 +74,9 @@ bool many_keys_test(const Message& msg, const Environment& env, Response& rsp)
 bool big_key_test(const Message& msg, const Environment& env, Response& rsp)
 {
     int num_chars((int)msg.get_number("num_chars"));
+    ww::types::ByteArray key(num_chars, default_value_8);
 
-    StringArray key(num_chars);
-    for (int i = 0; i < num_chars; i++) {
-        key.set('a', i);
-    }
-
-    if (!meta_store.set(key, default_val))
+    if (!meta_store.set(key, default_value_32))
         return rsp.error("failed to store value");
 
     ww::value::Number v((double)key.size());
@@ -91,11 +89,7 @@ bool big_key_test(const Message& msg, const Environment& env, Response& rsp)
 bool big_value_test(const Message& msg, const Environment& env, Response& rsp)
 {
     int num_chars((int)msg.get_number("num_chars"));
-
-    StringArray value(num_chars);
-    for (int i = 0; i < num_chars; i++) {
-        value.set((char)*default_val.c_data(), i);
-    }
+    ww::types::ByteArray value(num_chars, default_value_8);
 
     if (!meta_store.set(default_key, value))
         return rsp.error("failed to store value");
@@ -113,13 +107,10 @@ bool many_kv_pairs_test(const Message& msg, const Environment& env, Response& rs
     int num_keys((int)msg.get_number("num_keys"));
 
     int i = 0;
-    StringArray value(num_chars);
-    for (i = 0; i < num_chars; i++) {
-        value.set((char)*default_val.c_data(), i);
-    }
+    ww::types::ByteArray value(num_chars, default_value_8);
 
     for (i = 0; i < num_keys; i++) {
-        StringArray key(12);
+        ww::types::ByteArray key(12);
         sprintf((char *)key.data(), "%d", i);
         if (!meta_store.set(key, value))
             return rsp.error("failed to store value");
