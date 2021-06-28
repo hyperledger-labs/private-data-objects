@@ -15,16 +15,18 @@
 
 #pragma once
 
+#include <string>
+
 class Environment
 {
 public :
-    char *contract_id_;
-    char *creator_id_;
-    char *originator_id_;
-    char *state_hash_;
-    char *message_hash_;
-    char *contract_code_name_;
-    char *contract_code_hash_;
+    std::string contract_id_;
+    std::string creator_id_;
+    std::string originator_id_;
+    std::string state_hash_;
+    std::string message_hash_;
+    std::string contract_code_name_;
+    std::string contract_code_hash_;
 
     Environment(void);
     ~Environment(void);

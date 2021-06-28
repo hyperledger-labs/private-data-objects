@@ -21,13 +21,11 @@
 
 #include "Environment.h"
 
-#define SAFE_GET_STRING(o, k, v)                        \
-    const char* __ ## v = json_object_dotget_string(o, k);  \
-    if (__ ## v == NULL)                                    \
-        return false;                                   \
-    v = strdup(__## v);                                    \
-    if (v == NULL)                                      \
-        return false;
+#define SAFE_GET_STRING(o, k, v)                                \
+    const char* __ ## v = json_object_dotget_string(o, k);      \
+    if (__ ## v == NULL)                                        \
+        return false;                                           \
+    v.assign(__ ## v)
 
 #define SAFE_FREE_STRING(v) \
     if (v != NULL)              \
@@ -40,13 +38,6 @@ Environment::Environment(void)
 
 Environment::~Environment(void)
 {
-    SAFE_FREE_STRING(contract_id_);
-    SAFE_FREE_STRING(creator_id_);
-    SAFE_FREE_STRING(originator_id_);
-    SAFE_FREE_STRING(state_hash_);
-    SAFE_FREE_STRING(message_hash_);
-    SAFE_FREE_STRING(contract_code_name_);
-    SAFE_FREE_STRING(contract_code_hash_);
 }
 
 bool Environment::deserialize(

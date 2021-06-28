@@ -67,7 +67,7 @@ ENDIF ()
 # ---------------------------------------------
 
 SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
-SET(CMAKE_CXX_COMPILER_TARGET "wasm32")
+SET(CMAKE_CXX_COMPILER_TARGET "wasm32-wasi")
 
 SET(CONTRACT_INSTALL_DIRECTORY "${PDO_HOME}/contracts")
 
@@ -105,6 +105,7 @@ SET (WASM_INCLUDES)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/contracts/wawaka/common)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/interpreter/wawaka_wasm)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/packages/parson)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/packages/base64)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common)
 
 # ---------------------------------------------

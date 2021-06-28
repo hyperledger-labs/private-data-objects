@@ -16,7 +16,7 @@
 #pragma once
 
 #include "parson.h"
-#include "StringArray.h"
+#include "Types.h"
 
 namespace ww
 {
@@ -36,7 +36,7 @@ namespace value
         ~Value(void);
 
         char *serialize(void) const;
-        bool serialize(StringArray& result) const;
+        bool serialize(ww::types::StringArray& result) const;
         bool deserialize(const char *message);
 
         JSON_Value_Type get_type(void) const;

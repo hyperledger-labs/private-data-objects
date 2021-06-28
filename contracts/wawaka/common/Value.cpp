@@ -106,7 +106,7 @@ bool ww::value::Value::deserialize(const char* value)
 }
 
 // -----------------------------------------------------------------
-bool ww::value::Value::serialize(StringArray& result) const
+bool ww::value::Value::serialize(ww::types::StringArray& result) const
 {
     if (value_ == NULL)
     {
@@ -123,10 +123,10 @@ bool ww::value::Value::serialize(StringArray& result) const
     // than assign
     // bool success = result.take(serialized_reponse);
 
-    bool success = result.assign(serialized_response);
+    result.assign(serialized_response);
     free(serialized_response);
 
-    return success;
+    return true;
 }
 
 // -----------------------------------------------------------------

@@ -13,9 +13,10 @@
  * limitations under the License.
  */
 
-#include <malloc.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "Types.h"
 
 #include "Dispatch.h"
 
@@ -23,13 +24,12 @@
 #include "Environment.h"
 #include "Message.h"
 #include "Response.h"
-#include "StringArray.h"
 #include "Value.h"
 #include "WasmExtensions.h"
 
 static KeyValueStore meta_store("meta");
 
-const StringArray owner_key("owner");
+const std::string owner_key("owner");
 
 // -----------------------------------------------------------------
 // NAME: initialize_contract
@@ -37,7 +37,7 @@ const StringArray owner_key("owner");
 bool initialize_contract(const Environment& env, Response& rsp)
 {
     // save owner information
-    const StringArray owner_val(env.creator_id_);
+    const ww::types::ByteArray owner_val(env.creator_id_.begin(), env.creator_id_.end());
 
     if (! meta_store.set(owner_key, owner_val))
         return rsp.error("failed to save creator metadata");
@@ -53,25 +53,25 @@ bool environment_test(const Message& msg, const Environment& env, Response& rsp)
     ww::value::Object o;
     ww::value::String s("");
 
-    s.set(env.contract_id_);
+    s.set(env.contract_id_.c_str());
     o.set_value("ContractID", s);
 
-    s.set(env.creator_id_);
+    s.set(env.creator_id_.c_str());
     o.set_value("CreatorID", s);
 
-    s.set(env.originator_id_);
+    s.set(env.originator_id_.c_str());
     o.set_value("OriginatorID", s);
 
-    s.set(env.state_hash_);
+    s.set(env.state_hash_.c_str());
     o.set_value("StateHash", s);
 
-    s.set(env.message_hash_);
+    s.set(env.message_hash_.c_str());
     o.set_value("MessageHash", s);
 
-    s.set(env.contract_code_name_);
+    s.set(env.contract_code_name_.c_str());
     o.set_value("ContractCodeName", s);
 
-    s.set(env.contract_code_hash_);
+    s.set(env.contract_code_hash_.c_str());
     o.set_value("ContractCodeHash", s);
 
     return rsp.value(o, false);
@@ -102,7 +102,7 @@ bool dependency_test(const Message& msg, const Environment& env, Response& rsp)
     ww::value::String contract_id(msg.get_string("ContractID"));
     ww::value::String state_hash(msg.get_string("StateHash"));
 
-    rsp.add_dependency(env.contract_id_, env.state_hash_);
+    rsp.add_dependency(env.contract_id_.c_str(), env.state_hash_.c_str());
     return rsp.success(false);
 }
 

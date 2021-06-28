@@ -26,6 +26,10 @@ public:
     bool set_state_changed(bool state_changed);
     bool set_status(bool status);
     bool add_dependency(const char* contract_id, const char* state_hash);
+    bool add_dependency(const std::string& contract_id, const std::string state_hash)
+    {
+        return add_dependency(contract_id.c_str(), state_hash.c_str());
+    };
 
     bool value(const ww::value::Value& v, bool changed)
     {

@@ -18,72 +18,72 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "StringArray.h"
+#include "Types.h"
 
 namespace ww
 {
 namespace crypto
 {
-    bool random_identifier(StringArray& identifier);
+    bool random_identifier(ww::types::ByteArray& identifier);
 
     bool b64_encode(
-        const StringArray& message,
-        StringArray& encoded_message);
+        const ww::types::ByteArray& message,
+        ww::types::ByteArray& encoded_message);
 
     bool b64_decode(
-        const StringArray& encoded_message,
-        StringArray& message);
+        const ww::types::ByteArray& encoded_message,
+        ww::types::ByteArray& message);
 
     namespace aes
     {
-        bool generate_key(StringArray& key);
-        bool generate_iv(StringArray& iv);
+        bool generate_key(ww::types::ByteArray& key);
+        bool generate_iv(ww::types::ByteArray& iv);
 
         bool encrypt_message(
-            const StringArray& message,
-            const StringArray& key,
-            const StringArray& iv,
-            StringArray& encrypted_message);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& key,
+            const ww::types::ByteArray& iv,
+            ww::types::ByteArray& encrypted_message);
 
         bool decrypt_message(
-            const StringArray& message,
-            const StringArray& key,
-            const StringArray& iv,
-            StringArray& encrypted_message);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& key,
+            const ww::types::ByteArray& iv,
+            ww::types::ByteArray& encrypted_message);
     };
 
     namespace ecdsa
     {
         bool generate_keys(
-            StringArray& private_key,
-            StringArray& public_key);
+            ww::types::ByteArray& private_key,
+            ww::types::ByteArray& public_key);
 
         bool sign_message(
-            const StringArray& message,
-            const StringArray& private_key,
-            StringArray& signature);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& private_key,
+            ww::types::ByteArray& signature);
 
         bool verify_signature(
-            const StringArray& message,
-            const StringArray& public_key,
-            const StringArray& signature);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& public_key,
+            const ww::types::ByteArray& signature);
     };
 
     namespace rsa
     {
         bool generate_keys(
-            StringArray& private_key,
-            StringArray& public_key);
+            ww::types::ByteArray& private_key,
+            ww::types::ByteArray& public_key);
 
         bool encrypt_message(
-            const StringArray& message,
-            const StringArray& public_key,
-            StringArray& encrypted_message);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& public_key,
+            ww::types::ByteArray& encrypted_message);
 
         bool decrypt_message(
-            const StringArray& message,
-            const StringArray& private_key,
-            StringArray& encrypted_message);
+            const ww::types::ByteArray& message,
+            const ww::types::ByteArray& private_key,
+            ww::types::ByteArray& encrypted_message);
     };
 };                              /* namespace crypto */
 };                              /* namespac ww */
