@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <string.h>
+#include <string>
 
 #include "Types.h"
 
@@ -28,10 +28,10 @@ namespace crypto
 
     bool b64_encode(
         const ww::types::ByteArray& message,
-        ww::types::ByteArray& encoded_message);
+        std::string& encoded_message);
 
     bool b64_decode(
-        const ww::types::ByteArray& encoded_message,
+        const std::string& encoded_message,
         ww::types::ByteArray& message);
 
     namespace aes

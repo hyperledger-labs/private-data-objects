@@ -13,9 +13,10 @@
  * limitations under the License.
  */
 
-#include <malloc.h>
+//#include <malloc.h>
+#include <algorithm>
 #include <stdint.h>
-#include <string.h>
+#include <string>
 
 #include "Types.h"
 
@@ -47,7 +48,7 @@ static void verify_null_terminated(const char *data_pointer, size_t data_size)
  * ----------------------------------------------------------------- */
 bool ww::crypto::b64_encode(
     const ww::types::ByteArray& message,
-    ww::types::ByteArray& encoded_message)
+    std::string& encoded_message)
 {
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
@@ -61,23 +62,24 @@ bool ww::crypto::b64_encode(
         return false;
     }
 
-    verify_null_terminated((const char*)data_pointer, data_size);
-    return copy_internal_pointer(encoded_message, data_pointer, data_size);
+    encoded_message.clear();
+    std::transform(data_pointer, data_pointer + data_size, std::back_inserter(encoded_message),
+                   [](unsigned char c) -> char { return (char)c; });
+
+    return true;
 }
 
 /* ----------------------------------------------------------------- *
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::b64_decode(
-    const ww::types::ByteArray& encoded_message,
+    const std::string& encoded_message,
     ww::types::ByteArray& message)
 {
     uint8_t *data_pointer = NULL;
     size_t data_size = 0;
 
-    verify_null_terminated((const char*)encoded_message.data(), encoded_message.size());
-
-    if (! ::b64_decode((const char*)encoded_message.data(), encoded_message.size(), &data_pointer, &data_size))
+    if (! ::b64_decode(encoded_message.c_str(), encoded_message.size(), &data_pointer, &data_size))
         return false;
 
     if (data_pointer == NULL)

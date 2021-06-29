@@ -117,11 +117,11 @@ bool ecdsa_test(const Message& msg, const Environment& env, Response& rsp)
         return rsp.error("failed to verify the signature");
 
     // ---------- return the signature ----------
-    ww::types::ByteArray encoded;
+    std::string encoded;
     if (! ww::crypto::b64_encode(signature, encoded))
         return rsp.error("failed to encode signature");
 
-    ww::value::String v((char*)encoded.data());
+    ww::value::String v(encoded.c_str());
     return rsp.value(v, false);
 }
 
@@ -137,10 +137,6 @@ bool aes_test(const Message& msg, const Environment& env, Response& rsp)
     ww::types::ByteArray key;
     if (! meta_store.get(symmetric_key, key))
         return rsp.error("failed to find private key");
-
-    ww::types::ByteArray encoded_key;
-    if (!  ww::crypto::b64_encode(key, encoded_key))
-        return rsp.error("failed to encode the aes key");
 
     ww::types::ByteArray iv;
     if (! ww::crypto::aes::generate_iv(iv))
@@ -160,11 +156,11 @@ bool aes_test(const Message& msg, const Environment& env, Response& rsp)
         return rsp.error("decrypted message differs from original message");
 
     // ---------- return the signature ----------
-    ww::types::ByteArray encoded;
+    std::string encoded;
     if (! ww::crypto::b64_encode(cipher, encoded))
         return rsp.error("failed to encode cipher text");
 
-    ww::value::String v((char*)encoded.data());
+    ww::value::String v(encoded.c_str());
     return rsp.value(v, false);
 }
 
@@ -200,11 +196,11 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
         return rsp.error("decrypted key differs from the original key");
 
     // ---------- return the signature ----------
-    ww::types::ByteArray encoded;
+    std::string encoded;
     if (! ww::crypto::b64_encode(cipher, encoded))
         return rsp.error("failed to encode cipher text");
 
-    ww::value::String v((char*)encoded.data());
+    ww::value::String v(encoded.c_str());
     return rsp.value(v, false);
 }
 
