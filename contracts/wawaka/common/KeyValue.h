@@ -63,4 +63,21 @@ public:
         return set(bkey, val);
     };
 
+    bool get(const std::string& key, std::string& val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        ww::types::ByteArray bval;
+        if (! get(bkey, bval))
+            return false;
+        val = ww::types::ByteArrayToString(bval);
+        return true;
+    };
+
+    bool set(const std::string& key, const std::string& val) const
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        ww::types::ByteArray bval(val.begin(), val.end());
+
+        return set(bkey, bval);
+    };
 };

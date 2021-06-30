@@ -195,8 +195,8 @@ bool ww::crypto::aes::decrypt_message(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::generate_keys(
-    ww::types::ByteArray& private_key,
-    ww::types::ByteArray& public_key)
+    std::string& private_key,
+    std::string& public_key)
 {
     uint8_t* priv_data_pointer = NULL;
     size_t priv_data_size = 0;
@@ -209,30 +209,21 @@ bool ww::crypto::ecdsa::generate_keys(
             (char**)&pub_data_pointer, &pub_data_size))
         return false;
 
-    // there is a possibility that allocated memory would not be freed using the
-    // logic below (e.g. if the copy_internal_pointer fails); i don't believe this
-    // can be address well until exceptions are fully supported by WASM
-
     if (priv_data_pointer == NULL)
     {
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function ecdsa_create_signing_keys");
         return false;
     }
-
-    verify_null_terminated((const char*)priv_data_pointer, priv_data_size);
-
-    if (! copy_internal_pointer(private_key, priv_data_pointer, priv_data_size))
-        return false;
+    private_key.assign((const char*)priv_data_pointer, priv_data_size);
 
     if (pub_data_pointer == NULL)
     {
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function ecdsa_create_signing_keys");
         return false;
     }
+    public_key.assign((const char*)pub_data_pointer, pub_data_size);
 
-    verify_null_terminated((const char*)pub_data_pointer, pub_data_size);
-
-    return copy_internal_pointer(public_key, pub_data_pointer, pub_data_size);
+    return true;
 }
 
 /* ----------------------------------------------------------------- *
@@ -240,17 +231,15 @@ bool ww::crypto::ecdsa::generate_keys(
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::sign_message(
     const ww::types::ByteArray& message,
-    const ww::types::ByteArray& private_key,
+    const std::string& private_key,
     ww::types::ByteArray& signature)
 {
-    verify_null_terminated((const char*)private_key.data(), private_key.size());
-
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     if (! ::ecdsa_sign_message(
             message.data(), message.size(),
-            (const char*)private_key.data(), private_key.size(),
+            private_key.c_str(), private_key.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -268,17 +257,15 @@ bool ww::crypto::ecdsa::sign_message(
  * ----------------------------------------------------------------- */
 bool ww::crypto::ecdsa::verify_signature(
     const ww::types::ByteArray& message,
-    const ww::types::ByteArray& public_key,
+    const std::string& public_key,
     const ww::types::ByteArray& signature)
 {
-    verify_null_terminated((const char*)public_key.data(), public_key.size());
-
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
     return ::ecdsa_verify_signature(
         message.data(), message.size(),
-        (const char*)public_key.data(), public_key.size(),
+        public_key.c_str(), public_key.size(),
         signature.data(), signature.size());
 }
 
@@ -286,8 +273,8 @@ bool ww::crypto::ecdsa::verify_signature(
  * NAME: ww::crypto::
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::generate_keys(
-    ww::types::ByteArray& private_key,
-    ww::types::ByteArray& public_key)
+    std::string& private_key,
+    std::string& public_key)
 {
     uint8_t* priv_data_pointer = NULL;
     size_t priv_data_size = 0;
@@ -309,17 +296,16 @@ bool ww::crypto::rsa::generate_keys(
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function rsa_generate_keys");
         return false;
     }
-
-    if (! copy_internal_pointer(private_key, priv_data_pointer, priv_data_size))
-        return false;
+    private_key.assign((const char*)priv_data_pointer, priv_data_size);
 
     if (pub_data_pointer == NULL)
     {
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function rsa_generate_keys");
         return false;
     }
+    public_key.assign((const char*)pub_data_pointer, pub_data_size);
 
-    return copy_internal_pointer(public_key, pub_data_pointer, pub_data_size);
+    return true;
 }
 
 /* ----------------------------------------------------------------- *
@@ -327,7 +313,7 @@ bool ww::crypto::rsa::generate_keys(
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::encrypt_message(
     const ww::types::ByteArray& message,
-    const ww::types::ByteArray& public_key,
+    const std::string& public_key,
     ww::types::ByteArray& cipher)
 {
     uint8_t* data_pointer = NULL;
@@ -335,7 +321,7 @@ bool ww::crypto::rsa::encrypt_message(
 
     if (! ::rsa_encrypt_message(
             message.data(), message.size(),
-            (const char*)public_key.data(), public_key.size(),
+            public_key.c_str(), public_key.size(),
             &data_pointer, &data_size))
         return false;
 
@@ -353,7 +339,7 @@ bool ww::crypto::rsa::encrypt_message(
  * ----------------------------------------------------------------- */
 bool ww::crypto::rsa::decrypt_message(
     const ww::types::ByteArray& cipher,
-    const ww::types::ByteArray& private_key,
+    const std::string& private_key,
     ww::types::ByteArray& message)
 {
     uint8_t* data_pointer = NULL;
@@ -361,7 +347,7 @@ bool ww::crypto::rsa::decrypt_message(
 
     if (! ::rsa_decrypt_message(
             cipher.data(), cipher.size(),
-            (const char*)private_key.data(), private_key.size(),
+            private_key.c_str(), private_key.size(),
             &data_pointer, &data_size))
         return false;
 

@@ -53,8 +53,8 @@ bool initialize_contract(const Environment& env, Response& rsp)
         return rsp.error("failed to save creator metadata");
 
     // ---------- Create and save the ECDSA key pair ----------
-    ww::types::ByteArray public_key;
-    ww::types::ByteArray private_key;
+    std::string public_key;
+    std::string private_key;
 
     if (! ww::crypto::ecdsa::generate_keys(private_key, public_key))
         return rsp.error("failed to create contract ecdsa keys");
@@ -75,8 +75,8 @@ bool initialize_contract(const Environment& env, Response& rsp)
         return rsp.error("failed to save the AES key");
 
     // ---------- Create and save the RSA key pair ----------
-    ww::types::ByteArray rsa_private_key;
-    ww::types::ByteArray rsa_public_key;
+    std::string rsa_private_key;
+    std::string rsa_public_key;
 
     if (! ww::crypto::rsa::generate_keys(rsa_private_key, rsa_public_key))
         return rsp.error("failed to create rsa keys");
@@ -100,11 +100,11 @@ bool ecdsa_test(const Message& msg, const Environment& env, Response& rsp)
     const ww::types::ByteArray message(message_string.begin(), message_string.end());
 
     // ---------- get the keys we need ----------
-    ww::types::ByteArray private_key;
+    std::string private_key;
     if (! meta_store.get(signing_key, private_key))
         return rsp.error("failed to find private key");
 
-    ww::types::ByteArray public_key;
+    std::string public_key;
     if (! meta_store.get(verifying_key, public_key))
         return rsp.error("failed to find public key");
 
@@ -170,11 +170,11 @@ bool aes_test(const Message& msg, const Environment& env, Response& rsp)
 bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 {
     // ---------- get the keys we need ----------
-    ww::types::ByteArray rsa_public;
+    std::string rsa_public;
     if (! meta_store.get(public_encrypt_key, rsa_public))
         return rsp.error("failed to find rsa public key");
 
-    ww::types::ByteArray rsa_private;
+    std::string rsa_private;
     if (! meta_store.get(private_decrypt_key, rsa_private))
         return rsp.error("failed to find rsa private key");
 

@@ -55,34 +55,34 @@ namespace crypto
     namespace ecdsa
     {
         bool generate_keys(
-            ww::types::ByteArray& private_key,
-            ww::types::ByteArray& public_key);
+            std::string& private_key,
+            std::string& public_key);
 
         bool sign_message(
             const ww::types::ByteArray& message,
-            const ww::types::ByteArray& private_key,
+            const std::string& private_key,
             ww::types::ByteArray& signature);
 
         bool verify_signature(
             const ww::types::ByteArray& message,
-            const ww::types::ByteArray& public_key,
+            const std::string& public_key,
             const ww::types::ByteArray& signature);
     };
 
     namespace rsa
     {
         bool generate_keys(
-            ww::types::ByteArray& private_key,
-            ww::types::ByteArray& public_key);
+            std::string& private_key,
+            std::string& public_key);
 
         bool encrypt_message(
             const ww::types::ByteArray& message,
-            const ww::types::ByteArray& public_key,
+            const std::string& public_key,
             ww::types::ByteArray& encrypted_message);
 
         bool decrypt_message(
             const ww::types::ByteArray& message,
-            const ww::types::ByteArray& private_key,
+            const std::string& private_key,
             ww::types::ByteArray& encrypted_message);
     };
 };                              /* namespace crypto */
