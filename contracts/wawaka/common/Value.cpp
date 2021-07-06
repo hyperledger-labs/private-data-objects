@@ -76,6 +76,12 @@ const JSON_Value* ww::value::Value::set(const JSON_Value *value)
 }
 
 // -----------------------------------------------------------------
+const JSON_Value* ww::value::Value::set(const ww::value::Value& value)
+{
+    return set(value.value_);
+}
+
+// -----------------------------------------------------------------
 bool ww::value::Value::deserialize(const char* value)
 {
     if (value == NULL)
@@ -106,7 +112,7 @@ bool ww::value::Value::deserialize(const char* value)
 }
 
 // -----------------------------------------------------------------
-bool ww::value::Value::serialize(ww::types::StringArray& result) const
+bool ww::value::Value::serialize(std::string& result) const
 {
     if (value_ == NULL)
     {
@@ -123,7 +129,7 @@ bool ww::value::Value::serialize(ww::types::StringArray& result) const
     // than assign
     // bool success = result.take(serialized_reponse);
 
-    result.assign(serialized_response);
+    result = serialized_response;
     free(serialized_response);
 
     return true;
@@ -252,23 +258,43 @@ ww::value::Object::Object(const ww::value::Object& source)
     expected_value_type_ = (value_ == NULL ? JSONError : json_value_get_type(value_));
 }
 
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// -----------------------------------------------------------------
 const char* ww::value::Object::get_string(const char* key) const
 {
      return json_object_dotget_string(json_object(value_), key);
 }
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// -----------------------------------------------------------------
 double ww::value::Object::get_number(const char* key) const
 {
     return json_object_dotget_number(json_object(value_), key);
 }
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// -----------------------------------------------------------------
 int ww::value::Object::get_boolean(const char* key) const
 {
     return json_object_dotget_boolean(json_object(value_), key);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Object::set_string(const char* key, const char* value)
+{
+    ww::value::String v(value);
+    return set_value(key, v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Object::set_number(const char* key, const double value)
+{
+    ww::value::Number v(value);
+    return set_value(key, v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Object::set_boolean(const char* key, const bool value)
+{
+    ww::value::Boolean v(value);
+    return set_value(key, v);
 }
 
 // -----------------------------------------------------------------

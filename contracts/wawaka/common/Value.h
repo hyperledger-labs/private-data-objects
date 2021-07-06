@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "parson.h"
 #include "Types.h"
 
@@ -36,12 +38,13 @@ namespace value
         ~Value(void);
 
         char *serialize(void) const;
-        bool serialize(ww::types::StringArray& result) const;
+        bool serialize(std::string& result) const;
         bool deserialize(const char *message);
 
         JSON_Value_Type get_type(void) const;
         const JSON_Value* get(void) const;
         const JSON_Value* set(const JSON_Value *value);
+        const JSON_Value* set(const ww::value::Value& value);
 
         bool is_null(void) const { return value_ == NULL; };
     };
@@ -85,12 +88,11 @@ namespace value
         const char* get_string(const char* key) const;
         double get_number(const char* key) const;
         int get_boolean(const char* key) const;
-
         bool get_value(const char* name, Value& value) const;
 
-        //bool set_string(const char* name, const char* value);
-        //bool set_number(const char* name, const double value);
-        //bool set_boolean(const char* name, const bool value);
+        bool set_string(const char* name, const char* value);
+        bool set_number(const char* name, const double value);
+        bool set_boolean(const char* name, const bool value);
         bool set_value(const char* name, const Value& value);
 
         // pass in a schema object, true if the value has the same
