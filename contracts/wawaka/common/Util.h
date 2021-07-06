@@ -26,9 +26,9 @@
         }                                               \
     } while (0)
 
-#define ASSERT_SENDER_IS_OWNER(_env, _rsp)                              \
+#define ASSERT_SENDER_IS_CREATOR(_env, _rsp)                            \
     do {                                                                \
-        if (strcmp(_env.creator_id_, _env.originator_id_) != 0)         \
+        if (_env.creator_id_ != _env.originator_id_)                    \
             return _rsp.error("only the owner may invoke this method"); \
     } while (0)
 
