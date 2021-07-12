@@ -441,6 +441,48 @@ int ww::value::Array::get_boolean(size_t index) const
 }
 
 // -----------------------------------------------------------------
+bool ww::value::Array::set_string(const size_t index, const char* value)
+{
+    ww::value::String v(value);
+    return set_value(index, v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::set_number(const size_t index, const double value)
+{
+    ww::value::Number v(value);
+    return set_value(index, v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::set_boolean(const size_t index, const bool value)
+{
+    ww::value::Boolean v(value);
+    return set_value(index, v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::append_string(const char* value)
+{
+    ww::value::String v(value);
+    return append_value(v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::append_number(const double value)
+{
+    ww::value::Number v(value);
+    return append_value(v);
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::append_boolean(const bool value)
+{
+    ww::value::Boolean v(value);
+    return append_value(v);
+}
+
+/// -----------------------------------------------------------------
 bool ww::value::Array::get_value(const size_t index, ww::value::Value& value) const
 {
     const JSON_Value *json_value = json_array_get_value(json_array(value_), index);
@@ -453,6 +495,22 @@ bool ww::value::Array::get_value(const size_t index, ww::value::Value& value) co
         return false;
 
     value.set(json_value);
+    return true;
+}
+
+// -----------------------------------------------------------------
+bool ww::value::Array::set_value(const size_t index, const ww::value::Value& value)
+{
+    JSON_Value *json_value = json_value_deep_copy(value.get());
+    if (json_value == NULL)
+        return false;
+
+    if (json_array_replace_value(json_array(value_), index, json_value) != JSONSuccess)
+    {
+        json_value_free(json_value);
+        return false;
+    }
+
     return true;
 }
 

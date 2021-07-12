@@ -214,14 +214,14 @@ bool ww::crypto::ecdsa::generate_keys(
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function ecdsa_create_signing_keys");
         return false;
     }
-    private_key.assign((const char*)priv_data_pointer, priv_data_size);
+    private_key.assign((const char*)priv_data_pointer, priv_data_size - 1); // strip the null character
 
     if (pub_data_pointer == NULL)
     {
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function ecdsa_create_signing_keys");
         return false;
     }
-    public_key.assign((const char*)pub_data_pointer, pub_data_size);
+    public_key.assign((const char*)pub_data_pointer, pub_data_size - 1); // string the null character
 
     return true;
 }
@@ -296,14 +296,14 @@ bool ww::crypto::rsa::generate_keys(
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function rsa_generate_keys");
         return false;
     }
-    private_key.assign((const char*)priv_data_pointer, priv_data_size);
+    private_key.assign((const char*)priv_data_pointer, priv_data_size - 1); // strip null
 
     if (pub_data_pointer == NULL)
     {
         CONTRACT_SAFE_LOG(3, "invalid pointer from extension function rsa_generate_keys");
         return false;
     }
-    public_key.assign((const char*)pub_data_pointer, pub_data_size);
+    public_key.assign((const char*)pub_data_pointer, pub_data_size - 1); // strip null
 
     return true;
 }
