@@ -119,12 +119,16 @@ namespace value
         const char* get_string(const size_t index) const;
         double get_number(const size_t index) const;
         int get_boolean(const size_t index) const;
-
         bool get_value(const size_t index, Value& value) const;
 
-        //bool set_string(const size_t index, const char* value);
-        //bool set_number(const size_t index, const double value);
-        //bool set_boolean(const size_t index, const bool value);
+        bool set_string(const size_t index, const char* value);
+        bool set_number(const size_t index, const double value);
+        bool set_boolean(const size_t index, const bool value);
+        bool set_value(const size_t index, const ww::value::Value& value);
+
+        bool append_string(const char* value);
+        bool append_number(const double value);
+        bool append_boolean(const bool value);
         bool append_value(const Value& value);
     };
 };
