@@ -13,15 +13,17 @@
  * limitations under the License.
  */
 
+#include "verify-report.h"
+
 #include <assert.h>
+#include <openssl/pem.h>
+#include <openssl/x509v3.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/x509v3.h>
-#include <openssl/pem.h>
 
-#include "verify-report.h"
-#include "ias-certificates.h"
 #include "c11_support.h"
+#include "ias-certificates.h"
+#include "parson.h"
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 //########### INTERNAL FUNCTIONS #########################################
@@ -30,7 +32,8 @@
 /* EVP_DecodeBlock pads its output with \0 if the output length is not
    a multiple of 3. Check if the base64 string is padded at the end
    and adjust the output length. */
-static int EVP_DecodeBlock_wrapper(unsigned char* out, int out_len, const unsigned char* in, int in_len)
+static int EVP_DecodeBlock_wrapper(
+    unsigned char* out, int out_len, const unsigned char* in, int in_len)
 {
     /* Use a temporary output buffer. We do not want to disturb the
        original output buffer with extraneous \0 bytes. */
@@ -57,6 +60,39 @@ err:
 //########################################################################
 //########### INTERNAL FUNCTIONS #########################################
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#define IAS_QUOTE_STATUS_JSON_STRING "isvEnclaveQuoteStatus"
+
+const char* quote_status[QS_NUMBER] = {"bad status", "OK", "GROUP_OUT_OF_DATE",
+    "CONFIGURATION_NEEDED", "SW_HARDENING_NEEDED", "CONFIGURATION_AND_SW_HARDENING_NEEDED"};
+
+quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_len)
+{
+    JSON_Value* jv;
+    JSON_Object* jo;
+    const char* s;
+    int i;
+
+    jv = json_parse_string(ias_report);
+    COND2ERR(jv == NULL);
+
+    jo = json_value_get_object(jv);
+    COND2ERR(jo == NULL);
+
+    s = json_object_get_string(jo, IAS_QUOTE_STATUS_JSON_STRING);
+    COND2ERR(s == NULL);
+
+    for (i = 1; i < QS_NUMBER; i++)
+    {
+        if (0 == strncmp(s, quote_status[i], strlen(quote_status[i])))
+        {
+            return (quote_status_e)i;
+        }
+    }
+
+err:
+    return QS_INVALID;
+}
 
 int get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote)
 {
@@ -103,10 +139,10 @@ err:
 }
 
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
-                                            const char* ias_report,
-                                            unsigned int ias_report_len,
-                                            char* ias_signature,
-                                            unsigned int ias_signature_len)
+    const char* ias_report,
+    unsigned int ias_report_len,
+    char* ias_signature,
+    unsigned int ias_signature_len)
 {
     X509* crt = NULL;
     int ret = -1;
@@ -131,10 +167,8 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
     ret = EVP_VerifyUpdate(ctx, ias_report, ias_report_len);
     COND2ERR(ret != 1);
 
-    ret = EVP_DecodeBlock_wrapper(ias_signature_decoded,
-                                    ias_signature_decoded_len,
-                                    (unsigned char*)ias_signature,
-                                    ias_signature_len);
+    ret = EVP_DecodeBlock_wrapper(ias_signature_decoded, ias_signature_decoded_len,
+        (unsigned char*)ias_signature, ias_signature_len);
     COND2ERR(ret == -1);
 
     ret = EVP_VerifyFinal(ctx, (unsigned char*)ias_signature_decoded, ret, key);
@@ -144,7 +178,7 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
     X509_free(crt);
     BIO_free(crt_bio);
 
-    COND2ERR(ret != 1); // 1 == correct signature
+    COND2ERR(ret != 1);  // 1 == correct signature
 
     return VERIFY_SUCCESS; /* success */
 
@@ -155,9 +189,10 @@ err:
 verify_status_t verify_ias_certificate_chain(const char* cert_pem)
 #ifndef IAS_CA_CERT_REQUIRED
 {
-    return VERIFY_FAILURE; //fail (conservative approach for simulator-mode and in absence of CA certificate)
+    return VERIFY_FAILURE;  // fail (conservative approach for simulator-mode and in absence of CA
+                            // certificate)
 }
-#else //IAS_CA_CERT_REQUIRED is defined
+#else   // IAS_CA_CERT_REQUIRED is defined
 {
     /* Using the IAS CA certificate as a root of trust. */
     /* Checking that cert is signed by CA. */
@@ -206,7 +241,7 @@ verify_status_t verify_ias_certificate_chain(const char* cert_pem)
 err:
     return VERIFY_FAILURE;
 }
-#endif //IAS_CA_CERT_REQUIRED
+#endif  // IAS_CA_CERT_REQUIRED
 
 /**
  * Check if isvEnclaveQuoteStatus is "OK"
@@ -215,40 +250,33 @@ err:
  *
  * @return 0 if verified successfully, 1 otherwise.
  */
-verify_status_t verify_enclave_quote_status(const char* ias_report, int ias_report_len, int group_out_of_date_is_ok)
+verify_status_t verify_enclave_quote_status(
+    const char* ias_report, unsigned int ias_report_len, unsigned int quote_status_flags)
 {
-    // Move ias_report into \0 terminated buffer such that we can work
-    // with str* functions.
-    int buf_len = ias_report_len + 1;
-    char buf[buf_len];
-    const int status_OK_max_len = 8;
-    const char status_OK[status_OK_max_len] = "OK\"";
+    quote_status_e qs;
 
-    memcpy_s(buf, buf_len, ias_report, ias_report_len);
-    buf[ias_report_len] = '\0';
+    qs = get_quote_status(ias_report, ias_report_len);
 
-    const int json_string_max_len = 64;
-    const char json_string[json_string_max_len] = "\"isvEnclaveQuoteStatus\":\"";
-    char* p_begin = strstr(buf, json_string);
-    COND2ERR(p_begin == NULL);
-    p_begin += strnlen(json_string, json_string_max_len);
-
-    if (0 == strncmp(p_begin, status_OK, strnlen(status_OK, status_OK_max_len)))
+    switch (qs)
     {
-        return VERIFY_SUCCESS;
-    }
+        case QS_INVALID:
+            COND2ERR(1);
 
-    if(group_out_of_date_is_ok)
-    {
-        const int status_outdated_max_len = 64;
-        const char status_outdated[status_outdated_max_len] = "GROUP_OUT_OF_DATE\"";
-        if (0 == strncmp(p_begin, status_outdated, strnlen(status_outdated, status_outdated_max_len)))
-        {
+        case QS_OK:
             return VERIFY_SUCCESS;
-        }
+
+        case QS_GROUP_OUT_OF_DATE:
+        case QS_CONFIGURATION_NEEDED:
+        case QS_SW_HARDENING_NEEDED:
+        case QS_CONFIGURATION_AND_SW_HARDENING_NEEDED:
+            COND2ERR(0 == (quote_status_flags & (1 << qs)));
+            return VERIFY_SUCCESS;
+
+        default:
+            COND2ERR(1);
     }
 
 err:
-    //quote not ok
+    // quote not ok
     return VERIFY_FAILURE;
 }
