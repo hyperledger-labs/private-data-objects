@@ -52,7 +52,7 @@ ENDIF()
 SET(COMMON_CXX_FLAGS ${IAS_CA_CERT_REQUIRED_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
 # required for: `types.h` and `error.h` in common
-SET(PRIVATE_DEPS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../packages/base64")
+SET(PRIVATE_DEPS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/.." "${CMAKE_CURRENT_SOURCE_DIR}/../packages/base64" "${CMAKE_CURRENT_SOURCE_DIR}/../packages/parson")
 
 # required for:`sgx_error.h` in sgx-sdk
 SET(PUBLIC_INCLUDE_DIRS "$ENV{SGX_SDK}/include")
