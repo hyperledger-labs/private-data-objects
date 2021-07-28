@@ -614,8 +614,8 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     //Verify verification report signature
 
     int r;
-    //verify good quote, but group-of-date is not considered ok
-    r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(), 1);
+    // verify quote (group-of-date is considered ok)
+    r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(), QSF_ACCEPT_GROUP_OUT_OF_DATE);
     pdo::error::ThrowIf<pdo::error::ValueError>(
         r!=VERIFY_SUCCESS, "Invalid Enclave Quote:  group-of-date NOT OKAY");
 
