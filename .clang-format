@@ -8,7 +8,7 @@ AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 #AlignAfterOpenBracket: Align
-AlignAfterOpenBracket: DontAlign
+AlignAfterOpenBracket: Align
 ColumnLimit:     100
 BraceWrapping:
   AfterClass:      true
@@ -27,3 +27,4 @@ NamespaceIndentation: Inner
 DerivePointerAlignment: false
 AccessModifierOffset: -4
 BinPackParameters: false
+BinPackArguments: false

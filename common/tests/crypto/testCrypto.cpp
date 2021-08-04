@@ -63,8 +63,8 @@ int pcrypto::testCrypto()
     try
     {
         rand = pcrypto::RandomBitString(0);
-        SAFE_LOG(
-            PDO_LOG_ERROR, "testCrypto: RandomBitString invalid length argument undetected.\n");
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: RandomBitString invalid length argument undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
@@ -77,8 +77,9 @@ int pcrypto::testCrypto()
         return -1;
     }
 
-    SAFE_LOG(PDO_LOG_DEBUG, "RandomBitString test successful!\n%s\n\n",
-        ByteArrayToBase64EncodedString(rand).c_str());
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "RandomBitString test successful!\n%s\n\n",
+             ByteArrayToBase64EncodedString(rand).c_str());
 
     // Test ECDSA key management functions
     try
@@ -154,15 +155,16 @@ int pcrypto::testCrypto()
     }
     catch (const Error::ValueError& e)
     {
-        SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: Deserialize invalid ECDSA private key detected!\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: Deserialize invalid ECDSA private key detected!\n%s\n",
+                 e.what());
     }
     catch (const Error::RuntimeError& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: Deserialize invalid ECDSA private key internal "
-            "error.\n%s\n",
-            e.what());
+                 "testCrypto: Deserialize invalid ECDSA private key internal "
+                 "error.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -172,15 +174,16 @@ int pcrypto::testCrypto()
     }
     catch (const Error::ValueError& e)
     {
-        SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: Deserialize invalid ECDSA public key detected!\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: Deserialize invalid ECDSA public key detected!\n%s\n",
+                 e.what());
     }
     catch (const Error::RuntimeError& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: Deserialize invalid ECDSA public key internal "
-            "error.\n%s\n",
-            e.what());
+                 "testCrypto: Deserialize invalid ECDSA public key internal "
+                 "error.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -209,8 +212,8 @@ int pcrypto::testCrypto()
         return -1;
     }
 
-    SAFE_LOG(
-        PDO_LOG_DEBUG, "testCrypto: Serialize/Deserialize ECDSA keypairs tests successful!\n\n");
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "testCrypto: Serialize/Deserialize ECDSA keypairs tests successful!\n\n");
     // Test ComputeMessageHash
 
     std::string msgStr("Proof of Elapsed Time");
@@ -222,8 +225,8 @@ int pcrypto::testCrypto()
     if (hashStr_B64.compare(msg_SHA256_B64) != 0)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: ComputeMessageHash test failed, SHA256 digest "
-            "mismatch.\n");
+                 "testCrypto: ComputeMessageHash test failed, SHA256 digest "
+                 "mismatch.\n");
         return -1;
     }
     SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: ComputeMessageHash test passed!\n\n");
@@ -242,8 +245,8 @@ int pcrypto::testCrypto()
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) != 0)
         {
             SAFE_LOG(PDO_LOG_ERROR,
-                "testCrypto: ComputeMessageHMAC test failed, SHA256 digest "
-                "mismatch.\n");
+                     "testCrypto: ComputeMessageHMAC test failed, SHA256 digest "
+                     "mismatch.\n");
             return -1;
         }
     }
@@ -259,7 +262,7 @@ int pcrypto::testCrypto()
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
         {
             SAFE_LOG(PDO_LOG_ERROR,
-                "testCrypto: ComputeMessageHMAC, wrong key test shoud have failed.\n");
+                     "testCrypto: ComputeMessageHMAC, wrong key test shoud have failed.\n");
             return -1;
         }
     }
@@ -275,7 +278,7 @@ int pcrypto::testCrypto()
         if (hmacStr_B64.compare(msg_SHA256HMAC_B64) == 0)
         {
             SAFE_LOG(PDO_LOG_ERROR,
-                "testCrypto: ComputeMessageHMAC, wrong message test should have failed.\n");
+                     "testCrypto: ComputeMessageHMAC, wrong message test should have failed.\n");
             return -1;
         }
     }
@@ -336,7 +339,8 @@ int pcrypto::testCrypto()
     catch (const Error::RuntimeError& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: SignMessage test failed, signature not computed.\n%s\n", e.what());
+                 "testCrypto: SignMessage test failed, signature not computed.\n%s\n",
+                 e.what());
         return -1;
     }
     SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: SignMessage test passed!\n\n");
@@ -364,7 +368,8 @@ int pcrypto::testCrypto()
     catch (const Error::RuntimeError& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: SignMessage test failed, signature not computed.\n%s\n", e.what());
+                 "testCrypto: SignMessage test failed, signature not computed.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -377,7 +382,7 @@ int pcrypto::testCrypto()
     if (res == 1)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: VerifySignature test failed, invalid message not detected!\n");
+                 "testCrypto: VerifySignature test failed, invalid message not detected!\n");
         return -1;
     }
 
@@ -391,7 +396,7 @@ int pcrypto::testCrypto()
     if (res == 1)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: VerifySignature test failed, invalid signature not detected!\n");
+                 "testCrypto: VerifySignature test failed, invalid signature not detected!\n");
         return -1;
     }
     SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: VerifySignature, invalid signature detected!\n");
@@ -474,15 +479,16 @@ int pcrypto::testCrypto()
     }
     catch (const Error::ValueError& e)
     {
-        SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: RSA invalid private key deserialize detected!\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: RSA invalid private key deserialize detected!\n%s\n",
+                 e.what());
     }
     catch (const std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: RSA invalid private key deserialize internal "
-            "error!\n%s\n",
-            e.what());
+                 "testCrypto: RSA invalid private key deserialize internal "
+                 "error!\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -494,13 +500,15 @@ int pcrypto::testCrypto()
     }
     catch (const Error::ValueError& e)
     {
-        SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: RSA invalid public key deserialize detected!\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: RSA invalid public key deserialize detected!\n%s\n",
+                 e.what());
     }
     catch (const Error::RuntimeError& e)
     {
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: RSA invalid public key deserialize internal error!\n%s\n", e.what());
+                 "testCrypto: RSA invalid public key deserialize internal error!\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -539,7 +547,7 @@ int pcrypto::testCrypto()
     catch (const Error::ValueError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: RSA decryption test invalid RSA ciphertext correctly detected!\n");
+                 "testCrypto: RSA decryption test invalid RSA ciphertext correctly detected!\n");
     }
     catch (const std::exception& e)
     {
@@ -592,29 +600,30 @@ int pcrypto::testCrypto()
     {
         ctAES = pcrypto::skenc::EncryptMessage(key, iv, empty);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM empty message encryption test failed: undetected.\n");
+                 "testCrypto: AES-GCM empty message encryption test failed: undetected.\n");
         return -1;
     }
     catch (const std::exception& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM empty message encryption test successful (detected)!\n%s\n",
-            e.what());
+                 "testCrypto: AES-GCM empty message encryption test successful (detected)!\n%s\n",
+                 e.what());
     }
 
     try
     {
         ctAES = pcrypto::skenc::EncryptMessage(key, empty);
-        SAFE_LOG(PDO_LOG_ERROR,
+        SAFE_LOG(
+            PDO_LOG_ERROR,
             "testCrypto: AES-GCM (random IV) empty message encryption test failed: undetected.\n");
         return -1;
     }
     catch (const std::exception& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM (random IV) empty message encryption test successful "
-            "(detected)!\n%s\n",
-            e.what());
+                 "testCrypto: AES-GCM (random IV) empty message encryption test successful "
+                 "(detected)!\n%s\n",
+                 e.what());
     }
 
     try
@@ -636,8 +645,8 @@ int pcrypto::testCrypto()
     try
     {
         ctAES = pcrypto::skenc::EncryptMessage(empty, iv, msg);
-        SAFE_LOG(
-            PDO_LOG_ERROR, "testCrypto: AES-GCM encryption test failed, bad key undetected.\n");
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM encryption test failed, bad key undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
@@ -654,18 +663,19 @@ int pcrypto::testCrypto()
     {
         ctAES = pcrypto::skenc::EncryptMessage(empty, msg);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM (random IV) encryption test failed, bad key undetected.\n");
+                 "testCrypto: AES-GCM (random IV) encryption test failed, bad key undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM (random IV) encryption correct, bad key detected!\n\n");
+                 "testCrypto: AES-GCM (random IV) encryption correct, bad key detected!\n\n");
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) encryption test failed.\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) encryption test failed.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -701,8 +711,8 @@ int pcrypto::testCrypto()
     try
     {
         ptAES = pcrypto::skenc::DecryptMessage(empty, iv, ctAES);
-        SAFE_LOG(
-            PDO_LOG_ERROR, "testCrypto: AES-GCM decryption test failed, bad key undetected.\n");
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM decryption test failed, bad key undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
@@ -731,15 +741,15 @@ int pcrypto::testCrypto()
     {
         ptAES = pcrypto::skenc::DecryptMessage(key, iv, ctAES);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM decryption test failed, ciphertext tampering "
-            "undetected.\n");
+                 "testCrypto: AES-GCM decryption test failed, ciphertext tampering "
+                 "undetected.\n");
         return -1;
     }
     catch (const Error::CryptoError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM decryption correct, ciphertext tampering "
-            "detected!\n\n");
+                 "testCrypto: AES-GCM decryption correct, ciphertext tampering "
+                 "detected!\n\n");
     }
     catch (const std::exception& e)
     {
@@ -751,15 +761,15 @@ int pcrypto::testCrypto()
     {
         ptAES = pcrypto::skenc::DecryptMessage(key, iv, empty);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM decryption test failed, invalid ciphertext size "
-            "undetected.\n");
+                 "testCrypto: AES-GCM decryption test failed, invalid ciphertext size "
+                 "undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM decryption correct, invalid ciphertext size "
-            "detected!\n\n");
+                 "testCrypto: AES-GCM decryption correct, invalid ciphertext size "
+                 "detected!\n\n");
     }
     catch (const std::exception& e)
     {
@@ -775,8 +785,9 @@ int pcrypto::testCrypto()
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) encryption test failed.\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) encryption test failed.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -785,18 +796,19 @@ int pcrypto::testCrypto()
     {
         ptAES = pcrypto::skenc::DecryptMessage(empty, ctAES);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM (random IV) decryption test failed, bad key undetected.\n");
+                 "testCrypto: AES-GCM (random IV) decryption test failed, bad key undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM (random IV) decryption correct, bad key detected!\n\n");
+                 "testCrypto: AES-GCM (random IV) decryption correct, bad key detected!\n\n");
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) decryption test failed.\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) decryption test failed.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -807,8 +819,9 @@ int pcrypto::testCrypto()
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) decryption test failed.\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) decryption test failed.\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -817,20 +830,21 @@ int pcrypto::testCrypto()
     {
         ptAES = pcrypto::skenc::DecryptMessage(key, ctAES);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM (random IV) decryption test failed, ciphertext tampering "
-            "undetected.\n");
+                 "testCrypto: AES-GCM (random IV) decryption test failed, ciphertext tampering "
+                 "undetected.\n");
         return -1;
     }
     catch (const Error::CryptoError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM (random IV) decryption correct, ciphertext tampering "
-            "detected!\n\n");
+                 "testCrypto: AES-GCM (random IV) decryption correct, ciphertext tampering "
+                 "detected!\n\n");
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) decryption test failed\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) decryption test failed\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -838,20 +852,21 @@ int pcrypto::testCrypto()
     {
         ptAES = pcrypto::skenc::DecryptMessage(key, empty);
         SAFE_LOG(PDO_LOG_ERROR,
-            "testCrypto: AES-GCM (random IV) decryption test failed, invalid ciphertext size "
-            "undetected.\n");
+                 "testCrypto: AES-GCM (random IV) decryption test failed, invalid ciphertext size "
+                 "undetected.\n");
         return -1;
     }
     catch (const Error::ValueError& e)
     {
         SAFE_LOG(PDO_LOG_DEBUG,
-            "testCrypto: AES-GCM (random IV) decryption correct, invalid ciphertext size "
-            "detected!\n\n");
+                 "testCrypto: AES-GCM (random IV) decryption correct, invalid ciphertext size "
+                 "detected!\n\n");
     }
     catch (const std::exception& e)
     {
-        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: AES-GCM (random IV) decryption test failed\n%s\n",
-            e.what());
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: AES-GCM (random IV) decryption test failed\n%s\n",
+                 e.what());
         return -1;
     }
 
@@ -940,7 +955,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
 
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE,
-            "verify good group-out-of-date quote, with group-out-of-date not allowed\n");
+                    "verify good group-out-of-date quote, with group-out-of-date not allowed\n");
     }
 
     {
@@ -990,7 +1005,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             "\"p\":\"F\"}";
         quote_status_e qs = get_quote_status((char*)mock_quote_status, mock_report_len);
         COND2LOGERR(qs != QS_CONFIGURATION_AND_SW_HARDENING_NEEDED,
-            "get CONFIGURATION_AND_SW_HARDENING_NEEDED status from quote");
+                    "get CONFIGURATION_AND_SW_HARDENING_NEEDED status from quote");
     }
 
     {  // verify good group-out-of-date quote, with group-of-date allowed
@@ -998,7 +1013,7 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             (char*)mock_verification_report, mock_report_len, QSF_ACCEPT_GROUP_OUT_OF_DATE);
         // success expected
         COND2LOGERR(r != VERIFY_SUCCESS,
-            "verify good group-out-of-date quote, with group-out-of-date allowed\n");
+                    "verify good group-out-of-date quote, with group-out-of-date allowed\n");
     }
 
     {  // verify good group-out-of-date quote, with all statuses (except OK) rejected
@@ -1006,14 +1021,15 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             (char*)mock_verification_report, mock_report_len, QSF_REJECT_ALL);
         // success expected
         COND2LOGERR(r != VERIFY_FAILURE,
-            "verify good group-out-of-date quote, with all statuses rejected\n");
+                    "verify good group-out-of-date quote, with all statuses rejected\n");
     }
 
     {  // verify good group-out-of-date quote, with a status other than group-out-of-date accepted
         int r = verify_enclave_quote_status(
             (char*)mock_verification_report, mock_report_len, QSF_ACCEPT_CONFIGURATION_NEEDED);
         // success expected
-        COND2LOGERR(r != VERIFY_FAILURE,
+        COND2LOGERR(
+            r != VERIFY_FAILURE,
             "verify good group-out-of-date quote, with a status other than group-out-of-date "
             "accepted\n");
     }
@@ -1039,7 +1055,8 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy7+"
             "m9Dx2rPbbbBWJUud3AHHnxoFWhlMQCyNjtVRvD2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}";
         int r = verify_enclave_quote_status((char*)bad_mock_verification_report,
-            strlen((char*)bad_mock_verification_report), QSF_ACCEPT_GROUP_OUT_OF_DATE);
+                                            strlen((char*)bad_mock_verification_report),
+                                            QSF_ACCEPT_GROUP_OUT_OF_DATE);
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify quote with no isvEnclaveQuoteStatus\n");
     }
@@ -1050,11 +1067,11 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
 #ifdef IAS_CA_CERT_REQUIRED
         // success expected
         COND2LOGERR(r != VERIFY_SUCCESS,
-            "verify good IAS CA certificate with IAS CA certificate required\n");
+                    "verify good IAS CA certificate with IAS CA certificate required\n");
 #else
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE,
-            "verify good IAS CA certificate with IAS CA certificate NOT required\n");
+                    "verify good IAS CA certificate with IAS CA certificate NOT required\n");
 #endif
     }
 
@@ -1063,11 +1080,11 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
 #ifdef IAS_CA_CERT_REQUIRED
         // success expected
         COND2LOGERR(r != VERIFY_SUCCESS,
-            "verify IAS report signing certificate with IAS CA certificate required\n");
+                    "verify IAS report signing certificate with IAS CA certificate required\n");
 #else
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE,
-            "verify IAS report signing certificate with IAS CA certificate NOT required\n");
+                    "verify IAS report signing certificate with IAS CA certificate NOT required\n");
 #endif
     }
 
@@ -1094,16 +1111,20 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             "irjfH4f4GGrnbWYCYK5wfB1BBbFl8ppqxm4Gr8ekePCPLMjYYLpKYWEipvTgaYl63zg+C9r8g+"
             "sIA3I9Jr3Exg==";
         int r = verify_ias_report_signature(ias_report_signing_cert_pem,
-            (char*)mock_verification_report, mock_report_len, (char*)bad_mock_signature,
-            strlen((char*)bad_mock_signature));
+                                            (char*)mock_verification_report,
+                                            mock_report_len,
+                                            (char*)bad_mock_signature,
+                                            strlen((char*)bad_mock_signature));
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify bad IAS signature\n");
     }
 
     {  // verify good IAS signature
         int r = verify_ias_report_signature(ias_report_signing_cert_pem,
-            (char*)mock_verification_report, mock_report_len, (char*)mock_signature,
-            strlen((char*)mock_signature));
+                                            (char*)mock_verification_report,
+                                            mock_report_len,
+                                            (char*)mock_signature,
+                                            strlen((char*)mock_signature));
         // success expected
         COND2LOGERR(r == VERIFY_FAILURE, "verify good IAS signature\n");
     }
@@ -1129,16 +1150,20 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy7+"
             "m9Dx2rPbbbBWJUud3AHHnxoFWhlMQCyNjtVRvD2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}";
         int r = verify_ias_report_signature(ias_report_signing_cert_pem,
-            (char*)bad_mock_verification_report, strlen((char*)bad_mock_verification_report),
-            (char*)mock_signature, strlen((char*)mock_signature));
+                                            (char*)bad_mock_verification_report,
+                                            strlen((char*)bad_mock_verification_report),
+                                            (char*)mock_signature,
+                                            strlen((char*)mock_signature));
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify bad IAS report\n");
     }
 
     {  // verify with null ias certificate
-        int r = verify_ias_report_signature(NULL, (char*)mock_verification_report,
-            strlen((char*)mock_verification_report), (char*)mock_signature,
-            strlen((char*)mock_signature));
+        int r = verify_ias_report_signature(NULL,
+                                            (char*)mock_verification_report,
+                                            strlen((char*)mock_verification_report),
+                                            (char*)mock_signature,
+                                            strlen((char*)mock_signature));
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify with null ias certificate\n");
     }
@@ -1253,8 +1278,10 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
 
     {  // verify signature with bad certificate
         int r = verify_ias_report_signature("this is a bad certificate",
-            (char*)mock_verification_report, mock_report_len, (char*)mock_signature,
-            strlen((char*)mock_signature));
+                                            (char*)mock_verification_report,
+                                            mock_report_len,
+                                            (char*)mock_signature,
+                                            strlen((char*)mock_signature));
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify signature with bad certificate\n");
     }
@@ -1262,8 +1289,10 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
     {  // verify signature with bad encoding
         char bad_mock_signature[] = "Aaa";
         int r = verify_ias_report_signature(ias_report_signing_cert_pem,
-            (char*)mock_verification_report, mock_report_len, (char*)bad_mock_signature,
-            strlen((char*)bad_mock_signature));
+                                            (char*)mock_verification_report,
+                                            mock_report_len,
+                                            (char*)bad_mock_signature,
+                                            strlen((char*)bad_mock_signature));
         // failure expected
         COND2LOGERR(r != VERIFY_FAILURE, "verify signature with bad encoding\n");
     }

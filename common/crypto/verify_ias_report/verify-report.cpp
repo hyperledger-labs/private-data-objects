@@ -32,8 +32,10 @@
 /* EVP_DecodeBlock pads its output with \0 if the output length is not
    a multiple of 3. Check if the base64 string is padded at the end
    and adjust the output length. */
-static int EVP_DecodeBlock_wrapper(
-    unsigned char* out, int out_len, const unsigned char* in, int in_len)
+static int EVP_DecodeBlock_wrapper(unsigned char* out,
+                                   int out_len,
+                                   const unsigned char* in,
+                                   int in_len)
 {
     /* Use a temporary output buffer. We do not want to disturb the
        original output buffer with extraneous \0 bytes. */
@@ -63,13 +65,17 @@ err:
 
 #define IAS_QUOTE_STATUS_JSON_STRING "isvEnclaveQuoteStatus"
 
-struct qss {
+struct qss
+{
     const char* s;
     size_t l;
 };
 
-#define MAKE_QSS_ITEM(x) {x, sizeof(x) - 1}
-#define INIT_QS_ARRAY_ITEM(x, y) [x]=MAKE_QSS_ITEM(y)
+#define MAKE_QSS_ITEM(x) \
+    {                    \
+        x, sizeof(x) - 1 \
+    }
+#define INIT_QS_ARRAY_ITEM(x, y) [x] = MAKE_QSS_ITEM(y)
 
 const struct qss quote_status[QS_NUMBER] = {
     INIT_QS_ARRAY_ITEM(QS_INVALID, "INVALID"),
@@ -77,8 +83,8 @@ const struct qss quote_status[QS_NUMBER] = {
     INIT_QS_ARRAY_ITEM(QS_GROUP_OUT_OF_DATE, "GROUP_OUT_OF_DATE"),
     INIT_QS_ARRAY_ITEM(QS_CONFIGURATION_NEEDED, "CONFIGURATION_NEEDED"),
     INIT_QS_ARRAY_ITEM(QS_SW_HARDENING_NEEDED, "SW_HARDENING_NEEDED"),
-    INIT_QS_ARRAY_ITEM(QS_CONFIGURATION_AND_SW_HARDENING_NEEDED, "CONFIGURATION_AND_SW_HARDENING_NEEDED")
-};
+    INIT_QS_ARRAY_ITEM(QS_CONFIGURATION_AND_SW_HARDENING_NEEDED,
+                       "CONFIGURATION_AND_SW_HARDENING_NEEDED")};
 
 quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_len)
 {
@@ -96,12 +102,12 @@ quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_
 
     s = json_object_get_string(jo, IAS_QUOTE_STATUS_JSON_STRING);
     COND2ERR(s == NULL);
-    s_length = strnlen(s, ias_report_len); // s is null-terminated by parson; s_length < ias_report_len
+    // s is null-terminated by parson; s_length < ias_report_len
+    s_length = strnlen(s, ias_report_len);
 
     for (i = 1; i < QS_NUMBER; i++)
     {
-        if (s_length == quote_status[i].l &&
-            0 == strncmp(s, quote_status[i].s, s_length))
+        if (s_length == quote_status[i].l && 0 == strncmp(s, quote_status[i].s, s_length))
         {
             return (quote_status_e)i;
         }
@@ -156,10 +162,10 @@ err:
 }
 
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
-    const char* ias_report,
-    unsigned int ias_report_len,
-    char* ias_signature,
-    unsigned int ias_signature_len)
+                                            const char* ias_report,
+                                            unsigned int ias_report_len,
+                                            char* ias_signature,
+                                            unsigned int ias_signature_len)
 {
     X509* crt = NULL;
     int ret = -1;
@@ -184,8 +190,10 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
     ret = EVP_VerifyUpdate(ctx, ias_report, ias_report_len);
     COND2ERR(ret != 1);
 
-    ret = EVP_DecodeBlock_wrapper(ias_signature_decoded, ias_signature_decoded_len,
-        (unsigned char*)ias_signature, ias_signature_len);
+    ret = EVP_DecodeBlock_wrapper(ias_signature_decoded,
+                                  ias_signature_decoded_len,
+                                  (unsigned char*)ias_signature,
+                                  ias_signature_len);
     COND2ERR(ret == -1);
 
     ret = EVP_VerifyFinal(ctx, (unsigned char*)ias_signature_decoded, ret, key);
@@ -267,8 +275,9 @@ err:
  *
  * @return 0 if verified successfully, 1 otherwise.
  */
-verify_status_t verify_enclave_quote_status(
-    const char* ias_report, unsigned int ias_report_len, unsigned int quote_status_flags)
+verify_status_t verify_enclave_quote_status(const char* ias_report,
+                                            unsigned int ias_report_len,
+                                            unsigned int quote_status_flags)
 {
     quote_status_e qs;
 

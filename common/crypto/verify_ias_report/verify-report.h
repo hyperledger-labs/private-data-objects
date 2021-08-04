@@ -48,14 +48,15 @@ extern "C" {
 #endif
 
 int get_quote_from_report(const uint8_t* report, const int report_len, sgx_quote_t* quote);
-verify_status_t verify_enclave_quote_status(
-    const char* ias_report, unsigned int ias_report_len, unsigned int quote_status_flags);
+verify_status_t verify_enclave_quote_status(const char* ias_report,
+                                            unsigned int ias_report_len,
+                                            unsigned int quote_status_flags);
 verify_status_t verify_ias_certificate_chain(const char* cert_pem);
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
-    const char* ias_report,
-    unsigned int ias_report_len,
-    char* ias_signature,
-    unsigned int ias_signature_len);
+                                            const char* ias_report,
+                                            unsigned int ias_report_len,
+                                            char* ias_signature,
+                                            unsigned int ias_signature_len);
 
 quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_len);
 #ifdef __cplusplus
