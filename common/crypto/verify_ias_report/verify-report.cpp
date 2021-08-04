@@ -63,14 +63,29 @@ err:
 
 #define IAS_QUOTE_STATUS_JSON_STRING "isvEnclaveQuoteStatus"
 
-const char* quote_status[QS_NUMBER] = {"bad status", "OK", "GROUP_OUT_OF_DATE",
-    "CONFIGURATION_NEEDED", "SW_HARDENING_NEEDED", "CONFIGURATION_AND_SW_HARDENING_NEEDED"};
+struct qss {
+    const char* s;
+    size_t l;
+};
+
+#define MAKE_QSS_ITEM(x) {x, sizeof(x) - 1}
+#define INIT_QS_ARRAY_ITEM(x, y) [x]=MAKE_QSS_ITEM(y)
+
+const struct qss quote_status[QS_NUMBER] = {
+    INIT_QS_ARRAY_ITEM(QS_INVALID, "INVALID"),
+    INIT_QS_ARRAY_ITEM(QS_OK, "OK"),
+    INIT_QS_ARRAY_ITEM(QS_GROUP_OUT_OF_DATE, "GROUP_OUT_OF_DATE"),
+    INIT_QS_ARRAY_ITEM(QS_CONFIGURATION_NEEDED, "CONFIGURATION_NEEDED"),
+    INIT_QS_ARRAY_ITEM(QS_SW_HARDENING_NEEDED, "SW_HARDENING_NEEDED"),
+    INIT_QS_ARRAY_ITEM(QS_CONFIGURATION_AND_SW_HARDENING_NEEDED, "CONFIGURATION_AND_SW_HARDENING_NEEDED")
+};
 
 quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_len)
 {
     JSON_Value* jv;
     JSON_Object* jo;
     const char* s;
+    size_t s_length;
     int i;
 
     jv = json_parse_string(ias_report);
@@ -81,10 +96,12 @@ quote_status_e get_quote_status(const char* ias_report, unsigned int ias_report_
 
     s = json_object_get_string(jo, IAS_QUOTE_STATUS_JSON_STRING);
     COND2ERR(s == NULL);
+    s_length = strnlen(s, ias_report_len); // s is null-terminated by parson; s_length < ias_report_len
 
     for (i = 1; i < QS_NUMBER; i++)
     {
-        if (0 == strncmp(s, quote_status[i], strlen(quote_status[i])))
+        if (s_length == quote_status[i].l &&
+            0 == strncmp(s, quote_status[i].s, s_length))
         {
             return (quote_status_e)i;
         }
