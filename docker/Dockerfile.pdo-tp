@@ -20,7 +20,7 @@
 #
 #  Configuration (build) paramaters
 #  - pdo repo to use:                   PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
-#  - pdo repo branch to use:            PDO_REPO_BRANCH (default: master)
+#  - pdo repo branch to use:            PDO_REPO_BRANCH (default: main)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-tp -t pdo-tp docker
@@ -44,7 +44,7 @@ FROM hyperledger/sawtooth-intkey-tp-python:1.0 as source-extractor
 RUN apt-get update && apt-get install -y git
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
-ARG PDO_REPO_BRANCH=master
+ARG PDO_REPO_BRANCH=main
 
 RUN mkdir /tmp/build-src
 COPY . /tmp/build-src
