@@ -118,14 +118,13 @@ Once your registration is complete subscribe for a
 to create the client authentication key. The key will be available from
 your profile page.
 
-Assuming that existing keys are found in `${PDO_SGX_KEY_ROOT}` (which
-defaults to the directory `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}`),
-copy the key from your profile page into a file called
-`${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`.
-
-In addition, your SPID can be found on your developer portal profile
-page. Copy the contents of the SPID into the file
-`${PDO_SGX_KEY_ROOT}/sgx_spid.txt`.
+Now organize your data as follows under the `${PDO_SGX_KEY_ROOT}` folder
+(the default folder is `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}`,
+or you can define yours with `export PDO_SGX_KEY_ROOT=<your folder>`):
+* save your SPID in `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`
+* save your API key in `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`
+* save the IAS root CA certificate in `${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`
+  (`wget https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem -O ${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`)
 
 #### Install the SGX Kernel Driver (Hardware Support)
 
