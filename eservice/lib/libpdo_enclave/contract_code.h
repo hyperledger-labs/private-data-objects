@@ -28,7 +28,6 @@
 class ContractCode
 {
 protected:
-    ByteArray SerializeForHashing(void) const;
     void ComputeHash(ByteArray& code_hash) const;
 
 public:

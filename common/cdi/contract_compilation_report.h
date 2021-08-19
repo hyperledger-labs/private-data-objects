@@ -48,7 +48,7 @@ class ContractCompilationReport {
     std::string Pack(void) const;
     void Unpack(const std::string& json_str);
     void Unpack(const JSON_Object *object);
-    std::string ComputeHash(void) const;
+    void ComputeHash(ByteArray& hash) const;
 
     std::string CompilerVerifyingKey(void) const { return compiler_verifying_key_; };
     ByteArray LedgerSigOnCompiler(void) const { return ledger_sig_on_compiler_; };
