@@ -235,9 +235,6 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
     if response.status is False :
         raise Exception('attempt to submit failed initialization transactions')
 
-    # an initialize operation has no previous state
-    assert not response.old_state_hash
-
     initialize_submitter = create_submitter(ledger_config, pdo_signer = response.originator_keys)
 
     txnid = initialize_submitter.ccl_initialize(
@@ -247,6 +244,7 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         response.contract_id,
         response.message_hash,
         response.new_state_hash,
+        ## TODO: this needs to become the metadata hash, not the code hash
         response.code_hash,
         **extra_params)
 

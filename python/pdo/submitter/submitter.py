@@ -67,13 +67,13 @@ class Submitter(object):
 # -----------------------------------------------------------------
     @abstractmethod
     def ccl_initialize(self,
-        channel_keys,
+        channel_key,
         contract_enclave_id,
         enclave_signature,
         contract_id,
         message_hash,
-        current_state_hash,
-        contract_code_hash,
+        initial_state_hash,
+        contract_metadata_hash,
         **extra_params):
         """ return txn_id """
         raise NotImplementedError("Must override ccl_initialize")
@@ -81,7 +81,7 @@ class Submitter(object):
 # -----------------------------------------------------------------
     @abstractmethod
     def ccl_update(self,
-        channel_keys,
+        channel_key,
         contract_enclave_id,
         enclave_signature,
         contract_id,

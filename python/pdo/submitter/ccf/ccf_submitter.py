@@ -225,33 +225,26 @@ class CCFSubmitter(sub.Submitter):
         enclave_signature,
         contract_id,
         message_hash,
-        current_state_hash,
-        contract_code_hash,
+        initial_state_hash,
+        contract_metadata_hash,
         **extra_params):
 
-        tx_method = "ccl_update"
-        verb = "init"
-        previous_state_hash = [];
-        dependency_list = [];
+        tx_method = "ccl_initialize"
 
         tx_params = PayloadBuilder.build_initialize_contract_state_transaction_from_data(
-            verb,
+            channel_keys,
             contract_enclave_id,
             crypto.base64_to_byte_array(enclave_signature),
             contract_id,
-            current_state_hash,
-            previous_state_hash,
-            dependency_list,
             message_hash,
-            contract_code_hash,
-            self.pdo_signer.signing_key,
-            self.pdo_signer.verifying_key,
-            nonce = channel_keys
+            initial_state_hash,
+            contract_metadata_hash,
+            self.pdo_signer.signing_key
             )
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be True for successful init transaction
-                return tx_params['nonce'] # this will represent the transaction id
+                return tx_params['nonce']
             else:
                 raise Exception(response.error)
         except Exception as e:
@@ -270,8 +263,6 @@ class CCFSubmitter(sub.Submitter):
         **extra_params):
 
         tx_method = "ccl_update"
-        verb = "update"
-        contract_code_hash =[]
 
         dependencies = []
         for dependency in dependency_list :
@@ -282,22 +273,20 @@ class CCFSubmitter(sub.Submitter):
             dependencies.append(temp)
 
         tx_params = PayloadBuilder.build_update_contract_state_transaction_from_data(
-            verb,
+            channel_keys,
             contract_enclave_id,
             crypto.base64_to_byte_array(enclave_signature),
             contract_id,
             current_state_hash,
             previous_state_hash,
-            dependencies,
             message_hash,
-            contract_code_hash,
-            nonce = channel_keys
+            dependencies
             )
 
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be True for successful init transaction
-                return tx_params['nonce'] #this will represent the transaction id
+                return tx_params['nonce']
             else:
                 raise Exception(response.error)
         except Exception as e:
@@ -392,7 +381,8 @@ class CCFSubmitter(sub.Submitter):
         state_hash):
 
         tx_method = "get_details_about_state"
-        tx_params = PayloadBuilder.build_get_details_about_state_from_data(contract_id, \
+        tx_params = PayloadBuilder.build_get_details_about_state_from_data(
+            contract_id,
             crypto.base64_to_byte_array(state_hash))
 
         state_details = self.ccf_client.submit_read_request(tx_method, tx_params)
@@ -411,8 +401,14 @@ class CCFSubmitter(sub.Submitter):
 # -----------------------------------------------------------------
 # Paylaod signature compute fucntions
 # -----------------------------------------------------------------
-def compute_pdo_signature_enclave_registration(signer, verifying_key, encryption_key, proof_data, \
-    enclave_persistent_id, registration_block_context, organizational_info):
+def compute_pdo_signature_enclave_registration(
+        signer,
+        verifying_key,
+        encryption_key,
+        proof_data,
+        enclave_persistent_id,
+        registration_block_context,
+        organizational_info) :
 
     message = signer.verifying_key
     message += verifying_key
@@ -425,8 +421,13 @@ def compute_pdo_signature_enclave_registration(signer, verifying_key, encryption
     return signer.sign(crypto.string_to_byte_array(message), encoding='raw')
 
 # -----------------------------------------------------------------
-def compute_pdo_signature_contract_registration(signing_key, verifying_key, contract_code_hash, \
-    provisioning_service_ids_array, nonce):
+def compute_pdo_signature_contract_registration(
+        signing_key,
+        verifying_key,
+        contract_code_hash,
+        provisioning_service_ids_array,
+        nonce) :
+
     signer = keys.ServiceKeys(crypto.SIG_PrivateKey(signing_key))
 
     message = crypto.string_to_byte_array(verifying_key) + contract_code_hash
@@ -446,15 +447,12 @@ def compute_pdo_add_enclave_signature(signing_key, verifying_key, contract_id, e
     return signer.sign(message, encoding='raw')
 
 # -----------------------------------------------------------------
-def compute_pdo_update_contract_state_signature(signing_key, verifying_key, contract_enclave_id, contract_enclave_signature, \
-                state_update_info_string):
-    signer = keys.ServiceKeys(crypto.SIG_PrivateKey(signing_key))
+def compute_creator_initialize_state_signature(
+    creator_signing_key,
+    contract_enclave_signature) :
 
-    message = crypto.string_to_byte_array(verifying_key + contract_enclave_id)
-    message += contract_enclave_signature
-    message += crypto.string_to_byte_array(state_update_info_string)
-
-    return signer.sign(message, encoding='raw')
+    signer = keys.ServiceKeys(crypto.SIG_PrivateKey(creator_signing_key))
+    return signer.sign(contract_enclave_signature, encoding='raw')
 
 ################################################################
 class PayloadBuilder(object):
@@ -557,69 +555,55 @@ class PayloadBuilder(object):
 # -----------------------------------------------------------------
     @staticmethod
     def build_initialize_contract_state_transaction_from_data(
-        verb,
+        nonce,
         contract_enclave_id,
         contract_enclave_signature,
         contract_id,
-        current_state_hash,
-        previous_state_hash,
-        dependency_list,
         message_hash,
-        contract_code_hash,
-        signing_key,
-        verifying_key,
-        nonce
+        initial_state_hash,
+        contract_metadata_hash,
+        creator_signing_key
         ):
 
         payloadblob = dict()
-        payloadblob['verb'] = verb
+        payloadblob['contract_id'] = contract_id
+        payloadblob['initial_state_hash'] = initial_state_hash
+        payloadblob['message_hash'] = message_hash
+        payloadblob['metadata_hash'] = contract_metadata_hash
         payloadblob['contract_enclave_id'] = contract_enclave_id
         payloadblob['contract_enclave_signature'] = contract_enclave_signature
-        state_update_info = dict()
-        state_update_info['contract_id'] = contract_id
-        state_update_info['message_hash'] = message_hash
-        state_update_info['current_state_hash'] = current_state_hash
-        state_update_info['previous_state_hash'] = previous_state_hash
-        state_update_info['dependency_list'] = dependency_list
-        state_update_info_string = json.dumps(state_update_info, sort_keys=True)
-        payloadblob['state_update_info'] = state_update_info_string
-        payloadblob['nonce'] = nonce
-        payloadblob['signature'] = compute_pdo_update_contract_state_signature(signing_key, verifying_key, contract_enclave_id, \
-            contract_enclave_signature, state_update_info_string)
+        payloadblob['creator_signature'] = compute_creator_initialize_state_signature(
+            creator_signing_key, contract_enclave_signature)
 
+        payloadblob['nonce'] = nonce
         return payloadblob
 
 # -----------------------------------------------------------------
     @staticmethod
     def build_update_contract_state_transaction_from_data(
-        verb,
+        nonce,
         contract_enclave_id,
         contract_enclave_signature,
         contract_id,
         current_state_hash,
         previous_state_hash,
-        dependency_list,
         message_hash,
-        contract_code_hash,
-        nonce
+        dependency_list
         ):
 
         payloadblob = dict()
-        payloadblob['verb'] = verb
         payloadblob['contract_enclave_id'] = contract_enclave_id
         payloadblob['contract_enclave_signature'] = contract_enclave_signature
 
         state_update_info = dict()
         state_update_info['contract_id'] = contract_id
-        state_update_info['message_hash'] = message_hash
         state_update_info['current_state_hash'] = current_state_hash
         state_update_info['previous_state_hash'] = previous_state_hash
+        state_update_info['message_hash'] = message_hash
         state_update_info['dependency_list'] = dependency_list
         state_update_info_string = json.dumps(state_update_info, sort_keys=True)
 
         payloadblob['state_update_info'] = state_update_info_string
-        payloadblob['verifying_key'] = ""
-        payloadblob['signature'] = []
         payloadblob['nonce'] = nonce
 
         return payloadblob
