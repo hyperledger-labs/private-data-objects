@@ -254,7 +254,11 @@ std::shared_ptr<ContractResponse> InitializeStateRequest::process_request(Contra
 
         contract_state.Finalize();
 
-        return std::make_shared<InitializeStateResponse>(*this, contract_state.output_block_id_, "true");
+        return std::make_shared<InitializeStateResponse>(
+            *this,
+            contract_state.output_block_id_,
+            contract_state.metadata_hash_,
+            "true");
     }
     catch (pdo::error::ValueError& e)
     {

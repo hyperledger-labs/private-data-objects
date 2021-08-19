@@ -322,7 +322,7 @@ class CCFSubmitter(sub.Submitter):
         contract_id):
 
         tx_method = "get_contract_info"
-        tx_params = PayloadBuilder.build_verify_contract_registration_from_data(contract_id)
+        tx_params = PayloadBuilder.build_get_contract_info_from_data(contract_id)
 
         contract_info = self.ccf_client.submit_read_request(tx_method, tx_params)
 
@@ -330,6 +330,7 @@ class CCFSubmitter(sub.Submitter):
         message = contract_id
         message += contract_info["pdo_contract_creator_pem_key"]
         message += contract_info["contract_code_hash"]
+        message += contract_info["metadata_hash"]
 
         if not self.ccf_client.verify_ledger_signature(message, contract_info["signature"]):
             raise Exception("Invalid signature on Get Contract Info from CCF Ledger")
@@ -495,6 +496,14 @@ class PayloadBuilder(object):
 # -----------------------------------------------------------------
     @staticmethod
     def build_verify_contract_registration_from_data(contract_id):
+        payloadblob = dict()
+        payloadblob['contract_id'] = contract_id
+        # there is no need to sign these verification transactions
+        return payloadblob
+
+# -----------------------------------------------------------------
+    @staticmethod
+    def build_get_contract_info_from_data(contract_id):
         payloadblob = dict()
         payloadblob['contract_id'] = contract_id
         # there is no need to sign these verification transactions

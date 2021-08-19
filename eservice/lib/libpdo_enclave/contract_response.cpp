@@ -131,8 +131,10 @@ ByteArray ContractResponse::SerializeAndEncrypt(
 InitializeStateResponse::InitializeStateResponse(
     const InitializeStateRequest& request,
     const pdo::state::StateBlockId& output_block_id,
+    const ByteArray& metadata_hash,
     const std::string& result) :
     ContractResponse(request, true, result),
+    contract_metadata_hash_(metadata_hash),
     output_block_id_(output_block_id)
 {
     SAFE_LOG(PDO_LOG_DEBUG,
@@ -149,6 +151,11 @@ void InitializeStateResponse::SerializeForSigning(
     std::copy(
         creator_id_.begin(),
         creator_id_.end(),
+        std::back_inserter(serialized));
+
+    std::copy(
+        contract_metadata_hash_.begin(),
+        contract_metadata_hash_.end(),
         std::back_inserter(serialized));
 
     std::copy(
@@ -193,7 +200,15 @@ ByteArray InitializeStateResponse::SerializeAndEncrypt(
         jret != JSONSuccess, "failed to serialize the signature");
 
     // --------------- state ---------------
-    jret = json_object_dotset_string(contract_response_object, "StateHash", base64_encode(output_block_id_).c_str());
+    std::string value;
+
+    value = base64_encode(contract_metadata_hash_);
+    jret = json_object_dotset_string(contract_response_object, "MetadataHash", value.c_str());
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(
+        jret != JSONSuccess, "failed to serialize the metadata hash");
+
+    value = base64_encode(output_block_id_);
+    jret = json_object_dotset_string(contract_response_object, "StateHash", value.c_str());
     pdo::error::ThrowIf<pdo::error::RuntimeError>(
         jret != JSONSuccess, "failed to serialize the state hash");
 

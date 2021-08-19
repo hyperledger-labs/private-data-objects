@@ -128,6 +128,7 @@ namespace ccf
     struct Out {
       string pdo_contract_creator_pem_key;
       string contract_code_hash;
+      string metadata_hash;
       string signature;
     };
    };
@@ -151,6 +152,6 @@ namespace ccf
   DECLARE_JSON_REQUIRED_FIELDS(Get_contract_info::In, contract_id);
 
   DECLARE_JSON_TYPE(Get_contract_info::Out);
-  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_info::Out, pdo_contract_creator_pem_key, contract_code_hash, signature);
+  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_info::Out, pdo_contract_creator_pem_key, contract_code_hash, metadata_hash, signature);
 
 }

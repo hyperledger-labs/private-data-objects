@@ -59,10 +59,12 @@ class InitializeStateResponse : public ContractResponse
 {
 public:
     pdo::state::StateBlockId output_block_id_;
+    ByteArray contract_metadata_hash_;
 
     InitializeStateResponse(
         const InitializeStateRequest& request,
         const pdo::state::StateBlockId& output_block_id,
+        const ByteArray& metadata_hash,
         const std::string& result);
 
     void SerializeForSigning(

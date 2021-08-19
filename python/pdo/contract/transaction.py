@@ -168,10 +168,14 @@ def __transaction_worker__():
             del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
             try:
                 if response.operation != 'initialize' :
-                    txn_id =  __submit_update_transaction__(response, transaction_request.ledger_config, \
+                    txn_id =  __submit_update_transaction__(
+                        response,
+                        transaction_request.ledger_config,
                         transaction_dependency_list=txn_dependencies)
                 else:
-                    txn_id = __submit_initialize_transaction__(response, transaction_request.ledger_config)
+                    txn_id = __submit_initialize_transaction__(
+                        response,
+                        transaction_request.ledger_config)
 
                 if txn_id:
                     logger.info("Submitted transaction for request %d", request_number)
@@ -244,8 +248,7 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         response.contract_id,
         response.message_hash,
         response.new_state_hash,
-        ## TODO: this needs to become the metadata hash, not the code hash
-        response.code_hash,
+        response.metadata_hash,
         **extra_params)
 
     if txnid :

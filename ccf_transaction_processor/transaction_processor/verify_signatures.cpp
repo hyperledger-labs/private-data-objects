@@ -148,8 +148,8 @@ namespace ccfapp
         contents.insert(contents.end(), contract_id.begin(), contract_id.end());
         contents.insert(contents.end(), contract_code_hash.begin(), contract_code_hash.end());
         contents.insert(contents.end(), message_hash.begin(), message_hash.end());
-        // contents.insert(contents.end(), contract_metadata_hash.begin(), contract_metadata_hash.end());
         contents.insert(contents.end(), contract_creator_verifying_key.begin(), contract_creator_verifying_key.end());
+        contents.insert(contents.end(), contract_metadata_hash.begin(), contract_metadata_hash.end());
         contents.insert(contents.end(), initial_state_hash.begin(), initial_state_hash.end());
 
         return verify_sig_static(enclave_signature, enclave_verifying_key, contents);

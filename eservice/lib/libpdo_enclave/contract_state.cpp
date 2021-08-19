@@ -39,12 +39,17 @@
 //
 // {
 //     "IntrinsicState"     : "<string of scheme state>",
-//     "IdHash"             : "<string>",
+//     "IdHash"             : "<ByteArray>",
 //     "ContractCode.Code"  : "<string>"
 //     "ContractCode.Name"  : "<string>"
 //     "ContractCode.Nonce" : "<string>"
 //     "ContractCode.CompilationReport" : "<string>"
 //     "ContractCode.Hash"  : "<string>"
+//     "ContractKeys.Encryption" : "<string>"
+//     "ContractKeys.Decryption" : "<string>"
+//     "ContractKeys.Signing"    : "<string>"
+//     "ContractKeys.Verifying"  : "<string>"
+//     "Metadata.Hash" : "<ByteArray>"
 // }
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -101,6 +106,13 @@ void ContractState::Unpack(
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 id_hash != state_.PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
         }
+
+        {
+            std::string str("Metadata.Hash");
+            ByteArray k(str.begin(), str.end());
+            metadata_hash_ = state_.PrivilegedGet(k);
+        }
+
     }
     catch (std::exception& e)
     {
@@ -124,19 +136,82 @@ void ContractState::Initialize(
     {
         SAFE_LOG(PDO_LOG_DEBUG, "Initialize new state");
 
+        ByteArray metadata;
+
         // add the contract id into the state so that we can verify
         // that this state belongs to this contract
         {
             std::string str = "IdHash";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(id_hash);
-            state_.PrivilegedPut(k, v);
+            state_.PrivilegedPut(k, id_hash);
+
+            std::copy(id_hash.begin(), id_hash.end(), std::back_inserter(metadata));
         }
+
+        {
+            pdo::crypto::sig::PrivateKey privkey;
+            privkey.Generate();
+            pdo::crypto::sig::PublicKey pubkey(privkey);
+
+            std::string encpriv = privkey.Serialize();
+            std::string encpub = pubkey.Serialize();
+
+            {
+                std::string str = "ContractKeys.Signing";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpriv.begin(), encpriv.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            {
+                std::string str = "ContractKeys.Verifying";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpub.begin(), encpub.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            std::copy(encpub.begin(), encpub.end(), std::back_inserter(metadata));
+        }
+
+        {
+            pdo::crypto::pkenc::PrivateKey privkey;
+            privkey.Generate();
+            pdo::crypto::pkenc::PublicKey pubkey(privkey);
+
+            std::string encpriv = privkey.Serialize();
+            std::string encpub = pubkey.Serialize();
+
+            {
+                std::string str = "ContractKeys.Decryption";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpriv.begin(), encpriv.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            {
+                std::string str = "ContractKeys.Encryption";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpub.begin(), encpub.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            std::copy(encpub.begin(), encpub.end(), std::back_inserter(metadata));
+        }
+
+        {
+            metadata_hash_ = pdo::crypto::ComputeMessageHash(metadata);
+
+            {
+                std::string str("Metadata.Hash");
+                ByteArray k(str.begin(), str.end());
+                state_.PrivilegedPut(k, metadata_hash_);
+            }
+        }
+
     }
     catch (std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
-        // We do not finalize the state. As there has been an error, no output id need be generated.
         throw;
     }
     catch (...)

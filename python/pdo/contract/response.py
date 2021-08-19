@@ -184,6 +184,7 @@ class InitializeStateResponse(ContractResponse) :
         self.request_number = request.request_number
         self.operation = 'initialize'
 
+        self.metadata_hash = crypto.base64_to_byte_array(response['MetadataHash'])
         self.signature = response['Signature']
 
         # save the information we will need for the transaction
@@ -208,6 +209,7 @@ class InitializeStateResponse(ContractResponse) :
 
         message = super().serialize_for_signing()
         message += crypto.string_to_byte_array(self.creator_id)
+        message += self.metadata_hash
         message += self.new_state_hash
 
         return message

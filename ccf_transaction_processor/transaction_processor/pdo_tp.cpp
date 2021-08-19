@@ -400,6 +400,7 @@ namespace ccfapp
 
             // update the latest state hash known to CCF (with the incoming state hash)
             contract_info.current_state_hash = in.initial_state_hash;
+            contract_info.contract_metadata_hash = in.metadata_hash;
             contract_view->put(in.contract_id, contract_info);
 
             return make_success(true);
@@ -632,12 +633,14 @@ namespace ccfapp
 
             auto contract_code_hash = contract_r.value().contract_code_hash;
             auto encoded_code_hash = b64_from_raw(contract_code_hash.data(), contract_code_hash.size());
+            auto metadata_hash = contract_r.value().contract_metadata_hash;
+            auto encoded_metadata_hash = b64_from_raw(metadata_hash.data(), metadata_hash.size());
             auto creator_key = contract_r.value().contract_creator_verifying_key_PEM;
 
-            string doc_to_sign = in.contract_id + creator_key + encoded_code_hash;
+            string doc_to_sign = in.contract_id + creator_key + encoded_code_hash + encoded_metadata_hash;
             auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
-            return make_success(Get_contract_info::Out{creator_key, encoded_code_hash, signature});
+            return make_success(Get_contract_info::Out{creator_key, encoded_code_hash, encoded_metadata_hash, signature});
         };
 
         //======================================================================================================

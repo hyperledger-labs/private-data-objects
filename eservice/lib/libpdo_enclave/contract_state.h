@@ -34,6 +34,7 @@ public:
     pdo::state::StateBlockId input_block_id_;
     pdo::state::StateBlockId output_block_id_;
     pstate::Interpreter_KV state_;
+    ByteArray metadata_hash_;
 
     ContractState(
         const ByteArray& state_encryption_key,
