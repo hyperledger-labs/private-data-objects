@@ -82,14 +82,26 @@ namespace ccf
             j["dependency_list"].get<vector<ContractStateDependecy>>();
   }
 
-  struct Update_contract_state {
+  struct Initialize_contract_state {
     struct In{
-      string verb;
+      vector<uint8_t> nonce;
+      string contract_id;
+      vector<uint8_t> initial_state_hash;
+      vector<uint8_t> message_hash;
+      vector<uint8_t> metadata_hash;
       string contract_enclave_id;
       vector<uint8_t> contract_enclave_signature;
-      vector<uint8_t> signature;
+      vector<uint8_t> creator_signature;
+    };
+
+  };
+
+  struct Update_contract_state {
+    struct In{
       vector<uint8_t> nonce;
-      string state_update_info; //json string
+      string state_update_info; //json string, change to StateUpdateInfo state_update_info;
+      string contract_enclave_id;
+      vector<uint8_t> contract_enclave_signature;
     };
 
   };
@@ -123,9 +135,20 @@ namespace ccf
   };
 
   // check input complies with schema
+  DECLARE_JSON_TYPE(Initialize_contract_state::In);
+  DECLARE_JSON_REQUIRED_FIELDS(Initialize_contract_state::In,
+                               nonce,
+                               contract_id,
+                               initial_state_hash,
+                               message_hash,
+                               metadata_hash,
+                               contract_enclave_id,
+                               contract_enclave_signature,
+                               creator_signature);
+
   DECLARE_JSON_TYPE(Update_contract_state::In);
-  DECLARE_JSON_REQUIRED_FIELDS(Update_contract_state::In, verb, contract_enclave_id, \
-    contract_enclave_signature, signature, nonce, state_update_info);
+  DECLARE_JSON_REQUIRED_FIELDS(Update_contract_state::In, nonce, state_update_info, contract_enclave_id, \
+                               contract_enclave_signature);
 
   DECLARE_JSON_TYPE(Get_current_state_info::In);
   DECLARE_JSON_REQUIRED_FIELDS(Get_current_state_info::In, contract_id);

@@ -76,13 +76,14 @@ namespace ccf
   {
     string contract_id;
     std::vector<uint8_t> contract_code_hash;
+    std::vector<uint8_t> contract_metadata_hash;
     string contract_creator_verifying_key_PEM;
     std::vector<string> provisioning_service_ids;
     std::vector<ContractEnclaveInfo> enclave_info;
     std::vector<uint8_t> current_state_hash;
     bool is_active;
 
-    MSGPACK_DEFINE(contract_id, contract_code_hash, contract_creator_verifying_key_PEM, \
+      MSGPACK_DEFINE(contract_id, contract_code_hash, contract_metadata_hash, contract_creator_verifying_key_PEM, \
          provisioning_service_ids, enclave_info, current_state_hash, is_active);
   };
 

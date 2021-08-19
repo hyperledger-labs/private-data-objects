@@ -311,6 +311,102 @@ namespace ccfapp
 
         //======================================================================================================
         // update contract state (ccl tables) handler implementation
+        auto initialize_contract_state = [this](kv::Tx& tx, const nlohmann::json& params) {
+
+            const auto in = params.get<Initialize_contract_state::In>();
+
+            // Capture  the current view of all tables
+            auto contract_view = tx.get_view(contracttable);
+            auto enclave_view = tx.get_view(enclavetable);
+            auto ccl_view = tx.get_view(ccltable);
+
+            auto contract_r = contract_view->get(in.contract_id);
+            auto enclave_r = enclave_view->get(in.contract_enclave_id);
+
+            // ensure that the contract is registered
+            if (!contract_r.has_value()) {
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Contract not yet registered");
+            }
+            auto contract_info = contract_r.value();
+
+            //ensure that the contract is active
+            if (!contract_info.is_active) {
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Contract has been turned inactive. No more upates permitted");
+            }
+
+            // ensure that the contract state was not previously initialized
+            if (contract_info.current_state_hash.size() != 0) {
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Contract has already been initialized");
+            }
+
+            // ensure that the enclave is part of the contract (no need to separately check if enclave is registered)
+            bool is_enclave_in_contract = false;
+            for (auto enclave_in_contract: contract_info.enclave_info)
+            {
+                if (in.contract_enclave_id == enclave_in_contract.contract_enclave_id)
+                {
+                    is_enclave_in_contract = true;
+                    break;
+                }
+            }
+
+            if (! is_enclave_in_contract)
+            {
+                return make_error(
+                        HTTP_STATUS_BAD_REQUEST, "Enclave used for state update not part of contract");
+            }
+
+            // signature check ensures that the operation can only be performed by the contract creator
+            // only need to sign the enclave signature
+            if (! verify_creator_signature_initialize_contract_state(
+                    in.contract_enclave_signature,
+                    in.creator_signature,
+                    contract_info.contract_creator_verifying_key_PEM))
+            {
+                return make_error(HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
+            }
+
+            // verify contract enclave signature. This signature also ensures (via the notion of channel ids) that
+            // the contract invocation was performed by the transaction submitter.
+            if (! verify_enclave_signature_initialize_contract_state(
+                    in.nonce,
+                    in.contract_id,
+                    in.initial_state_hash,
+                    contract_info.contract_code_hash,
+                    in.message_hash,
+                    in.metadata_hash,
+                    contract_info.contract_creator_verifying_key_PEM,
+                    in.contract_enclave_signature,
+                    this->enclave_pubk_verifier[enclave_r.value().verifying_key]))
+            {
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Invalid enclave signature for contract state initialize operation");
+            }
+
+            // store update info in ccl tables
+            ContractStateInfo contract_state_info;
+            contract_state_info.transaction_id = in.nonce;
+            contract_state_info.message_hash = in.message_hash;
+            contract_state_info.previous_state_hash = {};
+            contract_state_info.dependency_list = {};
+
+            const string state_hash_string(in.initial_state_hash.begin(), in.initial_state_hash.end());
+            const string key_for_put = in.contract_id + state_hash_string;
+
+            ccl_view->put(key_for_put, contract_state_info);
+
+            // update the latest state hash known to CCF (with the incoming state hash)
+            contract_info.current_state_hash = in.initial_state_hash;
+            contract_view->put(in.contract_id, contract_info);
+
+            return make_success(true);
+        };
+
+        //======================================================================================================
+        // update contract state (ccl tables) handler implementation
         auto update_contract_state = [this](kv::Tx& tx, const nlohmann::json& params) {
 
             const auto in = params.get<Update_contract_state::In>();
@@ -362,71 +458,41 @@ namespace ccfapp
                         HTTP_STATUS_BAD_REQUEST, "Enclave used for state update not part of contract");
             }
 
-            if (in.verb == "init") {
-            // Ensure the following:
-            // 1. no previous updates were ever performed, 2. no previous state hash in update_info 3. no depedency list
-            // 4. ensure that the update operation is performed by the contract owner 5. verify init signature
-
-                if (contract_info.current_state_hash.size() != 0){
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Contract has already been initialized");
-                }
-
-                if (state_update_info.previous_state_hash.size() != 0){
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Init operation must not have any previous state hash");
-                }
-
-                if (state_update_info.dependency_list.size() != 0){
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Init operation must not have CCL dependeices from other contracts");
-                }
-
-                // sign check ensures that Init operation can only be performed by the contract creator
-                if (!verify_pdo_transaction_signature_update_contract_state(in.signature, contract_info.contract_creator_verifying_key_PEM, \
-                    in.contract_enclave_id, in.contract_enclave_signature, in.state_update_info)){
-                    return make_error(HTTP_STATUS_BAD_REQUEST, "Invalid PDO payload signature");
-                }
-
-            }   else if (in.verb == "update") {
             // Ensure the following:
             // 1. the previous state hash (from incoming data) is the latest state hash known to CCF (this also ensures that
             //                there was an init)
             // 2. depedencies are met (meaning these transactions have been committed in the past)
             // 3. there is a change in state, else nothing to commit
+            if (state_update_info.previous_state_hash != contract_info.current_state_hash){
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Update can be performed only on the latest state registered with the ledger");
+            }
 
-
-                if (state_update_info.previous_state_hash != contract_info.current_state_hash){
+            for (auto dep: state_update_info.dependency_list){
+                auto dep_r = ccl_view->get(dep.contract_id+ string(dep.state_hash.begin(), dep.state_hash.end()));
+                if (!dep_r.has_value()) {
                     return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Update can be performed only on the latest state registered with the ledger");
+                        HTTP_STATUS_BAD_REQUEST, "Unknown CCL dependencies. Cannot commit state");
                 }
+            }
 
-                for (auto dep: state_update_info.dependency_list){
-                    auto dep_r = ccl_view->get(dep.contract_id+ string(dep.state_hash.begin(), dep.state_hash.end()));
-                    if (!dep_r.has_value()) {
-                        return make_error(
-                            HTTP_STATUS_BAD_REQUEST, "Unknown CCL dependencies. Cannot commit state");
-                    }
-                }
-
-                if (state_update_info.current_state_hash == contract_info.current_state_hash){
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Update can be commited only if there is a change in state");
-                }
-
-            }   else {
-                    return make_error(
-                            HTTP_STATUS_BAD_REQUEST, "Update verb must be either init or update");
+            if (state_update_info.current_state_hash == contract_info.current_state_hash){
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Update can be commited only if there is a change in state");
             }
 
             // verify contract enclave signature. This signature also ensures (via the notion of channel ids) that
             // the contract invocation was performed by the transaction submitter.
-            if (!verify_enclave_signature_update_contract_state(in.contract_enclave_signature, this->enclave_pubk_verifier[enclave_r.value().verifying_key], \
-                in.nonce, contract_info.contract_creator_verifying_key_PEM, contract_info.contract_code_hash, \
-                state_update_info)) {
-                    return make_error(
-                        HTTP_STATUS_BAD_REQUEST, "Invalid enclave signature for contract update operation");
-                }
+            if (!verify_enclave_signature_update_contract_state(
+                    in.nonce,
+                    contract_info.contract_code_hash,
+                    state_update_info,
+                    in.contract_enclave_signature,
+                    this->enclave_pubk_verifier[enclave_r.value().verifying_key]))
+            {
+                return make_error(
+                    HTTP_STATUS_BAD_REQUEST, "Invalid enclave signature for contract update operation");
+            }
 
 
             // store update info in ccl tables
@@ -677,6 +743,7 @@ namespace ccfapp
         install(REGISTER_ENCLAVE, json_adapter(register_enclave), Write);
         install(REGISTER_CONTRACT, json_adapter(register_contract), Write);
         install(ADD_ENCLAVE_TO_CONTRACT, json_adapter(add_enclave), Write);
+        install(INITIALIZE_CONTRACT_STATE, json_adapter(initialize_contract_state), Write);
         install(UPDATE_CONTRACT_STATE, json_adapter(update_contract_state), Write);
 
         //Change the following four to read type
