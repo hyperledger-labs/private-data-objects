@@ -56,7 +56,6 @@ extern "C" bool b64_encode_wrapper(
 
         ByteArray src(dec_buffer, dec_buffer + dec_buffer_length);
         Base64EncodedString encoded = ByteArrayToBase64EncodedString(src);
-        encoded += '\0';
 
         if (! save_buffer(module_inst, encoded, enc_buffer_pointer_offset, enc_length_pointer_offset))
             return false;
@@ -128,10 +127,7 @@ extern "C" bool ecdsa_create_signing_keys_wrapper(
         pcrypto::sig::PublicKey pubkey(privkey);
 
         std::string encpriv = privkey.Serialize();
-        encpriv += '\0';        // add a null terminator since this is a char*
-
         std::string encpub = pubkey.Serialize();
-        encpub += '\0';         // add a null terminator since this is a char*
 
         if (! save_buffer(module_inst, encpriv, private_buffer_pointer_offset, private_length_pointer_offset))
             return false;
@@ -421,10 +417,7 @@ extern "C" bool rsa_generate_keys_wrapper(
         pcrypto::pkenc::PublicKey pubkey(privkey);
 
         std::string encpriv = privkey.Serialize();
-        encpriv += '\0';
-
         std::string encpub = pubkey.Serialize();
-        encpub += '\0';
 
         if (! save_buffer(module_inst, encpriv, private_buffer_pointer_offset, private_length_pointer_offset))
             return false;

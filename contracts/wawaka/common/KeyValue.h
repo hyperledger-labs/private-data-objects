@@ -27,6 +27,30 @@ class KeyValueStore
     bool make_key(const ww::types::ByteArray& key, ww::types::ByteArray& prefixed_key) const;
 
 public:
+    static bool privileged_get(const ww::types::ByteArray& key, ww::types::ByteArray& val);
+    static bool privileged_get(const ww::types::ByteArray& key, uint32_t& val);
+    static bool privileged_get(const std::string& key, uint32_t& val)
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return KeyValueStore::privileged_get(bkey, val);
+    };
+
+    static bool privileged_get(const std::string& key, ww::types::ByteArray& val)
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        return KeyValueStore::privileged_get(bkey, val);
+    };
+
+    static bool privileged_get(const std::string& key, std::string& val)
+    {
+        ww::types::ByteArray bkey(key.begin(), key.end());
+        ww::types::ByteArray bval;
+        if (! privileged_get(bkey, bval))
+            return false;
+        val = ww::types::ByteArrayToString(bval);
+        return true;
+    };
+
     KeyValueStore(const std::string& prefix, size_t handle = 0)
         : handle_(handle), prefix_(prefix.begin(), prefix.end()) {};
 

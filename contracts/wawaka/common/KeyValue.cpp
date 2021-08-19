@@ -145,3 +145,39 @@ bool KeyValueStore::set(const ww::types::ByteArray& key, const ww::types::ByteAr
 
     return key_value_set(handle_, prefixed_key.data(), prefixed_key.size(), val.data(), val.size());
 }
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool KeyValueStore::privileged_get(const ww::types::ByteArray& key, ww::types::ByteArray& val)
+{
+    uint8_t* datap;
+    size_t size;
+
+    if (! privileged_key_value_get(key.data(), key.size(), &datap, &size))
+        return false;
+
+    // this should not happen if the result was true
+    if (datap == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function key_value_get")
+        return false;
+    }
+
+    return copy_internal_pointer(val, datap, size);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool KeyValueStore::privileged_get(const ww::types::ByteArray& key, uint32_t& val)
+{
+    ww::types::ByteArray _value;
+    if (! KeyValueStore::privileged_get(key, _value))
+        return false;
+
+    if (_value.size() != sizeof(uint32_t))
+    {
+        CONTRACT_SAFE_LOG(3, "wrong size for integer:%lu", _value.size());
+        return false;
+    }
+
+    val = *(uint32_t*)_value.data();
+    return true;
+}

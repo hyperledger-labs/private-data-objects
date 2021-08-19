@@ -147,6 +147,48 @@ extern "C" bool key_value_get_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: _privilege_key_value_get_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool privileged_key_value_get_wrapper(
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
+    const int32 key_buffer_length, // size_t
+    int32 val_buffer_pointer_offset, // uint8_t**
+    int32 val_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        pstate::Basic_KV_Plus* state = fetch_state_from_handle(module_inst, 0);
+        if (state == NULL)
+            return false;
+
+        if (key_buffer == NULL)
+            return false;
+
+        ByteArray ba_key(key_buffer, key_buffer + key_buffer_length);
+        ByteArray ba_val = state->PrivilegedGet(ba_key);
+
+        if (ba_val.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst,
+                          (const char*)ba_val.data(), ba_val.size(),
+                          val_buffer_pointer_offset, val_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: _key_value_create_wrapper
  * ----------------------------------------------------------------- */
 extern "C" int32 key_value_create_wrapper(
