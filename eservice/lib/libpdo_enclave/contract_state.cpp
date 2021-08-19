@@ -51,23 +51,27 @@
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractState::ContractState(
-    const bool is_initialize,
-    const ByteArray& state_encryption_key_,
-    const ByteArray& state_hash,
+    const ByteArray& state_encryption_key,
+    const ByteArray& input_block_id,
     const ByteArray& id_hash)
     :
     input_block_id_(STATE_BLOCK_ID_LENGTH, 0),
     output_block_id_(STATE_BLOCK_ID_LENGTH, 0),
-    state_(is_initialize ?
-        /* here the initial state is created */
-        pdo::state::Interpreter_KV(state_encryption_key_) :
-        /* here the existing state is opened */
-        pdo::state::Interpreter_KV(state_hash, state_encryption_key_))
+    state_(pdo::state::Interpreter_KV(input_block_id, state_encryption_key))
 {
-    if(is_initialize)
-        Initialize(state_encryption_key_, id_hash);
-    else // update step
-        Unpack(state_encryption_key_, state_hash, id_hash);
+    Unpack(state_encryption_key, input_block_id, id_hash);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractState::ContractState(
+    const ByteArray& state_encryption_key,
+    const ByteArray& id_hash)
+    :
+    input_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    output_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    state_(pdo::state::Interpreter_KV(state_encryption_key))
+{
+    Initialize(state_encryption_key, id_hash);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -78,15 +82,15 @@ void ContractState::Finalize(void)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Unpack(
-    const ByteArray& state_encryption_key_,
-    const ByteArray& state_hash,
+    const ByteArray& state_encryption_key,
+    const ByteArray& input_block_id,
     const ByteArray& id_hash)
 {
     const char* pvalue;
 
     try
     {
-        input_block_id_ = state_hash;
+        input_block_id_ = input_block_id;
 
         // the contract id stored in state must match the contract id
         // that was given in the request, this ensures that the evaluation
@@ -113,7 +117,7 @@ void ContractState::Unpack(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Initialize(
-    const ByteArray& state_encryption_key_,
+    const ByteArray& state_encryption_key,
     const ByteArray& id_hash)
 {
     try

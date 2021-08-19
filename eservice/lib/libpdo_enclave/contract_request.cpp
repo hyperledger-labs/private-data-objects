@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <vector>
 #include <exception>
@@ -41,41 +42,16 @@
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractRequest::ContractRequest(
-    const ByteArray& session_key,
-    const ByteArray& encrypted_request,
     ContractWorker* worker)
 {
     worker_ = worker;
+}
 
-    JSON_Object* ovalue = nullptr;
-
-    ByteArray decrypted_request =
-        pdo::crypto::skenc::DecryptMessage(session_key, encrypted_request);
-    std::string request = ByteArrayToString(decrypted_request);
-
-    // Parse the contract request
-    JsonValue parsed(json_parse_string(request.c_str()));
-    pdo::error::ThrowIfNull(
-        parsed.value, "failed to parse the contract request, badly formed JSON");
-
-    JSON_Object* request_object = json_value_get_object(parsed);
-    pdo::error::ThrowIfNull(request_object, "Missing JSON object in contract request");
-
-    // operation
-    const char* pvalue = json_object_dotget_string(request_object, "Operation");
-    pdo::error::ThrowIf<pdo::error::ValueError>(
-        !pvalue, "invalid request; failed to retrieve contract operation");
-    std::string svalue(pvalue);
-
-    if (svalue == "initialize")
-        operation_ = op_initialize;
-    else if (svalue == "update")
-        operation_ = op_update;
-    else
-        throw pdo::error::ValueError("unknown operation requested");
-
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void ContractRequest::parse_common_properties(const JSON_Object* request_object)
+{
     // contract information
-    pvalue = json_object_dotget_string(request_object, "ContractID");
+    const char* pvalue = json_object_dotget_string(request_object, "ContractID");
     pdo::error::ThrowIf<pdo::error::ValueError>(
         !pvalue, "invalid request; failed to retrieve ContractID");
     contract_id_.assign(pvalue);
@@ -97,116 +73,15 @@ ContractRequest::ContractRequest(
 
     state_encryption_key_ = DecodeAndDecryptStateEncryptionKey(contract_id_, pvalue);
 
-    if (operation_ == op_initialize)
-    {
-        // contract code
-        ovalue = json_object_dotget_object(request_object, "ContractCode");
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            !pvalue, "invalid request; failed to retrieve ContractCode");
-        contract_code_.Unpack(ovalue);
-    }
-    else
-    {
-        // contract code hash
-        pvalue = json_object_dotget_string(request_object, "ContractCodeHash");
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            !pvalue, "invalid request; failed to retrieve ContractCodeHash");
-
-        code_hash_ = Base64EncodedStringToByteArray(pvalue);
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            code_hash_.size() != SHA256_DIGEST_LENGTH,
-            "invalid contract code hash");
-
-        // contract state hash
-        pvalue = json_object_dotget_string(request_object, "ContractStateHash");
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            !pvalue, "invalid request; failed to retrieve ContractStateHash");
-
-        input_state_hash_ = Base64EncodedStringToByteArray(pvalue);
-        pdo::error::ThrowIf<pdo::error::ValueError>(
-            input_state_hash_.size() != SHA256_DIGEST_LENGTH,
-            "invalid contract state hash");
-    }
-
     // contract message
-    ovalue = json_object_dotget_object(request_object, "ContractMessage");
+    const JSON_Object* ovalue = json_object_dotget_object(request_object, "ContractMessage");
     pdo::error::ThrowIf<pdo::error::ValueError>(
         !pvalue, "invalid request; failed to retrieve ContractMessage");
     contract_message_.Unpack(ovalue);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_initialization_request(ContractState& contract_state)
-{
-    // the only reason for the try/catch here is to provide some logging for the error
-    try
-    {
-        pdo::contracts::ContractCode code;
-        code.Code = contract_code_.code_;
-        code.Name = contract_code_.name_;
-        code.CodeHash = ByteArrayToBase64EncodedString(contract_code_.code_hash_);
-
-        pdo::contracts::ContractMessage msg;
-        msg.Message = contract_message_.expression_;
-        msg.OriginatorID = contract_message_.originator_verifying_key_;
-        msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
-
-        std::map<std::string, std::string> dependencies;
-
-        // Push this into a block to ensure that the interpreter is deallocated
-        // and frees its memory before finalizing the state update
-        {
-            // this class ensures that the interpreter is released on exit
-            InitializedInterpreter interpreter(worker_);
-
-            SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
-                     ByteArrayToHexEncodedString(contract_state.input_block_id_).c_str());
-
-            interpreter.interpreter_->create_initial_contract_state(
-                contract_id_, creator_id_, code, msg, contract_state.state_);
-        }
-
-        contract_state.Finalize();
-        ContractResponse response(*this, contract_state, dependencies, "", contract_state.output_block_id_);
-
-        return response;
-    }
-    catch (pdo::error::ValueError& e)
-    {
-        SAFE_LOG(PDO_LOG_ERROR,
-                 "value error during initialization of contract %s: %s",
-                 contract_code_.name_.c_str(),
-                 e.what());
-
-        ContractResponse response(*this, contract_state, e.what());
-        return response;
-    }
-    catch (pdo::error::Error& e)
-    {
-        SAFE_LOG(PDO_LOG_ERROR,
-                 "PDO exception while initializing contract %s with message %s: %s",
-                 contract_code_.name_.c_str(),
-                 contract_message_.expression_.c_str(),
-                 e.what());
-
-        ContractResponse response(*this, contract_state, "internal pdo error");
-        return response;
-    }
-    catch(std::exception& e)
-    {
-        SAFE_LOG(PDO_LOG_ERROR,
-                 "standard exception while initializing contract %s with message %s: %s",
-                 contract_code_.name_.c_str(),
-                 contract_message_.expression_.c_str(),
-                 e.what());
-
-        ContractResponse response(*this, contract_state, "internal error");
-        return response;
-    }
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_update_request(ContractState& contract_state)
+std::shared_ptr<ContractResponse> UpdateStateRequest::process_request(ContractState& contract_state)
 {
     /*
        NOTE: for operations that do not modify state, either because the
@@ -259,17 +134,17 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
         // check for operations that did not modify state
         if (state_changed_flag)
         {
-            ContractResponse response(*this, contract_state, dependencies, result, contract_state.output_block_id_);
-            return response;
+            return std::make_shared<UpdateStateResponse>(
+                *this,
+                contract_state.input_block_id_,
+                contract_state.output_block_id_,
+                dependencies,
+                result);
         }
         else
         {
             // since the state is unchanged, we can just use the input block id as the output block id
-            std::map<std::string, std::string> dependencies;
-            ContractResponse response(*this, contract_state, dependencies, result, contract_state.input_block_id_);
-
-            response.state_changed_ = false;
-            return response;
+            return std::make_shared<UpdateStateResponse>(*this, contract_state.input_block_id_, result);
         }
     }
     catch (pdo::error::ValueError& e)
@@ -282,11 +157,7 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
 
         contract_state.Finalize();
 
-        pdo::state::StateBlockId output_block_id(STATE_BLOCK_ID_LENGTH, 0);
-        std::map<std::string, std::string> dependencies;
-        ContractResponse response(*this, contract_state, dependencies, e.what(), output_block_id);
-        response.operation_succeeded_ = false;
-        return response;
+        return std::make_shared<ContractResponse>(*this, false, e.what());
     }
     catch (pdo::error::Error& e)
     {
@@ -296,8 +167,7 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, contract_state, "internal pdo error");
-        return response;
+        return std::make_shared<ContractResponse>(*this, false, "internal pdo error");
     }
     catch(std::exception& e)
     {
@@ -307,23 +177,140 @@ ContractResponse ContractRequest::process_update_request(ContractState& contract
                  contract_message_.expression_.c_str(),
                  e.what());
 
-        ContractResponse response(*this, contract_state, "internal error");
-        return response;
+        return std::make_shared<ContractResponse>(*this, false, "internal error");
     }
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ContractResponse ContractRequest::process_request(ContractState& contract_state)
+UpdateStateRequest::UpdateStateRequest(
+    const ByteArray& session_key,
+    const ByteArray& encrypted_request,
+    ContractWorker* worker) : ContractRequest(worker)
 {
-    switch (operation_)
+    ByteArray decrypted_request =
+        pdo::crypto::skenc::DecryptMessage(session_key, encrypted_request);
+    std::string request = ByteArrayToString(decrypted_request);
+
+    // Parse the contract request
+    JsonValue parsed(json_parse_string(request.c_str()));
+    pdo::error::ThrowIfNull(
+        parsed.value, "failed to parse the contract request, badly formed JSON");
+
+    JSON_Object* request_object = json_value_get_object(parsed);
+    pdo::error::ThrowIfNull(request_object, "Missing JSON object in contract request");
+
+    // extract the common fields
+    parse_common_properties(request_object);
+
+    // contract code hash
+    const char* pvalue = json_object_dotget_string(request_object, "ContractCodeHash");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractCodeHash");
+
+    code_hash_ = Base64EncodedStringToByteArray(pvalue);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        code_hash_.size() != SHA256_DIGEST_LENGTH,
+        "invalid contract code hash");
+
+    // contract state hash
+    pvalue = json_object_dotget_string(request_object, "ContractStateHash");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !pvalue, "invalid request; failed to retrieve ContractStateHash");
+
+    input_state_hash_ = Base64EncodedStringToByteArray(pvalue);
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        input_state_hash_.size() != SHA256_DIGEST_LENGTH,
+        "invalid contract state hash");
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::shared_ptr<ContractResponse> InitializeStateRequest::process_request(ContractState& contract_state)
+{
+    // the only reason for the try/catch here is to provide some logging for the error
+    try
     {
-        case op_initialize:
-            return process_initialization_request(contract_state);
+        pdo::contracts::ContractCode code;
+        code.Code = contract_code_.code_;
+        code.Name = contract_code_.name_;
+        code.CodeHash = ByteArrayToBase64EncodedString(contract_code_.code_hash_);
 
-        case op_update:
-            return process_update_request(contract_state);
+        pdo::contracts::ContractMessage msg;
+        msg.Message = contract_message_.expression_;
+        msg.OriginatorID = contract_message_.originator_verifying_key_;
+        msg.MessageHash = ByteArrayToBase64EncodedString(contract_message_.message_hash_);
 
-        default:
-            throw pdo::error::ValueError("unknown operation");
+        // Push this into a block to ensure that the interpreter is deallocated
+        // and frees its memory before finalizing the state update
+        {
+            // this class ensures that the interpreter is released on exit
+            InitializedInterpreter interpreter(worker_);
+
+            SAFE_LOG(PDO_LOG_DEBUG, "KV id before interpreter: %s\n",
+                     ByteArrayToHexEncodedString(contract_state.input_block_id_).c_str());
+
+            interpreter.interpreter_->create_initial_contract_state(
+                contract_id_, creator_id_, code, msg, contract_state.state_);
+        }
+
+        contract_state.Finalize();
+
+        return std::make_shared<InitializeStateResponse>(*this, contract_state.output_block_id_, "true");
     }
+    catch (pdo::error::ValueError& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "value error during initialization of contract %s: %s",
+                 contract_code_.name_.c_str(),
+                 e.what());
+
+        return std::make_shared<ContractResponse>(*this, false, e.what());
+    }
+    catch (pdo::error::Error& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "PDO exception while initializing contract %s with message %s: %s",
+                 contract_code_.name_.c_str(),
+                 contract_message_.expression_.c_str(),
+                 e.what());
+
+        return std::make_shared<ContractResponse>(*this, false, "internal pdo error");
+    }
+    catch(std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "standard exception while initializing contract %s with message %s: %s",
+                 contract_code_.name_.c_str(),
+                 contract_message_.expression_.c_str(),
+                 e.what());
+
+        return std::make_shared<ContractResponse>(*this, false, "internal error");
+    }
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+InitializeStateRequest::InitializeStateRequest(
+    const ByteArray& session_key,
+    const ByteArray& encrypted_request,
+    ContractWorker* worker) : ContractRequest(worker)
+{
+    ByteArray decrypted_request =
+        pdo::crypto::skenc::DecryptMessage(session_key, encrypted_request);
+    std::string request = ByteArrayToString(decrypted_request);
+
+    // Parse the contract request
+    JsonValue parsed(json_parse_string(request.c_str()));
+    pdo::error::ThrowIfNull(
+        parsed.value, "failed to parse the contract request, badly formed JSON");
+
+    JSON_Object* request_object = json_value_get_object(parsed);
+    pdo::error::ThrowIfNull(request_object, "Missing JSON object in contract request");
+
+    // parse common fields in the request
+    parse_common_properties(request_object);
+
+    // contract code
+    const JSON_Object* ovalue = json_object_dotget_object(request_object, "ContractCode");
+    pdo::error::ThrowIf<pdo::error::ValueError>(
+        !ovalue, "invalid request; failed to retrieve ContractCode");
+    contract_code_.Unpack(ovalue);
 }

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from pdo.eservice.wsgi.info import InfoApp
+from pdo.eservice.wsgi.initialize import InitializeApp
 from pdo.eservice.wsgi.invoke import InvokeApp
 from pdo.eservice.wsgi.verify import VerifyApp
 
-__all__ = [ 'InfoApp', 'InvokeApp', 'VerifyApp' ]
+__all__ = [ 'InfoApp', 'InitializeApp', 'InvokeApp', 'VerifyApp' ]

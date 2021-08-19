@@ -6,6 +6,7 @@ name: PDO CI
 on: [pull_request, push]
 jobs:
     pdo_ci:
+        if: "!contains(github.event.commits[0].message, '[skip ci]')"
         name: PDO CI Job
         runs-on: ubuntu-18.04
 
@@ -27,4 +28,3 @@ jobs:
                   # branches. However, they fail as a PR is created.
                   git checkout -b we-need-a-branch-for-below-to-work
                   make WASM_MEM_CONFIG=MEDIUM -C docker test
-

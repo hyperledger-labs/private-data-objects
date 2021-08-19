@@ -29,36 +29,71 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class ContractResponse
 {
-protected:
-    ByteArray SerializeForSigning(void) const;
-    ByteArray ComputeSignature(const EnclaveData& enclave_data) const;
-
+public:
     std::string contract_id_;
     std::string creator_id_;
     std::string channel_verifying_key_;
     ByteArray contract_code_hash_;
     ByteArray contract_message_hash_;
+
+    std::string result_;
+    bool operation_succeeded_ = false;
+
+    ContractResponse(
+        const ContractRequest& request,
+        const bool operation_succeeded,
+        const std::string& result);
+
+    virtual void SerializeForSigning(
+        ByteArray& serialized) const;
+
+    ByteArray ComputeSignature(
+        const EnclaveData& enclave_data) const;
+
+    virtual ByteArray SerializeAndEncrypt(
+        const ByteArray& session_key,
+        const EnclaveData& enclave_data) const;
+};
+
+class InitializeStateResponse : public ContractResponse
+{
+public:
+    pdo::state::StateBlockId output_block_id_;
+
+    InitializeStateResponse(
+        const InitializeStateRequest& request,
+        const pdo::state::StateBlockId& output_block_id,
+        const std::string& result);
+
+    void SerializeForSigning(
+        ByteArray& serialized) const;
+
+    ByteArray SerializeAndEncrypt(
+        const ByteArray& session_key, const EnclaveData& enclave_data) const;
+};
+
+class UpdateStateResponse : public ContractResponse
+{
+public:
+    bool state_changed_;
+    std::map<std::string, std::string> dependencies_;
     pdo::state::StateBlockId input_block_id_;
     pdo::state::StateBlockId output_block_id_;
-    bool contract_initializing_;
 
-public:
-    std::map<std::string, std::string> dependencies_;
-    std::string result_;
-    bool operation_succeeded_;
-    bool state_changed_;
-
-    ContractResponse(
-        const ContractRequest& request,
-        const ContractState& contract_state,
+    UpdateStateResponse(
+        const UpdateStateRequest& request,
+        const pdo::state::StateBlockId& input_block_id,
+        const pdo::state::StateBlockId& output_block_id,
         const std::map<std::string, std::string>& dependencies,
-        const std::string& result,
-        const pdo::state::StateBlockId& output_state_hash);
-
-    ContractResponse(
-        const ContractRequest& request,
-        const ContractState& contract_state,
         const std::string& result);
+
+    UpdateStateResponse(
+        const UpdateStateRequest& request,
+        const pdo::state::StateBlockId& input_block_id,
+        const std::string& result);
+
+    void SerializeForSigning(
+        ByteArray& serialized) const;
 
     ByteArray SerializeAndEncrypt(
         const ByteArray& session_key, const EnclaveData& enclave_data) const;

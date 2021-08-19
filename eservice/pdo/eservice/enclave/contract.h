@@ -37,3 +37,10 @@ std::vector<uint8_t> contract_handle_contract_request(
     const std::vector<uint8_t>& encryptedSessionKey,
     const std::vector<uint8_t>& serializedRequest
     );
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::vector<uint8_t> initialize_contract_state(
+    const std::string& sealedSignupData,
+    const std::vector<uint8_t>& encryptedSessionKey,
+    const std::vector<uint8_t>& serializedRequest
+    );
