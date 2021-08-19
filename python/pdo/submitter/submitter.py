@@ -109,6 +109,13 @@ class Submitter(object):
 
 # -----------------------------------------------------------------
     @abstractmethod
+    def get_ledger_info(self):
+        """ return ledger_verifying_key
+        """
+        raise NotImplementedError("Must override get_ledger_info")
+
+# -----------------------------------------------------------------
+    @abstractmethod
     def get_contract_info(self,
         contract_id):
         """ return dict with the following keys:

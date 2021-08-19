@@ -23,6 +23,7 @@ CCF_BASE = os.environ.get("CCF_BASE")
 CCF_Bin = os.path.join(CCF_BASE, "bin")
 sys.path.insert(1, CCF_Bin)
 from infra.clients import CCFClient
+from urllib.parse import urlparse
 
 import pdo.common.crypto as crypto
 import pdo.common.keys as keys
@@ -30,11 +31,9 @@ import pdo.submitter.submitter as sub
 
 logger = logging.getLogger(__name__)
 
-class CCFSubmitter(sub.Submitter):
-
-    ccf_client = None
-    ccf_signature_verifyer= None
-
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class CCFClientWrapper(CCFClient) :
     #CCF reads return global commits, while writes return after local commit.
     #There is a small time delay before local commit appears globally.
     #To accomodate the possibility that a read might be invoked immediately following a write,
@@ -42,98 +41,109 @@ class CCFSubmitter(sub.Submitter):
     #describes the wait time before the ith read, i = 0, 1, 2, 3.
     read_backoff_duration = [0, 0.5, 1, 2]
 
-    @classmethod
-    def disconnect_client(cls):
-        if CCFSubmitter.ccf_client is not None:
-            cls.ccf_client.disconnect()
+    # -----------------------------------------------------------------
+    def __init__(self, host, port) :
 
+        #ensure that ccf keys are present
+        ccf_key_dir = os.environ.get("PDO_LEDGER_KEY_ROOT")
+        cert_file = os.path.join(ccf_key_dir, "userccf_cert.pem")
+        key_file = os.path.join(ccf_key_dir, "userccf_privk.pem")
+        ca_file = os.path.join(ccf_key_dir, "networkcert.pem")
 
-    @classmethod
-    def verify_ledger_signature(cls, message, signature):
+        for f in (cert_file, key_file, ca_file) :
+            if os.path.exists(f) is False :
+                logger.error("Cannot locate CCF key file {0}; aborting transaction".format(f))
+                raise Exception("Cannot locate CCF keys.Aborting transaction")
+
+        # create the reuest client
+        logger.info("Creating the CCF Request client")
+        super().__init__(
+            host=host,
+            port=port,
+            cert=cert_file,
+            key=key_file,
+            ca=ca_file,
+            description=None,
+            version="2.0",
+            format="json",
+            prefix="app",
+            connection_timeout=3,
+            request_timeout=3,
+            )
+
+        self.rpc_loggers = () #avoid the default logging to screen
+
+        #get CCF verifying key (specific to PDO TP)
+        try:
+            ledger_response = self.submit_read_request("get_ledger_verifying_key", dict())
+            self.ccf_verifying_key = ledger_response['verifying_key']
+            self.__ccf_signature_verifyer__ = crypto.SIG_PublicKey(self.ccf_verifying_key)
+        except Exception as e:
+            logger.exception("Unable to get ledger verifying key")
+            raise e
+
+    # -----------------------------------------------------------------
+    def submit_read_request(self, tx_method, tx_params) :
+        for wait in self.read_backoff_duration :
+            time.sleep(wait)
+
+            #if read fails due to lack of global commit, result will be None
+            response = self.submit_rpc(tx_method, tx_params)
+            if response.result is not None :
+                return response.result
+
+        #read failed even after retries
+        raise Exception(response.error)
+
+    # -----------------------------------------------------------------
+    def submit_rpc(self, tx_method, tx_params) :
+        try:
+            return self.rpc(tx_method, tx_params)
+        except Exception as e:
+            logger.exception("Error while submitting transaction to CCF")
+            raise e
+
+    # -----------------------------------------------------------------
+    def verify_ledger_signature(self, message, signature):
         """ Verify ledger signature. sign is base64 encoded. document is a string"""
         message_byte_array = bytes(message, 'ascii')
         decoded_signature = crypto.base64_to_byte_array(signature)
-        result = cls.ccf_signature_verifyer.VerifySignature(message_byte_array, decoded_signature)
+        result = self.__ccf_signature_verifyer__.VerifySignature(message_byte_array, decoded_signature)
         if result < 0 :
             raise Exception('malformed signature');
 
         return result
 
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+class CCFSubmitter(sub.Submitter):
 
+    # this is a cache of connections to ledger servers, the cache
+    # is not emptied when clients leave since there is no particular
+    # need to disconnect explicitly, the cache is keyed on the host:port
+    # end point
+    ccf_client_cache = {}
+
+    # -----------------------------------------------------------------
     def __init__(self, ledger_config, *args, **kwargs):
         super().__init__(ledger_config, *args, **kwargs)
 
-        if CCFSubmitter.ccf_client is None:
-            try:
-                _, host_port = self.url.split('//')
-                self.host, self.port = host_port.split(':')
-                self.host = socket.gethostbyname(self.host) # convert HOSTNMAE to IP address
-            except Exception as e:
-                raise Exception("Unable to parse CCF ledger URL. Must be of the form http://ip:port : %s", str(e))
-
-            ccf_key_dir = os.environ.get("PDO_LEDGER_KEY_ROOT")
-            #ensure that ccf keys are present
-            self.cert_file = ccf_key_dir + "/userccf_cert.pem"
-            self.key_file = ccf_key_dir + "/userccf_privk.pem"
-            self.ca_file = ccf_key_dir + "/networkcert.pem"
-
-            if os.path.exists(self.cert_file) is False or os.path.exists(self.key_file) is False or \
-                os.path.exists(self.ca_file) is False:
-                logger.error("Cannot locate CCF keys. Aborting transaction")
-                raise Exception("Cannot locate CCF keys.Aborting transaction")
-
-            # create the reuest client
-            logger.info("Creating the CCF Request client")
-            CCFSubmitter.ccf_client = CCFClient(
-                                            host=self.host,
-                                            port=int(self.port),
-                                            cert=self.cert_file,
-                                            key=self.key_file,
-                                            ca=self.ca_file,
-                                            description=None,
-                                            version="2.0",
-                                            format="json",
-                                            prefix="app",
-                                            connection_timeout=3,
-                                            request_timeout=3,
-                                        )
-
-            CCFSubmitter.ccf_client.rpc_loggers = () #avoid the default logging to screen
-
-            #get CCF verifying key (specific to PDO TP)
-            ledger_response = self.submit_read_request_to_ccf("get_ledger_verifying_key", dict())
-            try:
-                ccf_verifying_key_PEM = ledger_response['verifying_key']
-                CCFSubmitter.ccf_signature_verifyer = crypto.SIG_PublicKey(ccf_verifying_key_PEM)
-            except Exception as e:
-                raise Exception("Unable to get ledger verifying key; {}", str(e))
-
-
-# -----------------------------------------------------------------
-    def submit_read_request_to_ccf(self, tx_method, tx_params) :
-
-        for wait in CCFSubmitter.read_backoff_duration:
-            time.sleep(wait)
-            try:
-                response = self.submit_rpc_to_ccf(tx_method, tx_params)
-                if response.result is not None: #if read fails due to lack
-                                                #of global commit, result will be None
-                    return response.result
-            except Exception as e:
-                raise
-
-        #read failed even after retries
-        raise Exception(response.error)
-
-# -----------------------------------------------------------------
-    def submit_rpc_to_ccf(self, tx_method, tx_params) :
-
         try:
-            return CCFSubmitter.ccf_client.rpc(tx_method, tx_params)
+            parsed_url = urlparse(self.url)
+            host, port = parsed_url.netloc.split(':')
+            self.host = socket.gethostbyname(host) # convert host name to IP address
+            self.port = int(port)
+            self.endpoint = "{0}:{1}".format(self.host, self.port)
         except Exception as e:
-            raise Exception("Error while submitting transaction to CCF: %s", str(e))
+            raise Exception("Unable to parse CCF ledger URL; must be of the form http://ip:port : %s", str(e))
 
-# -----------------------------------------------------------------
+        if self.endpoint in CCFSubmitter.ccf_client_cache :
+            self.ccf_client = CCFSubmitter.ccf_client_cache[self.endpoint]
+        else :
+            self.ccf_client = CCFClientWrapper(self.host, self.port)
+            CCFSubmitter.ccf_client_cache[self.endpoint] = self.ccf_client
+
+    # -----------------------------------------------------------------
     def register_encalve(self,
         enclave_verifying_key,
         enclave_encryption_key,
@@ -154,7 +164,7 @@ class CCFSubmitter(sub.Submitter):
             self.pdo_signer)
 
         try:
-            response = self.submit_rpc_to_ccf(tx_method, tx_params)
+            response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be "True" for enclave registration transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
@@ -177,7 +187,7 @@ class CCFSubmitter(sub.Submitter):
             )
 
         try:
-            response = self.submit_rpc_to_ccf(tx_method, tx_params)
+            response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be "True" for contract registration transaction
                 return crypto.byte_array_to_hex(tx_params['signature'])
             else:
@@ -200,7 +210,7 @@ class CCFSubmitter(sub.Submitter):
             )
 
         try:
-            response = self.submit_rpc_to_ccf(tx_method, tx_params)
+            response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be "True" for add encalve to contract transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
@@ -239,7 +249,7 @@ class CCFSubmitter(sub.Submitter):
             nonce = channel_keys
             )
         try:
-            response = self.submit_rpc_to_ccf(tx_method, tx_params)
+            response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be True for successful init transaction
                 return tx_params['nonce'] # this will represent the transaction id
             else:
@@ -285,7 +295,7 @@ class CCFSubmitter(sub.Submitter):
             )
 
         try:
-            response = self.submit_rpc_to_ccf(tx_method, tx_params)
+            response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if response.result: # result will be True for successful init transaction
                 return tx_params['nonce'] #this will represent the transaction id
             else:
@@ -300,7 +310,7 @@ class CCFSubmitter(sub.Submitter):
         tx_method = "verify_enclave_registration"
         tx_params = PayloadBuilder.build_verify_enclave_from_data(enclave_id)
 
-        enclave_info = self.submit_read_request_to_ccf(tx_method, tx_params)
+        enclave_info = self.ccf_client.submit_read_request(tx_method, tx_params)
 
         # verify ccf signature
         message = enclave_info["verifying_key"]
@@ -309,10 +319,14 @@ class CCFSubmitter(sub.Submitter):
         message+= enclave_info["last_registration_block_context"]
         message+= enclave_info["owner_id"]
 
-        if not CCFSubmitter.verify_ledger_signature(message, enclave_info["signature"]):
+        if not self.ccf_client.verify_ledger_signature(message, enclave_info["signature"]):
             raise Exception("Invalid signature on Get Enclave Info from CCF Ledger")
 
         return enclave_info
+
+# -----------------------------------------------------------------
+    def get_ledger_info(self) :
+        return self.ccf_client.ccf_verifying_key
 
 # -----------------------------------------------------------------
     def get_contract_info(self,
@@ -321,7 +335,7 @@ class CCFSubmitter(sub.Submitter):
         tx_method = "verify_contract_registration"
         tx_params = PayloadBuilder.build_verify_contract_registration_from_data(contract_id)
 
-        contract_info = self.submit_read_request_to_ccf(tx_method, tx_params)
+        contract_info = self.ccf_client.submit_read_request(tx_method, tx_params)
 
         # verify ccf signature
         message = contract_info["contract_id"]
@@ -331,7 +345,7 @@ class CCFSubmitter(sub.Submitter):
             message+= pservice_id
         message+= contract_info["enclaves_info"]
 
-        if not CCFSubmitter.verify_ledger_signature(message, contract_info["signature"]):
+        if not self.ccf_client.verify_ledger_signature(message, contract_info["signature"]):
             raise Exception("Invalid signature on Get Contract Info from CCF Ledger")
 
         return contract_info
@@ -343,12 +357,12 @@ class CCFSubmitter(sub.Submitter):
         tx_method = "get_current_state_info_for_contract"
         tx_params = PayloadBuilder.build_get_current_state_info_for_contract_from_data(contract_id)
 
-        state_info = self.submit_read_request_to_ccf(tx_method, tx_params)
+        state_info = self.ccf_client.submit_read_request(tx_method, tx_params)
 
          # verify ccf signature
         message = contract_id + state_info["state_hash"]
 
-        if not CCFSubmitter.verify_ledger_signature(message, state_info["signature"]):
+        if not self.ccf_client.verify_ledger_signature(message, state_info["signature"]):
             raise Exception("Invalid signature on Get Current State Hash from CCF Ledger")
 
         return state_info
@@ -362,7 +376,7 @@ class CCFSubmitter(sub.Submitter):
         tx_params = PayloadBuilder.build_get_details_about_state_from_data(contract_id, \
             crypto.base64_to_byte_array(state_hash))
 
-        state_details = self.submit_read_request_to_ccf(tx_method, tx_params)
+        state_details = self.ccf_client.submit_read_request(tx_method, tx_params)
 
         # verify ccf signature
         message = state_details["previous_state_hash"]
@@ -370,7 +384,7 @@ class CCFSubmitter(sub.Submitter):
         message+= state_details["transaction_id"]
         message+= state_details["dependency_list"]
 
-        if not CCFSubmitter.verify_ledger_signature(message, state_details["signature"]):
+        if not self.ccf_client.verify_ledger_signature(message, state_details["signature"]):
             raise Exception("Invalid signature on Get State Details from CCF Ledger")
 
         return state_details
