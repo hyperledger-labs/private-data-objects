@@ -53,7 +53,8 @@ namespace ccfapp
 
     //methods that read the tables, used by PDO to verify write transactions
     static constexpr auto VERIFY_ENCLAVE_REGISTRATION = "verify_enclave_registration";
-    static constexpr auto VERIFY_CONTRACT_REGISTRATION = "verify_contract_registration";
+    static constexpr auto GET_CONTRACT_PROVISIONING_INFO = "get_contract_provisioning_info";
+    static constexpr auto GET_CONTRACT_INFO = "get_contract_info";
     static constexpr auto GET_CURRENT_STATE_INFO_FOR_CONTRACT = "get_current_state_info_for_contract";
     static constexpr auto GET_DETAILS_ABOUT_STATE = "get_details_about_state";
 
@@ -120,4 +121,3 @@ namespace ccfapp
         TransactionProcessor(kv::Store& store);
     };
 }
-

@@ -489,18 +489,14 @@ namespace ccfapp
         };
 
         //======================================================================================================
-        // verify_contract handler implementation
-        auto verify_contract = [this](kv::Tx& tx, const nlohmann::json& params) {
-            const auto in = params.get<Verify_contract::In>();
+        // get_contract_provisioning_info handler implementation
+        auto get_contract_provisioning_info = [this](kv::Tx& tx, const nlohmann::json& params) {
+            const auto in = params.get<Get_contract_provisioning_info::In>();
             auto view = tx.get_view(contracttable);
             auto contract_r = view->get_globally_committed(in.contract_id);
 
             if (contract_r.has_value())
             {
-
-                nlohmann::json j = contract_r.value().enclave_info;
-                string enclave_info_string = j.dump();
-
                 if (ledger_signer_local == NULL) {
                     auto signer_view = tx.get_view(signer);
                     auto signer_global = signer_view->get_globally_committed("signer");
@@ -518,22 +514,64 @@ namespace ccfapp
                 auto contract_code_hash = contract_r.value().contract_code_hash;
                 auto encoded_code_hash = b64_from_raw(contract_code_hash.data(), contract_code_hash.size());
 
+                // JSON is a notorious difficult format for signing; however, the complexity
+                // of the structure we need to sign makes this about the only good way to
+                // do the signing
+                // NOTE: nlohmann serialization uses no spaces and appears to sort keys by name
+
                 string doc_to_sign;
-                doc_to_sign = in.contract_id;
-                doc_to_sign += encoded_code_hash;
-                doc_to_sign += contract_r.value().contract_creator_verifying_key_PEM;
-                for (auto pservice_id : contract_r.value().provisioning_service_ids) {
-                    doc_to_sign += pservice_id;
-                }
-                doc_to_sign += enclave_info_string;
+                nlohmann::json serializer;
+                serializer["contract_id"] = in.contract_id;
+                serializer["contract_creator"] = contract_r.value().contract_creator_verifying_key_PEM;
+                serializer["enclaves_info"] = contract_r.value().enclave_info;
+                serializer["provisioning_services"] = contract_r.value().provisioning_service_ids;
+                doc_to_sign = serializer.dump();
+
                 auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
 
-                return make_success(Verify_contract::Out{in.contract_id, encoded_code_hash, \
-                contract_r.value().contract_creator_verifying_key_PEM, contract_r.value().provisioning_service_ids, \
-                enclave_info_string, signature});
+                return make_success(Get_contract_provisioning_info::Out{contract_r.value().contract_creator_verifying_key_PEM,
+                            contract_r.value().provisioning_service_ids,
+                            contract_r.value().enclave_info, signature});
             }
             return make_error(HTTP_STATUS_BAD_REQUEST, "Contract not found");
 
+        };
+
+        //======================================================================================================
+        // get current state info handler implementation
+        auto get_contract_info = [this](kv::Tx& tx, const nlohmann::json& params) {
+
+            const auto in = params.get<Get_current_state_info::In>();
+            auto view = tx.get_view(contracttable);
+            auto contract_r = view->get_globally_committed(in.contract_id);
+
+            if (! contract_r.has_value())
+            {
+                return make_error(HTTP_STATUS_BAD_REQUEST, "Contract not found");
+            }
+
+            if (ledger_signer_local == NULL) {
+                auto signer_view = tx.get_view(signer);
+                auto signer_global = signer_view->get_globally_committed("signer");
+                if (signer_global.has_value()){
+                    auto key_pair = signer_global.value();
+                    auto privk_pem = tls::Pem(key_pair["privk"]);
+                    ledger_signer_local = make_key_pair(privk_pem, nullb, false);
+                }
+                else {
+                    return make_error(
+                        HTTP_STATUS_BAD_REQUEST, "Unable to locate ledger authority for signing read rpcs");
+                }
+            }
+
+            auto contract_code_hash = contract_r.value().contract_code_hash;
+            auto encoded_code_hash = b64_from_raw(contract_code_hash.data(), contract_code_hash.size());
+            auto creator_key = contract_r.value().contract_creator_verifying_key_PEM;
+
+            string doc_to_sign = in.contract_id + creator_key + encoded_code_hash;
+            auto signature = TPHandlerRegistry ::sign_document(doc_to_sign);
+
+            return make_success(Get_contract_info::Out{creator_key, encoded_code_hash, signature});
         };
 
         //======================================================================================================
@@ -633,7 +671,6 @@ namespace ccfapp
 
         };
 
-        install(PingMe, json_adapter(ping), Read);
         install(GEN_SIGNING_KEY, json_adapter(gen_signing_key), Write);
         install(GET_LEDGER_KEY, json_adapter(get_ledger_key), Write);
 
@@ -643,11 +680,12 @@ namespace ccfapp
         install(UPDATE_CONTRACT_STATE, json_adapter(update_contract_state), Write);
 
         //Change the following four to read type
-        install(VERIFY_CONTRACT_REGISTRATION, json_adapter(verify_contract), Read);
+        install(PingMe, json_adapter(ping), Read);
         install(VERIFY_ENCLAVE_REGISTRATION, json_adapter(verify_enclave), Read);
+        install(GET_CONTRACT_PROVISIONING_INFO, json_adapter(get_contract_provisioning_info), Read);
+        install(GET_CONTRACT_INFO, json_adapter(get_contract_info), Read);
         install(GET_CURRENT_STATE_INFO_FOR_CONTRACT, json_adapter(get_current_state_info_for_contract), Read);
         install(GET_DETAILS_ABOUT_STATE, json_adapter(get_details_about_state), Read);
-
     }
 
     // Constructor for the app class: Point to rpc handlers

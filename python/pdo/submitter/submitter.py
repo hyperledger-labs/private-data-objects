@@ -119,8 +119,16 @@ class Submitter(object):
     def get_contract_info(self,
         contract_id):
         """ return dict with the following keys:
-                contract_id,
-                contract_code_hash,
+                pdo_contract_creator_pem_key,
+                contract_code_hash
+        """
+        raise NotImplementedError("Must override get_contract_info")
+
+# -----------------------------------------------------------------
+    @abstractmethod
+    def get_contract_provisioning_info(self,
+        contract_id):
+        """ return dict with the following keys:
                 pdo_contract_creator_pem_key,
                 provisioning_service_ids,
                 enclaves_info

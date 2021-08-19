@@ -332,18 +332,37 @@ class CCFSubmitter(sub.Submitter):
     def get_contract_info(self,
         contract_id):
 
-        tx_method = "verify_contract_registration"
+        tx_method = "get_contract_info"
         tx_params = PayloadBuilder.build_verify_contract_registration_from_data(contract_id)
 
         contract_info = self.ccf_client.submit_read_request(tx_method, tx_params)
 
         # verify ccf signature
-        message = contract_info["contract_id"]
-        message+= contract_info["contract_code_hash"]
-        message+= contract_info["pdo_contract_creator_pem_key"]
-        for pservice_id in contract_info["provisioning_service_ids"]:
-            message+= pservice_id
-        message+= contract_info["enclaves_info"]
+        message = contract_id
+        message += contract_info["pdo_contract_creator_pem_key"]
+        message += contract_info["contract_code_hash"]
+
+        if not self.ccf_client.verify_ledger_signature(message, contract_info["signature"]):
+            raise Exception("Invalid signature on Get Contract Info from CCF Ledger")
+
+        return contract_info
+
+# -----------------------------------------------------------------
+    def get_contract_provisioning_info(self,
+        contract_id):
+
+        tx_method = "get_contract_provisioning_info"
+        tx_params = PayloadBuilder.build_verify_contract_registration_from_data(contract_id)
+
+        contract_info = self.ccf_client.submit_read_request(tx_method, tx_params)
+
+        # verify ccf signature
+        bundle = {}
+        bundle["contract_id"] = contract_id
+        bundle["contract_creator"] = contract_info["pdo_contract_creator_pem_key"]
+        bundle["enclaves_info"] = contract_info["enclaves_info"]
+        bundle["provisioning_services"] = contract_info["provisioning_service_ids"]
+        message = json.dumps(bundle, sort_keys=True, separators=(',', ':'))
 
         if not self.ccf_client.verify_ledger_signature(message, contract_info["signature"]):
             raise Exception("Invalid signature on Get Contract Info from CCF Ledger")
