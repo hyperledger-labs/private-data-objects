@@ -35,48 +35,42 @@ def command_contract(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='contract')
+    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
+    parser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
+    parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str, required=True)
 
     subparsers = parser.add_subparsers(dest='command')
-    load_parser = subparsers.add_parser('load')
-    load_parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str, required=True)
-    load_parser.add_argument('-r', '--refresh', help='Refresh state from ledger', action='store_true')
-
-    refresh_parser = subparsers.add_parser('refresh')
-    refresh_parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
+    subparser = subparsers.add_parser('contract-id')
+    subparser = subparsers.add_parser('creator')
+    subparser = subparsers.add_parser('provisioned-enclaves')
+    subparser = subparsers.add_parser('preferred-enclave')
+    subparser = subparsers.add_parser('code-name')
+    subparser = subparsers.add_parser('code-nonce')
 
     options = parser.parse_args(pargs)
 
-    if options.command == 'load' :
-        contract = load_contract(state, options.save_file)
+    contract = load_contract(state, options.save_file)
 
-        if options.refresh :
-            refresh_contract(state, contract)
 
-        save_contract(state, options.save_file, contract)
+    if options.command == 'contract-id' :
+        result = contract.contract_id
+    if options.command == 'creator' :
+        result = contract.creator_id
+    if options.command == 'provisioned-enclaves' :
+        result = contract.provisioned_enclaves
+    if options.command == 'preferred-enclave' :
+        result = contract.extra_data.get('preferred-enclave', '')
+    if options.command == 'code-name' :
+        result = contract.contract_code.name
+    if options.command == 'code-nonce' :
+        result = contract.contract_code.nonce
 
-    elif options.command == 'refresh' :
-        contract = get_contract(state, options.save_file)
-        refresh_contract(state, contract)
+    if result and not options.quiet :
+        print(result)
+    if result and options.symbol :
+        bindings.bind(options.symbol, result)
 
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def refresh_contract(state, contract) :
-    try :
-        data_directory = state.get(['Contract', 'DataDirectory'])
-        ledger_config = state.get(['Ledger'])
-
-        contract_state = ContractState.get_from_ledger(ledger_config, contract.contract_id)
-        contract_state.save_to_cache(data_dir=data_directory)
-        contract.set_state(contract_state.raw_state)
-    except Exception as e :
-        raise Exception('unable to refresh the state from the ledger; {0}'.format(str(e)))
-
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def save_contract(state, contract_file, contract) :
-    state.set(['Contract', 'SaveFile'], contract_file)
-    state.set(['Contract', 'Name'], contract.contract_code.name)
-    state.set(['Contract', 'Contract'], contract)
+    return
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
