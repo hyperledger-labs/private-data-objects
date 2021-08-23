@@ -88,4 +88,7 @@ message CCL_TransactionPayload {
 
     // PDO signature to be verified with contract creator key
     string pdo_signature = 6;
+
+    // Only valid for initialize
+    string metadata_hash = 7;
 }

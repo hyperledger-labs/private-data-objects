@@ -21,6 +21,8 @@ SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 source ${SRCDIR}/bin/lib/common.sh
 
+PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 if [ "${PDO_INTERPRETER}" == "wawaka-aot" ]; then
@@ -96,7 +98,7 @@ yell start tests without provisioning or enclave services
 # -----------------------------------------------------------------
 say start request test
 try pdo-test-request --no-ledger --iterations 100 \
-    --logfile __screen__ --loglevel warn
+    --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 
 # execute the common tests
 for test_file in ${SRCDIR}/build/tests/common/*.json ; do
@@ -104,7 +106,7 @@ for test_file in ${SRCDIR}/build/tests/common/*.json ; do
     say start test ${test_contract} without services
     try pdo-test-contract --no-ledger --contract ${test_contract} \
         --expressions ${test_file} \
-        --logfile __screen__ --loglevel warn
+        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
 # execute interpreter specific tests
@@ -118,13 +120,13 @@ for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
     say start interpreter-specific test ${test_contract} without services
     try pdo-test-contract --no-ledger --contract ${test_contract} \
         --expressions ${test_file} \
-        --logfile __screen__ --loglevel warn
+        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
 say start request test with tampered block order, this should fail
 pdo-test-request --no-ledger \
     --tamper-block-order \
-    --logfile __screen__ --loglevel warn
+    --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 if [ $? == 0 ]; then
     die request test with tampered block order succeeded though it should have failed
 fi
@@ -134,7 +136,7 @@ yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
 say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
-try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel warn \
+try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel ${PDO_LOG_LEVEL} \
     --eservice-db ${ESDB_FILE} \
     --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
     --ledger ${PDO_LEDGER_URL}
@@ -143,21 +145,21 @@ try rm -f ${ESDB_FILE}
 cd ${SRCDIR}/build
 
 say create the eservice database using database CLI
-try pdo-eservicedb --loglevel warn reset --create
-try pdo-eservicedb --loglevel warn add -u http://localhost:7101 -n es7101
-try pdo-eservicedb --loglevel warn add -u http://localhost:7102 -n es7102
-try pdo-eservicedb --loglevel warn add -u http://localhost:7103 -n es7103
-try pdo-eservicedb --loglevel warn add -u http://localhost:7104 -n es7104
-try pdo-eservicedb --loglevel warn add -u http://localhost:7105 -n es7105
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} reset --create
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7101 -n es7101
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7102 -n es7102
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7103 -n es7103
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7104 -n es7104
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7105 -n es7105
 
 say start storage service test
-try pdo-test-storage --url http://localhost:7201 --loglevel warn --logfile __screen__
+try pdo-test-storage --url http://localhost:7201 --loglevel ${PDO_LOG_LEVEL} --logfile __screen__
 
 say start request test
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ \
-    --logfile __screen__ --loglevel warn
+    --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 
 # execute the common tests
 for test_file in ${SRCDIR}/build/tests/common/*.json ; do
@@ -167,7 +169,7 @@ for test_file in ${SRCDIR}/build/tests/common/*.json ; do
         --expressions ${test_file} \
         --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
         --eservice-url http://localhost:7101/ \
-        --logfile __screen__ --loglevel warn
+        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
 # execute interpreter specific tests
@@ -183,7 +185,7 @@ for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
         --expressions ${test_file} \
         --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
         --eservice-url http://localhost:7101/ \
-        --logfile __screen__ --loglevel warn
+        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
 ## -----------------------------------------------------------------
@@ -254,7 +256,7 @@ fi
 # -----------------------------------------------------------------
 yell test pdo-shell
 # -----------------------------------------------------------------
-try ${SRCDIR}/build/tests/shell-test.psh --loglevel warn 
+try ${SRCDIR}/build/tests/shell-test.psh --loglevel ${PDO_LOG_LEVEL}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -265,7 +267,7 @@ say start mock-contract test with replication 3 eservices 2 replicas needed befo
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
     --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
-    --logfile __screen__ --loglevel warn --iterations 100 \
+    --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
 if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
@@ -274,7 +276,7 @@ if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
         --expressions ${SRCDIR}/build/tests/${PDO_INTERPRETER}/memory-test.json \
         --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
         --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
-        --logfile __screen__ --loglevel warn \
+        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
         --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 fi
 

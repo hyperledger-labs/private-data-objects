@@ -246,6 +246,7 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         response.enclave_service.enclave_id,
         response.signature,
         response.contract_id,
+        response.code_hash,
         response.message_hash,
         response.new_state_hash,
         response.metadata_hash,

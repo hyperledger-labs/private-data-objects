@@ -132,9 +132,10 @@ class SawtoothSubmitter(sub.Submitter):
         contract_enclave_id,
         enclave_signature,
         contract_id,
+        contract_code_hash,
         message_hash,
         current_state_hash,
-        contract_code_hash,
+        contract_metadata_hash,
         **extra_params):
 
         json_input = JsonPayloadBuilder.build_ccl_transaction_from_data(
@@ -150,7 +151,8 @@ class SawtoothSubmitter(sub.Submitter):
             "",     # previous_state_hash,
             "",     # encyrpted root block. No longer stored in Sawtooth
             [],     # empty dependency_list
-            crypto.byte_array_to_base64(contract_code_hash))
+            crypto.byte_array_to_base64(contract_code_hash),
+            crypto.byte_array_to_base64(contract_metadata_hash))
                             # contract code hash is necessary for the pdo signature
 
         extra_params['key_str'] = channel_keys.txn_private
@@ -182,7 +184,9 @@ class SawtoothSubmitter(sub.Submitter):
             crypto.byte_array_to_base64(previous_state_hash),
             "",     #encyrpted root block. No longer stored in Sawtooth
             dependency_list,
-            "")  #no contract hash because there is no pdo sign
+            "",  # no contract hash because there is no pdo sign
+            ""   # no metadata hash for an update
+        )
 
         extra_params['key_str'] = channel_keys.txn_private
 
@@ -195,10 +199,20 @@ class SawtoothSubmitter(sub.Submitter):
         return self.read_helper.get_enclave_dict(enclave_id)
 
 # -----------------------------------------------------------------
+    def get_ledger_info(self) :
+        return {}
+
+# -----------------------------------------------------------------
     def get_contract_info(self,
         contract_id):
 
         return self.read_helper.get_contract_dict(contract_id)
+
+# -----------------------------------------------------------------
+    def get_contract_provisioning_info(self,
+        contract_id):
+
+        return self.get_contract_info(contract_id)
 
 # -----------------------------------------------------------------
     def get_current_state_hash(self,
@@ -263,6 +277,7 @@ def compute_pdo_add_enclave_signature(private_key, tx_signer_public_key, contrac
 
 # -----------------------------------------------------------------
 def compute_pdo_ccl_signature(
+    verb,
     private_key,
     enclave_id,
     enclave_signature,
@@ -271,24 +286,31 @@ def compute_pdo_ccl_signature(
     creator_public_key_pem,
     contract_code_hash,
     message_hash,
+    contract_metadata_hash,
     current_state_hash,
     previous_state_hash,
     dependency_list):
+
     k = crypto.SIG_PrivateKey(private_key)
+
     message_byte_array = crypto.string_to_byte_array(enclave_id)
     message_byte_array += crypto.base64_to_byte_array(enclave_signature)
     message_byte_array += crypto.string_to_byte_array(channel_id)
     message_byte_array += crypto.string_to_byte_array(contract_id)
-    message_byte_array += crypto.string_to_byte_array(creator_public_key_pem)
     message_byte_array += crypto.base64_to_byte_array(contract_code_hash)
     message_byte_array += crypto.base64_to_byte_array(message_hash)
-    message_byte_array += crypto.base64_to_byte_array(current_state_hash)
-    #in ccl initialize, previous state hash and dependencies are supposed to be empty
-    if previous_state_hash:
+
+    if verb == 'initialize' :
+        #in ccl initialize, previous state hash and dependencies are supposed to be empty
+        message_byte_array += crypto.string_to_byte_array(creator_public_key_pem)
+        message_byte_array += crypto.base64_to_byte_array(contract_metadata_hash)
+        message_byte_array += crypto.base64_to_byte_array(current_state_hash)
+    else :
         message_byte_array += crypto.base64_to_byte_array(previous_state_hash)
-    for d in dependency_list:
-        message_byte_array += crypto.string_to_byte_array(d.contract_id)
-        message_byte_array += crypto.string_to_byte_array(d.state_hash)
+        message_byte_array += crypto.base64_to_byte_array(current_state_hash)
+        for d in dependency_list:
+            message_byte_array += crypto.string_to_byte_array(d.contract_id)
+            message_byte_array += crypto.string_to_byte_array(d.state_hash)
     signature = k.SignMessage(message_byte_array)
     encoded_signature = crypto.byte_array_to_base64(signature)
     logger.debug("signed message string: " + crypto.byte_array_to_base64(message_byte_array))
@@ -397,17 +419,20 @@ class JsonPayloadBuilder(object):
         previous_state_hash,
         encrypted_state,
         dependency_list,
-        contract_code_hash):
+        contract_code_hash,
+        contract_metadata_hash):
         jsonblob = dict()
         jsonblob['af'] = "ccl_contract"
         jsonblob['verb'] = verb
         jsonblob['channel_id'] = channel_id
         jsonblob['contract_enclave_id'] = contract_enclave_id
         jsonblob['contract_enclave_signature'] = enclave_signature
-        if not contract_creator_private_pem_key: #no creator key, leave signature empty
+        jsonblob['metadata_hash'] = contract_metadata_hash
+        if not contract_creator_private_pem_key: # no creator key, leave signature empty
             jsonblob['pdo_signature'] = ""
         else: #compute and insert the creator's signature
             jsonblob['pdo_signature'] = compute_pdo_ccl_signature(
+                verb,
                 contract_creator_private_pem_key,
                 contract_enclave_id,
                 enclave_signature,
@@ -416,6 +441,7 @@ class JsonPayloadBuilder(object):
                 contract_creator_public_key_pem,
                 contract_code_hash,
                 message_hash,
+                contract_metadata_hash,
                 current_state_hash,
                 previous_state_hash,
                 dependency_list)

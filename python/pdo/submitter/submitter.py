@@ -71,6 +71,7 @@ class Submitter(object):
         contract_enclave_id,
         enclave_signature,
         contract_id,
+        contract_code_hash,
         message_hash,
         initial_state_hash,
         contract_metadata_hash,

@@ -224,6 +224,7 @@ class CCFSubmitter(sub.Submitter):
         contract_enclave_id,
         enclave_signature,
         contract_id,
+        contract_code_hash,               # not used by CCF
         message_hash,
         initial_state_hash,
         contract_metadata_hash,

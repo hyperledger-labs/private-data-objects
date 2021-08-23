@@ -196,16 +196,20 @@ def verify_secp256k1_signature(message, signature_str, public_key_str, message_d
 
 def make_ccl_transaction_hash_input(payload, contract_code_hash, pdo_contract_creator_pem_key):
     update = payload.state_update
-    hash_input = bytes(payload.channel_id, "UTF-8", "ignore") +\
-                 bytes(update.contract_id, "UTF-8", "ignore") +\
-                 bytes(pdo_contract_creator_pem_key, "UTF-8", "ignore") + \
-                 base64.b64decode(contract_code_hash) + \
-                 base64.b64decode(update.message_hash) + \
-                 base64.b64decode(update.current_state_hash) + \
-                 base64.b64decode(update.previous_state_hash)
+    hash_input = bytes(payload.channel_id, "UTF-8", "ignore")
+    hash_input += bytes(update.contract_id, "UTF-8", "ignore")
+    hash_input += base64.b64decode(contract_code_hash)
+    hash_input += base64.b64decode(update.message_hash)
 
-    for d in update.dependency_list:
-        hash_input += bytes(d.contract_id, "UTF-8", "ignore") + bytes(d.state_hash, "UTF-8", "ignore")
+    if payload.verb == 'initialize' :
+        hash_input += bytes(pdo_contract_creator_pem_key, "UTF-8", "ignore")
+        hash_input += base64.b64decode(payload.metadata_hash)
+        hash_input += base64.b64decode(update.current_state_hash)
+    else :
+        hash_input += base64.b64decode(update.previous_state_hash)
+        hash_input += base64.b64decode(update.current_state_hash)
+        for d in update.dependency_list:
+            hash_input += bytes(d.contract_id, "UTF-8", "ignore") + bytes(d.state_hash, "UTF-8", "ignore")
 
     return hash_input
 

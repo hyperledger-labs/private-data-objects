@@ -288,7 +288,8 @@ class PdoClientConnectHelper(PdoRegistryHelper):
                 )
                 wait_time = time.time() - start_time
 
-                if status != 'PENDING':
+                # if status != 'PENDING'  and status != 'INVALID' :
+                if status != 'PENDING' :
                     if verbose:
                         self._dbg_dump.dump_str("Transaction status: '{}'".format(status))
                     if status != "COMMITTED" and exception_type:
