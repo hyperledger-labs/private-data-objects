@@ -354,7 +354,7 @@ class ContractState(object) :
 
         pushed_blocks = ContractState.__push_blocks_to_eservice__(eservice, self.contract_id, block_ids, data_dir)
 
-        logger.info("Pushed %d new blocks before contract update", pushed_blocks)
+        logger.debug("Pushed %d new blocks before contract update", pushed_blocks)
 
         stat_logger.debug('state length is %d, pushed %d new blocks', len(self.component_block_ids), pushed_blocks)
 

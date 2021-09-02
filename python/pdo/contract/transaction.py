@@ -178,7 +178,7 @@ def __transaction_worker__():
                         transaction_request.ledger_config)
 
                 if txn_id:
-                    logger.info("Submitted transaction for request %d", request_number)
+                    logger.debug("Submitted transaction for request %d", request_number)
                     submitted_any = True
                     transaction_request.mark_as_completed()
                 else:
@@ -211,7 +211,7 @@ def __transaction_worker__():
 
             contract_id = response.commit_id[0]
             request_number = response.commit_id[2]
-            logger.info('received transaction request for request %d', request_number)
+            logger.debug('received transaction request for request %d', request_number)
             if rep_completed_but_txn_not_submitted_updates.get(contract_id):
                 rep_completed_but_txn_not_submitted_updates[contract_id][request_number] =  response
             else:

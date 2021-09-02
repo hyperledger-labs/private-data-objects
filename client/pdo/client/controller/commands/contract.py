@@ -17,15 +17,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.contract import ContractState
 from pdo.contract import Contract
 
 __all__ = [
     'command_contract',
     'get_contract',
     'load_contract',
-    'refresh_contract',
-    'save_contract'
     ]
 
 ## -----------------------------------------------------------------
@@ -40,12 +37,12 @@ def command_contract(state, bindings, pargs) :
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str, required=True)
 
     subparsers = parser.add_subparsers(dest='command')
-    subparser = subparsers.add_parser('contract-id')
-    subparser = subparsers.add_parser('creator')
-    subparser = subparsers.add_parser('provisioned-enclaves')
-    subparser = subparsers.add_parser('preferred-enclave')
-    subparser = subparsers.add_parser('code-name')
-    subparser = subparsers.add_parser('code-nonce')
+    subparsers.add_parser('contract-id')
+    subparsers.add_parser('creator')
+    subparsers.add_parser('provisioned-enclaves')
+    subparsers.add_parser('preferred-enclave')
+    subparsers.add_parser('code-name')
+    subparsers.add_parser('code-nonce')
 
     options = parser.parse_args(pargs)
 

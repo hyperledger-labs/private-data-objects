@@ -102,12 +102,12 @@ def __replication_manager__():
 
             # identify if replication can be skipped, including the case where there is only one provisioned enclave
             if len(replication_request.service_ids) == 1:
-                logger.info('Skipping replication for request id %d : Only one provisioned enclave, so nothing to replicate', request_id)
+                logger.debug('Skipping replication for request id %d : Only one provisioned enclave, so nothing to replicate', request_id)
                 replication_request.mark_as_completed(response.call_back_after_replication)
                 continue
 
             if len(replication_request.blocks_to_replicate) == 0:
-                logger.info('Skipping replication for request id %d: No change set, so nothing to replicate', request_id)
+                logger.debug('Skipping replication for request id %d: No change set, so nothing to replicate', request_id)
                 replication_request.mark_as_completed(response.call_back_after_replication)
                 continue
 
@@ -242,7 +242,7 @@ class ReplicationRequest(object):
             __condition_variable_for_completed_tasks__.acquire()
             if not self.is_completed: # yes we check this again, the outside check is only for performance optimization, this check is algorithmic
                 self.is_completed = True
-                logger.info("Replication for request number %d successfully completed", self.commit_id[2])
+                logger.debug("Replication for request number %d successfully completed", self.commit_id[2])
                 __condition_variable_for_completed_tasks__.notify()
                 if not self.is_failed:
                     call_back_after_replication()

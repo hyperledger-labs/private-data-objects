@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import argparse
 import json
 import logging
-import random
 
 logger = logging.getLogger(__name__)
 
-import pdo.common.crypto as pcrypto
 from pdo.submitter.create import create_submitter
-from pdo.client.controller.util import invocation_parameter
+## from pdo.client.controller.util import invocation_parameter
 
 __all__ = ['command_ledger']
 
@@ -40,7 +37,7 @@ def command_ledger(state, bindings, pargs) :
 
     subparsers = parser.add_subparsers(dest='command')
 
-    subparser = subparsers.add_parser('ledger-key')
+    subparsers.add_parser('ledger-key')
 
     subparser = subparsers.add_parser('enclave-info')
     subparser.add_argument('-i', '--enclave-id', help='enclave identifier', type=str, required=True)
