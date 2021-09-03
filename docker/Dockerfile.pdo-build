@@ -21,7 +21,7 @@
 #    (presumably built from Dockerfile.pde-dev)
 #  - sgx-mode:					SGX_MODE (default: SIM)
 #  - pdo repo to use:				PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
-#  - pdo repo branch to use:			PDO_REPO_BRANCH (default: master)
+#  - pdo repo branch to use:			PDO_REPO_BRANCH (default: main)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 #  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
 #  - wamr version:		                WAMR    (default: WAMR-04-15-2021)
@@ -74,7 +74,7 @@ ARG PDO_DEV_IMAGE=pdo-dev
 # for bizare docker reason, we have to redefine it here .#..
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
-ARG PDO_REPO_BRANCH=master
+ARG PDO_REPO_BRANCH=main
 
 RUN mkdir /tmp/build-src
 COPY . /tmp/build-src
