@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
 
-INCLUDE(../contract-build.cmake)
+INCLUDE($ENV{PDO_SOURCE_ROOT}/contracts/wawaka/contract-build.cmake)
 
 ADD_SUBDIRECTORY(fibonacci)

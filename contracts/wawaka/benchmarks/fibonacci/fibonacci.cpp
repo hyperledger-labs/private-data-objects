@@ -23,7 +23,6 @@
 #include "Environment.h"
 #include "Message.h"
 #include "Response.h"
-#include "StringArray.h"
 #include "Value.h"
 #include "WasmExtensions.h"
 
