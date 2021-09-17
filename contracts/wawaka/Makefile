@@ -23,7 +23,7 @@ endif
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
-WAMR_ROOT=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
+WAMR_ROOT=$(PDO_SOURCE_ROOT)/interpreters/wasm-micro-runtime
 WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
 
 PLUGIN_INSTALL_DIR ?= $(PDO_HOME)/contracts/plugins
