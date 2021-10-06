@@ -120,12 +120,9 @@ bool ContractCompilationReport::VerifySignature(const std::string& code) const
     return verif_key.VerifySignature(serialized_report, signature_) > 0;
 }
 
-std::string ContractCompilationReport::ComputeHash(void) const {
+void ContractCompilationReport::ComputeHash(ByteArray& hash) const {
     ByteArray serialized = SerializeForHashing();
-    ByteArray report_hash = pdo::crypto::ComputeMessageHash(serialized);
-    // the contract code class expects a string when serializing
-    // for hashing, so use Base64 encoding
-    return ByteArrayToBase64EncodedString(report_hash);
+    hash = pdo::crypto::ComputeMessageHash(serialized);
 }
 
 void ContractCompilationReport::Unpack(const std::string& json_str) {

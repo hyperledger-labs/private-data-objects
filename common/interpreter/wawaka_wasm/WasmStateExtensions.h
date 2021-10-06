@@ -36,6 +36,13 @@ extern "C" bool key_value_get_wrapper(
     int32 val_buffer_pointer_offset,  /* uint8_t** */
     int32 val_length_pointer_offset); /* size_t* */
 
+extern "C" bool privileged_key_value_get_wrapper(
+    wasm_exec_env_t exec_env,
+    const uint8_t* key_buffer,
+    const int32 key_buffer_length,
+    int32 val_buffer_pointer_offset,  /* uint8_t** */
+    int32 val_length_pointer_offset); /* size_t* */
+
 extern "C" int key_value_create_wrapper(
     wasm_exec_env_t exec_env,
     const uint8_t* key_buffer,

@@ -42,6 +42,7 @@ __all__ = [
     'block_store_open',
     'block_store_close',
     'verify_secrets',
+    'initialize_contract_state',
     'send_to_contract',
     'shutdown'
 ]
@@ -205,6 +206,14 @@ def shutdown():
     _sig_rl_update_time = None
     _epid_group = None
     _cdi_policy = None
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def initialize_contract_state(sealed_data, encrypted_session_key, encrypted_request) :
+    """binary interface for invoking methods in the contract
+    """
+    result = enclave.initialize_contract_state(sealed_data, encrypted_session_key, encrypted_request)
+    return bytes(result)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

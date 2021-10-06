@@ -187,12 +187,9 @@ static NativeSymbol native_symbols[] =
     EXPORT_WASM_API_WITH_SIG2(random_identifier,"(ii)i"),
 
     /* Persistent store operations from WasmStateExtensions.h */
-#if 0
-    EXPORT_WASM_API_WITH_SIG2(key_value_set,"(*~*~)i"),
-    EXPORT_WASM_API_WITH_SIG2(key_value_get,"(*~ii)i"),
-#endif
     EXPORT_WASM_API_WITH_SIG2(key_value_set,"(i*~*~)i"),
     EXPORT_WASM_API_WITH_SIG2(key_value_get,"(i*~ii)i"),
+    EXPORT_WASM_API_WITH_SIG2(privileged_key_value_get,"(*~ii)i"),
 
     EXPORT_WASM_API_WITH_SIG2(key_value_create,"(*~)i"),
     EXPORT_WASM_API_WITH_SIG2(key_value_open,"(*~*~)i"),

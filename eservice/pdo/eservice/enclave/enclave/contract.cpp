@@ -228,6 +228,78 @@ pdo_err_t pdo::enclave_api::contract::HandleContractRequest(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::enclave_api::contract::InitializeContractState(
+    const Base64EncodedString& inSealedEnclaveData,
+    const ByteArray& inEncryptedSessionKey,
+    const ByteArray& inSerializedRequest,
+    uint32_t& outResponseIdentifier,
+    size_t& outSerializedResponseSize,
+    int enclaveIndex
+    )
+{
+    pdo_err_t result = PDO_SUCCESS;
+
+    try
+    {
+        size_t response_size;
+        ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
+
+        /// get the enclave id for passing into the ecall
+        sgx_enclave_id_t enclaveid = g_Enclave[enclaveIndex].GetEnclaveId();
+        pdo::logger::LogV(PDO_LOG_DEBUG, "HandleContractRequest[%ld] %u ", (long)enclaveid, enclaveIndex);
+
+        pdo_err_t presult = PDO_SUCCESS;
+        sgx_status_t sresult =
+            g_Enclave[enclaveIndex].CallSgx(
+                [
+                    enclaveid,
+                    &presult,
+                    sealed_enclave_data,
+                    inEncryptedSessionKey,
+                    inSerializedRequest,
+                    &response_size
+                ]
+                ()
+                {
+                    sgx_status_t sresult_inner = ecall_InitializeContractState(
+                        enclaveid,
+                        &presult,
+                        sealed_enclave_data.data(),
+                        sealed_enclave_data.size(),
+                        inEncryptedSessionKey.data(),
+                        inEncryptedSessionKey.size(),
+                        inSerializedRequest.data(),
+                        inSerializedRequest.size(),
+                        &response_size);
+                    return pdo::error::ConvertErrorStatus(sresult_inner, presult);
+                }
+                );
+        pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (InitializeContract)");
+        g_Enclave[enclaveIndex].ThrowPDOError(presult);
+
+        outSerializedResponseSize = response_size;
+
+    }
+    catch (pdo::error::Error& e)
+    {
+        pdo::enclave_api::base::SetLastError(e.what());
+        result = e.error_code();
+    }
+    catch (std::exception& e)
+    {
+        pdo::enclave_api::base::SetLastError(e.what());
+        result = PDO_ERR_UNKNOWN;
+    }
+    catch (...)
+    {
+        pdo::enclave_api::base::SetLastError("Unexpected exception");
+        result = PDO_ERR_UNKNOWN;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::contract::GetSerializedResponse(
     const Base64EncodedString& inSealedEnclaveData,
     const uint32_t inResponseIdentifier,

@@ -34,22 +34,26 @@ public:
     pdo::state::StateBlockId input_block_id_;
     pdo::state::StateBlockId output_block_id_;
     pstate::Interpreter_KV state_;
+    ByteArray metadata_hash_;
 
     ContractState(
-        const bool is_initialize,
-        const ByteArray& state_encryption_key_,
-        const ByteArray& state_hash,
+        const ByteArray& state_encryption_key,
+        const ByteArray& input_block_id,
+        const ByteArray& id_hash);
+
+    ContractState(
+        const ByteArray& state_encryption_key,
         const ByteArray& id_hash);
 
     void Finalize(void);
 
     void Unpack(
-        const ByteArray& state_encryption_key_,
-        const ByteArray& state_hash,
+        const ByteArray& state_encryption_key,
+        const ByteArray& input_block_id,
         const ByteArray& id_hash);
 
     void Initialize(
-        const ByteArray& state_encryption_key_,
+        const ByteArray& state_encryption_key,
         const ByteArray& id_hash);
 
 };

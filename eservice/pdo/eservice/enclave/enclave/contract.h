@@ -56,6 +56,16 @@ namespace pdo
                 );
 
             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+            pdo_err_t InitializeContractState(
+                const Base64EncodedString& inSealedEnclaveData,
+                const ByteArray& inEncryptedSessionKey,
+                const ByteArray& inSerializedRequest,
+                uint32_t& outResponseIdentifier,
+                size_t& outSerializedResponseSize,
+                int enclaveIndex
+                );
+
+            // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             pdo_err_t GetSerializedResponse(
                 const Base64EncodedString& inSealedEnclaveData,
                 const uint32_t inResponseIdentifier,

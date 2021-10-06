@@ -667,6 +667,23 @@ class ContractController(cmd.Cmd) :
     # =================================================================
 
     # -----------------------------------------------------------------
+    def do_ledger(self, args) :
+        """ledger -- manage enclave service lists for contract creation
+        """
+        if self.deferred > 0 : return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+            ledger(self.state, self.bindings, pargs)
+
+        except SystemExit as se :
+            return self.__arg_error__('ledger', args, se.code)
+        except Exception as e :
+            return self.__error__('ledger', args, str(e))
+
+        return False
+
+    # -----------------------------------------------------------------
     def do_pservice(self, args) :
         """pservice -- manage provisioning service list
         """

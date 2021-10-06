@@ -88,11 +88,17 @@ class EnclaveServiceClient(GenericServiceClient) :
     # encrypted_session_key -- byte string containing aes key encrypted with enclave's rsa key
     # encrypted_request -- byte string request encrypted with aes session key
     # -----------------------------------------------------------------
+    def initialize_contract_state(self, encrypted_session_key, encrypted_request, encoding='raw') :
+        return self.__send_to_contract__('initialize', encrypted_session_key, encrypted_request, encoding)
+
     def send_to_contract(self, encrypted_session_key, encrypted_request, encoding='raw') :
+        return self.__send_to_contract__('invoke', encrypted_session_key, encrypted_request, encoding)
+
+    def __send_to_contract__(self, method, encrypted_session_key, encrypted_request, encoding='raw') :
         request_identifier = self.request_identifier
         self.request_identifier += 1
         try :
-            url = '{0}/invoke'.format(self.ServiceURL)
+            url = '{0}/{1}'.format(self.ServiceURL, method)
             request_headers = {'x-request-identifier' : 'request{0}'.format(request_identifier)}
             content_headers = {}
             if encoding == 'base64' :
@@ -130,7 +136,6 @@ class EnclaveServiceClient(GenericServiceClient) :
         except Exception as e :
             logger.warn('[%d] unknown exception (invoke); %s', request_identifier, str(e))
             raise EnclaveException(str(e)) from e
-
 
     # -----------------------------------------------------------------
     # contract_id -- 16 character, hex encoded, sha256 hashed, registration transaction signature

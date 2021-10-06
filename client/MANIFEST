@@ -1,5 +1,6 @@
 ./pdo/client/controller/commands/send.py
 ./pdo/client/controller/commands/create.py
+./pdo/client/controller/commands/ledger.py
 ./pdo/client/controller/commands/pservice.py
 ./pdo/client/controller/commands/eservice.py
 ./pdo/client/controller/commands/eservice_db.py

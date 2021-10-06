@@ -34,6 +34,10 @@ namespace crypto
         const std::string& encoded_message,
         ww::types::ByteArray& message);
 
+    bool crypto_hash(
+        const ww::types::ByteArray& buffer,
+        ww::types::ByteArray& hash);
+
     namespace aes
     {
         bool generate_key(ww::types::ByteArray& key);

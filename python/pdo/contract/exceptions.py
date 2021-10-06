@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation
+# Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
+import logging
+logger = logging.getLogger(__name__)
 
-INCLUDE(contract-build.cmake)
-
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
-ADD_SUBDIRECTORY(attestation-test)
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class InvocationException(Exception) :
+    """
+    A class to capture invocation exceptions
+    """

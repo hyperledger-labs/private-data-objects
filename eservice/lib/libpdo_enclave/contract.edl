@@ -61,6 +61,19 @@ enclave {
             [out] size_t* outSerializedResponseSize
             );
 
+        // inEncryptedSessionKey is binary encoding of the encrypted session key
+        // inSerializedRequest is binary encoding of the encrypted request
+        // outSerializedResponseSize is the computed size of the response
+        public pdo_err_t ecall_InitializeContractState(
+            [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,
+            size_t inSealedSignupDataSize,
+            [in, size=inEncryptedSessionKeySize] const uint8_t* inEncryptedSessionKey,
+            size_t inEncryptedSessionKeySize,
+            [in, size=inSerializedRequestSize] const uint8_t* inSerializedRequest,
+            size_t inSerializedRequestSize,
+            [out] size_t* outSerializedResponseSize
+            );
+
         // outSerializedResponse is a base64 encoding of a JSON object encrypted with the AES session key
         public pdo_err_t ecall_GetSerializedResponse(
             [in, size=inSealedSignupDataSize] const uint8_t* inSealedSignupData,

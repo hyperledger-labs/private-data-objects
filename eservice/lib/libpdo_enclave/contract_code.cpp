@@ -54,9 +54,10 @@ void ContractCode::Unpack(const JSON_Object* object)
 
         // compilation report (might be empty)
         pobj = json_object_dotget_object(object, "CompilationReport");
-        pdo::error::ThrowIf<pdo::error::ValueError>(!pobj,
-            "invalid request; failed to retrieve CompilationReport");
-        if (json_object_get_count(pobj))
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+            !pobj, "invalid request; failed to retrieve CompilationReport");
+        // if the compilation report is not empty, then unpack
+        if (json_object_get_count(pobj) > 0)
             compilation_report_.Unpack(pobj);
 
         ComputeHash(code_hash_);
@@ -176,28 +177,37 @@ void ContractCode::SaveToState(ContractState& state)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-ByteArray ContractCode::SerializeForHashing(void) const
+void ContractCode::ComputeHash(ByteArray& final_hash) const
 {
+    // the hash is going to be a combination of the hash of the
+    // actual code, the hash of the nonce, and the hash of the
+    // compilation report if it exists. this makes it possible
+    // to use the nonce plus the registered code hash to verify
+    // the actual hash of the code. that means a contract can
+    // check the code hash of the other end of a secure connection
+    ByteArray code_message;
+    code_message.reserve(code_.length() + name_.length());
+    std::copy(code_.begin(), code_.end(), std::back_inserter(code_message));
+    std::copy(name_.begin(), name_.end(), std::back_inserter(code_message));
+    ByteArray code_hash = pdo::crypto::ComputeMessageHash(code_message);
+
+    ByteArray nonce_message(nonce_.begin(), nonce_.end());
+    ByteArray nonce_hash = pdo::crypto::ComputeMessageHash(nonce_message);
+
     ByteArray message;
-    message.reserve(code_.length() + name_.length() + nonce_.length());
-    std::copy(code_.begin(), code_.end(), std::back_inserter(message));
-    std::copy(name_.begin(), name_.end(), std::back_inserter(message));
-    std::copy(nonce_.begin(), nonce_.end(), std::back_inserter(message));
+    message.reserve(code_hash.size() + nonce_hash.size());
+    std::copy(code_hash.begin(), code_hash.end(), std::back_inserter(message));
+    std::copy(nonce_hash.begin(), nonce_hash.end(), std::back_inserter(message));
 
     // the compilation report is optional in a contract
     // if the compiler verfying key is present, we assume we have a full report
-    if (!compilation_report_.CompilerVerifyingKey().empty()) {
-        std::string report_hash = compilation_report_.ComputeHash();
+    if (! compilation_report_.CompilerVerifyingKey().empty()) {
+        ByteArray report_hash;
+        compilation_report_.ComputeHash(report_hash);
+
         message.reserve(message.size() + report_hash.size());
-        std::copy(report_hash.begin(), report_hash.end(),
-                  std::back_inserter(message));
+        std::copy(report_hash.begin(), report_hash.end(), std::back_inserter(message));
     }
 
-    return message;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void ContractCode::ComputeHash(ByteArray& code_hash) const
-{
-    code_hash = pdo::crypto::ComputeMessageHash(SerializeForHashing());
+    final_hash = pdo::crypto::ComputeMessageHash(message);
 }

@@ -49,11 +49,13 @@ namespace ccfapp
     static constexpr auto REGISTER_ENCLAVE = "register_enclave";
     static constexpr auto REGISTER_CONTRACT = "register_contract";
     static constexpr auto ADD_ENCLAVE_TO_CONTRACT ="add_enclave_to_contract";
+    static constexpr auto INITIALIZE_CONTRACT_STATE ="ccl_initialize";
     static constexpr auto UPDATE_CONTRACT_STATE ="ccl_update";
 
     //methods that read the tables, used by PDO to verify write transactions
     static constexpr auto VERIFY_ENCLAVE_REGISTRATION = "verify_enclave_registration";
-    static constexpr auto VERIFY_CONTRACT_REGISTRATION = "verify_contract_registration";
+    static constexpr auto GET_CONTRACT_PROVISIONING_INFO = "get_contract_provisioning_info";
+    static constexpr auto GET_CONTRACT_INFO = "get_contract_info";
     static constexpr auto GET_CURRENT_STATE_INFO_FOR_CONTRACT = "get_current_state_info_for_contract";
     static constexpr auto GET_DETAILS_ABOUT_STATE = "get_details_about_state";
 
@@ -72,30 +74,64 @@ namespace ccfapp
                                                             //entry key="signer".  value is pubk:privk
 
             // functions to verify signatures, only wite methods sign transactions, read methods do not.
-            bool verify_pdo_transaction_signature_register_enclave(const vector<uint8_t>& signature, const string & verifying_key,
+            bool verify_pdo_transaction_signature_register_enclave(
+                const vector<uint8_t>& signature,
+                const string & verifying_key,
                 const EnclaveInfo & enclave_info);
 
-            bool verify_sig(vector<uint8_t> signature, const string & verifying_key, const vector<uint8_t> & contents);
+            bool verify_sig(
+                vector<uint8_t> signature,
+                const string & verifying_key,
+                const vector<uint8_t> & contents);
 
-            bool verify_sig_static(vector<uint8_t> signature, const tls::PublicKeyPtr & pubk_verifier, \
+            bool verify_sig_static(
+                vector<uint8_t> signature,
+                const tls::PublicKeyPtr & pubk_verifier,
                 const vector<uint8_t>& contents);
 
-            bool verify_pdo_transaction_signature_register_contract(const vector<uint8_t>& signature, const string & verifying_key, \
-                const vector<uint8_t>& contract_code_hash, const string & nonce, const vector<string> & provisioning_service_ids);
+            bool verify_pdo_transaction_signature_register_contract(
+                const vector<uint8_t>& signature,
+                const string & verifying_key,
+                const vector<uint8_t>& contract_code_hash,
+                const string & nonce,
+                const vector<string> & provisioning_service_ids);
 
-            bool verify_pdo_transaction_signature_add_enclave(const vector<uint8_t>& signature, const string & verifying_key, \
-                const string & contract_id, const string &  enclave_info_json_string);
+            bool verify_pdo_transaction_signature_add_enclave(
+                const vector<uint8_t>& signature,
+                const string & verifying_key,
+                const string & contract_id,
+                const string &  enclave_info_json_string);
 
-            bool verify_enclave_signature_add_enclave(const string& signature, const tls::PublicKeyPtr & pubk_verifier, \
-                const string & contract_creator_key, const string & contract_id, const vector<ProvisioningKeysToSecretMap> & prov_key_maps, \
+            bool verify_enclave_signature_add_enclave(
+                const string& signature,
+                const tls::PublicKeyPtr & pubk_verifier,
+                const string & contract_creator_key,
+                const string & contract_id,
+                const vector<ProvisioningKeysToSecretMap> & prov_key_maps,
                 const string & encrypted_state_encryption_key);
 
-            bool verify_pdo_transaction_signature_update_contract_state(const vector<uint8_t>& signature, const string & verifying_key, \
-              const string & contract_enclave_id, const vector<uint8_t>& contract_enclave_signature, const string & state_update_info);
+            bool verify_creator_signature_initialize_contract_state(
+                const vector<uint8_t>& contract_enclave_signature,
+                const vector<uint8_t>& contract_creator_signature,
+                const string & contract_creator_verifying_key);
 
-            bool verify_enclave_signature_update_contract_state(const vector<uint8_t>& signature, const tls::PublicKeyPtr & pubk_verifier, \
-              const vector<uint8_t>& nonce, const string & contract_creator_verifying_key_PEM, const vector<uint8_t>& contract_code_hash, \
-              const StateUpdateInfo & state_update_info);
+            bool verify_enclave_signature_initialize_contract_state(
+                const vector<uint8_t>& nonce,
+                const string & contract_id,
+                const vector<uint8_t>& initial_state_hash,
+                const vector<uint8_t>& contract_code_hash,
+                const vector<uint8_t>& message_hash,
+                const vector<uint8_t>& contract_metadata_hash,
+                const string & contract_creator_verifying_key,
+                const vector<uint8_t>& enclave_signature,
+                const tls::PublicKeyPtr & enclave_verifying_key);
+
+            bool verify_enclave_signature_update_contract_state(
+                const vector<uint8_t>& nonce,
+                const vector<uint8_t>& contract_code_hash,
+                const StateUpdateInfo & state_update_info,
+                const vector<uint8_t>& enclave_signature,
+                const tls::PublicKeyPtr & enclave_verifying_key);
 
             tls::KeyPairPtr ledger_signer_local;
 
@@ -120,4 +156,3 @@ namespace ccfapp
         TransactionProcessor(kv::Store& store);
     };
 }
-

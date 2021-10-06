@@ -165,7 +165,7 @@ class ProvisioningServer(resource.Resource):
         # Get contract state
         try:
             logger.debug('retrieve information for contract <%s>', contract_id)
-            contract_info = self.__registry_helper.get_contract_info(contract_id)
+            contract_info = self.__registry_helper.get_contract_provisioning_info(contract_id)
             logger.debug("contract_info from ledger: %s", contract_info)
         except Exception as err:
             logger.error('exception occurred when getting ledger information for contract %s; %s', contract_id, str(err))

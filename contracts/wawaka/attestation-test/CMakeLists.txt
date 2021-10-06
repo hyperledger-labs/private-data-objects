@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
-INCLUDE(contract-build.cmake)
+FILE(GLOB ATTESTATION_TEST_SOURCE *.cpp)
 
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
-ADD_SUBDIRECTORY(attestation-test)
+BUILD_CONTRACT(attestation-test ${ATTESTATION_TEST_SOURCE})

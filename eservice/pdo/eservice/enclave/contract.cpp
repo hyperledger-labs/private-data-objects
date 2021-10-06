@@ -119,3 +119,46 @@ std::vector<uint8_t> contract_handle_contract_request(
 
     return response;
 }
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+std::vector<uint8_t> initialize_contract_state(
+    const std::string& sealed_signup_data,
+    const std::vector<uint8_t>& encrypted_session_key,
+    const std::vector<uint8_t>& serialized_request
+    )
+{
+    pdo_err_t presult;
+
+    uint32_t response_identifier;
+    size_t response_size;
+
+#if PDO_DEBUG_BUILD
+    uint64_t start_time = GetTimer();
+    uint64_t request_identifier = GetRequestIdentifier();
+    SAFE_LOG(PDO_LOG_DEBUG, "start request [%" PRIu64 "]", request_identifier);
+#endif
+
+    pdo::enclave_queue::ReadyEnclave readyEnclave = pdo::enclave_api::base::GetReadyEnclave();
+
+    presult = pdo::enclave_api::contract::InitializeContractState(
+        sealed_signup_data,
+        encrypted_session_key,
+        serialized_request,
+        response_identifier,
+        response_size,
+        readyEnclave.getIndex());
+    ThrowPDOError(presult);
+
+    std::vector<uint8_t> response(response_size);
+    presult = pdo::enclave_api::contract::GetSerializedResponse(
+        sealed_signup_data,
+        response_identifier,
+        response_size,
+        response,
+        readyEnclave.getIndex());
+    ThrowPDOError(presult);
+
+    SAFE_LOG(PDO_LOG_DEBUG, "end request [%" PRIu64 "]; elapsed time %" PRIu64, request_identifier, GetTimer() - start_time);
+
+    return response;
+}

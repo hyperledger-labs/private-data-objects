@@ -26,6 +26,12 @@ DSTDIR ?= $(PDO_INSTALL_ROOT)
 WAMR_ROOT=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
 
+PLUGIN_INSTALL_DIR ?= $(PDO_HOME)/contracts/plugins
+PLUGIN_SOURCE=$(wildcard $(SCRIPTDIR)/*/plugins/*.py)
+
+SCRIPT_INSTALL_DIR ?= $(PDO_HOME)/bin
+SCRIPT_SOURCE=$(wildcard $(SCRIPTDIR)/*/scripts/*.psh)
+
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= /dev/null
 
@@ -77,6 +83,8 @@ mock-contract-test :
 install : build
 	@echo install contracts
 	@cd build && make install
+	@mkdir -p $(PLUGIN_INSTALL_DIR); cp $(PLUGIN_SOURCE) $(PLUGIN_INSTALL_DIR)
+	@mkdir -p $(SCRIPT_INSTALL_DIR); cp $(SCRIPT_SOURCE) $(SCRIPT_INSTALL_DIR)
 
 build :
 	mkdir -p $@

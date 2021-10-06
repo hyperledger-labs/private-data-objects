@@ -221,6 +221,25 @@ class Enclave(object) :
         self.check_blocks = block_store.check_blocks
 
     # -------------------------------------------------------
+    def initialize_contract_state(self, encrypted_session_key, encrypted_request) :
+
+        """
+        send a request to the contract to initialize state
+
+        :param encrypted_session_key: byte array, encrypted AES key
+        :param encrypted_request: byte array, encrypted contract request
+        """
+        try :
+            return pdo_enclave.initialize_contract_state(
+                self.sealed_data,
+                encrypted_session_key,
+                encrypted_request)
+
+        except Exception as e :
+            logger.error('send_to_contract failed; %s, %s', type(e), str(e.args))
+            raise
+
+    # -------------------------------------------------------
     def send_to_contract(self, encrypted_session_key, encrypted_request) :
 
         """

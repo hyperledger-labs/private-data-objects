@@ -92,6 +92,28 @@ bool ww::crypto::b64_decode(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::crypto_hash
+ * ----------------------------------------------------------------- */
+bool ww::crypto::crypto_hash(
+    const ww::types::ByteArray& buffer,
+    ww::types::ByteArray& hash)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::crypto_hash(buffer.data(), buffer.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hash");
+        return false;
+    }
+
+    return copy_internal_pointer(hash, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: ww::crypto::aes::generate_key
  * ----------------------------------------------------------------- */
 bool ww::crypto::aes::generate_key(ww::types::ByteArray& key)

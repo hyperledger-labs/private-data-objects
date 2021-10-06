@@ -267,6 +267,38 @@ bool kv_test_get(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// kv store test
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool privileged_test_get(const Message& msg, const Environment& env, Response& rsp)
+{
+    ww::types::ByteArray value;
+    std::string encoded_value;
+
+    if (! KeyValueStore::privileged_get("IdHash", value))
+        return rsp.error("failed to retrieve privileged value for IdHash");
+    if (! ww::crypto::b64_encode(value, encoded_value))
+        return rsp.error("failed to encode value");
+    if (encoded_value != env.contract_id_)
+        return rsp.error("mismatched contract id");
+
+    if (! KeyValueStore::privileged_get("ContractCode.Hash", value))
+        return rsp.error("failed to retreive privileged value for ContractCode.Hash");
+    if (! ww::crypto::b64_encode(value, encoded_value))
+        return rsp.error("failed to encode value");
+    CONTRACT_SAFE_LOG(3, "contract code hash: %s", encoded_value.c_str());
+
+    if (! KeyValueStore::privileged_get("ContractCode.Name", encoded_value))
+        return rsp.error("failed to retreive privileged value for ContractCode.Name");
+    CONTRACT_SAFE_LOG(3, "contract code name: %s", encoded_value.c_str());
+
+    if (! KeyValueStore::privileged_get("ContractCode.Nonce", encoded_value))
+        return rsp.error("failed to retreive privileged value for ContractCode.Nonce");
+    CONTRACT_SAFE_LOG(3, "contract code nonce: %s", encoded_value.c_str());
+
+    return rsp.success(false);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(ecdsa_test),
@@ -274,5 +306,6 @@ contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(rsa_test),
     CONTRACT_METHOD(kv_test_set),
     CONTRACT_METHOD(kv_test_get),
+    CONTRACT_METHOD(privileged_test_get),
     { NULL, NULL }
 };

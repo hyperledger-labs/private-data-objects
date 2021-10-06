@@ -39,35 +39,44 @@
 //
 // {
 //     "IntrinsicState"     : "<string of scheme state>",
-//     "IdHash"             : "<string>",
+//     "IdHash"             : "<ByteArray>",
 //     "ContractCode.Code"  : "<string>"
 //     "ContractCode.Name"  : "<string>"
 //     "ContractCode.Nonce" : "<string>"
 //     "ContractCode.CompilationReport" : "<string>"
 //     "ContractCode.Hash"  : "<string>"
+//     "ContractKeys.Encryption" : "<string>"
+//     "ContractKeys.Decryption" : "<string>"
+//     "ContractKeys.Signing"    : "<string>"
+//     "ContractKeys.Verifying"  : "<string>"
+//     "Metadata.Hash" : "<ByteArray>"
 // }
 //
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ContractState::ContractState(
-    const bool is_initialize,
-    const ByteArray& state_encryption_key_,
-    const ByteArray& state_hash,
+    const ByteArray& state_encryption_key,
+    const ByteArray& input_block_id,
     const ByteArray& id_hash)
     :
     input_block_id_(STATE_BLOCK_ID_LENGTH, 0),
     output_block_id_(STATE_BLOCK_ID_LENGTH, 0),
-    state_(is_initialize ?
-        /* here the initial state is created */
-        pdo::state::Interpreter_KV(state_encryption_key_) :
-        /* here the existing state is opened */
-        pdo::state::Interpreter_KV(state_hash, state_encryption_key_))
+    state_(pdo::state::Interpreter_KV(input_block_id, state_encryption_key))
 {
-    if(is_initialize)
-        Initialize(state_encryption_key_, id_hash);
-    else // update step
-        Unpack(state_encryption_key_, state_hash, id_hash);
+    Unpack(state_encryption_key, input_block_id, id_hash);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ContractState::ContractState(
+    const ByteArray& state_encryption_key,
+    const ByteArray& id_hash)
+    :
+    input_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    output_block_id_(STATE_BLOCK_ID_LENGTH, 0),
+    state_(pdo::state::Interpreter_KV(state_encryption_key))
+{
+    Initialize(state_encryption_key, id_hash);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -78,15 +87,15 @@ void ContractState::Finalize(void)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Unpack(
-    const ByteArray& state_encryption_key_,
-    const ByteArray& state_hash,
+    const ByteArray& state_encryption_key,
+    const ByteArray& input_block_id,
     const ByteArray& id_hash)
 {
     const char* pvalue;
 
     try
     {
-        input_block_id_ = state_hash;
+        input_block_id_ = input_block_id;
 
         // the contract id stored in state must match the contract id
         // that was given in the request, this ensures that the evaluation
@@ -97,6 +106,13 @@ void ContractState::Unpack(
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 id_hash != state_.PrivilegedGet(k), "invalid encrypted state; contract id mismatch");
         }
+
+        {
+            std::string str("Metadata.Hash");
+            ByteArray k(str.begin(), str.end());
+            metadata_hash_ = state_.PrivilegedGet(k);
+        }
+
     }
     catch (std::exception& e)
     {
@@ -113,26 +129,89 @@ void ContractState::Unpack(
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 void ContractState::Initialize(
-    const ByteArray& state_encryption_key_,
+    const ByteArray& state_encryption_key,
     const ByteArray& id_hash)
 {
     try
     {
         SAFE_LOG(PDO_LOG_DEBUG, "Initialize new state");
 
+        ByteArray metadata;
+
         // add the contract id into the state so that we can verify
         // that this state belongs to this contract
         {
             std::string str = "IdHash";
             ByteArray k(str.begin(), str.end());
-            ByteArray v(id_hash);
-            state_.PrivilegedPut(k, v);
+            state_.PrivilegedPut(k, id_hash);
+
+            std::copy(id_hash.begin(), id_hash.end(), std::back_inserter(metadata));
         }
+
+        {
+            pdo::crypto::sig::PrivateKey privkey;
+            privkey.Generate();
+            pdo::crypto::sig::PublicKey pubkey(privkey);
+
+            std::string encpriv = privkey.Serialize();
+            std::string encpub = pubkey.Serialize();
+
+            {
+                std::string str = "ContractKeys.Signing";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpriv.begin(), encpriv.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            {
+                std::string str = "ContractKeys.Verifying";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpub.begin(), encpub.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            std::copy(encpub.begin(), encpub.end(), std::back_inserter(metadata));
+        }
+
+        {
+            pdo::crypto::pkenc::PrivateKey privkey;
+            privkey.Generate();
+            pdo::crypto::pkenc::PublicKey pubkey(privkey);
+
+            std::string encpriv = privkey.Serialize();
+            std::string encpub = pubkey.Serialize();
+
+            {
+                std::string str = "ContractKeys.Decryption";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpriv.begin(), encpriv.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            {
+                std::string str = "ContractKeys.Encryption";
+                ByteArray k(str.begin(), str.end());
+                ByteArray v(encpub.begin(), encpub.end());
+                state_.PrivilegedPut(k, v);
+            }
+
+            std::copy(encpub.begin(), encpub.end(), std::back_inserter(metadata));
+        }
+
+        {
+            metadata_hash_ = pdo::crypto::ComputeMessageHash(metadata);
+
+            {
+                std::string str("Metadata.Hash");
+                ByteArray k(str.begin(), str.end());
+                state_.PrivilegedPut(k, metadata_hash_);
+            }
+        }
+
     }
     catch (std::exception& e)
     {
         SAFE_LOG(PDO_LOG_ERROR, "%s", e.what());
-        // We do not finalize the state. As there has been an error, no output id need be generated.
         throw;
     }
     catch (...)

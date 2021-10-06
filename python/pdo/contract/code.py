@@ -80,17 +80,20 @@ class ContractCode(object) :
         return result
 
     # -------------------------------------------------------
-    def __serialize_for_hashing(self) :
-        serialized = self.code + self.name + self.nonce
-        if not self.compilation_report is None:
-            serialized += self.compilation_report.compute_hash()
-
-        return serialized
-
-    # -------------------------------------------------------
     def compute_hash(self, encoding = 'raw') :
-        serialized = self.__serialize_for_hashing()
-        code_hash = crypto.compute_message_hash(crypto.string_to_byte_array(serialized))
+        # the code hash is a combination of the hash of the actual code,
+        # the hash of the nonce, and the hash of the compilation report.
+        # this makes it possible to use the nonce to verify the identity
+        # of the actual code (think MRENCLAVE).
+        code_hash = crypto.compute_message_hash(crypto.string_to_byte_array(self.code + self.name))
+        nonce_hash = crypto.compute_message_hash(crypto.string_to_byte_array(self.nonce))
+        message = code_hash + nonce_hash
+
+        if self.compilation_report :
+            report_hash = self.compilation_report.compute_hash(encoding='raw')
+            message += report_hash
+
+        code_hash = crypto.compute_message_hash(message)
         if encoding == 'raw' :
             return code_hash
         elif encoding == 'hex' :

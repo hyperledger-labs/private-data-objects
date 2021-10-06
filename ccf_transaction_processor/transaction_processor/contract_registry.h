@@ -76,13 +76,14 @@ namespace ccf
   {
     string contract_id;
     std::vector<uint8_t> contract_code_hash;
+    std::vector<uint8_t> contract_metadata_hash;
     string contract_creator_verifying_key_PEM;
     std::vector<string> provisioning_service_ids;
     std::vector<ContractEnclaveInfo> enclave_info;
     std::vector<uint8_t> current_state_hash;
     bool is_active;
 
-    MSGPACK_DEFINE(contract_id, contract_code_hash, contract_creator_verifying_key_PEM, \
+      MSGPACK_DEFINE(contract_id, contract_code_hash, contract_metadata_hash, contract_creator_verifying_key_PEM, \
          provisioning_service_ids, enclave_info, current_state_hash, is_active);
   };
 
@@ -106,21 +107,31 @@ namespace ccf
   };
 
 
-  struct Verify_contract {
+  struct Get_contract_provisioning_info {
     struct In{
       string contract_id;
     };
 
     struct Out {
-      string contract_id;
-      string contract_code_hash;
       string pdo_contract_creator_pem_key;
       std::vector<string> provisioning_service_ids;
-      string enclaves_info; //json string
+      std::vector<ContractEnclaveInfo> enclaves_info;
       string signature;
     };
    };
 
+  struct Get_contract_info {
+    struct In{
+      string contract_id;
+    };
+
+    struct Out {
+      string pdo_contract_creator_pem_key;
+      string contract_code_hash;
+      string metadata_hash;
+      string signature;
+    };
+   };
 
   DECLARE_JSON_TYPE(Register_contract::In);
   DECLARE_JSON_REQUIRED_FIELDS(Register_contract::In, contract_code_hash, contract_creator_verifying_key_PEM, nonce, \
@@ -130,11 +141,17 @@ namespace ccf
   DECLARE_JSON_REQUIRED_FIELDS(Add_enclave::In, contract_id, \
     enclave_info, signature);
 
-  DECLARE_JSON_TYPE(Verify_contract::In);
-  DECLARE_JSON_REQUIRED_FIELDS(Verify_contract::In, contract_id);
+  DECLARE_JSON_TYPE(Get_contract_provisioning_info::In);
+  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_provisioning_info::In, contract_id);
 
-  DECLARE_JSON_TYPE(Verify_contract::Out);
-  DECLARE_JSON_REQUIRED_FIELDS(Verify_contract::Out, contract_id, contract_code_hash, pdo_contract_creator_pem_key, \
-    provisioning_service_ids, enclaves_info, signature);
+  DECLARE_JSON_TYPE(Get_contract_provisioning_info::Out);
+  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_provisioning_info::Out, pdo_contract_creator_pem_key, \
+                               provisioning_service_ids, enclaves_info, signature);
+
+  DECLARE_JSON_TYPE(Get_contract_info::In);
+  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_info::In, contract_id);
+
+  DECLARE_JSON_TYPE(Get_contract_info::Out);
+  DECLARE_JSON_REQUIRED_FIELDS(Get_contract_info::Out, pdo_contract_creator_pem_key, contract_code_hash, metadata_hash, signature);
 
 }

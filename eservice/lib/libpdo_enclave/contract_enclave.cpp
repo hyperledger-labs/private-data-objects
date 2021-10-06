@@ -225,7 +225,8 @@ pdo_err_t ecall_VerifySecrets(const uint8_t* inSealedSignupData,
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
+pdo_err_t ecall_HandleContractRequest(
+    const uint8_t* inSealedSignupData,
     size_t inSealedSignupDataSize,
     const uint8_t* inEncryptedSessionKey,
     size_t inEncryptedSessionKeySize,
@@ -252,21 +253,15 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
 
         ByteArray encrypted_request(
             inSerializedRequest, inSerializedRequest + inSerializedRequestSize);
-        ContractRequest request(session_key, encrypted_request, worker);
+        UpdateStateRequest request(session_key, encrypted_request, worker);
 
         ContractState contract_state(
-            request.is_initialize(),
             request.state_encryption_key_,
             request.input_state_hash_,
             request.contract_id_hash_);
 
-        if(request.is_initialize()) {
-            request.contract_code_.SaveToState(contract_state);
-        }
-        else {
-            request.contract_code_.FetchFromState(contract_state,
-                                                  request.code_hash_);
-        }
+        // IN PROGRESS: this is the one change
+        request.contract_code_.FetchFromState(contract_state, request.code_hash_);
 
         // Check the CDI policy after fetching from state,
         // but before processing the request
@@ -275,8 +270,8 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
         pdo::error::ThrowIf<pdo::error::ValueError>(!passCheck,
             "Contract origins not trusted!");
 
-        ContractResponse response(request.process_request(contract_state));
-        last_result = response.SerializeAndEncrypt(session_key, enclaveData);
+        std::shared_ptr<ContractResponse> response(request.process_request(contract_state));
+        last_result = response->SerializeAndEncrypt(session_key, enclaveData);
 
         // save the response and return the size of the buffer required for it
         (*outSerializedResponseSize) = last_result.size();
@@ -292,6 +287,74 @@ pdo_err_t ecall_HandleContractRequest(const uint8_t* inSealedSignupData,
     catch (...)
     {
         SAFE_LOG(PDO_LOG_ERROR, "Unknown error in contract enclave (ecall_HandleContractRequest)");
+        result = PDO_ERR_UNKNOWN;
+    }
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t ecall_InitializeContractState(
+    const uint8_t* inSealedSignupData,
+    size_t inSealedSignupDataSize,
+    const uint8_t* inEncryptedSessionKey,
+    size_t inEncryptedSessionKeySize,
+    const uint8_t* inSerializedRequest,
+    size_t inSerializedRequestSize,
+    size_t* outSerializedResponseSize)
+{
+    pdo_err_t result = PDO_SUCCESS;
+
+    try
+    {
+        pdo::error::ThrowIfNull(inSealedSignupData, "Sealed signup data pointer is NULL");
+        pdo::error::ThrowIfNull(inEncryptedSessionKey, "Session key pointer is NULL");
+        pdo::error::ThrowIfNull(inSerializedRequest, "Serialized request pointer is NULL");
+        pdo::error::ThrowIfNull(outSerializedResponseSize, "Response size pointer is NULL");
+        pdo::error::ThrowIfNull(worker, "worker pointer is NULL");
+
+        // Unseal the enclave persistent data
+        EnclaveData enclaveData(inSealedSignupData);
+
+        ByteArray encrypted_key(
+            inEncryptedSessionKey, inEncryptedSessionKey + inEncryptedSessionKeySize);
+        ByteArray session_key = enclaveData.decrypt_message(encrypted_key);
+
+        ByteArray encrypted_request(
+            inSerializedRequest, inSerializedRequest + inSerializedRequestSize);
+        InitializeStateRequest request(session_key, encrypted_request, worker);
+
+        ContractState contract_state(
+            request.state_encryption_key_,
+            request.contract_id_hash_);
+
+        // IN PROGRESS: this is the one change
+        request.contract_code_.SaveToState(contract_state);
+
+        // Check the CDI policy after fetching from state,
+        // but before processing the request
+        bool passCheck =
+            enclave_policy.ValidateContract(request.contract_code_);
+        pdo::error::ThrowIf<pdo::error::ValueError>(!passCheck,
+            "Contract origins not trusted!");
+
+        std::shared_ptr<ContractResponse> response(request.process_request(contract_state));
+        last_result = response->SerializeAndEncrypt(session_key, enclaveData);
+
+        // save the response and return the size of the buffer required for it
+        (*outSerializedResponseSize) = last_result.size();
+    }
+    catch (pdo::error::Error& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+            "Error in contract enclave (ecall_InitializeContractState): %04X -- %s", e.error_code(),
+            e.what());
+        ocall_SetErrorMessage(e.what());
+        result = e.error_code();
+    }
+    catch (...)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "Unknown error in contract enclave (ecall_InitializeContractState)");
         result = PDO_ERR_UNKNOWN;
     }
 

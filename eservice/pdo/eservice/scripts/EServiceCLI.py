@@ -99,6 +99,7 @@ def StartEnclaveService(config, enclave) :
 
     root = Resource()
     root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(enclave, storage_url))))
+    root.putChild(b'initialize', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InitializeApp(enclave))))
     root.putChild(b'invoke', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InvokeApp(enclave))))
     root.putChild(b'verify', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(VerifyApp(enclave))))
 

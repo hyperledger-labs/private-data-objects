@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "crypto.h"
@@ -32,36 +33,45 @@ class ContractResponse;
 class ContractRequest
 {
 protected:
-    enum Operation
-    {
-        op_unknown = -1,
-        op_initialize = 0,
-        op_update = 1
-    };
-    Operation operation_; /* either "initialize" or "update" */
-
-    ContractResponse process_initialization_request(ContractState& contract_state);
-    ContractResponse process_update_request(ContractState& contract_state);
+    void parse_common_properties(const JSON_Object* request_object);
 
 public:
     std::string contract_id_;
     std::string creator_id_;
     ByteArray state_encryption_key_ = {};
-    ByteArray input_state_hash_ = {};
     ByteArray contract_id_hash_ = {};
-    ByteArray code_hash_ = {};
 
     ContractCode contract_code_; /*  */
     ContractMessage contract_message_;
+
     ContractWorker *worker_ = NULL;
 
-    ContractRequest(
+    ContractRequest(ContractWorker* worker);
+
+    virtual std::shared_ptr<ContractResponse> process_request(ContractState& contract_state) = 0;
+};
+
+class InitializeStateRequest : public ContractRequest
+{
+public:
+    InitializeStateRequest(
         const ByteArray& session_key,
         const ByteArray& encrypted_request,
         ContractWorker* worker);
 
-    bool is_initialize(void) const { return operation_ == op_initialize; };
-    bool is_update(void) const { return operation_ == op_update; };
+    std::shared_ptr<ContractResponse> process_request(ContractState& contract_state);
+};
 
-    ContractResponse process_request(ContractState& contract_state);
+class UpdateStateRequest : public ContractRequest
+{
+public:
+    ByteArray code_hash_ = {};
+    ByteArray input_state_hash_ = {};
+
+    UpdateStateRequest(
+        const ByteArray& session_key,
+        const ByteArray& encrypted_request,
+        ContractWorker* worker);
+
+    std::shared_ptr<ContractResponse> process_request(ContractState& contract_state);
 };

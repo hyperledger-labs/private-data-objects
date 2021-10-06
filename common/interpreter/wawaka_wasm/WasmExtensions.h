@@ -43,6 +43,12 @@ bool key_value_get(
     uint8_t** val_buffer_pointer,
     size_t* val_length_pointer);
 
+bool privileged_key_value_get(
+    const uint8_t* key_buffer,
+    const size_t key_buffer_length,
+    uint8_t** val_buffer_pointer,
+    size_t* val_length_pointer);
+
 int key_value_create(
     const uint8_t* aes_key_buffer,
     const size_t aes_key_buffer_length);

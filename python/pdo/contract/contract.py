@@ -18,7 +18,7 @@ import json
 import pdo.common.utility as putils
 
 from pdo.submitter.create import create_submitter
-from pdo.contract.request import ContractRequest
+from pdo.contract.request import UpdateStateRequest, InitializeStateRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
 from pdo.contract.compilation_report import ContractCompilationReport
@@ -144,7 +144,7 @@ class Contract(object) :
         :param request_originator_keys: object of type ServiceKeys
         :param enclave_service: object that implements the enclave service interface
         """
-        return ContractRequest(
+        return InitializeStateRequest(
             'initialize',
             request_originator_keys,
             self,
@@ -158,7 +158,7 @@ class Contract(object) :
         :param enclave_service: object that implements the enclave service interface
         :param expression: string, the expression to send to the contract
         """
-        return ContractRequest(
+        return UpdateStateRequest(
             'update',
             request_originator_keys,
             self,

@@ -168,13 +168,17 @@ def __transaction_worker__():
             del rep_completed_but_txn_not_submitted_updates[contract_id][request_number] # remove the task from the pending list
             try:
                 if response.operation != 'initialize' :
-                    txn_id =  __submit_update_transaction__(response, transaction_request.ledger_config, \
+                    txn_id =  __submit_update_transaction__(
+                        response,
+                        transaction_request.ledger_config,
                         transaction_dependency_list=txn_dependencies)
                 else:
-                    txn_id = __submit_initialize_transaction__(response, transaction_request.ledger_config)
+                    txn_id = __submit_initialize_transaction__(
+                        response,
+                        transaction_request.ledger_config)
 
                 if txn_id:
-                    logger.info("Submitted transaction for request %d", request_number)
+                    logger.debug("Submitted transaction for request %d", request_number)
                     submitted_any = True
                     transaction_request.mark_as_completed()
                 else:
@@ -207,7 +211,7 @@ def __transaction_worker__():
 
             contract_id = response.commit_id[0]
             request_number = response.commit_id[2]
-            logger.info('received transaction request for request %d', request_number)
+            logger.debug('received transaction request for request %d', request_number)
             if rep_completed_but_txn_not_submitted_updates.get(contract_id):
                 rep_completed_but_txn_not_submitted_updates[contract_id][request_number] =  response
             else:
@@ -235,9 +239,6 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
     if response.status is False :
         raise Exception('attempt to submit failed initialization transactions')
 
-    # an initialize operation has no previous state
-    assert not response.old_state_hash
-
     initialize_submitter = create_submitter(ledger_config, pdo_signer = response.originator_keys)
 
     txnid = initialize_submitter.ccl_initialize(
@@ -245,9 +246,10 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         response.enclave_service.enclave_id,
         response.signature,
         response.contract_id,
+        response.code_hash,
         response.message_hash,
         response.new_state_hash,
-        response.code_hash,
+        response.metadata_hash,
         **extra_params)
 
     if txnid :
