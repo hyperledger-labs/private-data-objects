@@ -20,8 +20,8 @@
 #  - ubuntu version to use: 	  UBUNTU_VERSION (default: 18.04)
 #  - ubuntu name to use: 	  UBUNTU_NAME (default: bionic)
 #  - sgx sdk/psw version: 	  SGX (default: 2.13)
-#  - openssl version: 		  OPENSSL (default: 1.1.1g)
-#  - sgxssl version: 		  SGXSSL  (default: 2.10_1.1.1g)
+#  - openssl version: 		  OPENSSL (default: 1.1.1k)
+#  - sgxssl version: 		  SGXSSL  (default: 2.14_1.1.1k)
 #  - additional apt packages:	  ADD_APT_PKGS (default: )
 
 # Build:
@@ -64,8 +64,8 @@ ARG UBUNTU_VERSION
 ARG UBUNTU_NAME
 
 ARG SGX=2.13
-ARG OPENSSL=1.1.1g
-ARG SGXSSL=2.10_1.1.1g
+ARG OPENSSL=1.1.1k
+ARG SGXSSL=2.14_1.1.1k
 
 ARG ADD_APT_PKGS=
 

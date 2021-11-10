@@ -42,7 +42,7 @@ Private Data Objects services (specifically the enclave service, provisioning
 service, and the client) should be run on Ubuntu 18.04  (server or client).
 PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these configuration
 not all standard libraries match the required versions and you will have to, e.g.,
-install by hand an openssl version >= 1.1.0g (the default libssl-dev on these
+install by hand an openssl version >= 1.1.1k (the default libssl-dev on these
 platforms is still based on 1.0.2)
 
 The ledger and PDO may run on other Linux distributions, but the installation
@@ -81,7 +81,6 @@ To use SGX in hardware mode set the `SGX_MODE` environment variable to
 ```bash
 export SGX_MODE=HW
 ```
-
 The remainder of this section provides information about preparing to run
 Private Data Objects using SGX in hardware mode. Specifically, there
 are steps that must be taken to enable attestation of the hardware

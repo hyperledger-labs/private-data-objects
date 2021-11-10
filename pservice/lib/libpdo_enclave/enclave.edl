@@ -16,6 +16,7 @@
 enclave {
     from "sgx_tstdc.edl" import *;
     from "sgx_tsgxssl.edl" import *;
+    from "sgx_pthread.edl" import *;
     from "base.edl" import *;
     from "secret.edl" import *;
 };

@@ -139,13 +139,13 @@ export PATH=/opt/intel/sgxsdk.extras/external/toolset/ubuntu18.04:${PATH}
 ## Build and Install SGX SSL
 
 SGX OpenSSL is a compilation of OpenSSL specifically for use within SGX
-enclaves. We have tested PDO with SGX SSL version `lin_2.10_1.1.1g`
+enclaves. We have tested PDO with SGX SSL version `lin_2.10_1.1.1g`, `lin_2.14_1.1.1k`.
 
 Detailed instructions for building and installing SGX SSL is available
 from the
 [Intel SGX SSL github repository](https://github.com/intel/intel-sgx-ssl).
 
-Follow these steps to compile and install version `lin_2.10_1.1.1g`:
+Follow these steps to compile and install version `lin_2.10_1.1.1k`:
 
 - Ensure you have the SGX SDK environment variables activated:
 ```bash
@@ -157,11 +157,11 @@ source /opt/intel/sgxsdk/environment
 git clone 'https://github.com/intel/intel-sgx-ssl.git'
 ```
 
-- Check out the recommended version (`lin_2.10_1.1.1g`):
+- Check out the recommended version (`lin_2.10_1.1.1k`):
 
 ```bash
 cd intel-sgx-ssl
-git checkout lin_2.10_1.1.1g
+git checkout lin_2.10_1.1.1k
 ```
 
 - Download the OpenSSL source package that will form the base of this
@@ -169,7 +169,7 @@ SGX SSL install:
 
 ```bash
 cd openssl_source
-wget 'https://www.openssl.org/source/openssl-1.1.1g.tar.gz'
+wget 'https://www.openssl.org/source/openssl-1.1.1k.tar.gz'
 cd ..
 ```
 
