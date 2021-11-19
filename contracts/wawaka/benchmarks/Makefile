@@ -16,6 +16,9 @@ ifndef PDO_INSTALL_ROOT
 $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
+WAMR_ROOT=$(PDO_SOURCE_ROOT)/interpreters/wasm-micro-runtime
+WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
+
 all : build
 	@cd build && make all
 
@@ -29,6 +32,6 @@ install : build
 
 build :
 	mkdir -p $@
-	cd $@ && emcmake cmake ..
+	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
 .PHONY : all build clean install
