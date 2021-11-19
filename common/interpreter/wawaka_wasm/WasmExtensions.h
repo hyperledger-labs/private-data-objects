@@ -161,6 +161,14 @@ bool random_identifier(
     const size_t length,
     uint8_t* buffer_pointer);
 
+bool verify_sgx_report(
+    const char* signing_cert_buffer,
+    const size_t signing_cert_length,
+    const char* report_buffer,
+    const size_t report_length,
+    const char* signature_buffer,
+    const size_t signature_length);
+
 // From WasmExtensions
 bool contract_log(
     const uint32_t loglevel,
