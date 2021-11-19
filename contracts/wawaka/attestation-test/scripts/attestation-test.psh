@@ -17,13 +17,14 @@
 ## paths
 set -q --conditional -s data -v .
 set -q --conditional -s save -v .
+set -q --conditional -s test_data -v ${data}
 
 set -q --conditional -s _contracts_ -v ${home}/contracts
 set -q --conditional -s _plugins_ -v ${_contracts_}/plugins
 
 ## load the eservice database
-set -q --conditional -s dbfile -v ${data}/eservice-db.json
-eservice_db load --database ${dbfile}
+set -q --conditional -s eservice_dbfile -v ${data}/eservice-test-db.json
+eservice_db load --database ${eservice_dbfile}
 
 ## load the eservice and pservice groups for the site
 script -f ${home}/etc/site.psh
@@ -35,6 +36,13 @@ set -q -s HEADER -v "\033[95m"
 set -q -s ERROR  -v "\033[91m"
 set -q -s WARN   -v "\033[93m"
 set -q -s INFO   -v "\033[92m"
+
+## make sure we are running with CCF
+set -q -s _ledger_type_ --state Ledger LedgerType
+if --not -e "${_ledger_type_}" "ccf"
+   echo ${ERROR} This test requires the CCF ledger ${ENDC}
+   exit -v 0
+fi
 
 ## load the command plugin for attestation test
 load_plugin -f ${_plugins_}/attestation-test.py
@@ -90,5 +98,31 @@ sleep -q -t 1
 ledger -q -s _sig_ current-state -i ${_id1_} -p signature
 attestation -q -f ${save}/contract1.pdo reveal_secret -s _secret_ -a ${_sig_}
 echo ${HEADER} secret is ${_secret_} ${ENDC}
+
+## =================================================================
+echo ${INFO} test sgx report verification ${ENDC}
+
+set -q -s _report_ -f ${test_data}/report.js
+set -q -s _certificate_ -f ${test_data}/certificate.pem
+set -q -s _signature_ -f ${test_data}/signature.txt
+set -q -s _bad_signature_ -f ${test_data}/bad_signature.txt
+
+attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_signature_}
+if -e ${_r_} false
+   echo failed to verify SGX report
+   exit -v 1
+fi
+
+attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_bad_signature_}
+if -e ${_r_} true
+   echo failed to identify invalid SGX signature
+   exit -v 1
+fi
+
+attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r "badreport" -i ${_signature_}
+if -e ${_r_} true
+   echo failed to identify invalid SGX report
+   exit -v 1
+fi
 
 exit

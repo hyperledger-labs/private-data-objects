@@ -260,6 +260,17 @@ try ${SRCDIR}/build/tests/shell-test.psh --loglevel ${PDO_LOG_LEVEL}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+if [ "${PDO_INTERPRETER}" == "wawaka" ]; then
+    yell run system tests for contracts
+
+    cd ${SRCDIR}/contracts/wawaka
+    try make system-test TEST_LOG_LEVEL=${PDO_LOG_LEVEL}
+else
+    yell no system tests for "${PDO_INTERPRETER}"
+fi
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 cd ${SRCDIR}/build
 yell run tests for state replication
 say start mock-contract test with replication 3 eservices 2 replicas needed before txn.
