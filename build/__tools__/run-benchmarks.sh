@@ -49,6 +49,9 @@ cd $SRCDIR/contracts/${PDO_INTERPRETER_NAME}/benchmarks
 try make all
 try make install
 
+# add benchmark results directory
+mkdir -p $SRCDIR/contracts/${PDO_INTERPRETER_NAME}/benchmarks/data
+
 # execute interpreter specific benchmarks
 yell --------------- Executing benchmarks ---------------
 for test_file in ${PDO_SOURCE_ROOT}/build/benchmarks/${PDO_INTERPRETER_NAME}/*.json ; do
