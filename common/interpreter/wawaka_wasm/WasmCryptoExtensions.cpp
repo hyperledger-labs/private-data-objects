@@ -632,16 +632,16 @@ extern "C" bool verify_sgx_report_wrapper(
         if (signature_buffer == NULL)
             return false;
 
-        int result = verify_ias_report_signature(signing_cert_buffer,
-                                                 report_buffer, report_buffer_length,
-                                                 signature_buffer, signature_buffer_length);
+        verify_status_t result = verify_ias_report_signature(signing_cert_buffer,
+                                                             report_buffer, report_buffer_length,
+                                                             signature_buffer, signature_buffer_length);
 
-        return result;
+        return result == VERIFY_SUCCESS;
     }
     catch (...) {
         SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
         return false;
     }
 
-    return VERIFY_FAILURE;
+    return false;
 }

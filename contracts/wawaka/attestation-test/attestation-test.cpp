@@ -382,11 +382,11 @@ bool verify_sgx_report(const Message& msg, const Environment& env, Response& rsp
 
     CONTRACT_SAFE_LOG(3, "report: %s", report.c_str());
 
-    int status = verify_sgx_report(certificate.c_str(), certificate.length(),
+    bool status = verify_sgx_report(certificate.c_str(), certificate.length(),
                                    report.c_str(), report.length(),
                                    signature.c_str(), signature.length());
 
-    ww::value::Boolean result(status == 0);
+    ww::value::Boolean result(status);
     return rsp.value(result, false);
 }
 
