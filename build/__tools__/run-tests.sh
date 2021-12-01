@@ -260,7 +260,7 @@ try ${SRCDIR}/build/tests/shell-test.psh --loglevel ${PDO_LOG_LEVEL}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-if [ "${PDO_INTERPRETER}" == "wawaka" ]; then
+if [[ "$PDO_INTERPRETER" =~ ^"wawaka-" ]]; then
     yell run system tests for contracts
 
     cd ${SRCDIR}/contracts/wawaka

@@ -102,7 +102,7 @@ echo ${HEADER} secret is ${_secret_} ${ENDC}
 ## =================================================================
 echo ${INFO} test sgx report verification ${ENDC}
 
-set -q -s _report_ -f ${test_data}/report.js
+set -q -s _report_ -f ${test_data}/report.json
 set -q -s _certificate_ -f ${test_data}/certificate.pem
 set -q -s _signature_ -f ${test_data}/signature.txt
 set -q -s _bad_signature_ -f ${test_data}/bad_signature.txt
