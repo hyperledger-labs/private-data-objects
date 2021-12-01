@@ -409,6 +409,7 @@ class ContractController(cmd.Cmd) :
             eparser.add_argument('-f', '--file', help='name of the file to read for the value')
             eparser.add_argument('-v', '--value', help='string value to associate with the symbol')
             eparser.add_argument('-r', '--random', help='generate a random string', type=int)
+            eparser.add_argument('--state', help='pull a value from current state', nargs="+")
 
             options = parser.parse_args(pargs)
 
@@ -429,6 +430,9 @@ class ContractController(cmd.Cmd) :
 
             if options.random :
                 value = "{:X}".format(random.getrandbits(options.random))
+
+            if options.state :
+                value = self.state.get(options.state)
 
             self.bindings.bind(options.symbol,value)
             if not options.quiet :

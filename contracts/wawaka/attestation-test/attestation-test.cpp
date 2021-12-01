@@ -362,6 +362,37 @@ bool reveal_secret(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// NAME: verify_sgx_report
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#define VERIFY_SGX_REPORT_PARAMETER_SCHEMA      \
+     "{"                                        \
+          "\"certificate\":\"\","               \
+          "\"report\":\"\","                    \
+          "\"signature\":\"\""                  \
+     "}"
+
+bool verify_sgx_report(const Message& msg, const Environment& env, Response& rsp)
+{
+    ASSERT_SUCCESS(rsp, msg.validate_schema(VERIFY_SGX_REPORT_PARAMETER_SCHEMA),
+                   "invalid request, missing required parameters");
+
+    const std::string certificate(msg.get_string("certificate"));
+    const std::string report(msg.get_string("report"));
+    const std::string signature(msg.get_string("signature"));
+
+    CONTRACT_SAFE_LOG(3, "report: %s", report.c_str());
+
+    bool status = verify_sgx_report(certificate.c_str(), certificate.length(),
+                                   report.c_str(), report.length(),
+                                   signature.c_str(), signature.length());
+
+    ww::value::Boolean result(status);
+    return rsp.value(result, false);
+}
+
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(initialize),
@@ -372,5 +403,6 @@ contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(recv_secret),
     CONTRACT_METHOD(send_secret),
     CONTRACT_METHOD(reveal_secret),
+    CONTRACT_METHOD(verify_sgx_report),
     { NULL, NULL }
 };

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import argparse
+import hashlib
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,13 +23,19 @@ import pdo.service_client.service_data.eservice as eservice_db
 
 __all__ = ['command_eservice_db']
 
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def _hashed_identity_(enclave_id) :
+    return hashlib.sha256(enclave_id.encode('utf8')).hexdigest()[:16]
+
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 def command_eservice_db(state, bindings, pargs) :
     """controller command to manage the enclave service database
     """
 
-    parser = argparse.ArgumentParser(prog='eservice')
+    parser = argparse.ArgumentParser(prog='eservice_db')
+    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
 
     subparsers = parser.add_subparsers(dest='command')
 
@@ -37,6 +45,11 @@ def command_eservice_db(state, bindings, pargs) :
 
     clear_parser = subparsers.add_parser('clear', description='remove all eservices in the database')
     list_parser = subparsers.add_parser('list', description='list eservices in the database')
+
+    info_parser = subparsers.add_parser('info', description='get information about a specific eservice')
+    info_parser.add_argument('--name', help='Short name for enclave service', type=str, required=True)
+    info_parser.add_argument('-s', '--symbol', help='binding symbol for the result', type=str)
+    info_parser.add_argument('-f', '--field', help='field to display', type=str)
 
     load_parser = subparsers.add_parser('load', description='load an eservice database')
     load_parser.add_argument('--database', help='Name of the eservice database to use', type=str, required=True)
@@ -74,6 +87,35 @@ def command_eservice_db(state, bindings, pargs) :
             enclave_info = eservice_db.get_by_name(enclave_name)
             enclave_short_id = _hashed_identity_(enclave_info.enclave_id)
             print("{0:<18} {1:<18} {2}".format(enclave_name, enclave_short_id, enclave_info.url))
+
+        return
+
+    if options.command == 'info' :
+        enclave_info = eservice_db.get_by_name(options.name)
+        enclave_info.verify(state.get(['Ledger']))
+
+        enclave = {}
+        enclave['short_name'] = options.name
+        enclave['short_id'] = _hashed_identity_(enclave_info.enclave_id)
+        enclave['enclave_id'] = enclave_info.enclave_id
+        enclave['url'] = enclave_info.url
+        enclave['last_verified_time'] = enclave_info.last_verified_time
+        enclave['interpreter'] = enclave_info.client.interpreter
+        enclave['storage_service_url'] = enclave_info.client.storage_service_url
+        enclave['verifying_key'] = enclave_info.client.verifying_key
+        enclave['encryption_key'] = enclave_info.client.encryption_key
+
+        result = enclave
+        if options.field :
+            result = enclave[options.field]
+
+        if not options.quiet :
+            print(json.dumps(result, indent=4, sort_keys=True))
+
+        if options.symbol :
+            bindings.bind(options.symbol, result)
+
+        return
 
     if options.command == 'load' :
         eservice_db.load_database(options.database, options.merge)

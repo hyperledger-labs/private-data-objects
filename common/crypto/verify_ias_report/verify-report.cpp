@@ -163,9 +163,9 @@ err:
 
 verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
                                             const char* ias_report,
-                                            unsigned int ias_report_len,
-                                            char* ias_signature,
-                                            unsigned int ias_signature_len)
+                                            const unsigned int ias_report_len,
+                                            const char* ias_signature,
+                                            const unsigned int ias_signature_len)
 {
     X509* crt = NULL;
     int ret = -1;
@@ -192,7 +192,7 @@ verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_
 
     ret = EVP_DecodeBlock_wrapper(ias_signature_decoded,
                                   ias_signature_decoded_len,
-                                  (unsigned char*)ias_signature,
+                                  (const unsigned char*)ias_signature,
                                   ias_signature_len);
     COND2ERR(ret == -1);
 

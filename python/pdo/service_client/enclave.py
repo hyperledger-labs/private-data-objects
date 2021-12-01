@@ -63,11 +63,11 @@ class EnclaveServiceClient(GenericServiceClient) :
 
     @property
     def verifying_key(self) :
-        self.enclave_keys.verifying_key
+        return self.enclave_keys.verifying_key
 
     @property
     def encryption_key(self) :
-        self.enclave_keys.encryption_key
+        return self.enclave_keys.encryption_key
 
     @property
     def enclave_id(self) :

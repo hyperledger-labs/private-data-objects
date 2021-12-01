@@ -125,6 +125,16 @@ class EnclaveKeys(object) :
 
     # -------------------------------------------------------
     @property
+    def verifying_key(self) :
+        return self._verifying_key.Serialize()
+
+    # -------------------------------------------------------
+    @property
+    def encryption_key(self) :
+        return self._encryption_key.Serialize()
+
+    # -------------------------------------------------------
+    @property
     def hashed_identity(self) :
         return hashlib.sha256(self.identity.encode('utf8')).hexdigest()[:16]
 

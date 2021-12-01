@@ -68,6 +68,12 @@ def __command_attestation__(state, bindings, pargs) :
                            help='ledger signature for current state attestation', type=invocation_parameter, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
+    subparser = subparsers.add_parser('verify_sgx_report')
+    subparser.add_argument('-c', '--certificate', help='IAS verification certificate', type=str, required=True)
+    subparser.add_argument('-i', '--ias-signature', help='IAS signature', type=str, required=True)
+    subparser.add_argument('-r', '--report', help='IAS signed verification report', type=str, required=True)
+    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
+
     options = parser.parse_args(pargs)
 
     extraparams={'quiet' : options.quiet, 'wait' : options.wait}
@@ -126,6 +132,18 @@ def __command_attestation__(state, bindings, pargs) :
         message = invocation_request('reveal_secret', ledger_signature=options.state_attestation)
         result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
+            bindings.bind(options.symbol, result)
+        return
+
+    # -------------------------------------------------------
+    if options.command == 'verify_sgx_report' :
+        extraparams['commit'] = False
+        message = invocation_request('verify_sgx_report',
+                                     certificate=options.certificate.rstrip(),
+                                     report=options.report.rstrip(),
+                                     signature=options.ias_signature.rstrip())
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        if result is not None and options.symbol :
             bindings.bind(options.symbol, result)
         return
 

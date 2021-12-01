@@ -129,3 +129,12 @@ extern "C" bool random_identifier_wrapper(
     wasm_exec_env_t exec_env,
     const int32 length,
     int32 buffer_offset);
+
+extern "C" bool verify_sgx_report_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 signing_cert_buffer_offset,
+    const int32 signing_cert_buffer_length,
+    const int32 report_buffer_offset,
+    const int32 report_buffer_length,
+    const int32 signature_buffer_offset,
+    const int32 signature_buffer_length);

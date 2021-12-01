@@ -22,6 +22,7 @@
 #include "lib_export.h"
 
 #include "crypto.h"
+#include "crypto/verify_ias_report/ias-certificates.h"
 #include "error.h"
 #include "log.h"
 #include "pdo_error.h"
@@ -600,4 +601,47 @@ extern "C" bool random_identifier_wrapper(
         SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
         return false;
     }
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: verify_sgx_report_wrapper(
+ * ----------------------------------------------------------------- */
+extern "C" bool verify_sgx_report_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 signing_cert_buffer_offset, // char*
+    const int32 signing_cert_buffer_length, // size_t
+    const int32 report_buffer_offset,       // char*
+    const int32 report_buffer_length,       // size_t
+    const int32 signature_buffer_offset,    // char*
+    const int32 signature_buffer_length)    // size_t
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        const char* signing_cert_buffer =
+            (const char*)get_buffer(module_inst, signing_cert_buffer_offset, signing_cert_buffer_length);
+        if (signing_cert_buffer == NULL)
+            return false;
+
+        const char* report_buffer =
+            (const char*)get_buffer(module_inst, report_buffer_offset, report_buffer_length);
+        if (report_buffer == NULL)
+            return false;
+
+        const char* signature_buffer =
+            (const char*)get_buffer(module_inst, signature_buffer_offset, signature_buffer_length);
+        if (signature_buffer == NULL)
+            return false;
+
+        verify_status_t result = verify_ias_report_signature(signing_cert_buffer,
+                                                             report_buffer, report_buffer_length,
+                                                             signature_buffer, signature_buffer_length);
+
+        return result == VERIFY_SUCCESS;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+
+    return false;
 }
