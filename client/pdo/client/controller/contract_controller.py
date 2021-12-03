@@ -311,6 +311,9 @@ class ContractController(cmd.Cmd) :
         self.bindings.bind('_error_code_', str(0))
         self.bindings.bind('_error_message_', "")
 
+        self.exit_code = 0
+        self.exit_message = ''
+
         return False
 
     # -----------------------------------------------------------------
@@ -319,6 +322,12 @@ class ContractController(cmd.Cmd) :
         untrap_error -- stop catching errors
         """
         if self.deferred > 0 : return False
+
+        self.bindings.bind('_error_code_', str(0))
+        self.bindings.bind('_error_message_', "")
+
+        self.exit_code = 0
+        self.exit_message = ''
 
         self.__error__ = self.__default_error_handler__
         return False
