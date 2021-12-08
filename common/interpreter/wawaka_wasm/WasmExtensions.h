@@ -169,6 +169,12 @@ bool verify_sgx_report(
     const char* signature_buffer,
     const size_t signature_length);
 
+bool parse_sgx_report(
+    const char* report_buffer_offset,
+    const size_t report_buffer_length,
+    char** msg_buffer,
+    size_t* msg_length);
+
 // From WasmExtensions
 bool contract_log(
     const uint32_t loglevel,

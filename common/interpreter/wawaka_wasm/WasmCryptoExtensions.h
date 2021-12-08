@@ -138,3 +138,10 @@ extern "C" bool verify_sgx_report_wrapper(
     const int32 report_buffer_length,
     const int32 signature_buffer_offset,
     const int32 signature_buffer_length);
+
+extern "C" bool parse_sgx_report_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 report_buffer_offset,
+    const int32 report_buffer_length,
+    int32 msg_buffer_pointer_offset,
+    int32 msg_length_pointer_offset);

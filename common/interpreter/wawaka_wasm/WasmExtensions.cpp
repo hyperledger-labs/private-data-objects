@@ -186,6 +186,7 @@ static NativeSymbol native_symbols[] =
     EXPORT_WASM_API_WITH_SIG2(crypto_hash,"(iiii)i"),
     EXPORT_WASM_API_WITH_SIG2(random_identifier,"(ii)i"),
     EXPORT_WASM_API_WITH_SIG2(verify_sgx_report,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(parse_sgx_report,"(iiii)i"),
 
     /* Persistent store operations from WasmStateExtensions.h */
     EXPORT_WASM_API_WITH_SIG2(key_value_set,"(i*~*~)i"),

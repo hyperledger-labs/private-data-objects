@@ -21,9 +21,12 @@
 #include "wasm_export.h"
 #include "lib_export.h"
 
+#include "packages/parson/parson.h"
+
 #include "crypto.h"
 #include "crypto/verify_ias_report/ias-certificates.h"
 #include "error.h"
+#include "jsonvalue.h"
 #include "log.h"
 #include "pdo_error.h"
 #include "types.h"
@@ -644,4 +647,161 @@ extern "C" bool verify_sgx_report_wrapper(
     }
 
     return false;
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: parse_sgx_report_wrapper(
+ * ----------------------------------------------------------------- */
+extern "C" bool parse_sgx_report_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 report_buffer_offset,       // char*
+    const int32 report_buffer_length,       // size_t
+    int32 msg_buffer_pointer_offset,
+    int32 msg_length_pointer_offset)
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t *pointer;
+        ByteArray src;
+        Base64EncodedString encoded;
+        JSON_Status jret;
+
+        const char* report_buffer =
+            (const char*)get_buffer(module_inst, report_buffer_offset, report_buffer_length);
+        if (report_buffer == NULL)
+            return false;
+
+        sgx_quote_t quote;
+        int result = get_quote_from_report((const uint8_t*)report_buffer, report_buffer_length, &quote);
+        if (result != 0)
+            return false;
+
+        // -------------------- build the quote --------------------
+        JsonValue quote_information(json_value_init_object());
+        if (quote_information.value == NULL)
+            return false;
+
+        JSON_Object* quote_object = json_value_get_object(quote_information);
+        if (quote_object == NULL)
+            return false;
+
+        // ---------- version ----------
+        jret = json_object_set_number(quote_object, "version", quote.version);
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- sign_type ----------
+        jret = json_object_set_number(quote_object, "sign_type", quote.sign_type);
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- epid_group_id ----------
+        pointer = (uint8_t*)&quote.epid_group_id;
+        src.assign(pointer, pointer + sizeof(sgx_epid_group_id_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(quote_object, "epid_group_id", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- qe_svn ----------
+        jret = json_object_set_number(quote_object, "qe_svn", quote.qe_svn);
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- pce_svn ----------
+        jret = json_object_set_number(quote_object, "pce_svn", quote.pce_svn);
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- basename ----------
+        pointer = (uint8_t*)&quote.basename;
+        src.assign(pointer, pointer + sizeof(sgx_basename_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(quote_object, "basename", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- report body ----------
+        JsonValue report_information(json_value_init_object());
+        if (report_information.value == NULL)
+            return false;
+
+        JSON_Object* report_object = json_value_get_object(report_information);
+        if (report_object == NULL)
+            return false;
+
+        // ---------- cpu_svn ----------
+        pointer = (uint8_t*)&quote.report_body.cpu_svn;
+        src.assign(pointer, pointer + sizeof(sgx_cpu_svn_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(report_object, "cpu_svn", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- mr_enclave ----------
+        pointer = (uint8_t*)&quote.report_body.mr_enclave;
+        src.assign(pointer, pointer + sizeof(sgx_measurement_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(report_object, "mr_enclave", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- mr_signer ----------
+        pointer = (uint8_t*)&quote.report_body.mr_signer;
+        src.assign(pointer, pointer + sizeof(sgx_measurement_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(report_object, "mr_signer", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- config_id ----------
+        pointer = (uint8_t*)&quote.report_body.config_id;
+        src.assign(pointer, pointer + sizeof(sgx_config_id_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(report_object, "config_id", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // ---------- report_data ----------
+        pointer = (uint8_t*)&quote.report_body.report_data;
+        src.assign(pointer, pointer + sizeof(sgx_report_data_t));
+        encoded = ByteArrayToBase64EncodedString(src);
+
+        jret = json_object_set_string(report_object, "report_data", encoded.c_str());
+        if (jret != JSONSuccess)
+            return false;
+
+        // save the report body in the quote object
+        jret = json_object_set_value(quote_object, "report_body", report_information.value);
+        if (jret != JSONSuccess)
+            return false;
+
+        report_information.value = NULL;
+
+        // serialize the result
+        size_t serializedSize = json_serialization_size(quote_information);
+        StringArray serialized_response(serializedSize);
+
+        jret = json_serialize_to_buffer(quote_information,
+                                        reinterpret_cast<char*>(&serialized_response[0]),
+                                        serialized_response.size());
+
+        if (jret != JSONSuccess)
+            return false;
+
+        if (! save_buffer(module_inst, serialized_response.str(), msg_buffer_pointer_offset, msg_length_pointer_offset))
+            return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+
+    return true;
 }

@@ -113,16 +113,20 @@ if -e ${_r_} false
    exit -v 1
 fi
 
+echo ${INFO} ${_r_} ${ENDC}
+
+trap_error
+
 attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_bad_signature_}
-if -e ${_r_} true
+if -e ${_error_code_} 0
    echo failed to identify invalid SGX signature
-   exit -v 1
+   exit -v -1
 fi
 
 attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r "badreport" -i ${_signature_}
-if -e ${_r_} true
-   echo failed to identify invalid SGX report
-   exit -v 1
+if -e ${_error_code_} 0
+   echo failed to identify invalid SGX signature
+   exit -v -1
 fi
 
-exit
+untrap_error
