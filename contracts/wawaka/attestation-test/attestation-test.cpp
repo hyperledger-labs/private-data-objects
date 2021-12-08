@@ -19,6 +19,7 @@
 #include "Types.h"
 #include "Dispatch.h"
 
+#include "Attestation.h"
 #include "Cryptography.h"
 #include "Environment.h"
 #include "KeyValue.h"
@@ -380,13 +381,17 @@ bool verify_sgx_report(const Message& msg, const Environment& env, Response& rsp
     const std::string report(msg.get_string("report"));
     const std::string signature(msg.get_string("signature"));
 
-    CONTRACT_SAFE_LOG(3, "report: %s", report.c_str());
+    // CONTRACT_SAFE_LOG(3, "report: %s", report.c_str());
 
-    bool status = verify_sgx_report(certificate.c_str(), certificate.length(),
-                                   report.c_str(), report.length(),
-                                   signature.c_str(), signature.length());
+    bool status = ww::attestation::verify_sgx_report(certificate, report, signature);
+    if (! status)
+        return rsp.error("failed to verify the report signature");
 
-    ww::value::Boolean result(status);
+    ww::value::Object result;
+    status = ww::attestation::parse_sgx_report(report, result);
+    if (! status)
+        return rsp.error("failed to parse the sgx report");
+
     return rsp.value(result, false);
 }
 
