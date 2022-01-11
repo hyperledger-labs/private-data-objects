@@ -86,21 +86,36 @@ identity -n user2
 attestation -q -f ${save}/contract1.pdo add_endpoint -i ${_id2_} -c "${_mdc2_}" -m "${_md2_}" -l "${_info2_}"
 
 ## =================================================================
-echo ${INFO} create a signature ${ENDC}
+echo ${INFO} create a secret and share it with the other contracts ${ENDC}
 identity -n user1
-attestation -w -q -f ${save}/contract1.pdo generate_secret
+attestation -w -q -f ${save}/contract1.pdo send_secret -i ${_id2_} -s _secret_
+attestation -w -q -f ${save}/contract2.pdo recv_secret --secret "${_secret_}"
 
 ## wait for the generate_secret operation to commit otherwise the
 ## current_state command will return an old version of state, or
 ## at least might return an old version of state
 sleep -q -t 1
 
-ledger -q -s _sig_ current-state -i ${_id1_} -p signature
-attestation -q -f ${save}/contract1.pdo reveal_secret -s _secret_ -a ${_sig_}
-echo ${HEADER} secret is ${_secret_} ${ENDC}
+identity -n user1
+ledger -q -s _sig1_ current-state -i ${_id1_} -p signature
+attestation -q -f ${save}/contract1.pdo reveal_secret -s _secret1_ -a ${_sig1_}
+##echo ${HEADER} secret stored in contract 1 is ${_secret1_} ${ENDC}
+
+identity -n user2
+ledger -q -s _sig2_ current-state -i ${_id2_} -p signature
+attestation -q -f ${save}/contract2.pdo reveal_secret -s _secret2_ -a ${_sig2_}
+##echo ${HEADER} secret stored in contract 2 is ${_secret2_} ${ENDC}
+
+if --not -e ${_secret1_} ${_secret2_}
+   echo Secrets did not match
+   exit -v 1
+fi
+
+echo ${HEADER} secrets matched ${ENDC}
 
 ## =================================================================
 echo ${INFO} test sgx report verification ${ENDC}
+identity -n user1
 
 set -q -s _report_ -f ${test_data}/report.json
 set -q -s _certificate_ -f ${test_data}/certificate.pem

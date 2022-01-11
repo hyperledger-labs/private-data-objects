@@ -54,13 +54,12 @@ def __command_attestation__(state, bindings, pargs) :
     subparser.add_argument('-m', '--contract-metadata',
                            help='contract metadata', type=invocation_parameter, required=True)
 
-    subparser = subparsers.add_parser('generate_secret')
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
     subparser = subparsers.add_parser('send_secret')
+    subparser.add_argument('-i', '--contract-id', help='contract identifier', type=str, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('recv_secret')
+    subparser.add_argument('--secret', help='contract secret', type=invocation_parameter, required=True)
     subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparser = subparsers.add_parser('reveal_secret')
@@ -120,10 +119,18 @@ def __command_attestation__(state, bindings, pargs) :
 
     # -------------------------------------------------------
     if options.command == 'send_secret' :
+        message = invocation_request('send_secret', contract_id=options.contract_id)
+        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        if result and options.symbol :
+            bindings.bind(options.symbol, result)
+
         return
 
     # -------------------------------------------------------
     if options.command == 'recv_secret' :
+        message = invocation_request('recv_secret', **options.secret)
+        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+
         return
 
     # -------------------------------------------------------
