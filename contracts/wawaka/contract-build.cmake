@@ -113,7 +113,9 @@ LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common)
 # ---------------------------------------------
 SET (WASM_SOURCE)
 FILE(GLOB WAWAKA_COMMON_SOURCE ${PDO_SOURCE_ROOT}/contracts/wawaka/common/*.cpp)
+FILE(GLOB WAWAKA_CONTRACT_SOURCE  ${PDO_SOURCE_ROOT}/contracts/wawaka/common/contract/*.cpp)
 LIST(APPEND WASM_SOURCE ${WAWAKA_COMMON_SOURCE})
+LIST(APPEND WASM_SOURCE ${WAWAKA_CONTRACT_SOURCE})
 LIST(APPEND WASM_SOURCE ${PDO_SOURCE_ROOT}/common/packages/parson/parson.cpp)
 
 ## -----------------------------------------------------------------
