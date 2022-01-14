@@ -21,6 +21,7 @@ import sys
 import time
 import toml
 from urllib.parse import urlparse
+from requests.adapters import HTTPAdapter
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
@@ -102,6 +103,10 @@ def Main() :
     except Exception as e :
         LOG.error('failed to connect to CCF service: {}'.format(str(e)))
         sys.exit(-1)
+
+    #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
+    user_client.client_impl.session.mount("https://", HTTPAdapter())
+    user_client.client_impl.session.verify=False
 
     ping_test(user_client, options)
 

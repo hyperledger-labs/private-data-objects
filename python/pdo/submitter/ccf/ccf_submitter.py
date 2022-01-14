@@ -18,6 +18,7 @@ import time
 import os
 import sys
 import socket
+from requests.adapters import HTTPAdapter
 
 CCF_BASE = os.environ.get("CCF_BASE")
 CCF_Bin = os.path.join(CCF_BASE, "bin")
@@ -70,6 +71,10 @@ class CCFClientWrapper(CCFClient) :
             connection_timeout=3,
             request_timeout=3,
             )
+
+        #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
+        self.client_impl.session.mount("https://", HTTPAdapter())
+        self.client_impl.session.verify=False
 
         self.rpc_loggers = () #avoid the default logging to screen
 
