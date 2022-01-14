@@ -24,6 +24,7 @@ import os
 import sys
 import toml
 import time
+from requests.adapters import HTTPAdapter
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
@@ -162,6 +163,10 @@ def Main() :
     except :
         LOG.error('failed to connect to CCF service')
         sys.exit(-1)
+
+    #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
+    member_client.client_impl.session.mount("https://", HTTPAdapter())
+    member_client.client_impl.session.verify=False
 
     open_network_script(member_client, options, config)
     add_user_script(member_client, options, config)
