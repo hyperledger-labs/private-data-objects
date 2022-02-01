@@ -184,9 +184,17 @@ class ContractController(cmd.Cmd) :
         subcontroller.bindings.bind('_script_', os.path.basename(os.path.realpath(filename)))
 
         try :
+            saved_line = ''
             cmdlines = ContractController.ParseScriptFile(filename)
             for cmdline in cmdlines :
-                if subcontroller.onecmd(cmdline) : break
+                if cmdline[-1] == '\\' :
+                    saved_line += ' ' + cmdline[0:-1]
+                else :
+                    if saved_line != '' :
+                        cmdline = saved_line + ' ' + cmdline
+                        saved_line = ''
+                    if subcontroller.onecmd(cmdline) :
+                        break
 
         except Exception as e :
             return controller.__error__(filename, [], str(e))
@@ -214,6 +222,8 @@ class ContractController(cmd.Cmd) :
     # -----------------------------------------------------------------
     def __init__(self, state, bindings, echo=False, interactive=True) :
         cmd.Cmd.__init__(self)
+
+        self.__saved_line__ = ''
 
         self.echo = echo
         self.bindings = bindings
@@ -280,6 +290,16 @@ class ContractController(cmd.Cmd) :
     def precmd(self, line) :
         if self.echo:
             print(line)
+
+        if line[-1] == '\\' :
+            self.__saved_line__ += ' ' + line[0:-1]
+            self.prompt = ">>> "
+            return ' '
+
+        if self.__saved_line__ != '' :
+            line = self.__saved_line__ + ' ' + line
+            self.__saved_line__ = ''
+            self.prompt = "{0}> ".format(self.state.identity)
 
         return line
 
