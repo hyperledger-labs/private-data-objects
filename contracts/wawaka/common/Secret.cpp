@@ -105,7 +105,7 @@ bool ww::secret::send_secret(
     std::string encoded_iv;
     if (! ww::crypto::b64_encode(iv, encoded_iv))
     {
-        CONTRACT_SAFE_LOG(3, "failed to encode session key");
+        CONTRACT_SAFE_LOG(3, "failed to encode iv");
         return false;
     }
 
