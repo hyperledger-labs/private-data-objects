@@ -88,15 +88,14 @@ bool ww::contract::attestation::set_ledger_key(
 // NAME: get_ledger_key
 //
 // Contract method to get the ledger key that has been set as the
-// contract object root of trust.
+// contract object root of trust. Note that this is available to
+// anyone. Could be wrapped with additional policy checks.
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool ww::contract::attestation::get_ledger_key(
     const Message& msg,
     const Environment& env,
     Response& rsp)
 {
-    ASSERT_SENDER_IS_CREATOR(env, rsp);
-
     std::string ledger_verifying_key;
     if (! get_ledger_key(ledger_verifying_key))
         return rsp.error("failed to get the ledger verifying key");
@@ -109,7 +108,8 @@ bool ww::contract::attestation::get_ledger_key(
 // NAME: get_contract_metadata
 //
 // Contract method to get encryption and verifying key associated
-// with the contract.
+// with the contract. Anyone can retrieve this information, it is
+// always available in the ledger.
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool ww::contract::attestation::get_contract_metadata(
     const Message& msg,
@@ -136,6 +136,8 @@ bool ww::contract::attestation::get_contract_metadata(
 //
 // Contract method to get the code metadata associated with the
 // contract. Note that only the creator can get this information.
+// It may expose information about the details of the contract that
+// should not be public.
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool ww::contract::attestation::get_contract_code_metadata(
     const Message& msg,
@@ -147,12 +149,19 @@ bool ww::contract::attestation::get_contract_code_metadata(
     // returning all the information for now though only the nonce
     // should be necessary for the attestation test
     std::string code_nonce;
-    if (! KeyValueStore::privileged_get("ContractCode.Nonce", code_nonce))
-        return rsp.error("failed to retreive privileged value for ContractCode.Nonce");
+    ASSERT_SUCCESS(rsp, KeyValueStore::privileged_get("ContractCode.Nonce", code_nonce),
+                   "unexpected error: failed to retreive code nonce");
+
+    ww::types::ByteArray code_hash;
+    ASSERT_SUCCESS(rsp, ww::contract::attestation::compute_code_hash(code_hash),
+                   "unexpected error: failed to retrieve code hash");
+    std::string encoded_code_hash;
+    ASSERT_SUCCESS(rsp, ww::crypto::b64_encode(code_hash, encoded_code_hash),
+                   "unexpected error: failed to encode code hash");
 
     ww::value::Structure result(CONTRACT_CODE_METADATA_SCHEMA);
     result.set_string("code_nonce", code_nonce.c_str());
-
+    result.set_string("code_hash", encoded_code_hash.c_str());
     return rsp.value(result, false);
 }
 
@@ -160,7 +169,9 @@ bool ww::contract::attestation::get_contract_code_metadata(
 // NAME: add_endpoint
 //
 // Contract method to verify the attestation of a contract object
-// and add it to the set of "trusted endpoints"
+// and add it to the set of "trusted endpoints". Note that this
+// implementation of the method is open to all. It can be wrapped
+// with additional policy checks when included in the contract.
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool ww::contract::attestation::add_endpoint(
     const Message& msg,
@@ -208,7 +219,7 @@ bool ww::contract::attestation::add_endpoint(
         // we compute the merkle root using the hash of our own code
         // so we know the hash of the other if it matches
         ww::types::ByteArray decoded_code_hash;
-        if (! contract_attestation_store.get(code_hash_key, decoded_code_hash))
+        if (! get_code_hash(decoded_code_hash))
             return rsp.error("failed to retrieve code hash");
 
         ww::types::ByteArray nonce(code_nonce.begin(), code_nonce.end());

@@ -38,6 +38,7 @@
 
 #define CONTRACT_CODE_METADATA_SCHEMA           \
     "{"                                         \
+        SCHEMA_KW(code_hash,"") ","             \
         SCHEMA_KW(code_nonce,"")                \
     "}"
 
