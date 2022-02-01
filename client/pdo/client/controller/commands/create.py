@@ -88,7 +88,7 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 
     contract.set_state(initialize_response.raw_state)
 
-    logger.info('Contract state created successfully')
+    logger.debug('Contract state created successfully')
 
     # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
     try:

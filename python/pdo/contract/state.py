@@ -207,7 +207,7 @@ class ContractState(object) :
         if len(blocks_to_pull) != 0 :
             raise Exception('failed to pull blocks from storage service; %s', list(blocks_to_pull))
 
-        logger.info("Pulled %d new blocks after contract update", block_count + 1) # + 1 to add the root block
+        logger.debug("Pulled %d new blocks after contract update", block_count + 1) # + 1 to add the root block
 
         return len(blocks_to_pull)
 
