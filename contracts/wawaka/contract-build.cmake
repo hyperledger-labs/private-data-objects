@@ -103,6 +103,7 @@ LIST(APPEND WASM_LIBRARIES "${WASI_SDK_DIR}/share/wasi-sysroot/lib/wasm32-wasi/l
 # ---------------------------------------------
 SET (WASM_INCLUDES)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/contracts/wawaka/common)
+LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/contracts/wawaka/common/contract)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/interpreter/wawaka_wasm)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/packages/parson)
 LIST(APPEND WASM_INCLUDES ${PDO_SOURCE_ROOT}/common/packages/base64)
@@ -118,6 +119,25 @@ LIST(APPEND WASM_SOURCE ${WAWAKA_COMMON_SOURCE})
 LIST(APPEND WASM_SOURCE ${WAWAKA_CONTRACT_SOURCE})
 LIST(APPEND WASM_SOURCE ${PDO_SOURCE_ROOT}/common/packages/parson/parson.cpp)
 
+# ---------------------------------------------
+# Build the wawaka contract common library
+# ---------------------------------------------
+SET(WW_CONTRACT_COMMON_LIB ww-contract-common)
+
+ADD_LIBRARY(${WW_CONTRACT_COMMON_LIB} STATIC ${WASM_SOURCE})
+
+STRING(REPLACE ";" " " WASM_BUILD_OPTIONS "${WASM_BUILD_OPTIONS}")
+STRING(REPLACE ";" " " WASM_LINK_OPTIONS "${WASM_LINK_OPTIONS}")
+SET(CMAKE_CXX_FLAGS ${WASM_BUILD_OPTIONS} CACHE INTERNAL "")
+SET(CMAKE_CXX_COMPILER_TARGET "wasm32-wasi")
+
+TARGET_INCLUDE_DIRECTORIES(${WW_CONTRACT_COMMON_LIB} PUBLIC ${WASM_INCLUDES})
+TARGET_LINK_LIBRARIES(${WW_CONTRACT_COMMON_LIB} LINK_PUBLIC ${WASM_LIBRARIES})
+
+SET_PROPERTY(TARGET ${WW_CONTRACT_COMMON_LIB} APPEND_STRING PROPERTY LINK_FLAGS "${WASM_LINK_OPTIONS}")
+
+LIST(APPEND WASM_LIBRARIES "${PDO_SOURCE_ROOT}/contracts/wawaka/build/libww-contract-common.a")
+
 ## -----------------------------------------------------------------
 # Define the function for building contracts
 #
@@ -129,10 +149,10 @@ FUNCTION(BUILD_CONTRACT contract)
   STRING(REPLACE ";" " " WASM_BUILD_OPTIONS "${WASM_BUILD_OPTIONS}")
   STRING(REPLACE ";" " " WASM_LINK_OPTIONS "${WASM_LINK_OPTIONS}")
 
-  ADD_EXECUTABLE( ${contract} ${ARGN} ${WASM_SOURCE} )
+  ADD_EXECUTABLE( ${contract} ${ARGN})
 
   SET(CMAKE_CXX_FLAGS ${WASM_BUILD_OPTIONS} CACHE INTERNAL "")
-  SET(CMAKE_CXX_COMPILER_TARGET "wasm32")
+  SET(CMAKE_CXX_COMPILER_TARGET "wasm32-wasi")
 
   TARGET_INCLUDE_DIRECTORIES(${contract} PUBLIC ${WASM_INCLUDES})
   TARGET_LINK_LIBRARIES(${contract} LINK_PUBLIC ${WASM_LIBRARIES})
@@ -146,7 +166,7 @@ FUNCTION(BUILD_CONTRACT contract)
   SET_SOURCE_FILES_PROPERTIES(${b64contract} PROPERTIES GENERATED TRUE)
   SET_DIRECTORY_PROPERTIES(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${b64contract})
 
-  # this can be replaced in later versions of CMAKE with target_link_properties
+  # this can be replaced in later versions of CMAKE with target_link_options
   SET_PROPERTY(TARGET ${contract} APPEND_STRING PROPERTY LINK_FLAGS "${WASM_LINK_OPTIONS}")
   INSTALL(FILES ${b64contract} DESTINATION ${CONTRACT_INSTALL_DIRECTORY})
 ENDFUNCTION()
