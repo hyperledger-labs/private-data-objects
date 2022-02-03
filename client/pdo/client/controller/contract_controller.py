@@ -186,6 +186,11 @@ class ContractController(cmd.Cmd) :
         try :
             saved_line = ''
             cmdlines = ContractController.ParseScriptFile(filename)
+
+            # the enables support for multi-line commands (by ending the line with a
+            # backslash similar to bash, python and other shells; a line ending with
+            # a back slash is added to an accumulator that is processed only when
+            # a line is encountered without a backslash terminator
             for cmdline in cmdlines :
                 if cmdline[-1] == '\\' :
                     saved_line += ' ' + cmdline[0:-1]
@@ -291,6 +296,10 @@ class ContractController(cmd.Cmd) :
         if self.echo:
             print(line)
 
+        # the enables support for multi-line commands (by ending the line with a
+        # backslash similar to bash, python and other shells; a line ending with
+        # a back slash is added to an accumulator that is processed only when
+        # a line is encountered without a backslash terminator
         if line[-1] == '\\' :
             self.__saved_line__ += ' ' + line[0:-1]
             self.prompt = ">>> "
