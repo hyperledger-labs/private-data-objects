@@ -70,13 +70,13 @@ def build_simple_file_name(basename, extension='') :
     :param str extension: the extension to add to the file if it doesnt have one
     """
 
+    if basename[-len(extension):] != extension :
+        basename += extension
+
     if os.path.split(basename)[0] :
         return os.path.realpath(basename)
 
-    if basename[-len(extension):] == extension :
-        return basename
-
-    return basename + extension
+    return basename
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
