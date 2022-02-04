@@ -15,6 +15,9 @@
 cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
 
 INCLUDE(contract-build.cmake)
+INCLUDE(wawaka_common.cmake)
+
+##LIST(APPEND WASM_LIBRARIES "${PDO_SOURCE_ROOT}/contracts/wawaka/build/libww_contract_common.a")
 
 ADD_SUBDIRECTORY(mock-contract)
 ADD_SUBDIRECTORY(interface-test)
