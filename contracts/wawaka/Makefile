@@ -102,9 +102,6 @@ attestation-test:
 			-m eservice_dbfile $(ESERVICE_DB) \
 			-m test_data $(SCRIPTDIR)/attestation-test/scripts
 
-.PHONY: test interface-test mock-contract-test interpreter-test memory-test
-.PHONY: system-test eservice-db attestation-test
-
 install : build
 	@echo install contracts
 	@cd build && make install
@@ -115,4 +112,10 @@ build :
 	mkdir -p $@
 	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
+.PHONY: test interface-test mock-contract-test interpreter-test memory-test
+.PHONY: system-test eservice-db attestation-test
 .PHONY : all clean debug install test
+
+# Note: build is NOT a phony in this case; we make the directory and
+# then build the makefile using cmake. This only needs to be re-done
+# if build goes away.
