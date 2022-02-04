@@ -115,4 +115,4 @@ build :
 	mkdir -p $@
 	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
-.PHONY : all clean debug install test
+.PHONY : all build clean debug install test
