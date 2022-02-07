@@ -138,8 +138,7 @@ namespace pdo {
                     ecall_CreateContractWorker(
                         enc->GetEnclaveId(),
                         &pdoError,
-                        enc->GetThreadId(),
-                        enc->GetEnclavePolicy().c_str());
+                        enc->GetThreadId());
                     return error::ConvertErrorStatus(ret, pdoError);
                 });
             pdo::error::ThrowSgxError(
@@ -401,17 +400,6 @@ namespace pdo {
                 sresult,
                 "Failed to create linkable quote for enclave report");
         } // Enclave::GenerateSignupData
-
-        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::SetEnclavePolicy(
-            const std::string& inSerializedEnclavePolicy
-            )
-        {
-            pdo::error::ThrowIf<pdo::error::ValueError>(
-                                    inSerializedEnclavePolicy.empty(),
-                                    "Enclave policy pointer is NULL");
-            this->serializedEnclavePolicy.assign(inSerializedEnclavePolicy);
-        } // Enclave::SetEnclavePolicy
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         // XX Private helper methods                                 XX
