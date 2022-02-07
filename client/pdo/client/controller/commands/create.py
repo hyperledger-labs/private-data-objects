@@ -113,7 +113,6 @@ def command_create(state, bindings, pargs) :
     parser.add_argument('-c', '--contract-class', help='Name of the contract class', required = True, type=str)
     parser.add_argument('-i', '--interpreter', help='Name of the interpreter used to evaluate the contract', default=state.get(['Contract', 'Interpreter']))
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
-    parser.add_argument('-r', '--compilation-report', help='File that contains contract compilation report', type=str)
     parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', default="default")
     parser.add_argument('-e', '--eservice-group', help='Name of the enclave service group to use', default="default")
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
@@ -134,11 +133,7 @@ def command_create(state, bindings, pargs) :
     # ---------- read the contract source code ----------
     try :
         source_path = state.get(['Contract', 'SourceSearchPath'])
-        report = None
-        if options.compilation_report:
-            report_file = options.compilation_report
-            report = ContractCompilationReport.create_from_file(report_file, source_path)
-        contract_code = ContractCode.create_from_file(contract_class, contract_source, source_path, interpreter=options.interpreter, compilation_report=report)
+        contract_code = ContractCode.create_from_file(contract_class, contract_source, source_path, interpreter=options.interpreter)
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 

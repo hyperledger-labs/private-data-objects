@@ -20,7 +20,6 @@
 #include "crypto.h"
 #include "parson.h"
 
-#include "contract_compilation_report.h"
 #include "contract_state.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -34,7 +33,6 @@ public:
     std::string code_;
     std::string name_;
     std::string nonce_;
-    ContractCompilationReport compilation_report_;
     ByteArray code_hash_;
 
     ContractCode(void){};
