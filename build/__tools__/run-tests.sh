@@ -26,7 +26,7 @@ PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 if [ "${PDO_INTERPRETER}" == "wawaka-aot" ]; then
-    die Run automated tests for the wawaka-aot interpreter via make test-aot
+    die Automated tests for the wawaka-aot interpreter are currently not supported.
 fi
 
 # -----------------------------------------------------------------

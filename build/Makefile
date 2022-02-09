@@ -57,7 +57,6 @@ VERIFY_PRE_BUILD=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
 VERIFY_PRE_CONF=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
 CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
-TESTAOTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests-aot.sh)
 BENCHMARKSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
@@ -160,11 +159,7 @@ CONTRACT_CONF := $(ETCDIR)/pcontract.toml
 
 GENERATED_CONF_FILES := $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
 
-ifeq ($(PDO_INTERPRETER),wawaka-aot)
-	ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice-aot.toml
-else
-	ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
-endif
+ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 
 verified-conf : verify-pre-conf
 	${MAKE} conf
@@ -232,9 +227,6 @@ endif
 
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
-
-test-aot : $(PYTHON_DIR)
-	. $(abspath $(DSTDIR)/bin/activate) ; $(TESTAOTSCRIPT)
 
 benchmark : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)
