@@ -182,7 +182,6 @@ def shutdown():
     global _ias
     global _sig_rl_update_time
     global _epid_group
-    global _cdi_policy
 
     logger.info('shutdown enclave')
 
@@ -190,7 +189,6 @@ def shutdown():
     _ias = None
     _sig_rl_update_time = None
     _epid_group = None
-    _cdi_policy = None
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -231,14 +229,11 @@ def get_enclave_service_info(spid, config=None) :
 
     enclave.SetLogger(logger)
 
-    # set the policy based on the configuration
-    __set_cdi_policy(config)
-
     signed_enclave = __find_enclave_library(None)
     logger.debug("Attempting to load enclave at: %s", signed_enclave)
 
     num_of_enclaves = 1
-    pdo = enclave.pdo_enclave_info(signed_enclave, spid, _cdi_policy, num_of_enclaves)
+    pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
     if pdo is None :
         raise Exception('unable to load the enclave')
 
