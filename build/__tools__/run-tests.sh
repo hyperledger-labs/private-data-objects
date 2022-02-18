@@ -87,9 +87,9 @@ try make test > /dev/null
 # -----------------------------------------------------------------
 yell start enclave and provisioning services
 # -----------------------------------------------------------------
-try ${PDO_HOME}/bin/ss-start.sh --count ${NUM_SERVICES} > /dev/null
-try ${PDO_HOME}/bin/ps-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
-try ${PDO_HOME}/bin/es-start.sh --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/ss-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} > /dev/null
+try ${PDO_HOME}/bin/ps-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/es-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
 
 cd ${SRCDIR}/build
 
@@ -210,6 +210,7 @@ fi
 
 say create the contract
 try ${PDO_HOME}/bin/pdo-create.psh \
+    --loglevel ${PDO_LOG_LEVEL} \
     --identity user1 --ps_group default --es_group all \
     --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 
