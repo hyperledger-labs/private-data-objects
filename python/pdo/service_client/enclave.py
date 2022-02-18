@@ -107,8 +107,8 @@ class EnclaveServiceClient(GenericServiceClient) :
                 content_headers['Content-Transfer-Encoding'] = 'base64'
 
             request = dict()
-            request['encrypted_session_key'] = (None, encrypted_session_key, 'application/octet-stream', content_headers)
-            request['encrypted_request'] = (None, encrypted_request, 'application/octet-stream', content_headers)
+            request['encrypted_session_key'] = ('encrypted_session_key', encrypted_session_key, 'application/octet-stream', content_headers)
+            request['encrypted_request'] = ('encrypted_request', encrypted_request, 'application/octet-stream', content_headers)
 
             response = self.session.post(url, files=request, headers=request_headers, timeout=self.default_timeout, stream=False)
             response.raise_for_status()
