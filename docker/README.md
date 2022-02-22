@@ -6,9 +6,9 @@ https://creativecommons.org/licenses/by/4.0/
 # Overview
 
 This directory contains configurations to run PDO with docker and docker-compose.
-This allows you to develop easily on non-ubuntu 18.04 machines and/or
-without "poluting" your install.  Additionally, it also enables easy
-end-to-end setups with a local sawtooth ledger and automated end to
+This allows you to develop easily on non-ubuntu 18.04/20.04 machines
+without "polluting" your install.  Additionally, it also enables easy
+end-to-end setups with a local sawtooth or CCF ledger and automated end to
 end tests.
 
 
@@ -17,7 +17,7 @@ end tests.
 ## Installation of dependencies
 
 As prerequisite, you will need docker and docker-compose installed.
-On Ubuntu 18.04, this simply means running:
+On Ubuntu 18.04/20.04, this simply means running:
 ```bash
 	sudo apt install docker-compose
 ```
@@ -26,7 +26,7 @@ On Ubuntu 18.04, this simply means running:
 
 If you are behind a proxy, there are a few more things to do to configure docker.
 See [docker docu](https://docs.docker.com/config/daemon/systemd/#httphttps-proxy)
-for more info. Assumming you run Ubuntu 18.04 and have the `http_proxy`, `https_proxy`
+for more info. Assumming you run Ubuntu 18.04 or 20.04 and have the `http_proxy`, `https_proxy`
 and `no_proxy` environment variables defined, it essentially means:
 ```bash
   mkdir /etc/systemd/system/docker.service.d
@@ -75,8 +75,6 @@ See [this](https://github.com/moby/moby/pull/37485)
 and [this](https://github.com/docker/libnetwork/issues/2068) link for
 background.
 
-
-
 # Getting Started
 
 The easiest way to get started is to run
@@ -106,7 +104,9 @@ to set up your configuration.
 If you want to run your own experiments in the test environment, you
 can run
  ```bash
-make test-env-setup
+ mkdir -p $PDO_LEDGER_KEY_ROOT
+ make test-env-setup(-ccf)
+ cp ccf_keys/*.pem $PDO_LEDGER_KEY_ROOT # only for CCF ledger
 ```
 which launches the various containers of the topology. You can then
 interact with the environment using the standard docker-compose commands like
