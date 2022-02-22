@@ -28,26 +28,30 @@ support. Information about supported processors is provided below.
 
 The required host-system configuration for Private Data Objects is to
 separate the Private Data Objects components from the ledger components.
-This means if you want to run PDO on a single physical host, either PDO or the
-ledger will have to run in a separate VM or container. In particular, to run
-PDO in SGX HW mode, the PDO component has to run in an SGX-enabled environment.
-Below installation and configuration instructions will make sure that the host
-and the docker components fullfill this requirement.
-
-If Sawtooth ledger is used, then both Sawtooth (and the PDO transaction processors for Sawtooth)
-should be run on Ubuntu 16.04. If Microsoft CCF ledger is used, both CCF and the PDO transaction processor
-should be run on Ubuntu 18.04.
 
 Private Data Objects services (specifically the enclave service, provisioning
-service, and the client) should be run on Ubuntu 18.04  (server or client).
-PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these configuration
-not all standard libraries match the required versions and you will have to, e.g.,
-install by hand an openssl version >= 1.1.0g (the default libssl-dev on these
-platforms is still based on 1.0.2)
+service, and the client) can be run on Ubuntu 18.04 and Ubuntu 20.04
+(server or client).
+PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these
+configuration not all standard libraries match the required versions and
+you will have to, e.g., install by hand an openssl version >= 1.1.0g
+(the default libssl-dev on these platforms is still based on 1.0.2).
+
+If you want to run PDO on a single physical host, either PDO or the
+ledger will have to run in a separate VM or container. In particular, to run
+PDO in SGX HW mode, the PDO component has to run in an SGX-enabled
+environment. Below installation and configuration instructions will make
+sure that the host and the docker components fullfill this requirement.
+
+If Sawtooth ledger is used, then both Sawtooth (and the PDO transaction
+processors for Sawtooth) should be run on Ubuntu 16.04. If Microsoft CCF
+ledger is used, both CCF and the PDO transaction processor should be run
+on Ubuntu 18.04.
+We provide Docker images to run the ledger in the supported environment.
 
 The ledger and PDO may run on other Linux distributions, but the installation
-process is likely to be more complicated, and the use of other distributions is
-not supported by their respective communities at this time.
+process is likely to be more complicated, and the use of other
+distributions is not supported by their respective communities at this time.
 
 ## <a name="SGX">Intel Software Guard Extensions (SGX)</a>
 ### Overview
@@ -134,14 +138,14 @@ hardware support, it is necessary to install the SGX kernel driver.
 Depending on your particular hardware, you will have to install
 different drivers.
 
-
 ##### HW with support for DCAP / Flexible Launch Control (FLC)
 <!-- DCAP kernel driver installation -->
 The following commands will download and install the driver version 1.41 of
 the DCAP SGX kernel driver (for Ubuntu 18.04 server):
 
 ```bash
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server/
+UBUNTU_VERS=18.04 or 20.04
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server/
 DRIVER_FILE=sgx_linux_x64_driver_1.41.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
@@ -157,17 +161,18 @@ Note:
 ##### HW which does not support Flexible Launch Control (FLC)
 <!-- SDK kernel driver installation -->
 
-The following commands will download and install the SDK driver version 2.11 of
-the SGX kernel driver (for Ubuntu 18.04 server):
-
+The following commands will download and install the SDK driver version
+2.11 of the SGX kernel driver:
 ```bash
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu18.04-server
-DRIVER_FILE=ssgx_linux_x64_driver_2.11.0_0373e2e.bin
+UBUNTU_VERS=18.04 or 20.04
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server
+DRIVER_FILE=ssgx_linux_x64_driver_2.11.0_2d2b795.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
 sudo ./${DRIVER_FILE}
 ```
+
 Note:
 - as of August 2020, the sdk drivers will cause BUS errors in some circumstance on FLC HW and PDO is currently not supported in that configuration.
 - above installs the kernel module for the currently running kernel. You will have to reinstall the kernel driver once you boot into a new kernel.
