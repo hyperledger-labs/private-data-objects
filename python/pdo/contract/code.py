@@ -35,7 +35,7 @@ class ContractCode(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter='gipsy', compilation_report=None) :
+    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter=None, compilation_report=None) :
         """Create a code object from a Gipsy source file
 
         :param name str: the name of the scheme contract class
@@ -44,6 +44,9 @@ class ContractCode(object) :
         """
         if source_name is None :
             source_name = name
+        if interpreter is None :
+            interpreter = os.environ.get("PDO_INTERPRETER", "wawaka")
+
         basename = putils.build_simple_file_name(source_name, extension=cls.__extension__[interpreter])
         filename = putils.find_file_in_path(basename, search_path)
         logger.debug('load %s contract from %s', interpreter, filename)

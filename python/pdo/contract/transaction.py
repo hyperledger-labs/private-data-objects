@@ -132,7 +132,7 @@ def __transaction_worker__():
 
                 #First check if transaction for old state is successful
                 txnid = __dependencies__.FindDependency(ledger_config, contract_id, crypto.byte_array_to_base64(response.old_state_hash))
-                if txnid is 'pending': # yet to complete the transaction (commit attempted by the same client)
+                if txnid == 'pending': # yet to complete the transaction (commit attempted by the same client)
                     break
                 elif txnid is None: # either dependency failed or not found (even in ledger)
                     logger.error("Aborting transaction for request %d : unable to find transaction details for old state", request_number)
@@ -148,7 +148,7 @@ def __transaction_worker__():
                     contract_id_dep = dependency['contract_id']
                     state_hash_dep = dependency['state_hash']
                     txnid = __dependencies__.FindDependency(ledger_config, contract_id_dep, state_hash_dep)
-                    if txnid is 'pending': # yet to complete the transaction (commit attempted by the same client)
+                    if txnid == 'pending': # yet to complete the transaction (commit attempted by the same client)
                         fail_dependencies = True
                         break
                     elif txnid is None: # either dependency failed or not found (even in ledger)

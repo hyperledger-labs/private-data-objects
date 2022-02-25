@@ -19,7 +19,7 @@
 #  Configuration (build) paramaters
 #  - ubuntu version to use: 	  UBUNTU_VERSION (default: 18.04)
 #  - ubuntu name to use: 	  UBUNTU_NAME (default: bionic)
-#  - sgx sdk/psw version: 	  SGX (default: 2.13)
+#  - sgx sdk/psw version: 	  SGX (default: 2.15.1)
 #  - openssl version: 		  OPENSSL (default: 1.1.1g)
 #  - sgxssl version: 		  SGXSSL  (default: 2.10_1.1.1g)
 #  - additional apt packages:	  ADD_APT_PKGS (default: )
@@ -63,7 +63,7 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG UBUNTU_VERSION
 ARG UBUNTU_NAME
 
-ARG SGX=2.13
+ARG SGX=2.15.1
 ARG OPENSSL=1.1.1g
 ARG SGXSSL=2.10_1.1.1g
 

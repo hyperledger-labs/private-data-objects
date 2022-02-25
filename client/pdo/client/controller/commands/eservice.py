@@ -135,7 +135,7 @@ def get_eservice(state, eservice_url="default", eservice_group="default") :
     exception handling by the calling procedure
     """
 
-    if eservice_url is 'default' or eservice_url is None :
+    if eservice_url == 'default' or eservice_url is None :
         eservice_url = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'preferred'], 'random')
 
     if eservice_url == 'random' :

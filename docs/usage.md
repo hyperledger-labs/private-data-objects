@@ -40,6 +40,20 @@ Default versions of the configuration files are constructed during the
 build process. The default setup provides configuration files for five
 different service instances plus the `pdo-shell` client configuration.
 
+# <a name="Ledger">Run the Ledger
+
+Using PDO requires a running instance of a ledger (Hyperledger Sawtooth or
+Microsoft CCF). The easiest way to spin up an instance of the ledger for
+local testing is to use the provided Docker images.
+
+Run the following commands:
+```
+cd $PDO_SOURCE_ROOT
+mkdir -p $PDO_LEDGER_KEY_ROOT
+make -C docker test-env-setup(-ccf)
+cp docker/ccf_keys/*.pem $PDO_LEDGER_KEY_ROOT # only for CCF ledger
+```
+
 # <a name="validating">Validate the Installation
 
 The easiest way to validate that your installation is correct is to run

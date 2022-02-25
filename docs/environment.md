@@ -118,7 +118,7 @@ the contract enclave.
 `WASM_SRC` points to the installation of the wasm-micro-runtime. This
 is used to build the WASM interpreter for the wawaka contract interpreter.
 The git submodule points to the latest tagged commit of [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) we have validated:
-`WAMR-04-15-2021`.
+`WAMR-01-18-2022`.
 
 <!-- -------------------------------------------------- -->
 ### `WASM_MEM_CONFIG`

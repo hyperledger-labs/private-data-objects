@@ -19,6 +19,9 @@
 
 #include "Types.h"
 
+#define SCHEMA_KW(kw,v) "\"" #kw "\":" #v
+#define SCHEMA_KWS(kw, s) "\"" #kw "\":" s
+
 #define ASSERT_SUCCESS(_rsp_, _condition_, _message_)   \
     do {                                                \
         if (! ( _condition_) ) {                        \
