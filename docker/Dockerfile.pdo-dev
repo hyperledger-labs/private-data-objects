@@ -48,8 +48,8 @@
 #   - for develooping based on source in host you might map source into container with an option
 #     like -v $(pwd):/project/pdo/src/private-data-objects/
 
-ARG UBUNTU_VERSION=18.04
-ARG UBUNTU_NAME=bionic
+ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_NAME=focal
 # NOTE:
 # - unfortunately, we do need both name (for repo) and version (for sgx directories), only docker image supports both ..
 #   18.04 <-> bionic, 20.04 <-> focal
@@ -170,7 +170,7 @@ RUN SGX_SDK_BIN_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX}/distro/u
 # LVI mitigations, needed to compile sgxssl, requires a
 #   recent version of binutils (>= 2.32). Ubuntu 18.04 only
 #   has 2.30 but Intel ships binary distro for 2.32.51.20190719
-RUN [ "$UBUNTU_VERSION" = "18.04" ] \
+RUN [ "$UBUNTU_VERSION" = "20.04" ] \
   && SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
   && SGX_SDK_BINUTILS_FILE=$(cd /tmp; wget --spider --recursive --level=1 --no-parent ${SGX_SDK_BINUTILS_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BINUTILS_REPO}'/(as.ld.objdump.*)|) { print "$1\n"; }') \
   && wget -q ${SGX_SDK_BINUTILS_REPO}/${SGX_SDK_BINUTILS_FILE} \

@@ -21,21 +21,16 @@ import sys
 import time
 import toml
 from urllib.parse import urlparse
-from requests.adapters import HTTPAdapter
+
+from ccf.clients import CCFClient
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_BASE = os.environ.get("CCF_BASE")
-CCF_Bin = os.path.join(CCF_BASE, "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
-
-sys.path.insert(1, CCF_Bin)
-
-from infra.clients import CCFClient
 
 # -----------------------------------------------------------------
 def ping_test(client, options):
@@ -44,7 +39,7 @@ def ping_test(client, options):
     start_time = time.time()
 
     for _ in range(num_pings):
-        client.rpc("ping", dict())
+        client.post("/app/ping", dict())
 
     end_time = time.time()
 
@@ -84,29 +79,14 @@ def Main() :
     else :
         (host, port) = config["rpc-address"].split(':')
 
-    user_cert_file = os.path.join(CCF_Keys, "{}_cert.pem".format(options.user_name))
-    user_key_file = os.path.join(CCF_Keys, "{}_privk.pem".format(options.user_name))
-
     try :
         user_client = CCFClient(
-            host=host,
-            port=port,
-            cert=user_cert_file,
-            key=user_key_file,
-            ca = network_cert,
-            format='json',
-            prefix='app',
-            description="none",
-            version="2.0",
-            connection_timeout=3,
-            request_timeout=3)
-    except Exception as e :
+            host,
+            port,
+            network_cert)
+    except Exception as e:
         LOG.error('failed to connect to CCF service: {}'.format(str(e)))
         sys.exit(-1)
-
-    #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
-    user_client.client_impl.session.mount("https://", HTTPAdapter())
-    user_client.client_impl.session.verify=False
 
     ping_test(user_client, options)
 

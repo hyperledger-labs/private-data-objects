@@ -33,7 +33,7 @@
 # The settings from this file will be inherited by the container. See https://docs.docker.com/network/proxy/ for details.
 
 # we start from ccf base container that comes preinstalled with ccf base and the depdencies for building the application
-FROM ccfciteam/ccf-app-ci:0.11.7
+FROM ccfciteam/ccf-app-ci:1.0.19
 
 #install a few extra utilities
 RUN apt-get update && apt-get install -y python3-pip vim net-tools
@@ -55,7 +55,7 @@ WORKDIR /pdo/
 # Env variables needed to build pdo-tp-ccf. Also generate the enclave signing key
 RUN cd private-data-objects/ccf_transaction_processor/ \
 	&& openssl genrsa -3 3072 > enclave.pem
-ENV CCF_BASE=/opt/ccf-0.11.7/
+ENV CCF_BASE=/opt/ccf/
 ENV PDO_INSTALL_ROOT=/pdo/dev/
 ENV PDO_SOURCE_ROOT=/pdo/private-data-objects/
 ENV PDO_ENCLAVE_CODE_SIGN_PEM=/pdo/private-data-objects/ccf_transaction_processor/enclave.pem
@@ -86,9 +86,6 @@ ENTRYPOINT `/pdo/private-data-objects/build/common-config.sh -e` \
 	&& . dev/opt/pdo/ccf/bin/activate \
 	&& . /pdo/set_no_proxy.sh \
 	&& dev/opt/pdo/ccf/bin/start_ccf_network.sh \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_cert.pem /ccf_keys/ \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/userccf_privk.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
 	&& chmod a+rw /ccf_keys/* \
 	&& tail -f /dev/null
-

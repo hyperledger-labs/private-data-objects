@@ -8,8 +8,9 @@ https://creativecommons.org/licenses/by/4.0/
 This folder contains software for PDO transaction processor (TP) based
 on Microsoft's CCF blockchain.  The software is located under
 `${PDO_SOURCE_ROOT}/ccf_transaction_processor/`. The TP software is
-written and tested for CCF tag 0.11.7. Compatibility with other CCF
-versions is not guaranteed.
+written and tested for CCF tag 1.0.19. Compatibility with other CCF
+versions is not guaranteed. Currently PDO/CCF combo is supported
+only for virtual enclaves.
 
 The instructions below can be used to build and deploy the CCF-based PDO
 TP. The PDO TP uses many of environment variables defined in the PDO
@@ -35,64 +36,28 @@ IMPORTANT: When installing CCF and PDO on the same VM for local testing,
 please install PDO first and then CCF. See [PDO docs](../docs) for
 detailed instructions on installing PDO.
 
-## Install CCF Base
+## Install CCF
 
-CCF Base with tag 0.11.7 is to be directly installed using the tarball
-from CCF release page.  The following commands will install CCF in the
-folder pointed to be the `CCF_BASE` environment variable.
+Please follow instructions at https://microsoft.github.io/CCF/release/1.x/build_apps/install_bin.html to install CCF version 1.0.19. Below, we provide a quick summary of the steps  to install CCF version 1.0.19 on bare metal with SGX simuation mode.
 
-```bash
-wget https://github.com/microsoft/CCF/releases/download/ccf-0.11.7/ccf.tar.gz -P /tmp
-tar -xvf /tmp/ccf.tar.gz -C /tmp
-mv /tmp/ccf-0.11.7 ${CCF_BASE}
-```
-
-We note that CCF Base needs to be installed in PDO clients/eservice
-nodes when CCF is used as PDO ledger.  The CCF base contains CCF client
-modules that will be ued by PDO clients/eservice when submitting
-transactions to the CCF ledger. The rest of the steps below are only
-needed on the node where CCF based pdo-tp is getting built.
-
-## Install CCF Dependencies
-
-CCF/PDO combo has been tested under a scenario where CCF is deployed in
-a standalone VM, and where PDO cients/services are deployed either
-locally or at other VMs. Further, the CCF/PDO combo has been tested only
-for the CCF virtual enclave mode.  The dependencies needed to deploy CCF
-in an Ubuntu 18.04 VM with virtual enclave mode can be installed by
-running the following command:
+Please set `CCF_BASE` to `/opt/ccf. For installing dependencies, download the CCF repo, change branch to ccf-1.0.19 and execute the following commands:
 
 ```bash
-cd $CCF_BASE/getting_started/setup_vm/
-./run.sh ccf-dev.yml
+cd getting_started/setup_vm/
+./run.sh app-dev.yml
 ```
 
-The above script works only when the VM is not behind any proxies. If
-there are proxies, make the following changes before executing the above
-command:
+The above command may throw an error message suggesting that CCF installation failed; if so, please ignore this error message. 
 
-A. In the run.sh file, modify the command
-`sudo add-apt-repository ppa:ansible/ansible -y`
-by adding the `-E` option. The modified command looks like
-`sudo -E add-apt-repository ppa:ansible/ansible -y`.
-Add a `sudo` prefix to the `ansible-playbook` command at the end of this file.
-
-B. In ccf-dev.yml (present under the same folder),
-add the environment option for proxies (see
-https://docs.ansible.com/ansible/latest/user_guide/playbooks_environment.html
-for reference)
-
+Install CCF 1.0.19 via debian package
 ```bash
-environment:
-    http_proxy: <specify-http-proxy-here>
-    https_proxy: <specify-https-proxy-here>
+export CCF_VERSION=1.0.19
+wget https://github.com/microsoft/CCF/releases/download/ccf-${CCF_VERSION}/ccf_${CCF_VERSION}_amd64.deb
+$ sudo apt install ./ccf_${CCF_VERSION}_amd64.deb
 ```
 
-C. Add the repo used by ansible scripts for installing python 3.7
-
-```bash
-sudo add-apt-repository ppa:deadsnakes/ppa
-```
+Note that CCF needs to be installed only on the machine where PDO TP
+is being installed. CCF is not required by PDO clients to use a CCF based PDO TP.
 
 ## Build and Install PDO TP
 
@@ -102,18 +67,10 @@ more information.
 
 To build and install the PDO TP,
 ```bash
+source ${PDO_SOURCE_ROOT}/build/common-config.sh
 cd ${PDO_SOURCE_ROOT}/ccf_transaction_processor
 make clean
 make
-```
-
-Note that CCF uses `ninja` tool for build. If the VM has a small memory
-(< 4GB), it might be required to reduce the parallelism in the build
-process by setting the env `NINJA_OPTION`. For example, the following
-environment restricts ninja to 2 parallel jobs.
-
-```bash
-export NINJA_OPTION=-j2
 ```
 
 ## Configure
@@ -121,8 +78,8 @@ export NINJA_OPTION=-j2
 See the CCF documentation for information about configuring CCF. The
 `cchost` configuration file used by the PDO control scripts can be found
 at `${PDO_HOME}/ccf/etc/cchost.toml`. The CCF governance script can be
-found at `${PDO_HOME}/ccf/etc/gov.lua`. We note that this governance script is
-the template governance script found as part of the CCF repo.
+found at `${PDO_HOME}/ccf/etc/constitution.js`. We note that this governance script is
+the based on default governance scripts found as part of the CCF repo.
 
 ## Start/Stop CCF Network
 
@@ -150,20 +107,9 @@ of `cchost` terminates, the ledger will be irretrievably terminated.
 
 ## Share CCF (TLS) Authentication Keys
 
-CCF uses mutually authenticated TLS channels for transactions. Keys are
-located at `${PDO_HOME}/ccf/keys`. The network certificate is
-`networkcert.pem`. User public certificate is `userccf_cert.pem` and
-private key is `userccf_privk.pem`.  Note that the keys are created as
-part of CCF deployment and are unique to the specific instance of CCF.
-
-In our usage, CCF users are PDO clients, and PDO client authentication
-is implemented within the transaction processor itself. Thus, we do not
-utilize the client authentication feature provided by CCF. However to
-satisfy the CCF's requirement that only authorized CCF users can submit
-transactions to CCF, share `userccf_cert.pem` and `userccf_privk.pem` with
-all the PDO clients. These two keys and the network certificate
-`networkcert.pem` must be stored under the path `${PDO_LEDGER_KEY_ROOT}`
-(as part of PDO deployment).
+CCF uses mutually authenticated TLS channels for member transactions. User transactions
+use one-way TLS (pdo clients remain anonymous while submitting transactions to CCF). CCF
+member keys and network certificate are located at `${PDO_HOME}/ccf/keys`. The network certificate ('networkcert.pem`) is created as part of CCF deployment and is unique to the specific instance of CCF.
 
 ## Test the Deployment with Ping Test
 
@@ -230,10 +176,8 @@ As noted above `ccf-ip-address` is the IP address associated with the
 host named in the variable `PDO_HOSTNAME` (see above) during CCF
 deployment.
 
-2. Ensure that the PDO TP keys are stored in the directory
-`${PDO_LEDGER_KEY_ROOT}`. The directory should contain the CCF
-network certificate, `networkcert.pem`, and the user keys
-`userccf_cert.pem` and `userccf_privk.pem`.
+2. Ensure that the PDO TP netwrok certificate `networkcert.pem` is stored in the directory
+`${PDO_LEDGER_KEY_ROOT}`.
 
 3. Do a clean build of PDO (if installing on the same VM CCF is
 installed, this will wipe out CCF, so as noted above install PDO first

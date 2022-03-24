@@ -230,8 +230,12 @@ class ServiceKeys(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def create_service_keys(cls) :
-        signing_key = crypto.SIG_PrivateKey()
+    def create_service_keys(cls, ledger_type=os.environ.get('PDO_LEDGER_TYPE')) :
+
+        if ledger_type == "ccf":
+            signing_key = crypto.SIG_PrivateKey(crypto.SigCurve_SECP384R1)
+        else:
+            signing_key = crypto.SIG_PrivateKey()
         signing_key.Generate()
         return cls(signing_key)
 

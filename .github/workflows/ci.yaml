@@ -12,7 +12,7 @@ jobs:
 
         strategy:
             matrix:
-                interpreter: [gipsy, wawaka, wawaka-opt]
+                interpreter: [wawaka, wawaka-opt]
 
         steps:
             - name: Check out repo

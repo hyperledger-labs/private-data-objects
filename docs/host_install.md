@@ -28,7 +28,7 @@ On a minimal Ubuntu system, the following packages are required. Other
 distributions will require similar packages.
 
 ```bash
-sudo apt install -y cmake curl git pkg-config unzip xxd libssl-dev
+sudo apt install -y cmake curl git pkg-config unzip xxd libssl-dev build-essential
 sudo apt install -y swig python3 python3-dev python3-venv virtualenv
 sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compiler libncurses5-dev
 ```
@@ -75,7 +75,7 @@ Following commands will download and install PSW:
 echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
 wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
 sudo apt-get update
-sudo apt-get build-essential python #dependencies
+sudo apt-get install build-essential python #dependencies
 sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 ```
 
@@ -99,7 +99,7 @@ the SDK into the directory `/opt/intel`.
 
 ```bash
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/
-SDK_FILE=sgx_linux_x64_sdk_2.15.1.101.1.bin
+SDK_FILE=sgx_linux_x64_sdk_2.15.101.1.bin
 
 wget ${DRIVER_REPO}/${SDK_FILE} -P /tmp
 chmod a+x /tmp/${SDK_FILE}
@@ -231,7 +231,7 @@ We recommend running a ledger instance locally in the provided Docker image:
 ```
 cd $PDO_SOURCE_ROOT
 mkdir -p $PDO_LEDGER_KEY_ROOT
-make -C docker test-env-setup(-ccf)
+make -C docker test-env-setup(-ccf-only)
 cp docker/ccf_keys/*.pem $PDO_LEDGER_KEY_ROOT # only for CCF ledger
 ```
 

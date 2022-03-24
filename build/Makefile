@@ -37,12 +37,6 @@ ifndef PDO_INTERPRETER
 $(error Incomplete configuration, PDO_INTERPRETER is not defined)
 endif
 
-ifeq ($(PDO_LEDGER_TYPE),ccf)
-ifndef CCF_BASE
-$(error Incomplete configuration, CCF_BASE is not defined)
-endif
-endif
-
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
@@ -105,6 +99,7 @@ $(PYTHON_DIR) :
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_http_signature
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade websocket-client
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade msgpack
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
@@ -133,8 +128,10 @@ service_indexes := 1 2 3 4 5
 
 ifeq ($(PDO_LEDGER_TYPE),sawtooth)
 	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+	ecdsa_curve := secp256k1
 else
 	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.pem))
+	ecdsa_curve := secp384r1
 endif
 
 SSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),sservice$(i)_private.pem))
@@ -147,7 +144,7 @@ USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.p
 	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
 
 %.pem :
-	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem
+	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem --curve $(ecdsa_curve)
 
 keys : $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
 
