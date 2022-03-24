@@ -15,7 +15,6 @@
 
 #include "ds/json.h"
 #include "ds/buffer.h"
-#include <msgpack/msgpack.hpp>
 
 using namespace std;
 
@@ -31,11 +30,17 @@ namespace ccf
       string registration_block_context;
       string organizational_info;
       string EHS_verifying_key;
-
-      MSGPACK_DEFINE(verifying_key, encryption_key, proof_data, enclave_persistent_id, registration_block_context, \
-         organizational_info, EHS_verifying_key);
   };
 
+  DECLARE_JSON_TYPE(EnclaveInfo);
+  DECLARE_JSON_REQUIRED_FIELDS(EnclaveInfo,
+    verifying_key, 
+    encryption_key, 
+    proof_data, 
+    enclave_persistent_id, 
+    registration_block_context, 
+    organizational_info, 
+    EHS_verifying_key);
 
   //schema definition for rpcs
   struct Register_enclave {
@@ -50,7 +55,6 @@ namespace ccf
       vector<uint8_t> signature;
     };
   };
-
 
   struct Verify_enclave {
     struct In {

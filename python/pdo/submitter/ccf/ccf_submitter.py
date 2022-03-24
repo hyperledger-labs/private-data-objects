@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http
 import json
 import logging
 import time
 import os
 import sys
 import socket
-from requests.adapters import HTTPAdapter
 
-CCF_BASE = os.environ.get("CCF_BASE")
-CCF_Bin = os.path.join(CCF_BASE, "bin")
-sys.path.insert(1, CCF_Bin)
-from infra.clients import CCFClient
+from ccf.clients import CCFClient
 from urllib.parse import urlparse
 
 import pdo.common.crypto as crypto
@@ -47,36 +44,15 @@ class CCFClientWrapper(CCFClient) :
 
         #ensure that ccf keys are present
         ccf_key_dir = os.environ.get("PDO_LEDGER_KEY_ROOT")
-        cert_file = os.path.join(ccf_key_dir, "userccf_cert.pem")
-        key_file = os.path.join(ccf_key_dir, "userccf_privk.pem")
         ca_file = os.path.join(ccf_key_dir, "networkcert.pem")
 
-        for f in (cert_file, key_file, ca_file) :
-            if os.path.exists(f) is False :
-                logger.error("Cannot locate CCF key file {0}; aborting transaction".format(f))
-                raise Exception("Cannot locate CCF keys.Aborting transaction")
+        if os.path.exists(ca_file) is False :
+            logger.error("Cannot locate CCF network certificate. Aborting transaction")
+            raise Exception("Cannot locate CCF network certificate. Aborting transaction")
 
-        # create the reuest client
+        # create the request client
         logger.info("Creating the CCF Request client")
-        super().__init__(
-            host=host,
-            port=port,
-            cert=cert_file,
-            key=key_file,
-            ca=ca_file,
-            description=None,
-            version="2.0",
-            format="json",
-            prefix="app",
-            connection_timeout=3,
-            request_timeout=3,
-            )
-
-        #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
-        self.client_impl.session.mount("https://", HTTPAdapter())
-        self.client_impl.session.verify=False
-
-        self.rpc_loggers = () #avoid the default logging to screen
+        super().__init__(host, port, ca_file)
 
         #get CCF verifying key (specific to PDO TP)
         try:
@@ -92,18 +68,21 @@ class CCFClientWrapper(CCFClient) :
         for wait in self.read_backoff_duration :
             time.sleep(wait)
 
-            #if read fails due to lack of global commit, result will be None
-            response = self.submit_rpc(tx_method, tx_params)
-            if response.result is not None :
-                return response.result
-
+            try:
+                #if read fails due to lack of global commit, response.status_code will not be OK
+                response = self.submit_rpc(tx_method, tx_params)
+                if response.status_code == http.HTTPStatus.OK:
+                    return response.body.json()
+            except Exception as e: 
+                raise
         #read failed even after retries
-        raise Exception(response.error)
+        raise Exception("read request failed after multiple retries for tx_method {}".format(str(tx_method)))
 
     # -----------------------------------------------------------------
     def submit_rpc(self, tx_method, tx_params) :
         try:
-            return self.rpc(tx_method, tx_params)
+            return self.post('/app/' + tx_method, body = tx_params, log_capture =[])
+            # setting log_capture to [] prevents logs being flushed to screen by CCFClient object
         except Exception as e:
             logger.exception("Error while submitting transaction to CCF")
             raise e
@@ -115,7 +94,7 @@ class CCFClientWrapper(CCFClient) :
         decoded_signature = crypto.base64_to_byte_array(signature)
         result = self.__ccf_signature_verifyer__.VerifySignature(message_byte_array, decoded_signature)
         if result < 0 :
-            raise Exception('malformed signature');
+            raise Exception('malformed signature')
 
         return result
 
@@ -123,6 +102,7 @@ class CCFClientWrapper(CCFClient) :
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class CCFSubmitter(sub.Submitter):
 
+    # Ledger submitter used by PDO Clients when CCF based PDO TP is used.
     # this is a cache of connections to ledger servers, the cache
     # is not emptied when clients leave since there is no particular
     # need to disconnect explicitly, the cache is keyed on the host:port
@@ -170,11 +150,13 @@ class CCFSubmitter(sub.Submitter):
 
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if response.result: # result will be "True" for enclave registration transaction
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
+                # reponse body will be "True" for enclave registration transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
-                raise Exception(response.error)
+                raise Exception(response.body.json())
         except Exception as e:
+            logger.info('Register enclave TXN failed: {}'.format(str(e)))
             raise
 
 # -----------------------------------------------------------------
@@ -193,11 +175,13 @@ class CCFSubmitter(sub.Submitter):
 
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if response.result: # result will be "True" for contract registration transaction
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
+                # reponse body will be "True" for enclave registration transaction
                 return crypto.byte_array_to_hex(tx_params['signature'])
             else:
-                raise Exception(response.error)
+                raise Exception(response.body.json())
         except Exception as e:
+            logger.info('Register contract TXN failed: {}'.format(str(e)))
             raise
 
 # -----------------------------------------------------------------
@@ -216,11 +200,13 @@ class CCFSubmitter(sub.Submitter):
 
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if response.result: # result will be "True" for add encalve to contract transaction
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
+                # reponse body will be "True" for enclave registration transaction
                 return tx_params['signature'] #PDO expects the submitter to return the transaction signature
             else:
-                raise Exception(response.error)
+                raise Exception(response.body.json())
         except Exception as e:
+            logger.info('Add Enclave TXN failed: {}'.format(str(e)))
             raise
 
 # -----------------------------------------------------------------
@@ -249,11 +235,13 @@ class CCFSubmitter(sub.Submitter):
             )
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if response.result: # result will be True for successful init transaction
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True): 
+                # reponse body will be "True" for enclave registration transaction
                 return tx_params['nonce']
             else:
-                raise Exception(response.error)
+                raise Exception(response.body.json())
         except Exception as e:
+            logger.info('CCL initialize TXN failed: {}'.format(str(e)))
             raise
 
 # -----------------------------------------------------------------
@@ -288,14 +276,16 @@ class CCFSubmitter(sub.Submitter):
             message_hash,
             dependencies
             )
-
+ 
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if response.result: # result will be True for successful init transaction
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
+                  # reponse body will be "True" for enclave registration transaction
                 return tx_params['nonce']
             else:
-                raise Exception(response.error)
+                raise Exception(response.body.json())
         except Exception as e:
+            logger.info('CCL update TXN failed: {}'.format(str(e)))
             raise
 
 # -----------------------------------------------------------------

@@ -17,18 +17,18 @@
 #include "contract_registry.h"
 #include "ccl_registry.h"
 
-#include "tls/key_pair.h"
-#include "tls/base64.h"
+#include "crypto/key_pair.h"
 #include "ds/buffer.h"
-#include "crypto/hash.h"
 
-#include "enclave/app_interface.h"
-#include "node/rpc/user_frontend.h"
+#include "ccf/app_interface.h"
+#include "ccf/user_frontend.h"
+#include "apps/utils/metrics_tracker.h"
 
 #include <map>
 
 using namespace std;
 using namespace ccf;
+using namespace crypto;
 
 namespace ccfapp
 {
@@ -63,14 +63,14 @@ namespace ccfapp
     static constexpr auto GEN_SIGNING_KEY = "generate_signing_key_for_read_payloads";
     static constexpr auto GET_LEDGER_KEY = "get_ledger_verifying_key";
 
-    class TPHandlerRegistry  : public UserHandlerRegistry
+    class TPHandlerRegistry  : public UserEndpointRegistry
     {
         private:
 
-            kv::Map<string, EnclaveInfo>& enclavetable; // key is encalve_id
-            kv::Map<string, ContractInfo>& contracttable; // key is contract_id
-            kv::Map<string, ContractStateInfo>& ccltable; // key is contract_id + state_hash (string addition)
-            kv::Map<string, map<string, string>>& signer; //There is at most one entry in this map. if there is an
+            kv::Map<string, EnclaveInfo> enclavetable; // key is encalve_id
+            kv::Map<string, ContractInfo> contracttable; // key is contract_id
+            kv::Map<string, ContractStateInfo> ccltable; // key is contract_id + state_hash (string addition)
+            kv::Map<string, map<string, string>> signer; //There is at most one entry in this map. if there is an
                                                             //entry key="signer".  value is pubk:privk
 
             // functions to verify signatures, only wite methods sign transactions, read methods do not.
@@ -86,7 +86,7 @@ namespace ccfapp
 
             bool verify_sig_static(
                 vector<uint8_t> signature,
-                const tls::PublicKeyPtr & pubk_verifier,
+                const PublicKeyPtr & pubk_verifier,
                 const vector<uint8_t>& contents);
 
             bool verify_pdo_transaction_signature_register_contract(
@@ -104,7 +104,7 @@ namespace ccfapp
 
             bool verify_enclave_signature_add_enclave(
                 const string& signature,
-                const tls::PublicKeyPtr & pubk_verifier,
+                const PublicKeyPtr & pubk_verifier,
                 const string & contract_creator_key,
                 const string & contract_id,
                 const vector<ProvisioningKeysToSecretMap> & prov_key_maps,
@@ -124,35 +124,36 @@ namespace ccfapp
                 const vector<uint8_t>& contract_metadata_hash,
                 const string & contract_creator_verifying_key,
                 const vector<uint8_t>& enclave_signature,
-                const tls::PublicKeyPtr & enclave_verifying_key);
+                const PublicKeyPtr & enclave_verifying_key);
 
             bool verify_enclave_signature_update_contract_state(
                 const vector<uint8_t>& nonce,
                 const vector<uint8_t>& contract_code_hash,
                 const StateUpdateInfo & state_update_info,
                 const vector<uint8_t>& enclave_signature,
-                const tls::PublicKeyPtr & enclave_verifying_key);
+                const PublicKeyPtr & enclave_verifying_key);
 
-            tls::KeyPairPtr ledger_signer_local;
+            KeyPairPtr ledger_signer_local;
 
             string sign_document(const string& document);
+            string vector_to_string(const vector<uint8_t>& vec);
 
         public:
 
-            TPHandlerRegistry (kv::Store& store);
-            void init_handlers(kv::Store& store) override;
-            map<string, tls::PublicKeyPtr> enclave_pubk_verifier; // the key is the enclave verifying key
-                              // shouldn't there be a table for this?
-
-
+            TPHandlerRegistry (ccfapp::AbstractNodeContext& context);
+            map<string, PublicKeyPtr> enclave_pubk_verifier; // the key is the enclave verifying key
     };
 
-    class TransactionProcessor : public ccf::UserRpcFrontend
+    class TransactionProcessor : public ccf::RpcFrontend
     {
     private:
         TPHandlerRegistry  tp_handlers;
 
     public:
-        TransactionProcessor(kv::Store& store);
+        TransactionProcessor(ccf::NetworkTables& network, ccfapp::AbstractNodeContext& context):
+            ccf::RpcFrontend(*network.tables, tp_handlers),
+            tp_handlers(context)
+        {}
     };
+
 }

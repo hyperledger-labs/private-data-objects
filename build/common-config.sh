@@ -88,6 +88,15 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_LEDGER_TYPE"; i=$i+1; export PDO_LEDGER_TYPE=${env_val[PDO_LEDGER_TYPE]}
 
+	if [ ${PDO_LEDGER_TYPE} == "ccf" ];
+	then
+		env_val[PDO_DEFAULT_SIGCURVE]="${PDO_DEFAULT_SIGCURVE:-SECP384R1}"
+		env_desc[PDO_DEFAULT_SIGCURVE]="
+			PDO_DEFAULT_SIGCURVE is the ECDSA curve used by PDO for generating signatures.
+			Choose SECP384R1 for ccf. If not set, cyrpto library uses SECP256K1 as default which works for sawtooth"
+		env_key_sort[$i]="PDO_DEFAULT_SIGCURVE"; i=$i+1; export PDO_DEFAULT_SIGCURVE=${env_val[PDO_DEFAULT_SIGCURVE]}
+	fi
+
 	env_val[PDO_INSTALL_ROOT]="${PDO_INSTALL_ROOT:-${SCRIPTDIR}/_dev}"
 	env_desc[PDO_INSTALL_ROOT]="
 		PDO_INSTALL_ROOT is the root of the directory in which the virtual
@@ -149,7 +158,7 @@ var_set() {
 	env_desc[PDO_LEDGER_KEY_ROOT]="
 		PDO_LEDGER_KEY_ROOT is the root directory where the system keys are stored
 		for ledger integration; files in this directory are not automatically generated. When ccf is used
-		as ledger, the ccf keys {networkcert.pem, userccf_cert.pem, userccf_privk.pem} must be
+		as ledger, the ccf network cert {networkcert.pem} must be
 		placed under this folder. These keys get generated during ccf deployment.
 	"
 	env_key_sort[$i]="PDO_LEDGER_KEY_ROOT"; i=$i+1; export PDO_LEDGER_KEY_ROOT=${env_val[PDO_LEDGER_KEY_ROOT]}

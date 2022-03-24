@@ -15,7 +15,6 @@
 
 #include "ds/json.h"
 #include "ds/buffer.h"
-#include  <msgpack/msgpack.hpp>
 
 using namespace std;
 
@@ -25,22 +24,12 @@ namespace ccf
   {
     string pspk;
     string encrypted_secret;
-
-    MSGPACK_DEFINE(pspk, encrypted_secret);
   };
 
-  inline void to_json(nlohmann::json& j, const ProvisioningKeysToSecretMap& prov_map)
-  {
-    j["pspk"] = prov_map.pspk;
-    j["encrypted_secret"] = prov_map.encrypted_secret;
-  }
-
-  inline void from_json(const nlohmann::json& j, ProvisioningKeysToSecretMap& prov_map)
-  {
-    prov_map.pspk = j["pspk"].get<string>();
-    prov_map.encrypted_secret = j["encrypted_secret"].get<string>();
-  }
-
+  DECLARE_JSON_TYPE(ProvisioningKeysToSecretMap);
+  DECLARE_JSON_REQUIRED_FIELDS(ProvisioningKeysToSecretMap, 
+    pspk, 
+    encrypted_secret);
 
   struct ContractEnclaveInfo
   {
@@ -49,28 +38,15 @@ namespace ccf
     string encrypted_state_encryption_key;
     string signature; // this is the enclave signature for the add enclave to contract transaction
     std::vector<ProvisioningKeysToSecretMap> provisioning_key_state_secret_pairs;
-
-    MSGPACK_DEFINE(contract_enclave_id, contract_id, encrypted_state_encryption_key, signature, provisioning_key_state_secret_pairs);
   };
 
-  inline void to_json(nlohmann::json& j, const ContractEnclaveInfo& contract_enclave_info)
-  {
-    j["contract_enclave_id"] = contract_enclave_info.contract_enclave_id;
-    j["contract_id"] = contract_enclave_info.contract_id;
-    j["encrypted_state_encryption_key"] = contract_enclave_info.encrypted_state_encryption_key;
-    j["signature"] = contract_enclave_info.signature;
-    j["provisioning_key_state_secret_pairs"] = contract_enclave_info.provisioning_key_state_secret_pairs;
-  }
-
-  inline void from_json(const nlohmann::json& j, ContractEnclaveInfo& contract_enclave_info)
-  {
-    contract_enclave_info.contract_enclave_id = j["contract_enclave_id"].get<string>();
-    contract_enclave_info.contract_id = j["contract_id"].get<string>();
-    contract_enclave_info.encrypted_state_encryption_key = j["encrypted_state_encryption_key"].get<string>();
-    contract_enclave_info.signature = j["signature"].get<string>();
-    contract_enclave_info.provisioning_key_state_secret_pairs = \
-            j["provisioning_key_state_secret_pairs"].get<vector<ProvisioningKeysToSecretMap>>();
-  }
+  DECLARE_JSON_TYPE(ContractEnclaveInfo);
+  DECLARE_JSON_REQUIRED_FIELDS(ContractEnclaveInfo,
+    contract_enclave_id, 
+    contract_id, 
+    encrypted_state_encryption_key, 
+    signature, 
+    provisioning_key_state_secret_pairs);
 
   struct ContractInfo
   {
@@ -82,10 +58,18 @@ namespace ccf
     std::vector<ContractEnclaveInfo> enclave_info;
     std::vector<uint8_t> current_state_hash;
     bool is_active;
-
-      MSGPACK_DEFINE(contract_id, contract_code_hash, contract_metadata_hash, contract_creator_verifying_key_PEM, \
-         provisioning_service_ids, enclave_info, current_state_hash, is_active);
   };
+
+  DECLARE_JSON_TYPE(ContractInfo);
+  DECLARE_JSON_REQUIRED_FIELDS(ContractInfo,
+    contract_id,
+    contract_code_hash,
+    contract_metadata_hash,
+    contract_creator_verifying_key_PEM,
+    provisioning_service_ids,
+    enclave_info,
+    current_state_hash,
+    is_active);
 
   struct Register_contract {
     struct In {
@@ -105,7 +89,6 @@ namespace ccf
       std::vector<uint8_t> signature;
     };
   };
-
 
   struct Get_contract_provisioning_info {
     struct In{

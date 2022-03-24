@@ -32,5 +32,5 @@ EFILE="${F_SERVICEHOME}/logs/error.log"
 OFILE="${F_SERVICEHOME}/logs/output.log"
 
 cd ${F_SERVICEHOME}/run
-${CCHOST} --config ${F_SERVICEHOME}/etc/cchost.toml > $OFILE 2> $EFILE &
+${CCHOST} --config ${F_SERVICEHOME}/etc/cchost.toml --node-pid-file ${F_SERVICEHOME}/run/cchost.pid > $OFILE 2> $EFILE &
 echo $! > ${F_SERVICEHOME}/run/cchost.pid
