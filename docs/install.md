@@ -206,7 +206,7 @@ Docker provides the easiest way to install and run PDO. It allows you to
 develop easily on a variety of systems and isolates all package
 installations from the host. Further, it simplifies end-to-end setup
 with a local Sawtooth ledger. Instructions for installation with docker are available
-[here](docker_install.md).
+[here](docker.md).
 
 ## Host System Installation
 

@@ -62,6 +62,16 @@ static void SHA256Hash(
     SHA256_Final(hash, &sha256);
 }  // pcrypto::SHA256Hash
 
+// Compute SHA384 digest
+static void SHA384Hash(
+    const unsigned char* buf, int buf_size, unsigned char hash[SHA384_DIGEST_LENGTH])
+{
+    SHA512_CTX sha384;
+    SHA384_Init(&sha384);
+    SHA384_Update(&sha384, buf, buf_size);
+    SHA384_Final(hash, &sha384);
+}
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Utility function: deserialize ECDSA Public Key
 // throws RuntimeError, ValueError
@@ -350,7 +360,7 @@ std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 int pcrypto::sig::PublicKey::VerifySignature(
     const ByteArray& message, const ByteArray& signature) const
 {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    unsigned char hash[SHA384_DIGEST_LENGTH];
     // Decode signature B64 -> DER -> ECDSA_SIG
     const unsigned char* der_SIG = (const unsigned char*)signature.data();
     ECDSA_SIG_ptr sig(
@@ -359,8 +369,8 @@ int pcrypto::sig::PublicKey::VerifySignature(
     {
         return -1;
     }
-    SHA256Hash((const unsigned char*)message.data(), message.size(), hash);
+    SHA384Hash((const unsigned char*)message.data(), message.size(), hash);
     // Verify
     return ECDSA_do_verify(
-        (const unsigned char*)hash, SHA256_DIGEST_LENGTH, sig.get(), public_key_);
+        (const unsigned char*)hash, SHA384_DIGEST_LENGTH, sig.get(), public_key_);
 }  // pcrypto::sig::PublicKey::VerifySignature

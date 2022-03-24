@@ -17,7 +17,7 @@
 #include <openssl/obj_mac.h>
 
 #ifndef PDO_USE_ECDSA_CURVE
-#define PDO_USE_ECDSA_CURVE NID_secp256k1
+#define PDO_USE_ECDSA_CURVE NID_secp384r1 //NID_secp256k1
 #endif
 
 namespace pdo
@@ -28,7 +28,7 @@ namespace crypto
     {
         // Elliptic curve
         const int CURVE = PDO_USE_ECDSA_CURVE;
-        const int MAX_SIG_SIZE = 72;
+        const int MAX_SIG_SIZE = 104; //72
     }
 }
 }

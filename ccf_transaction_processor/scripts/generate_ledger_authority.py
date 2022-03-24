@@ -20,38 +20,30 @@ import os
 import sys
 import time
 import toml
-from requests.adapters import HTTPAdapter
+
+from ccf.clients import Identity
+from ccf.clients import CCFClient
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_BASE = os.environ.get("CCF_BASE")
-CCF_Bin = os.path.join(CCF_BASE, "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
-
-sys.path.insert(1, CCF_Bin)
-from infra.clients import CCFClient
 
 # -----------------------------------------------------------------
 def generate_ledger_authority(client, options, config):
     try :
-        result = client.rpc("generate_signing_key_for_read_payloads", dict())
-
-        if result.status != http.HTTPStatus.OK.value :
-            LOG.error('failed to contact ledger: {0}'.format(result.status))
+        r = client.post("/app/generate_signing_key_for_read_payloads", dict())
+        if r.status_code != http.HTTPStatus.OK.value:
+            LOG.error('failed to generate ledger authority the member: {}, code: {}'.format(
+                r.body, r.status_code))
             sys.exit(-1)
-
-        if result.result is None :
-            LOG.error('failed to generate ledger authority: {0}, '.format(result.error))
-            sys.exit(-1)
-
-    except :
-        LOG.exception('invocation failed')
+    except Exception as e:
+        LOG.error('failed to generate ledger authority the member: {}'.format(str(e)))
         sys.exit(-1)
-
+    
 # -----------------------------------------------------------------
 def Main() :
     default_config = os.path.join(CCF_Etc, 'cchost.toml')
@@ -63,7 +55,7 @@ def Main() :
     parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
 
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
+    parser.add_argument('--member-name', help="Name of the user being added", default = "memberccf", type=str)
 
     options = parser.parse_args()
 
@@ -84,31 +76,22 @@ def Main() :
     network_cert = config["start"]["network-cert-file"]
     (host, port) = config["rpc-address"].split(':')
 
-    user_cert_file = os.path.join(CCF_Keys, "{}_cert.pem".format(options.user_name))
-    user_key_file = os.path.join(CCF_Keys, "{}_privk.pem".format(options.user_name))
+    member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
+    member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
 
-    try :
-        user_client = CCFClient(
-            host=host,
-            port=port,
-            cert=user_cert_file,
-            key=user_key_file,
-            ca = network_cert,
-            format='json',
-            prefix='app',
-            description="none",
-            version="2.0",
-            connection_timeout=3,
-            request_timeout=3)
-    except :
-        LOG.error('failed to connect to CCF service')
+    try:
+        member_client = CCFClient(
+            host,
+            port,
+            network_cert,
+            session_auth=Identity(member_key, member_cert, "member"),
+            signing_auth=Identity(member_key, member_cert, "member"),
+        )
+    except Exception as e:
+        LOG.error('failed to connect to CCF service : {}'.format(str(e)))
         sys.exit(-1)
 
-    #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
-    user_client.client_impl.session.mount("https://", HTTPAdapter())
-    user_client.client_impl.session.verify=False
-
-    generate_ledger_authority(user_client, options, config)
+    generate_ledger_authority(member_client, options, config)
 
     LOG.info('successfully generated ledger authority')
     sys.exit(0)

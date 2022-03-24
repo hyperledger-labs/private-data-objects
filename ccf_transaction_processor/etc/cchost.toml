@@ -1,12 +1,11 @@
 
 enclave-file = "${home}/ccf/lib/libpdoenc.virtual.so"
 enclave-type = "virtual"
-consensus = "raft"
+consensus = "cft"
 rpc-address = "${host_address}:6600"
 node-address = "${host_address}:7700"
 
 [start]
 network-cert-file = "${ledger_key_root}/networkcert.pem"
-network-enc-pubk-file = "${ledger_key_root}/network_enc_pubk.pem"
 member-info = "${ledger_key_root}/memberccf_cert.pem,${ledger_key_root}/memberccf_enc_pubk.pem"
-gov-script = "${home}/ccf/etc/gov.lua"
+constitution = "${home}/ccf/etc/constitution.js"

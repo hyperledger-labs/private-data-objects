@@ -40,7 +40,7 @@
  *
  * Default to an insanely large max size (1 TB)
  */
-#define DEFAULT_BLOCK_STORE_SIZE (1ULL << 40)
+#define DEFAULT_BLOCK_STORE_SIZE (1ULL << 30) //prakash for test purposes
 
 /* -----------------------------------------------------------------
  * CLASS: SafeThreadLock

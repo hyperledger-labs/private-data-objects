@@ -1,0 +1,52 @@
+# Copyright 2020 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+# This docker-compose file starts a complete end-to-end environment for PDO/CCF with 
+# sgx in simulator mode. The code used are the main branch for pdo. For CCF,
+# we use version 0.11.7.  
+#
+# To use, define the env host_ip (= host_ip_address) & do the following
+# - build base pdo-dev image (see docker/Dockerfile.pdo-dev for build-time options ..)
+#    docker build docker -f Dockerfile.pdo-dev -t pdo-dev
+# If you are behind proxy, ensure that proxy is defined in ~/.docker/config.json for the above command to work
+# - build docker-composed images (here and below with additional -f options as mentioned above)
+#    docker-compose -f ccf-pdo.yaml build
+# If you are behind proxy, use docker-compose -f ccf-pdo.yaml -f ccf-pdo.proxy.yaml build. 
+# ~/.docker/config.json does not work with docker-compose. Continue to add the ccf-pdo.proxy.yaml for the rest of the
+# docker-compose commands as well.
+# - start up enviroment. This will instantiate the ccf ledger as well
+#    docker-compose -f ccf-pdo.yaml up
+# - start shell on pdo-build
+#   docker-compose  -f ccf-pdo.yaml exec pdo-build bash
+# - in that shell run tests (e.g., /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh )
+#   or start ehs/ps, run contracts and have fun ... :-)
+#   - for automated tests, you also just might call 'docker-compose  -f ccf-pdo.yaml exec pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh'
+# - ....
+
+version: "2.1"
+
+services:
+  pdo-tp-ccf:
+    build:
+      context: .
+      dockerfile: Dockerfile.pdo-tp-ccf
+    container_name: pdo-tp-ccf
+    ports:
+      - "6600:6600"
+    hostname: pdo-tp-ccf
+    expose:
+      - 6600
+    volumes:
+      - ./ccf_keys/:/ccf_keys/

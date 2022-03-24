@@ -24,94 +24,55 @@ import os
 import sys
 import toml
 import time
-from requests.adapters import HTTPAdapter
+
+from ccf.proposal_generator import transition_node_to_trusted
+from ccf.proposal_generator import transition_service_to_open
+from ccf.clients import Identity
+from ccf.clients import CCFClient
 
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_BASE = os.environ.get("CCF_BASE")
-CCF_Bin = os.path.join(CCF_BASE, "bin")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
-
-sys.path.insert(1, CCF_Bin)
-from infra.clients import CCFClient
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def open_network_script(client, options, config) :
 
-    # activate the member (new from ccf release 0.11)
+    # activate the member first
     try:
-        r = client.rpc("ack/update_state_digest")
-        state_digest = bytearray(r.result["state_digest"])
-        r = client.rpc("ack", params={"state_digest": list(state_digest)}, signed=True)
-        if r.error is not None:
-            LOG.error('failed to activate the member {}'.format(r.error))
+        r = client.post("/gov/ack/update_state_digest")
+        r = client.post(
+            "/gov/ack", {"state_digest": r.body.json()["state_digest"]})
+        if r.status_code != http.HTTPStatus.OK.value and r.status_code != http.HTTPStatus.NO_CONTENT.value:
+            LOG.error('failed to activate the member: {}, code: {}'.format(
+                r.body, r.status_code))
             sys.exit(-1)
-    except :
-        LOG.error('failed to activate the member')
+    except Exception as e:
+        LOG.error('failed to activate the member: {}', e)
         sys.exit(-1)
+    LOG.info('CCF member activated')
 
-    script = """
-    tables = ...
-    return Calls:call("open_network")
-    """
 
-    rpc_params = dict()
-    rpc_params['parameter'] = {}
-    rpc_params['script'] = {"text": script}
-    rpc_params['ballot'] = {"text": "return true"}
+    try:
+        proporsal, vote = transition_service_to_open()
+        r = client.post("/gov/proposals", proporsal)
 
-    try :
-        r = client.rpc("propose", rpc_params, signed=True)
-    except :
-        LOG.error('failed to open network')
+        LOG.info(f'propalsal {r}')
+        if r.status_code != http.HTTPStatus.OK.value:
+            LOG.error('failed to open network: {}, code: {}'.format(
+                r.body, r.status_code))
+            sys.exit(-1)
+
+        LOG.info('successfully created proposal to open network with proposal id {}'.format(
+            r.body.json()["proposal_id"]))
+
+    except Exception as e:
+        LOG.error('failed to open network: {}', e)
         sys.exit(-1)
-
-    if r.status != http.HTTPStatus.OK.value:
-        LOG.error('failed to open network: {}'.format(r.status))
-        sys.exit(-1)
-
-    LOG.info('successfully created proposal to open network with proposal id {}'.format(r.result["proposal_id"]))
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def add_user_script(client, options, config) :
-
-    user_cert_file = os.path.join(CCF_Keys, "{}_cert.pem".format(options.user_name))
-
-    try :
-        with open(user_cert_file) as fp :
-            user_cert_unicode = [ord(c) for c in fp.read()]
-    except :
-        LOG.error('failed to read user certificate file {0}'.format(user_cert_file))
-        sys.exit(-1)
-
-    script = """
-    tables, user_cert = ...
-    return Calls:call("new_user", user_cert)
-    """
-
-    rpc_params = dict()
-    rpc_params['parameter'] = user_cert_unicode
-    rpc_params['script'] = {"text": script}
-    rpc_params['ballot'] = {"text": "return true"}
-
-    try :
-        r = client.rpc("propose", rpc_params, signed=True)
-    except :
-        LOG.error('ccf add_user invocation failed')
-        sys.exit(-1)
-
-    if r.status != http.HTTPStatus.OK.value:
-        LOG.error('failed to add user: {}'.format(r.status))
-        sys.exit(-1)
-
-    LOG.info('successfully created proposal to add user with proposal id {}'.format(r.result["proposal_id"]))
-
 
 # -----------------------------------------------------------------
 def Main() :
@@ -147,30 +108,20 @@ def Main() :
     network_cert = config["start"]["network-cert-file"]
     (host, port) = config["rpc-address"].split(':')
 
-    try :
+    try:
         member_client = CCFClient(
-            host=host,
-            port=port,
-            cert=member_cert,
-            key=member_key,
-            ca = network_cert,
-            format='json',
-            prefix='gov',
-            description="none",
-            version="2.0",
-            connection_timeout=3,
-            request_timeout=3)
-    except :
-        LOG.error('failed to connect to CCF service')
+            host,
+            port,
+            network_cert,
+            session_auth=Identity(member_key, member_cert, "member"),
+            signing_auth=Identity(member_key, member_cert, "member"),
+        )
+    except Exception as e:
+        LOG.error('failed to connect to CCF service : {}'.format(str(e)))
         sys.exit(-1)
 
-    #Temporary fix to skip checking CCF host certificate. Version 0.11.7 CCF certificate expiration was hardcoded to end of 2021
-    member_client.client_impl.session.mount("https://", HTTPAdapter())
-    member_client.client_impl.session.verify=False
-
     open_network_script(member_client, options, config)
-    add_user_script(member_client, options, config)
-
+    
     LOG.info('CCF network ready for use')
     sys.exit(0)
 

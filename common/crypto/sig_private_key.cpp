@@ -61,6 +61,17 @@ static void SHA256Hash(
     SHA256_Final(hash, &sha256);
 }  // pcrypto::SHA256Hash
 
+// Compute SHA384 digest
+static void SHA384Hash(
+    const unsigned char* buf, int buf_size, unsigned char hash[SHA384_DIGEST_LENGTH])
+{
+    SHA512_CTX sha384;
+    SHA384_Init(&sha384);
+    SHA384_Update(&sha384, buf, buf_size);
+    SHA384_Final(hash, &sha384);
+}
+
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Utility function: Deserialize ECDSA Private Key
 // throws RuntimeError, ValueError
@@ -243,12 +254,12 @@ std::string pcrypto::sig::PrivateKey::Serialize() const
 // throws RuntimeError
 ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
 {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    unsigned char hash[SHA384_DIGEST_LENGTH];
     // Hash
-    SHA256Hash((const unsigned char*)message.data(), message.size(), hash);
+    SHA384Hash((const unsigned char*)message.data(), message.size(), hash);
     // Then Sign
 
-    ECDSA_SIG_ptr sig(ECDSA_do_sign((const unsigned char*)hash, SHA256_DIGEST_LENGTH, private_key_),
+    ECDSA_SIG_ptr sig(ECDSA_do_sign((const unsigned char*)hash, SHA384_DIGEST_LENGTH, private_key_),
         ECDSA_SIG_free);
     if (!sig)
     {
