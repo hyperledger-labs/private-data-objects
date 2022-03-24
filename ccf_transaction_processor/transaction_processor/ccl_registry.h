@@ -15,7 +15,6 @@
 
 #include "ds/json.h"
 #include "ds/buffer.h"
-#include <msgpack/msgpack.hpp>
 
 using namespace std;
 
@@ -26,32 +25,27 @@ namespace ccf
     string contract_id;
     vector<uint8_t> state_hash;
     string state_hash_for_sign;
-
-    MSGPACK_DEFINE(contract_id, state_hash, state_hash_for_sign);
   };
 
-  inline void to_json(nlohmann::json& j, const ContractStateDependecy& contract_dep)
-  {
-    j["contract_id"] = contract_dep.contract_id;
-    j["state_hash"] = contract_dep.state_hash;
-    j["state_hash_for_sign"] = contract_dep.state_hash_for_sign;
-  }
-
-  inline void from_json(const nlohmann::json& j, ContractStateDependecy& contract_dep)
-  {
-    contract_dep.contract_id = j["contract_id"].get<string>();
-    contract_dep.state_hash = j["state_hash"].get<vector<uint8_t>>();
-    contract_dep.state_hash_for_sign = j["state_hash_for_sign"].get<string>();
-  }
+  DECLARE_JSON_TYPE(ContractStateDependecy);
+  DECLARE_JSON_REQUIRED_FIELDS(ContractStateDependecy, 
+    contract_id,
+    state_hash,
+    state_hash_for_sign);
 
   struct ContractStateInfo {
     vector<uint8_t> transaction_id;
     vector<uint8_t> previous_state_hash;
     vector<uint8_t> message_hash;
     vector<ContractStateDependecy> dependency_list;
-
-    MSGPACK_DEFINE(transaction_id, previous_state_hash, message_hash, dependency_list);
   };
+
+  DECLARE_JSON_TYPE(ContractStateInfo);
+  DECLARE_JSON_REQUIRED_FIELDS(ContractStateInfo, 
+    transaction_id, 
+    previous_state_hash, 
+    message_hash,
+    dependency_list);
 
   struct StateUpdateInfo {
     string contract_id;
@@ -59,28 +53,15 @@ namespace ccf
     vector<uint8_t> previous_state_hash;
     vector<uint8_t> message_hash;
     vector<ContractStateDependecy> dependency_list;
-
-    MSGPACK_DEFINE(contract_id, current_state_hash, previous_state_hash, message_hash, dependency_list);
   };
 
-  inline void to_json(nlohmann::json& j, const StateUpdateInfo& state_update_info)
-  {
-    j["contract_id"] = state_update_info.contract_id;
-    j["current_state_hash"] = state_update_info.current_state_hash;
-    j["previous_state_hash"] = state_update_info.previous_state_hash;
-    j["message_hash"] = state_update_info.message_hash;
-    j["dependency_list"] = state_update_info.dependency_list;
-  }
-
-  inline void from_json(const nlohmann::json& j, StateUpdateInfo& state_update_info)
-  {
-    state_update_info.contract_id = j["contract_id"].get<string>();
-    state_update_info.current_state_hash = j["current_state_hash"].get<vector<uint8_t>>();
-    state_update_info.previous_state_hash = j["previous_state_hash"].get<vector<uint8_t>>();
-    state_update_info.message_hash = j["message_hash"].get<vector<uint8_t>>();
-    state_update_info.dependency_list = \
-            j["dependency_list"].get<vector<ContractStateDependecy>>();
-  }
+  DECLARE_JSON_TYPE(StateUpdateInfo);
+  DECLARE_JSON_REQUIRED_FIELDS(StateUpdateInfo, 
+    contract_id, 
+    current_state_hash, 
+    previous_state_hash, 
+    message_hash, 
+    dependency_list);
 
   struct Initialize_contract_state {
     struct In{

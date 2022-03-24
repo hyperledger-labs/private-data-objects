@@ -15,7 +15,7 @@
 
 # This docker-compose file starts a complete end-to-end environment for PDO/CCF with 
 # sgx in simulator mode. The code used are the main branch for pdo. For CCF,
-# we use version 1.0.19 
+# we use version 1.0.19.  
 #
 # To use, define the env host_ip (= host_ip_address) & do the following
 # - build base pdo-dev image (see docker/Dockerfile.pdo-dev for build-time options ..)
@@ -38,35 +38,6 @@
 version: "2.1"
 
 services:
-  # PDO EHS, PS and client ...
-  pdo-build:
-    image: pdo-sim-build
-    build:
-      context: .
-      dockerfile: Dockerfile.pdo-build
-      args:
-        PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
-        PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-main}
-        SGX_MODE: SIM
-        PDO_INTERPRETER: ${PDO_INTERPRETER:-gipsy}
-        PDO_LEDGER_URL: http://pdo-tp-ccf:6600
-        PDO_LEDGER_TYPE: ccf
-        PDO_LEDGER_KEY_ROOT: /project/pdo/build/opt/pdo/etc/keys/ledger/
-    container_name: ccf-pdo-build
-    hostname: ccf-pdo-build
-    depends_on:
-      - pdo-tp-ccf
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        touch /set_no_proxy.sh
-        echo "export no_proxy=\$${no_proxy},\`getent hosts pdo-tp-ccf | awk '{ print \$$1 }'\`" > /set_no_proxy.sh
-        tail -f /dev/null
-    volumes:
-      - ./ccf_keys/:/project/pdo/build/opt/pdo/etc/keys/ledger/
-
-
   pdo-tp-ccf:
     build:
       context: .
