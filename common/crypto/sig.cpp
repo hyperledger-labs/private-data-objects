@@ -17,23 +17,42 @@
 #include <openssl/sha.h>
 #include "sig.h"
 #include "hash.h"
+#include "error.h"
 
-namespace pdo
-{
-namespace crypto
-{
-    namespace sig
-    {
-        const sig_details_t SigDetails[static_cast<int>(SigCurve::CURVE_COUNT)] = {
-            {SigCurve::UNDEFINED, 0, NULL, 0},
-            {SigCurve::SECP256K1, NID_secp256k1, &pdo::crypto::SHA256Hash, SHA256_DIGEST_LENGTH, 72},
-            {SigCurve::SECP384R1, NID_secp384r1, &pdo::crypto::SHA384Hash, SHA384_DIGEST_LENGTH, 104}
-        };
+namespace pcsig = pdo::crypto::sig;
+namespace Error = pdo::error;
 
-        const std::map<int, SigCurve> NidToSigCurveMap = {
-            {NID_secp256k1, SigCurve::SECP256K1},
-            {NID_secp384r1, SigCurve::SECP384R1}
-        };
-    }
+const pcsig::sig_details_t pcsig::SigDetails[static_cast<int>(pcsig::SigCurve::CURVE_COUNT)] = {
+    {pcsig::SigCurve::UNDEFINED, 0, NULL, 0},
+    {pcsig::SigCurve::SECP256K1, NID_secp256k1, &pdo::crypto::SHA256Hash, SHA256_DIGEST_LENGTH, 72},
+    {pcsig::SigCurve::SECP384R1, NID_secp384r1, &pdo::crypto::SHA384Hash, SHA384_DIGEST_LENGTH, 104}
+};
+
+const std::map<int, pcsig::SigCurve> pcsig::NidToSigCurveMap = {
+    {NID_secp256k1, pcsig::SigCurve::SECP256K1},
+    {NID_secp384r1, pcsig::SigCurve::SECP384R1}
+};
+
+unsigned int pcsig::Key::MaxSigSize() const
+{
+    return sigDetails_.maxSigSize;
 }
+
+void pcsig::Key::SetSigDetailsFromDeserializedKey()
+{
+    int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(key_));
+    if(nid == NID_undef)
+    {
+        std::string msg("Crypto Error (sig::PrivateKey(const std::string& encoded): undefined nid");
+        throw Error::RuntimeError(msg);
+    }
+
+    auto mSigCurve = NidToSigCurveMap.find(nid);
+    if(mSigCurve == NidToSigCurveMap.end())
+    {
+        std::string msg("Crypto Error (sig::PrivateKey(const std::string& encoded):unsupported nid: " + nid);
+        throw Error::RuntimeError(msg);
+    }
+
+    sigDetails_ = pcsig::SigDetails[static_cast<int>(mSigCurve->second)];
 }
