@@ -42,6 +42,150 @@ namespace constants = pdo::crypto::constants;
 namespace Error = pdo::error;
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// test signature schemes
+int testSig(pcrypto::sig::SigCurve sigCurve)
+{
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "testCrypto: testing signature scheme %d\n\n",static_cast<int>(sigCurve));
+    // Test signature schemes with non-default constructors
+    // Test ECDSA key management functions
+    try
+    {
+        // Default constructor
+        pcrypto::sig::PrivateKey privateKey_t(sigCurve);
+        privateKey_t.Generate();
+        // PublicKey constructor from PrivateKey
+        pcrypto::sig::PublicKey publicKey_t(privateKey_t);
+
+        publicKey_t = privateKey_t.GetPublicKey();
+
+        // Copy constructors
+        pcrypto::sig::PrivateKey privateKey_t2 = privateKey_t;
+        pcrypto::sig::PublicKey publicKey_t2 = publicKey_t;
+
+        // Assignment operators
+        privateKey_t2 = privateKey_t;
+        publicKey_t2 = publicKey_t;
+
+        // Move constructors
+        privateKey_t2 = pcrypto::sig::PrivateKey(privateKey_t);
+        publicKey_t2 = pcrypto::sig::PublicKey(privateKey_t2);
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(
+            PDO_LOG_ERROR, "testCrypto: ECDSA keypair constructors test failed.\n%s\n", e.what());
+        return -1;
+    }
+
+    SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: ECDSA keypair constructors test successful!\n\n");
+
+    // Non-default constructor
+    pcrypto::sig::PrivateKey privateKey(sigCurve);
+    privateKey.Generate();
+    // PublicKey constructor from PrivateKey
+    pcrypto::sig::PublicKey publicKey(privateKey);
+
+    std::string privateKeyStr;
+    try
+    {
+        privateKeyStr = privateKey.Serialize();
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(
+            PDO_LOG_ERROR, "testCrypto: Serialize ECDSA private key test failed.\n%s\n", e.what());
+        return -1;
+    }
+
+    std::string publicKeyStr;
+    try
+    {
+        publicKeyStr = publicKey.Serialize();
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(
+            PDO_LOG_ERROR, "testCrypto: Serialize ECDSA public key test failed.\n%s\n", e.what());
+        return -1;
+    }
+
+    std::string privateKeyStr1;
+    std::string publicKeyStr1;
+    pcrypto::sig::PrivateKey privateKey1(sigCurve);
+    privateKey1.Generate();
+    pcrypto::sig::PublicKey publicKey1(privateKey1);
+
+    try
+    {
+        privateKey1.Deserialize("");
+    }
+    catch (const Error::ValueError& e)
+    {
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: Deserialize invalid ECDSA private key detected!\n%s\n",
+                 e.what());
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: Deserialize invalid ECDSA private key internal "
+                 "error.\n%s\n",
+                 e.what());
+        return -1;
+    }
+
+    try
+    {
+        publicKey1.Deserialize("");
+    }
+    catch (const Error::ValueError& e)
+    {
+        SAFE_LOG(PDO_LOG_DEBUG,
+                 "testCrypto: Deserialize invalid ECDSA public key detected!\n%s\n",
+                 e.what());
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR,
+                 "testCrypto: Deserialize invalid ECDSA public key internal "
+                 "error.\n%s\n",
+                 e.what());
+        return -1;
+    }
+
+    try
+    {
+        std::string XYstr = publicKey1.SerializeXYToHex();
+        publicKey1.DeserializeXYFromHex(XYstr);
+    }
+    catch (const std::exception& e)
+    {
+        SAFE_LOG(PDO_LOG_ERROR, "testCrypto: Serialize/Deserialize XY test failed\n%s\n", e.what());
+        return -1;
+    }
+
+    try
+    {
+        privateKey1.Deserialize(privateKeyStr);
+        publicKey1.Deserialize(publicKeyStr);
+        privateKeyStr1 = privateKey1.Serialize();
+        publicKeyStr1 = publicKey1.Serialize();
+    }
+    catch (const Error::RuntimeError& e)
+    {
+        SAFE_LOG(
+            PDO_LOG_ERROR, "testCrypto: Deserialize ECDSA keypair test failed.\n%s\n", e.what());
+        return -1;
+    }
+
+    SAFE_LOG(PDO_LOG_DEBUG,
+             "testCrypto: Serialize/Deserialize ECDSA keypairs tests successful!\n\n");
+
+    return 0;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 int pcrypto::testCrypto()
 {
     // A short ByteArray for testing ValueError detection
@@ -81,6 +225,17 @@ int pcrypto::testCrypto()
              "RandomBitString test successful!\n%s\n\n",
              ByteArrayToBase64EncodedString(rand).c_str());
 
+    // Test signature schemes
+    {
+        int r = testSig(pcrypto::sig::SigCurve::SECP256K1);
+        if( r == -1) return -1;
+    }
+    {
+        int r = testSig(pcrypto::sig::SigCurve::SECP384R1);
+        if( r == -1) return -1;
+    }
+
+    // Test signature schemes with default constructors
     // Test ECDSA key management functions
     try
     {
