@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include "types.h"
+#include "sig.h"
 
 namespace pdo
 {
@@ -33,8 +34,10 @@ namespace crypto
             friend PublicKey;
 
         public:
-            // Default contructor
-            PrivateKey(): private_key_(nullptr){};
+            // Default constructor (default: secp256k1 curve)
+            PrivateKey(): private_key_(nullptr), sigDetails_(SigDetails[static_cast<int>(SigCurve::SECP256K1)]){};
+            // Custom curve constructor
+            PrivateKey(const SigCurve& sigCurve);
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);
@@ -49,6 +52,8 @@ namespace crypto
             PrivateKey& operator=(const PrivateKey& privateKey);
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
+            // throws RuntimeError
+            void SetSigDetailsFromDeserializedKey();
             // generate PrivateKey
             // throws RuntimeError
             void Generate();
@@ -62,6 +67,7 @@ namespace crypto
 
         private:
             EC_KEY* private_key_;
+            sig_details_t sigDetails_;
         };
     }
 }
