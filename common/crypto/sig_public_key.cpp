@@ -78,33 +78,11 @@ EC_KEY* deserializeECDSAPublicKey(const std::string& encoded)
 }  // deserializeECDSAPublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Utility function: set sigdetails data structure after key deserialization
-// throws RuntimeError
-void pcrypto::sig::PublicKey::SetSigDetailsFromDeserializedKey()
-{
-    int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(public_key_));
-    if(nid == NID_undef)
-    {
-        std::string msg("Crypto Error (sig::PublicKey(const std::string& encoded): undefined nid");
-        throw Error::RuntimeError(msg);
-    }
-
-    auto mSigCurve = NidToSigCurveMap.find(nid);
-    if(mSigCurve == NidToSigCurveMap.end())
-    {
-        std::string msg("Crypto Error (sig::PublicKey(const std::string& encoded):unsupported nid: " + nid);
-        throw Error::RuntimeError(msg);
-    }
-
-    sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(mSigCurve->second)];
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Custom curve constructor
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::SigCurve& sigCurve)
 {
     sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(sigCurve)];
-    public_key_ = nullptr;
+    key_ = nullptr;
 } // pcrypto::sig::PublicKey::PublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -145,7 +123,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
         throw Error::RuntimeError(msg);
     }
 
-    if (!EC_POINT_mul(ec_group.get(), p.get(), EC_KEY_get0_private_key(privateKey.private_key_),
+    if (!EC_POINT_mul(ec_group.get(), p.get(), EC_KEY_get0_private_key(privateKey.key_),
             NULL, NULL, context.get()))
     {
         std::string msg("Crypto Error (sig::PublicKey()): Could not compute EC_POINT_mul");
@@ -159,9 +137,9 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
     }
 
     sigDetails_ = privateKey.sigDetails_;
-    public_key_ = EC_KEY_dup(public_key.get());
+    key_ = EC_KEY_dup(public_key.get());
 
-    if (!public_key_)
+    if (!key_)
     {
         std::string msg("Crypto Error (sig::PublicKey()): Could not dup public EC_KEY");
         throw Error::RuntimeError(msg);
@@ -172,7 +150,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
 // throws RuntimeError, ValueError
 pcrypto::sig::PublicKey::PublicKey(const std::string& encoded)
 {
-    public_key_ = deserializeECDSAPublicKey(encoded);
+    key_ = deserializeECDSAPublicKey(encoded);
     SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PublicKey::PublicKey
 
@@ -182,8 +160,8 @@ pcrypto::sig::PublicKey::PublicKey(const std::string& encoded)
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 {
     sigDetails_ = publicKey.sigDetails_;
-    public_key_ = EC_KEY_dup(publicKey.public_key_);
-    if (!public_key_)
+    key_ = EC_KEY_dup(publicKey.key_);
+    if (!key_)
     {
         std::string msg("Crypto Error (sig::PublicKey() copy): Could not copy public key");
         throw Error::RuntimeError(msg);
@@ -196,9 +174,9 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 pcrypto::sig::PublicKey::PublicKey(pcrypto::sig::PublicKey&& publicKey)
 {
     sigDetails_ = publicKey.sigDetails_;
-    public_key_ = publicKey.public_key_;
-    publicKey.public_key_ = nullptr;
-    if (!public_key_)
+    key_ = publicKey.key_;
+    publicKey.key_ = nullptr;
+    if (!key_)
     {
         std::string msg("Crypto Error (sig::PublicKey() move): Cannot move null public key");
         throw Error::RuntimeError(msg);
@@ -209,8 +187,8 @@ pcrypto::sig::PublicKey::PublicKey(pcrypto::sig::PublicKey&& publicKey)
 // Destructor
 pcrypto::sig::PublicKey::~PublicKey()
 {
-    if (public_key_)
-        EC_KEY_free(public_key_);
+    if (key_)
+        EC_KEY_free(key_);
 }  // pcrypto::sig::PublicKey::~PublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -221,12 +199,12 @@ pcrypto::sig::PublicKey& pcrypto::sig::PublicKey::operator=(
 {
     if (this == &publicKey)
         return *this;
-    if (public_key_)
-        EC_KEY_free(public_key_);
+    if (key_)
+        EC_KEY_free(key_);
 
     sigDetails_ = publicKey.sigDetails_;
-    public_key_ = EC_KEY_dup(publicKey.public_key_);
-    if (!public_key_)
+    key_ = EC_KEY_dup(publicKey.key_);
+    if (!key_)
     {
         std::string msg("Crypto Error (sig::PublicKey operator =): Could not copy public key");
         throw Error::RuntimeError(msg);
@@ -240,9 +218,9 @@ pcrypto::sig::PublicKey& pcrypto::sig::PublicKey::operator=(
 void pcrypto::sig::PublicKey::Deserialize(const std::string& encoded)
 {
     EC_KEY* key = deserializeECDSAPublicKey(encoded);
-    if (public_key_)
-        EC_KEY_free(public_key_);
-    public_key_ = key;
+    if (key_)
+        EC_KEY_free(key_);
+    key_ = key;
     SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PublicKey::Deserialize
 
@@ -285,11 +263,11 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
         std::string msg("Crypto Error (DeserializeXYFromHex): Could not set EC point");
         throw Error::ValueError(msg);
     }
-    if (public_key_)
-        EC_KEY_free(public_key_);
-    public_key_ = EC_KEY_dup(public_key.get());
+    if (key_)
+        EC_KEY_free(key_);
+    key_ = EC_KEY_dup(public_key.get());
 
-    if (!public_key_)
+    if (!key_)
     {
         std::string msg("Crypto Error (DeserializeXYFromHex): Could not dup public EC_KEY");
         throw Error::RuntimeError(msg);
@@ -301,7 +279,7 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
 // throws RuntimeError
 std::string pcrypto::sig::PublicKey::Serialize() const
 {
-    if (public_key_ == nullptr)
+    if (key_ == nullptr)
     {
         std::string msg("Crypto Error (Serialize): PublicKey is not initialized");
         throw Error::RuntimeError(msg);
@@ -317,7 +295,7 @@ std::string pcrypto::sig::PublicKey::Serialize() const
         std::string msg("Crypto Error (Serialize): Could not create BIO");
         throw Error::RuntimeError(msg);
     }
-    res = PEM_write_bio_EC_PUBKEY(bio.get(), public_key_);
+    res = PEM_write_bio_EC_PUBKEY(bio.get(), key_);
 
     if (!res)
     {
@@ -344,7 +322,7 @@ std::string pcrypto::sig::PublicKey::Serialize() const
 // Serialize EC point (X,Y) to hex string for Sawtooth compatibility
 std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 {
-    if (public_key_ == nullptr)
+    if (key_ == nullptr)
     {
         std::string msg("Crypto Error (SerializeXYToHex): PublicKey is not initialized");
         throw Error::RuntimeError(msg);
@@ -352,8 +330,8 @@ std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 
     char* cstring = nullptr;
 
-    cstring = EC_POINT_point2hex(EC_KEY_get0_group(public_key_),
-        EC_KEY_get0_public_key(public_key_), POINT_CONVERSION_UNCOMPRESSED, NULL);
+    cstring = EC_POINT_point2hex(EC_KEY_get0_group(key_),
+        EC_KEY_get0_public_key(key_), POINT_CONVERSION_UNCOMPRESSED, NULL);
     if (!cstring)
     {
         std::string msg("Crypto Error (SerializeXYToHex): Could not serialize EC public key");
@@ -384,6 +362,6 @@ int pcrypto::sig::PublicKey::VerifySignature(
     sigDetails_.SHAFunc((const unsigned char*)message.data(), message.size(), hash);
     // Verify
     return ECDSA_do_verify(
-        (const unsigned char*)hash, sigDetails_.shaDigestLength, sig.get(), public_key_);
+        (const unsigned char*)hash, sigDetails_.shaDigestLength, sig.get(), key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
 

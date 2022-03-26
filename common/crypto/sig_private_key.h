@@ -29,13 +29,17 @@ namespace crypto
     {
         class PublicKey;
 
-        class PrivateKey
+        class PrivateKey: public Key
         {
             friend PublicKey;
 
         public:
             // Default constructor (default: secp256k1 curve)
-            PrivateKey(): private_key_(nullptr), sigDetails_(SigDetails[static_cast<int>(SigCurve::SECP256K1)]){};
+            PrivateKey()
+            {
+                key_ = nullptr;
+                sigDetails_ = SigDetails[static_cast<int>(SigCurve::SECP256K1)];
+            }
             // Custom curve constructor
             PrivateKey(const SigCurve& sigCurve);
             // copy constructor
@@ -52,8 +56,6 @@ namespace crypto
             PrivateKey& operator=(const PrivateKey& privateKey);
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
-            // throws RuntimeError
-            void SetSigDetailsFromDeserializedKey();
             // generate PrivateKey
             // throws RuntimeError
             void Generate();
@@ -64,10 +66,6 @@ namespace crypto
             // Sign message.data() and return ByteArray containing raw binary signature
             // throws RuntimeError
             ByteArray SignMessage(const ByteArray& message) const;
-
-        private:
-            EC_KEY* private_key_;
-            sig_details_t sigDetails_;
         };
     }
 }

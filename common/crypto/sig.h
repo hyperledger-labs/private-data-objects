@@ -15,7 +15,9 @@
 
 #pragma once
 
+#include <openssl/ec.h>
 #include <openssl/obj_mac.h> //for the NIDs
+#include <string>
 #include <map>
 
 #ifndef PDO_USE_ECDSA_CURVE
@@ -53,6 +55,19 @@ namespace crypto
 
         extern const sig_details_t SigDetails[];
         extern const std::map<int, SigCurve> NidToSigCurveMap;
+
+        class Key
+        {
+        public:
+            virtual void Deserialize(const std::string& encoded) = 0;
+            virtual void SetSigDetailsFromDeserializedKey();
+            virtual std::string Serialize() const = 0;
+            virtual unsigned int MaxSigSize() const;
+
+        protected:
+            EC_KEY* key_;
+            sig_details_t sigDetails_;
+        };
     }
 }
 }

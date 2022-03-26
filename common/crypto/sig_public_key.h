@@ -28,11 +28,15 @@ namespace crypto
     {
         class PrivateKey;
 
-        class PublicKey
+        class PublicKey: public Key
         {
         public:
             // default constructor: UNINITIALIZED PublicKey!
-            PublicKey(): public_key_(nullptr), sigDetails_(SigDetails[static_cast<int>(SigCurve::SECP256K1)]){};
+            PublicKey()
+            {
+                key_ = nullptr;
+                sigDetails_ = SigDetails[static_cast<int>(SigCurve::SECP256K1)];
+            }
             // Custom curve constructor
             PublicKey(const SigCurve& sigCurve);
             // copy constructor
@@ -52,8 +56,6 @@ namespace crypto
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
             // throws RuntimeError
-            void SetSigDetailsFromDeserializedKey();
-            // throws RuntimeError
             std::string Serialize() const;
             // throws RuntimeError
             // Serialize EC point (X,Y) to hex string for Sawtooth compatibility
@@ -65,10 +67,6 @@ namespace crypto
             // Verify signature signature.data() on message.data() and return 1 if signature is
             // valid, 0 if signature is not valid or -1 if there was an internal error
             int VerifySignature(const ByteArray& message, const ByteArray& signature) const;
-
-        private:
-            EC_KEY* public_key_;
-            sig_details_t sigDetails_;
         };
     }
 }
