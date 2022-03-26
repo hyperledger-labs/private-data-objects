@@ -14,7 +14,9 @@
  */
 
 #pragma once
-#include <openssl/obj_mac.h>
+
+#include <openssl/obj_mac.h> //for the NIDs
+#include <map>
 
 #ifndef PDO_USE_ECDSA_CURVE
 #define PDO_USE_ECDSA_CURVE NID_secp256k1
@@ -29,6 +31,28 @@ namespace crypto
         // Elliptic curve
         const int CURVE = PDO_USE_ECDSA_CURVE;
         const int MAX_SIG_SIZE = 72;
+    }
+
+    namespace sig
+    {
+        enum class SigCurve
+        {
+            UNDEFINED,
+            SECP256K1,
+            SECP384R1,
+            CURVE_COUNT
+        };
+
+        typedef struct {
+            SigCurve sigCurve;
+            int sslNID;
+            void (*SHAFunc)(const unsigned char*, unsigned int, unsigned char hash[]);
+            unsigned int shaDigestLength;
+            unsigned int maxSigSize;
+        } sig_details_t;
+
+        extern const sig_details_t SigDetails[];
+        extern const std::map<int, SigCurve> NidToSigCurveMap;
     }
 }
 }

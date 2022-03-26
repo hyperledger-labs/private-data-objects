@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "sig_public_key.h"
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -25,6 +26,7 @@
 #include "error.h"
 #include "hex_string.h"
 #include "sig.h"
+#include "hash.h"
 #include "sig_private_key.h"
 /***Conditional compile untrusted/trusted***/
 #if _UNTRUSTED_
@@ -52,16 +54,6 @@ typedef std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)> ECDSA_SIG_ptr;
 // Error handling
 namespace Error = pdo::error;
 
-// Compute SHA256 digest
-static void SHA256Hash(
-    const unsigned char* buf, int buf_size, unsigned char hash[SHA256_DIGEST_LENGTH])
-{
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, buf, buf_size);
-    SHA256_Final(hash, &sha256);
-}  // pcrypto::SHA256Hash
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Utility function: deserialize ECDSA Public Key
 // throws RuntimeError, ValueError
@@ -86,11 +78,34 @@ EC_KEY* deserializeECDSAPublicKey(const std::string& encoded)
 }  // deserializeECDSAPublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// constructor
-pcrypto::sig::PublicKey::PublicKey()
+// Utility function: set sigdetails data structure after key deserialization
+// throws RuntimeError
+void pcrypto::sig::PublicKey::SetSigDetailsFromDeserializedKey()
 {
+    int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(public_key_));
+    if(nid == NID_undef)
+    {
+        std::string msg("Crypto Error (sig::PublicKey(const std::string& encoded): undefined nid");
+        throw Error::RuntimeError(msg);
+    }
+
+    auto mSigCurve = NidToSigCurveMap.find(nid);
+    if(mSigCurve == NidToSigCurveMap.end())
+    {
+        std::string msg("Crypto Error (sig::PublicKey(const std::string& encoded):unsupported nid: " + nid);
+        throw Error::RuntimeError(msg);
+    }
+
+    sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(mSigCurve->second)];
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Custom curve constructor
+pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::SigCurve& sigCurve)
+{
+    sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(sigCurve)];
     public_key_ = nullptr;
-}  // pcrypto::sig::PublicKey::PublicKey
+} // pcrypto::sig::PublicKey::PublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Constructor from PrivateKey
@@ -103,7 +118,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
         throw Error::RuntimeError(msg);
     }
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(constants::CURVE), EC_GROUP_clear_free);
+    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(privateKey.sigDetails_.sslNID), EC_GROUP_clear_free);
     if (!ec_group)
     {
         std::string msg("Crypto Error (sig::PublicKey()()): Could not create EC_GROUP");
@@ -143,6 +158,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
         throw Error::RuntimeError(msg);
     }
 
+    sigDetails_ = privateKey.sigDetails_;
     public_key_ = EC_KEY_dup(public_key.get());
 
     if (!public_key_)
@@ -157,6 +173,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
 pcrypto::sig::PublicKey::PublicKey(const std::string& encoded)
 {
     public_key_ = deserializeECDSAPublicKey(encoded);
+    SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PublicKey::PublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -164,6 +181,7 @@ pcrypto::sig::PublicKey::PublicKey(const std::string& encoded)
 // throws RuntimeError
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 {
+    sigDetails_ = publicKey.sigDetails_;
     public_key_ = EC_KEY_dup(publicKey.public_key_);
     if (!public_key_)
     {
@@ -177,6 +195,7 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 // throws RuntimeError
 pcrypto::sig::PublicKey::PublicKey(pcrypto::sig::PublicKey&& publicKey)
 {
+    sigDetails_ = publicKey.sigDetails_;
     public_key_ = publicKey.public_key_;
     publicKey.public_key_ = nullptr;
     if (!public_key_)
@@ -204,6 +223,8 @@ pcrypto::sig::PublicKey& pcrypto::sig::PublicKey::operator=(
         return *this;
     if (public_key_)
         EC_KEY_free(public_key_);
+
+    sigDetails_ = publicKey.sigDetails_;
     public_key_ = EC_KEY_dup(publicKey.public_key_);
     if (!public_key_)
     {
@@ -222,6 +243,7 @@ void pcrypto::sig::PublicKey::Deserialize(const std::string& encoded)
     if (public_key_)
         EC_KEY_free(public_key_);
     public_key_ = key;
+    SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PublicKey::Deserialize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -237,7 +259,7 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
         throw Error::RuntimeError(msg);
     }
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(constants::CURVE), EC_GROUP_clear_free);
+    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
     if (!ec_group)
     {
         std::string msg("Crypto Error (sig::DeserializeXYFromHex): Could not create EC_GROUP");
@@ -350,7 +372,7 @@ std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 int pcrypto::sig::PublicKey::VerifySignature(
     const ByteArray& message, const ByteArray& signature) const
 {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    unsigned char hash[sigDetails_.shaDigestLength];
     // Decode signature B64 -> DER -> ECDSA_SIG
     const unsigned char* der_SIG = (const unsigned char*)signature.data();
     ECDSA_SIG_ptr sig(
@@ -359,8 +381,9 @@ int pcrypto::sig::PublicKey::VerifySignature(
     {
         return -1;
     }
-    SHA256Hash((const unsigned char*)message.data(), message.size(), hash);
+    sigDetails_.SHAFunc((const unsigned char*)message.data(), message.size(), hash);
     // Verify
     return ECDSA_do_verify(
-        (const unsigned char*)hash, SHA256_DIGEST_LENGTH, sig.get(), public_key_);
+        (const unsigned char*)hash, sigDetails_.shaDigestLength, sig.get(), public_key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
+

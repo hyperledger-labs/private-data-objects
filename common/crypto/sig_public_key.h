@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include "types.h"
+#include "sig.h"
 
 namespace pdo
 {
@@ -31,7 +32,9 @@ namespace crypto
         {
         public:
             // default constructor: UNINITIALIZED PublicKey!
-            PublicKey();
+            PublicKey(): public_key_(nullptr), sigDetails_(SigDetails[static_cast<int>(SigCurve::SECP256K1)]){};
+            // Custom curve constructor
+            PublicKey(const SigCurve& sigCurve);
             // copy constructor
             // throws RuntimeError
             PublicKey(const PublicKey& publicKey);
@@ -49,6 +52,8 @@ namespace crypto
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
             // throws RuntimeError
+            void SetSigDetailsFromDeserializedKey();
+            // throws RuntimeError
             std::string Serialize() const;
             // throws RuntimeError
             // Serialize EC point (X,Y) to hex string for Sawtooth compatibility
@@ -63,6 +68,7 @@ namespace crypto
 
         private:
             EC_KEY* public_key_;
+            sig_details_t sigDetails_;
         };
     }
 }
