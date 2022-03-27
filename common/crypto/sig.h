@@ -20,21 +20,10 @@
 #include <string>
 #include <map>
 
-#ifndef PDO_USE_ECDSA_CURVE
-#define PDO_USE_ECDSA_CURVE NID_secp256k1
-#endif
-
 namespace pdo
 {
 namespace crypto
 {
-    namespace constants
-    {
-        // Elliptic curve
-        const int CURVE = PDO_USE_ECDSA_CURVE;
-        const int MAX_SIG_SIZE = 72;
-    }
-
     namespace sig
     {
         enum class SigCurve

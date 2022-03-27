@@ -119,7 +119,7 @@ pdo_err_t CreateEnclaveStateEncryptionKey(const EnclaveData& enclave_data,
         const std::string decrypted_ps_secret = ByteArrayToString(decrypted_secret);
 
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            decrypted_ps_secret.length() < ENCODED_SECRET_SIZE + ENCODED_SECRET_SIGNATURE_SIZE,
+            decrypted_ps_secret.length() < ENCODED_SECRET_SIZE + enclave_data.max_sig_size(true),
             "Invalid secret, wrong length");
 
         const std::string encoded_secret = decrypted_ps_secret.substr(0, ENCODED_SECRET_SIZE);

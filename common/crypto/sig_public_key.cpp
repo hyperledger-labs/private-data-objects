@@ -365,3 +365,8 @@ int pcrypto::sig::PublicKey::VerifySignature(
         (const unsigned char*)hash, sigDetails_.shaDigestLength, sig.get(), key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
 
+unsigned int pcrypto::sig::PublicKey::MaxSigSize(const std::string& encoded)
+{
+    pcrypto::sig::PublicKey pu(encoded);
+    return pu.Key::MaxSigSize();
+}

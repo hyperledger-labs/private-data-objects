@@ -69,7 +69,7 @@ class ProvisioningService(object) :
         message = Secret.serialize_for_signing(hex_encoded_secret, enclave_keys.identity, contract_id, creator_id)
         signature = self.service_keys.sign(message, encoding='hex')
         # must pad the signature for now...
-        required_padding = 2 * crypto.MAX_SIG_SIZE - len(signature)
+        required_padding = 2 * crypto.SIG_PublicKey_MaxSigSize(self.service_keys.verifying_key) - len(signature)
         signature = signature + ('0' * required_padding)
 
         encoded_encrypted_secret = enclave_keys.encrypt(hex_encoded_secret + signature, encoding='b64')

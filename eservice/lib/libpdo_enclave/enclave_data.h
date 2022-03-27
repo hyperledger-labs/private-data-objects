@@ -86,6 +86,13 @@ public:
         return private_signing_key_.SignMessage(message);
     };
 
+    unsigned int max_sig_size(bool encoded) const
+    {
+        if(encoded)
+            return private_signing_key_.MaxSigSize() * 2; //hex encoding
+        return private_signing_key_.MaxSigSize();
+    };
+
     int verify_signature(const ByteArray& message, const ByteArray& signature) const
     {
         return public_signing_key_.VerifySignature(message, signature);
