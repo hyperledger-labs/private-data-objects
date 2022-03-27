@@ -67,6 +67,7 @@ namespace crypto
             // Verify signature signature.data() on message.data() and return 1 if signature is
             // valid, 0 if signature is not valid or -1 if there was an internal error
             int VerifySignature(const ByteArray& message, const ByteArray& signature) const;
+            static unsigned int MaxSigSize(const std::string& encoded);
         };
     }
 }

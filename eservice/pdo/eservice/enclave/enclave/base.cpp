@@ -178,15 +178,6 @@ size_t pdo::enclave_api::base::GetEnclaveQuoteSize()
 } // pdo::enclave_api::base::GetEnclaveQuoteSize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-size_t pdo::enclave_api::base::GetSignatureMaxSize()
-{
-    // this is the size of the byte array required for the signature
-    // fixed constant for now until there is one we can get from the
-    // crypto library
-    return pdo::crypto::constants::MAX_SIG_SIZE;
-}
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::base::GetEpidGroup(
     HexEncodedString& outEpidGroup
     )
