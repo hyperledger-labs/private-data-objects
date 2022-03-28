@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation
+# Copyright 2018 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
-
-INCLUDE(contract-build.cmake)
-INCLUDE(wawaka_common.cmake)
-
-LIST(APPEND WASM_LIBRARIES ${WW_COMMON_LIB})
-LIST(APPEND WASM_INCLUDES ${WW_COMMON_INCLUDES})
-
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
-ADD_SUBDIRECTORY(attestation-test)
-ADD_SUBDIRECTORY(kv-test)
+__all__ = [ 'key_value_swig' ]

@@ -1,6 +1,7 @@
 ./pdo/__init__.py
 ./pdo/common/__init__.py
 ./pdo/common/config.py
+./pdo/common/key_value.py
 ./pdo/common/keys.py
 ./pdo/common/logger.py
 ./pdo/common/secrets.py

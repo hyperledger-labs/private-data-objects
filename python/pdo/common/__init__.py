@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [ "config", "crypto", "keys", "logger", "secrets", "utility" ]
+__all__ = [ "config", "crypto", "key_value", "key_value_swig", "keys", "logger", "secrets", "utility" ]
