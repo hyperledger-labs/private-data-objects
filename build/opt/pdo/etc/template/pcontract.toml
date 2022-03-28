@@ -38,7 +38,8 @@ EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
 # StorageService -- information about KV block stores
 # --------------------------------------------------
 [StorageService]
-BlockStore = "${data}/client_${identity}.mdb"
+BlockStore = "${data}/client_blocks_${identity}.mdb"
+KeyValueStore = "${data}/client_keyvalue_${identity}.mdb"
 
 #--------------------------------------------------
 #Replication -- to maintain state availability

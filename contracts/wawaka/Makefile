@@ -54,7 +54,7 @@ debug :
 test : install interface-test interpreter-test memory-test mock-contract-test
 
 # this is the system test target, these tests require an eservice
-system-test : install eservice-db attestation-test
+system-test : install eservice-db attestation-test kv-test
 
 ESERVICE_DB=$(DATA_DIR)/eservice-test-db.json
 eservice-db:
@@ -102,7 +102,14 @@ attestation-test:
 			-m eservice_dbfile $(ESERVICE_DB) \
 			-m test_data $(SCRIPTDIR)/attestation-test/scripts
 
-install : build
+kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		cd kv-test && \
+		scripts/kv-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
+			-m eservice_dbfile $(ESERVICE_DB)
+
+install : build $(PLUGIN_SOURCE) $(SCRIPT_SOURCE)
 	@echo install contracts
 	@cd build && make install
 	@mkdir -p $(PLUGIN_INSTALL_DIR); cp $(PLUGIN_SOURCE) $(PLUGIN_INSTALL_DIR)
@@ -113,7 +120,7 @@ build :
 	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
 .PHONY: test interface-test mock-contract-test interpreter-test memory-test
-.PHONY: system-test eservice-db attestation-test
+.PHONY: system-test eservice-db attestation-test kv-test
 .PHONY : all clean debug install test
 
 # Note: build is NOT a phony in this case; we make the directory and
