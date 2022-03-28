@@ -269,7 +269,6 @@ class Enclave(object) :
         """
         return pdo_enclave.verify_secrets(
             self.sealed_data,
-            crypto.SIG_PublicKey_MaxSigSize(self.verifying_key),
             contract_id,
             owner_id,
             json.dumps(secret_list))

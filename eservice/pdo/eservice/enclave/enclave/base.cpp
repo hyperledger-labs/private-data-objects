@@ -178,6 +178,26 @@ size_t pdo::enclave_api::base::GetEnclaveQuoteSize()
 } // pdo::enclave_api::base::GetEnclaveQuoteSize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+size_t pdo::enclave_api::base::GetSignatureMaxSize()
+{
+    // this is the size of the byte array required for the signature
+    // fixed constant for now until there is one we can get from the
+    // crypto library
+
+    // Note:
+    // while making a call to the crypto library would be beneficial,
+    // this would raise the following challenge in the PDO build.
+    // As this function is used in eservice/pdo/eservice/enclave/enclave/contract.cpp,
+    // this would create a direct dependency between this file
+    // (eservice/pdo/eservice/enclave/enclave/contract.cpp) and the crypto library (including openssl).
+    // This is a problem because the _pdo_enclave_internal.cpython-38-x86_64-linux-gnu.so library
+    // (built through eservice/setup.py) uses the mentioned cpp file, but depends neither on crypto nor openssl.
+    // Those dependencies are all confined in the _crypto.cpython-38-x86_64-linux-gnu.so library
+    // (built through python/setup.py).
+    return pdo::crypto::constants::MAX_SIG_SIZE;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::base::GetEpidGroup(
     HexEncodedString& outEpidGroup
     )

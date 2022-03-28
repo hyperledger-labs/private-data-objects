@@ -37,7 +37,6 @@ namespace pdo
             // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             pdo_err_t VerifySecrets(
                 const Base64EncodedString& inSealedEnclaveData,
-                unsigned int maxSignatureSize,
                 const std::string& inContractId,
                 const std::string& inContractCreatorId, /* contract creator's verifying key */
                 const std::string& inSerializedSecretList, /* json */

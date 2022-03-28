@@ -24,6 +24,17 @@ namespace pdo
 {
 namespace crypto
 {
+    namespace constants
+    {
+        // IMPORTANT:
+        // This constant **MUST** be set to the max sig size, among the supported curves.
+        // See the sig.cpp file for more details on the curves.
+        // Mic has volunteered to
+        //  - maintain this constant in sync with the supported curves
+        //  - debug issues that may arise
+        const int MAX_SIG_SIZE = 104;
+    }
+
     namespace sig
     {
         enum class SigCurve
