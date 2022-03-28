@@ -19,82 +19,97 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARN)
 logger = logging.getLogger()
 logging.basicConfig(level=logging.WARN)
-# TEST ECDSA
-try:
- esk = crypto.SIG_PrivateKey()
- esk.Generate()
- epk = esk.GetPublicKey()
-except Exception as exc:
- logger.error("ERROR: Signature Private and Public keys generation test failed: ", exc)
- sys.exit(-1)
-logger.debug("Signature Private and Public keys generation test successful!")
-try:
- eskString = esk.Serialize()
- epkString = epk.Serialize()
- hepkString = epk.SerializeXYToHex()
- esk1 = crypto.SIG_PrivateKey(eskString)
- epk1 = crypto.SIG_PublicKey(epkString)
- eskString1 = esk1.Serialize()
- epkString1 = epk1.Serialize()
- esk2 = crypto.SIG_PrivateKey()
- esk2.Generate()
- epk2 = crypto.SIG_PublicKey(esk2)
- eskString = esk.Serialize()
- esk2.Deserialize(eskString1)
- epk2.Deserialize(epkString1)
- eskString2 = esk2.Serialize()
- epkString2 = epk2.Serialize()
-except Exception as exc:
- logger.error("ERROR: Signature Private and Public keys serialize/deserialize test failed: ", exc)
- sys.exit(-1)
-logger.debug("Signature Private and Public keys serialize/deserialize test successful!")
 
-try:
- esk1.Deserialize(epkString1)
- logger.error("ERROR: Signature invalid private key deserialize test failed: not detected.")
- sys.exit(-1)
-except Exception as exc:
-  if (type(exc) == ValueError):
-   logger.debug("Signature invalid private key deserialize test successful!")
-  else:
-   logger.error("ERROR: Signature invalid private key deserialize test failed: ", exc)
-   sys.exit(-1)
+def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
+    try:
+     if(sig_curve == crypto.SigCurve_UNDEFINED):
+        esk = crypto.SIG_PrivateKey()
+     elif(sig_curve == crypto.SigCurve_SECP256K1 or sig_curve == crypto.SigCurve_SECP384R1):
+        esk = crypto.SIG_PrivateKey(sig_curve)
+     else:
+        logger.error("ERROR: unsupported sigcurve " + crypto.sig_curve)
+        sys.exit(-1)
+     esk.Generate()
+     epk = esk.GetPublicKey()
+    except Exception as exc:
+     logger.error("ERROR: Signature Private and Public keys generation test failed: ", exc)
+     sys.exit(-1)
+    logger.debug("Signature Private and Public keys generation test successful!")
+    try:
+     eskString = esk.Serialize()
+     epkString = epk.Serialize()
+     hepkString = epk.SerializeXYToHex()
+     esk1 = crypto.SIG_PrivateKey(eskString)
+     epk1 = crypto.SIG_PublicKey(epkString)
+     eskString1 = esk1.Serialize()
+     epkString1 = epk1.Serialize()
+     esk2 = crypto.SIG_PrivateKey()
+     esk2.Generate()
+     epk2 = crypto.SIG_PublicKey(esk2)
+     eskString = esk.Serialize()
+     esk2.Deserialize(eskString1)
+     epk2.Deserialize(epkString1)
+     eskString2 = esk2.Serialize()
+     epkString2 = epk2.Serialize()
+    except Exception as exc:
+     logger.error("ERROR: Signature Private and Public keys serialize/deserialize test failed: ", exc)
+     sys.exit(-1)
+    logger.debug("Signature Private and Public keys serialize/deserialize test successful!")
 
-try:
- epk1.Deserialize(eskString1)
- logger.error("ERROR: Signature invalid public key deserialize test failed: not detected.")
- sys.exit(-1)
-except Exception as exc:
-  if (type(exc) == ValueError):
-   logger.debug("Signature invalid public key deserialize test successful!")
-  else:
-   logger.error("ERROR: Signature invalid public key deserialize test failed: ", exc)
-   sys.exit(-1)
+    try:
+     esk1.Deserialize(epkString1)
+     logger.error("ERROR: Signature invalid private key deserialize test failed: not detected.")
+     sys.exit(-1)
+    except Exception as exc:
+      if (type(exc) == ValueError):
+       logger.debug("Signature invalid private key deserialize test successful!")
+      else:
+       logger.error("ERROR: Signature invalid private key deserialize test failed: ", exc)
+       sys.exit(-1)
 
-try:
- msg = b'A message!'
- sig = esk.SignMessage(msg)
- res = epk.VerifySignature(msg, sig)
-except Exception as exc:
- logger.error("ERROR: Signature creation and verification test failed: ", exc)
- sys.exit(-1)
-if (res == 1):
-    logger.debug("Signature creation and verification test successful!")
-else:
-    logger.error("ERROR: Signature creation and verification test failed: signature does not verify.")
-    exit(-1)
-try:
- res = epk.VerifySignature(msg, bytes("invalid signature", 'ascii'))
-except Exception as exc:
- logger.error("ERROR: Invalid signature detection test failed: ", exc)
- sys.exit(-1)
-if (res != 1):
-    logger.debug("Invalid signature detection test successful!")
-else:
-    logger.error("ERROR: Invalid signature detection test failed.")
-    exit(-1)
+    try:
+     epk1.Deserialize(eskString1)
+     logger.error("ERROR: Signature invalid public key deserialize test failed: not detected.")
+     sys.exit(-1)
+    except Exception as exc:
+      if (type(exc) == ValueError):
+       logger.debug("Signature invalid public key deserialize test successful!")
+      else:
+       logger.error("ERROR: Signature invalid public key deserialize test failed: ", exc)
+       sys.exit(-1)
+
+    try:
+     msg = b'A message!'
+     sig = esk.SignMessage(msg)
+     res = epk.VerifySignature(msg, sig)
+    except Exception as exc:
+     logger.error("ERROR: Signature creation and verification test failed: ", exc)
+     sys.exit(-1)
+    if (res == 1):
+        logger.debug("Signature creation and verification test successful!")
+    else:
+        logger.error("ERROR: Signature creation and verification test failed: signature does not verify.")
+        exit(-1)
+    try:
+     res = epk.VerifySignature(msg, bytes("invalid signature", 'ascii'))
+    except Exception as exc:
+     logger.error("ERROR: Invalid signature detection test failed: ", exc)
+     sys.exit(-1)
+    if (res != 1):
+        logger.debug("Invalid signature detection test successful!")
+    else:
+        logger.error("ERROR: Invalid signature detection test failed.")
+        exit(-1)
+
+# TEST ECDSA default (secp256k1)
+test_ecdsa()
+# TEST ECDSA secp256k1
+test_ecdsa(crypto.SigCurve_SECP256K1)
+# TEST ECDSA secp384r1
+test_ecdsa(crypto.SigCurve_SECP384R1)
 
 # TEST RSA
+msg = b'A message!'
 try:
  rsk = crypto.PKENC_PrivateKey()
  rsk.Generate()
