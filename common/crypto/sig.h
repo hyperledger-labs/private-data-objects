@@ -20,6 +20,10 @@
 #include <string>
 #include <map>
 
+#ifndef PDO_DEFAULT_SIGCURVE
+#define PDO_DEFAULT_SIGCURVE SECP256K1
+#endif
+
 namespace pdo
 {
 namespace crypto
