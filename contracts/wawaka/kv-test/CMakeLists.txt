@@ -12,17 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 
-INCLUDE(contract-build.cmake)
-INCLUDE(wawaka_common.cmake)
+FILE(GLOB KV_TEST_SOURCE *.cpp)
 
-LIST(APPEND WASM_LIBRARIES ${WW_COMMON_LIB})
-LIST(APPEND WASM_INCLUDES ${WW_COMMON_INCLUDES})
-
-ADD_SUBDIRECTORY(mock-contract)
-ADD_SUBDIRECTORY(interface-test)
-ADD_SUBDIRECTORY(interpreter-test)
-ADD_SUBDIRECTORY(memory-test)
-ADD_SUBDIRECTORY(attestation-test)
-ADD_SUBDIRECTORY(kv-test)
+BUILD_CONTRACT(kv-test ${KV_TEST_SOURCE})

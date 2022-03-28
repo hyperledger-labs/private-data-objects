@@ -43,9 +43,27 @@ data_files = [
 ]
 
 # -----------------------------------------------------------------
-# set up the contract enclave
+# set up common flags
 # -----------------------------------------------------------------
-compile_args = ['-std=c++11']
+debug_flag = os.environ.get('PDO_DEBUG_BUILD',0)
+
+compile_args = [
+    '-std=c++11',
+    '-Wno-switch',
+    '-Wno-unused-function',
+    '-Wno-unused-variable',
+    '-Wno-strict-prototypes',
+    '-D_UNTRUSTED_=1',
+]
+
+if debug_flag :
+    compile_args += ['-g']
+
+swig_flags = ['-c++', '-threads']
+
+# -----------------------------------------------------------------
+# set up the crypto module
+# -----------------------------------------------------------------
 
 # openssl related stuff
 # make sure we have recent enough version
@@ -58,32 +76,72 @@ openssl_libs = list(
 openssl_lib_dirs = list(
     filter(None, re.split('\s*-L', subprocess.check_output(['pkg-config', 'openssl', '--libs-only-L']).decode('ascii').strip())))
 
-
-include_dirs = [
-    os.path.join(os.environ['SGX_SDK'], "include"),
-    os.path.join(pdo_root_dir, 'common'),
-    os.path.join(pdo_root_dir, 'common/crypto'),
-    os.path.join(pdo_root_dir, 'common/packages/base64')
-] + openssl_include_dirs
-
-libraries = ['updo-common', 'updo-crypto'] + openssl_libs
-
-library_dirs = [
-    os.path.join(pdo_root_dir, 'common/build')
-] + openssl_lib_dirs
-
-modulefiles = [
+crypto_module_files = [
     "pdo/common/crypto.i"
 ]
 
-cryptomod = Extension(
+crypto_include_dirs = [
+    os.path.join(os.environ['SGX_SDK'], "include"),
+    os.path.join(pdo_root_dir, 'common'),
+    os.path.join(pdo_root_dir, 'common/crypto'),
+    os.path.join(pdo_root_dir, 'common/state'),
+    os.path.join(pdo_root_dir, 'common/packages/base64'),
+] + openssl_include_dirs
+
+crypto_libraries = [
+    'updo-common',
+    'updo-crypto',
+    ] + openssl_libs
+
+crypto_library_dirs = [
+    os.path.join(pdo_root_dir, "common", "build"),
+] + openssl_lib_dirs
+
+crypto_module = Extension(
     'pdo.common._crypto',
-    modulefiles,
-    swig_opts=['-c++'] + openssl_cflags + ['-I%s' % i for i in include_dirs],
-    extra_compile_args=compile_args,
-    include_dirs=include_dirs,
-    library_dirs=library_dirs,
-    libraries=libraries)
+    crypto_module_files,
+    swig_opts=['-c++'] + openssl_cflags + ['-I%s' % i for i in crypto_include_dirs],
+    extra_compile_args = compile_args,
+    include_dirs = crypto_include_dirs,
+    library_dirs = crypto_library_dirs,
+    libraries = crypto_libraries)
+
+# -----------------------------------------------------------------
+# set up the key value module
+# -----------------------------------------------------------------
+key_value_module_files = [
+    os.path.join('pdo/common/key_value_swig', 'key_value_swig.i'),
+    os.path.join('pdo/common/key_value_swig', 'block_store.cpp'),
+    os.path.join('pdo/common/key_value_swig', 'key_value.cpp'),
+    os.path.join(pdo_root_dir, 'common','c11_support.cpp'),
+]
+
+key_value_include_dirs = [
+    os.path.join(os.environ['SGX_SDK'], "include"),
+    os.path.join(pdo_root_dir, 'common'),
+    os.path.join(pdo_root_dir, 'common/crypto'),
+    os.path.join(pdo_root_dir, 'common/state'),
+]
+
+key_value_libraries = [
+    'updo-common',
+    'updo-crypto',
+    'updo-lmdb-block-store',
+    'lmdb',
+] + openssl_libs
+
+key_value_library_dirs = [
+    os.path.join(pdo_root_dir, "common", "build"),
+]
+
+key_value_module = Extension(
+    'pdo.common.key_value_swig._key_value_swig',
+    key_value_module_files,
+    swig_opts = swig_flags,
+    extra_compile_args = compile_args,
+    include_dirs = key_value_include_dirs,
+    library_dirs = key_value_library_dirs,
+    libraries = key_value_libraries)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -98,7 +156,7 @@ setup(name='pdo_common_library',
       install_requires=[],
       data_files=data_files,
       namespace_packages=['pdo'],
-      ext_modules=[cryptomod],
+      ext_modules=[crypto_module, key_value_module],
       entry_points = {
           'console_scripts': [
               'pdo-test-contract = pdo.test.contract:Main',
@@ -116,7 +174,9 @@ if "clean" in sys.argv and "--all" in sys.argv:
 
     extrafiles = [
         os.path.join(directory, "pdo", "common", "crypto.py"),
-        os.path.join(directory, "pdo", "common", "crypto_wrap.cpp")
+        os.path.join(directory, "pdo", "common", "crypto_wrap.cpp"),
+        os.path.join(directory, "pdo", "common", "key_value_swig", "key_value_swig.py"),
+        os.path.join(directory, "pdo", "common", "key_value_swig", "key_value_swig_wrap.cpp")
     ]
 
     for filename in extrafiles:
