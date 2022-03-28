@@ -35,7 +35,6 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::map<std::string, std::string> contract_verify_secrets(
     const std::string& sealed_signup_data,
-    unsigned int max_signature_size,
     const std::string& contract_id,
     const std::string& contract_creator_id,
     const std::string& serialized_secret_list
@@ -48,7 +47,6 @@ std::map<std::string, std::string> contract_verify_secrets(
 
     pdo_err_t presult = pdo::enclave_api::contract::VerifySecrets(
         sealed_signup_data,
-        max_signature_size,
         contract_id,
         contract_creator_id,
         serialized_secret_list,

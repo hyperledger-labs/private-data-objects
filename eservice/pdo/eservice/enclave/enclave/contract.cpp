@@ -73,7 +73,6 @@ size_t pdo::enclave_api::contract::EncryptedContractKeySize(
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t pdo::enclave_api::contract::VerifySecrets(
     const Base64EncodedString& inSealedEnclaveData,
-    unsigned int maxSignatureSize,
     const std::string& inContractId,
     const std::string& inContractCreatorId, /* contract creator's public key */
     const std::string& inSerializedSecretList, /* json */
@@ -88,26 +87,7 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
     {
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
         ByteArray encrypted_contract_key(pdo::enclave_api::contract::EncryptedContractKeySize(inContractId.size(), enclaveIndex));
-
-        /*
-        Motivation for passing the maxSignatureSize up to this point.
-        The maxSignatureSize is necessary to create a large-enough buffer for the signature.
-        If the signature turns out to be smaller, the output buffer is resized accordingly.
-        The signature size depends on the signing key/scheme used.
-        There are 3 alternatives to retrieve the sig size: (1) passing it as input (as done here);
-        (2) asking it to the enclave (and the enclave will calculate that from its sealed data);
-        (3) from the enclave's verifying key.
-        The second alternative has been discarded because: it requires one edge function with the enclave;
-        the control flow needs to enter/exit the enclave twice (one for max sig, one for verify-secrets);
-        at each enter/exit the enclave's data must be unsealed.
-        The third alternative has been discarded because it adds a direct dependency between this file
-        (eservice/pdo/eservice/enclave/enclave/contract.cpp) and the crypto library (including openssl).
-        This is a problem because the _pdo_enclave_internal.cpython-38-x86_64-linux-gnu.so library
-        (built through eservice/setup.py) uses the mentioned cpp file, but depends neither on crypto nor openssl.
-        Those dependencies are all confined in the _crypto.cpython-38-x86_64-linux-gnu.so library
-        (built through python/setup.py).
-        */
-        ByteArray contract_key_signature(maxSignatureSize);
+        ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureMaxSize());
         size_t contract_key_signature_length;
 
         // xxxxx call the enclave

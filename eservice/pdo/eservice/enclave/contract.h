@@ -20,7 +20,6 @@
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 std::map<std::string, std::string> contract_verify_secrets(
     const std::string& sealedSignupData, /* base64 encoded string */
-    unsigned int maxSignatureSize,
     const std::string& contractId,
     const std::string& contractCreatorId, /* contract creators verifying key */
     const std::string& serializedSecretList); /* json */

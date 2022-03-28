@@ -82,6 +82,7 @@ namespace pdo
               in by enclave.
             */
 
+            size_t GetSignatureMaxSize();
             size_t GetEnclaveQuoteSize();
 
             /*
