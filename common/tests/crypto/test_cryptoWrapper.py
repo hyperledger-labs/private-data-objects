@@ -20,43 +20,65 @@ logger.setLevel(logging.WARN)
 logger = logging.getLogger()
 logging.basicConfig(level=logging.WARN)
 
+# ECDSA tests on default curve (if undefined) or defined curve
 def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
     try:
      if(sig_curve == crypto.SigCurve_UNDEFINED):
+        # test with private key from default constructor
         esk = crypto.SIG_PrivateKey()
      elif(sig_curve == crypto.SigCurve_SECP256K1 or sig_curve == crypto.SigCurve_SECP384R1):
+        # test with private key from curve-defined constructor
         esk = crypto.SIG_PrivateKey(sig_curve)
      else:
         logger.error("ERROR: unsupported sigcurve " + crypto.sig_curve)
         sys.exit(-1)
+
+     # test private key generation
      esk.Generate()
+
+     # test public key retrieval from public key
      epk = esk.GetPublicKey()
     except Exception as exc:
      logger.error("ERROR: Signature Private and Public keys generation test failed: ", exc)
      sys.exit(-1)
     logger.debug("Signature Private and Public keys generation test successful!")
+
     try:
+     # test private key serialization
      eskString = esk.Serialize()
+     # test public key serialization
      epkString = epk.Serialize()
+     # test public key xy serialization
      hepkString = epk.SerializeXYToHex()
+     # test private key PEM constructor
      esk1 = crypto.SIG_PrivateKey(eskString)
+     # test public key PEM constructor
      epk1 = crypto.SIG_PublicKey(epkString)
+     # test private key serialization
      eskString1 = esk1.Serialize()
+     # test public key serialization
      epkString1 = epk1.Serialize()
+     # generate key pair for tests
      esk2 = crypto.SIG_PrivateKey()
      esk2.Generate()
      epk2 = crypto.SIG_PublicKey(esk2)
-     eskString = esk.Serialize()
+     # test private key deserialization
      esk2.Deserialize(eskString1)
+     # test public key deserialization
      epk2.Deserialize(epkString1)
+     # test PEM equivalence following deserialization-serialization steps
      eskString2 = esk2.Serialize()
      epkString2 = epk2.Serialize()
+     if eskString1 != eskString2 or epkString1 != epkString2:
+        logger.error("ERROR: PEM differ after deserialization-serialization steps")
+        sys.exit(-1)
     except Exception as exc:
      logger.error("ERROR: Signature Private and Public keys serialize/deserialize test failed: ", exc)
      sys.exit(-1)
     logger.debug("Signature Private and Public keys serialize/deserialize test successful!")
 
     try:
+     # test deserializing public key as private key
      esk1.Deserialize(epkString1)
      logger.error("ERROR: Signature invalid private key deserialize test failed: not detected.")
      sys.exit(-1)
@@ -68,6 +90,7 @@ def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
        sys.exit(-1)
 
     try:
+     # test deserializing private key as public key
      epk1.Deserialize(eskString1)
      logger.error("ERROR: Signature invalid public key deserialize test failed: not detected.")
      sys.exit(-1)
@@ -79,6 +102,7 @@ def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
        sys.exit(-1)
 
     try:
+     # test message signing and verification
      msg = b'A message!'
      sig = esk.SignMessage(msg)
      res = epk.VerifySignature(msg, sig)
@@ -90,7 +114,9 @@ def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
     else:
         logger.error("ERROR: Signature creation and verification test failed: signature does not verify.")
         exit(-1)
+
     try:
+     # test invalid signature verification
      res = epk.VerifySignature(msg, bytes("invalid signature", 'ascii'))
     except Exception as exc:
      logger.error("ERROR: Invalid signature detection test failed: ", exc)

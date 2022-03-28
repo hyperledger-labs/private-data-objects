@@ -46,28 +46,30 @@ namespace Error = pdo::error;
 int testSig(pcrypto::sig::SigCurve sigCurve)
 {
     SAFE_LOG(PDO_LOG_DEBUG,
-             "testCrypto: testing signature scheme %d\n\n",static_cast<int>(sigCurve));
+             "testCrypto: testing signature scheme %d\n\n", static_cast<int>(sigCurve));
     // Test signature schemes with non-default constructors
     // Test ECDSA key management functions
     try
     {
-        // Default constructor
+        // test curve-specific constructor and key generation
         pcrypto::sig::PrivateKey privateKey_t(sigCurve);
         privateKey_t.Generate();
-        // PublicKey constructor from PrivateKey
+
+        // test PublicKey constructor from PrivateKey
         pcrypto::sig::PublicKey publicKey_t(privateKey_t);
 
+        // test public key retrieval from private key
         publicKey_t = privateKey_t.GetPublicKey();
 
-        // Copy constructors
+        // test copy constructors
         pcrypto::sig::PrivateKey privateKey_t2 = privateKey_t;
         pcrypto::sig::PublicKey publicKey_t2 = publicKey_t;
 
-        // Assignment operators
+        // test assignment operators
         privateKey_t2 = privateKey_t;
         publicKey_t2 = publicKey_t;
 
-        // Move constructors
+        // test move constructors
         privateKey_t2 = pcrypto::sig::PrivateKey(privateKey_t);
         publicKey_t2 = pcrypto::sig::PublicKey(privateKey_t2);
     }
@@ -80,15 +82,15 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
 
     SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: ECDSA keypair constructors test successful!\n\n");
 
-    // Non-default constructor
+    // generate key pair for tests
     pcrypto::sig::PrivateKey privateKey(sigCurve);
     privateKey.Generate();
-    // PublicKey constructor from PrivateKey
     pcrypto::sig::PublicKey publicKey(privateKey);
 
     std::string privateKeyStr;
     try
     {
+        // test private key serialization
         privateKeyStr = privateKey.Serialize();
     }
     catch (const Error::RuntimeError& e)
@@ -101,6 +103,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
     std::string publicKeyStr;
     try
     {
+        // test public key serialization
         publicKeyStr = publicKey.Serialize();
     }
     catch (const Error::RuntimeError& e)
@@ -110,6 +113,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
         return -1;
     }
 
+    // generate key pair and empty strings for tests
     std::string privateKeyStr1;
     std::string publicKeyStr1;
     pcrypto::sig::PrivateKey privateKey1(sigCurve);
@@ -118,6 +122,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
 
     try
     {
+        // test empty private key deserialization
         privateKey1.Deserialize("");
     }
     catch (const Error::ValueError& e)
@@ -137,6 +142,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
 
     try
     {
+        //test empty public key deserialization
         publicKey1.Deserialize("");
     }
     catch (const Error::ValueError& e)
@@ -156,6 +162,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
 
     try
     {
+        //test public key xy serialization/deserialization
         std::string XYstr = publicKey1.SerializeXYToHex();
         publicKey1.DeserializeXYFromHex(XYstr);
     }
@@ -167,6 +174,7 @@ int testSig(pcrypto::sig::SigCurve sigCurve)
 
     try
     {
+        // test private/public keys deserialization/serialization
         privateKey1.Deserialize(privateKeyStr);
         publicKey1.Deserialize(publicKeyStr);
         privateKeyStr1 = privateKey1.Serialize();
@@ -227,10 +235,12 @@ int pcrypto::testCrypto()
 
     // Test signature schemes
     {
+        // test secp256k1 scheme
         int r = testSig(pcrypto::sig::SigCurve::SECP256K1);
         if( r == -1) return -1;
     }
     {
+        // test secp384r1 scheme
         int r = testSig(pcrypto::sig::SigCurve::SECP384R1);
         if( r == -1) return -1;
     }
