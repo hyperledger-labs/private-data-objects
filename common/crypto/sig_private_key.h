@@ -38,7 +38,7 @@ namespace crypto
             PrivateKey()
             {
                 key_ = nullptr;
-                sigDetails_ = SigDetails[static_cast<int>(SigCurve::SECP256K1)];
+                sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
             }
             // Custom curve constructor
             PrivateKey(const SigCurve& sigCurve);
