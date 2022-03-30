@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 from pdo.client.controller.contract_controller import ContractController
 import pdo.common.utility as putils
+import pdo.common.config as pconfig
 from pdo.contract.response import ContractResponse
 
 ## -----------------------------------------------------------------
@@ -175,8 +176,10 @@ def Main() :
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
 
-    putils.set_default_data_directory(config['Contract']['DataDirectory'])
+    # make the configuration available to all of the PDO modules
+    pconfig.initialize_shared_configuration(config)
 
+    # move local options into the configuration
     if script :
         config["ScriptFile"] = script.pop(0)
 

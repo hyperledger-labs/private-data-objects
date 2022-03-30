@@ -33,6 +33,24 @@ __all__ = [ "ConfigurationException", "parse_configuration_files", "parse_config
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+__shared_configuration__ = None
+
+def initialize_shared_configuration(config) :
+    global __shared_configuration__
+    if __shared_configuration__ is not None :
+        raise RuntimeError("duplicate initialization of shared configuration")
+
+    __shared_configuration__ = config     # may need deep copy, leave it shallow for now
+    return __shared_configuration__
+
+def shared_configuration() :
+    global __shared_configuration__
+    if __shared_configuration__ is None :
+        raise RuntimeError("shared configuration is not initialized")
+    return __shared_configuration__
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
 class ConfigurationException(Exception) :
     """
     A class to capture configuration exceptions.

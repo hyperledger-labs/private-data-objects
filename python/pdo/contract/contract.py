@@ -21,6 +21,7 @@ from pdo.submitter.create import create_submitter
 from pdo.contract.request import UpdateStateRequest, InitializeStateRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
+import pdo.common.config as pconfig
 
 import logging
 logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class Contract(object) :
         self.creator_id = creator_id
         self.extra_data = kwargs.get('extra_data', {})
         self.enclave_map = kwargs.get('enclave_map',{})
-        self.set_replication_parameters()
+        self.set_replication_parameters(**kwargs)
 
     # -------------------------------------------------------
     def set_state_encryption_key(self, enclave_id, encrypted_state_encryption_key) :
@@ -113,7 +114,20 @@ class Contract(object) :
         return hex(abs(hash(self.contract_id)))[2:]
 
     # -------------------------------------------------------
-    def set_replication_parameters(self, num_provable_replicas=1, availability_duration=120):
+    def set_replication_parameters(self, num_provable_replicas=None, availability_duration=None, **kwargs):
+        # pull the defaults from the configuration if they are not
+        # otherwise set by the caller
+        if num_provable_replicas is None :
+            try :
+                num_provable_replicas = pconfig.shared_configuration()['Replication']['NumProvableReplicas']
+            except KeyError :
+                num_provable_replicas = 1
+
+        if availability_duration is None :
+            try :
+                availability_duration = pconfig.shared_configuration()['Replication']['Duration']
+            except KeyError :
+                availability_duration = 120
 
         self.replication_params = dict()
         self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())

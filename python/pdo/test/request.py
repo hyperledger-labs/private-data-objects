@@ -37,6 +37,8 @@ import pdo.common.crypto as crypto
 import pdo.common.keys as keys
 import pdo.common.secrets as secrets
 import pdo.common.utility as putils
+import pdo.common.config as pconfig
+import pdo.common.logger as plogger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -426,7 +428,7 @@ def LocalMain(config) :
     except Exception as e :
         logger.exception('contract execution failed; %s', str(e))
         ErrorShutdown()
-    
+
     enclave_helper.shutdown_enclave()
     sys.exit(0)
 
@@ -466,9 +468,6 @@ def Main() :
     global use_eservice
     global use_pservice
     global tamper_block_order
-
-    import pdo.common.config as pconfig
-    import pdo.common.logger as plogger
 
     # parse out the configuration file first
     conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
@@ -608,8 +607,6 @@ def Main() :
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
 
-    putils.set_default_data_directory(config['Contract']['DataDirectory'])
-
     # set up the storage service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
@@ -618,6 +615,10 @@ def Main() :
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
 
+    # make the configuration available to all of the PDO modules
+    pconfig.initialize_shared_configuration(config)
+
+    # move local options into the configuration
     config['secrets'] = options.secret_count
     config['iterations'] = options.iterations
 
