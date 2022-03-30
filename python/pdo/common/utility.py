@@ -27,7 +27,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    'set_default_data_directory',
     'build_simple_file_name',
     'build_file_name',
     'find_file_in_path',
@@ -35,7 +34,7 @@ __all__ = [
     'are_the_urls_same'
     ]
 
-__DefaultDataDirectory__ = './data'
+__default_data_directory__ = None
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -53,12 +52,6 @@ def deprecated(func):
         return func(*args, **kwargs)
 
     return new_func
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-def set_default_data_directory(data_dir) :
-    global __DefaultDataDirectory__
-    __DefaultDataDirectory__ = data_dir
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -90,8 +83,16 @@ def build_file_name(basename, data_dir = None, data_sub = None, extension = '') 
     :param str extension: the extension to add to the file if it doesnt have one
     """
 
+    global __default_data_directory__
     if data_dir is None :
-        data_dir = __DefaultDataDirectory__
+        if __default_data_directory__ is None :
+            try :
+                import pdo.common.config as pconfig
+                __default_data_directory__ = pconfig.shared_configuration()['Contract']['DataDirectory']
+            except KeyError :
+                __default_data_directory__ = "./data"
+
+        data_dir = __default_data_directory__
 
     if data_sub is not None :
         data_dir = os.path.join(data_dir, data_sub)

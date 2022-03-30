@@ -688,8 +688,6 @@ def Main() :
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
 
-    putils.set_default_data_directory(config['Contract']['DataDirectory'])
-
     # set up the storage service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
@@ -698,6 +696,10 @@ def Main() :
     if options.block_store :
         config['StorageService']['BlockStore'] = options.block_store
 
+    # make the configuration available to all of the PDO modules
+    pconfig.initialize_shared_configuration(config)
+
+    # move local options into the configuration
     config['secrets'] = options.secret_count
 
     if options.expressions :
