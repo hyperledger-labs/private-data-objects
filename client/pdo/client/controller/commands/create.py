@@ -195,7 +195,6 @@ def command_create(state, bindings, pargs) :
     try :
         __create_contract(ledger_config, client_keys, preferred_eservice_client, eservice_clients, contract)
 
-        contract.contract_state.save_to_cache(data_dir = data_directory)
         contract.save_to_file(contract_file, data_dir=data_directory)
     except Exception as e :
         raise Exception('failed to create the initial contract state; {0}'.format(str(e)))

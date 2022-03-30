@@ -30,14 +30,14 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class InfoApp(object) :
-    def __init__(self, block_store) :
-        self.block_store = block_store
+    def __init__(self, config, service_keys) :
+        self.service_keys = service_keys
 
     def __call__(self, environ, start_response) :
         """Return blockstore information
         """
         try :
-            response = self.block_store.get_service_info()
+            response = {'verifying_key' : self.service_keys.verifying_key }
             result = json.dumps(response).encode()
 
         except Exception as e :

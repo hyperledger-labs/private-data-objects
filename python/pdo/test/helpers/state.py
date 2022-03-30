@@ -15,6 +15,7 @@
 import os
 import json
 import pdo.common.crypto as crypto
+import pdo.common.block_store_manager as pblocks
 
 import logging
 logger = logging.getLogger(__name__)
@@ -39,4 +40,4 @@ def TamperWithStateBlockOrder(state_object) :
     #re-store the tampered main state block
     state_object.raw_state = json.dumps(decoded_state).encode('utf8')
     state_object.component_block_ids = block_ids
-    state_object.save_to_cache()
+    pblocks.local_block_manager().store_blocks([state_object.raw_state])

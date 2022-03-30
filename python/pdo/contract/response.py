@@ -200,7 +200,7 @@ class InitializeStateResponse(ContractResponse) :
         self.new_state_object.pull_state_from_eservice(self.enclave_service)
 
         # compute ids of blocks in the change set (used for replication)
-        self.new_state_object.compute_ids_of_newblocks(request.contract_state.component_block_ids)
+        self.new_state_object.compute_new_block_ids(request.contract_state.component_block_ids)
         self.replication_params = request.replication_params
 
     # -------------------------------------------------------
@@ -237,7 +237,7 @@ class UpdateStateResponse(ContractResponse) :
         # save the information we will need for the transaction
         state_hash_b64 = response['StateHash']
         self.new_state_hash = crypto.base64_to_byte_array(state_hash_b64)
-        self.old_state_hash = ContractState.compute_hash(request.contract_state.raw_state)
+        self.old_state_hash = ContractState.compute_state_hash(request.contract_state.raw_state)
 
         message = self.serialize_for_signing()
         if not self.verify_enclave_signature(message, request.enclave_keys) :
@@ -248,7 +248,7 @@ class UpdateStateResponse(ContractResponse) :
         self.new_state_object.pull_state_from_eservice(self.enclave_service)
 
         # compute ids of blocks in the change set (used for replication)
-        self.new_state_object.compute_ids_of_newblocks(request.contract_state.component_block_ids)
+        self.new_state_object.compute_new_block_ids(request.contract_state.component_block_ids)
         self.replication_params = request.replication_params
 
     # -------------------------------------------------------

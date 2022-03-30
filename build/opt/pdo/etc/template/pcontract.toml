@@ -47,6 +47,7 @@ Duration=120 #seconds
 [Contract]
 DataDirectory = "${data}"
 SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
+BlockStore = "${data}/${identity}.mdb"
 Interpreter = "${interpreter}"
 
 # --------------------------------------------------

@@ -86,11 +86,8 @@ def build_file_name(basename, data_dir = None, data_sub = None, extension = '') 
     global __default_data_directory__
     if data_dir is None :
         if __default_data_directory__ is None :
-            try :
-                import pdo.common.config as pconfig
-                __default_data_directory__ = pconfig.shared_configuration()['Contract']['DataDirectory']
-            except KeyError :
-                __default_data_directory__ = "./data"
+            import pdo.common.config as pconfig
+            __default_data_directory__ = pconfig.shared_configuration(['Contract', 'DataDirectory'],"./data")
 
         data_dir = __default_data_directory__
 

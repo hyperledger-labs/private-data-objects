@@ -25,7 +25,7 @@ import json
 
 import pdo.test.helpers.secrets as secret_helper
 
-from pdo.sservice.block_store_manager import BlockStoreManager
+from pdo.common.block_store_manager import BlockStoreManager
 
 import pdo.eservice.pdo_helper as enclave_helper
 import pdo.service_client.enclave as eservice_helper
@@ -40,6 +40,7 @@ from pdo.common import utility as putils
 from pdo.common import config as pconfig
 from pdo.common import logger as plogger
 from pdo.test.benchmark import RunBenchmark
+import pdo.common.block_store_manager as pblocks
 
 import logging
 logger = logging.getLogger(__name__)
@@ -326,8 +327,6 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         logger.error(str(e))
         ErrorShutdown()
 
-    contract.contract_state.save_to_cache(data_dir=data_dir)
-
     return contract
 
 # -----------------------------------------------------------------
@@ -437,7 +436,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
             # asynchronously submit the commit task: (a commit task replicates
             # change-set and submits the corresponding transaction)
             try:
-                logger.info("asynchronously replicate change set and submit transaction in the background")
+                logger.debug("asynchronously replicate change set and submit transaction in the background")
                 update_response.commit_asynchronously(ledger_config)
                 last_response_committed = update_response
             except Exception as e:
@@ -674,6 +673,7 @@ def Main() :
     if config.get('Contract') is None :
         config['Contract'] = {
             'DataDirectory' : ContractData,
+            'BlockStore' : os.path.join(ContractData, "local_cache.mdb"),
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
 
@@ -687,6 +687,9 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+
+    if config['Contract'].get('BlockStore') is None :
+        config['Contract']['BlockStore'] = os.path.join(config['Contract']['DataDirectory'], "local_cache.mdb"),
 
     # set up the storage service configuration
     if config.get('StorageService') is None :

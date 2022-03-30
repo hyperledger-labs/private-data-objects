@@ -24,7 +24,7 @@ from string import Template
 import pdo.test.helpers.secrets as secret_helper
 import pdo.test.helpers.state as test_state
 
-from pdo.sservice.block_store_manager import BlockStoreManager
+from pdo.common.block_store_manager import BlockStoreManager
 
 import pdo.eservice.pdo_helper as enclave_helper
 import pdo.service_client.enclave as eservice_helper
@@ -39,6 +39,7 @@ import pdo.common.secrets as secrets
 import pdo.common.utility as putils
 import pdo.common.config as pconfig
 import pdo.common.logger as plogger
+import pdo.common.block_store_manager as pblocks
 
 import logging
 logger = logging.getLogger(__name__)
@@ -317,9 +318,6 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
         logger.error("Error while waiting for initial commit: %s", str(e))
         ErrorShutdown()
 
-    logger.debug('update state')
-    contract.contract_state.save_to_cache(data_dir=data_dir)
-
     return contract
 
 # -----------------------------------------------------------------
@@ -595,6 +593,7 @@ def Main() :
     if config.get('Contract') is None :
         config['Contract'] = {
             'DataDirectory' : ContractData,
+            'BlockStore' : os.path.join(ContractData, "local_cache.mdb"),
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
 
@@ -606,6 +605,9 @@ def Main() :
         config['Contract']['DataDirectory'] = options.data_dir
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
+
+    if config['Contract'].get('BlockStore') is None :
+        config['Contract']['BlockStore'] = os.path.join(config['Contract']['DataDirectory'], "local_cache.mdb"),
 
     # set up the storage service configuration
     if config.get('StorageService') is None :

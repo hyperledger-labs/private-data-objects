@@ -14,7 +14,6 @@ pdo/eservice/wsgi/__init__.py
 pdo/eservice/wsgi/verify.py
 pdo/sservice/scripts/SServiceCLI.py
 pdo/sservice/scripts/__init__.py
-pdo/sservice/block_store_manager.py
 pdo/sservice/__init__.py
 pdo/sservice/wsgi/check_blocks.py
 pdo/sservice/wsgi/list_blocks.py
