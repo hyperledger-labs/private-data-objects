@@ -24,9 +24,10 @@ import argparse
 
 import signal
 
-from pdo.sservice.block_store_manager import BlockStoreManager
+from pdo.common.block_store_manager import BlockStoreManager
 from pdo.common.wsgi import AppWrapperMiddleware
 from pdo.sservice.wsgi import *
+from pdo.sservice.wsgi import wsgi_block_operation_map
 
 import pdo.common.config as pconfig
 import pdo.common.keys as keys
@@ -89,7 +90,7 @@ def __shutdown__(*args) :
     logger.warn('shutdown request received')
     reactor.callLater(1, reactor.stop)
 
-def StartStorageService(config, block_store) :
+def StartStorageService(config, block_store, service_keys) :
     try :
         http_port = config['StorageService']['HttpPort']
         http_host = config['StorageService']['Host']
@@ -106,14 +107,14 @@ def StartStorageService(config, block_store) :
     reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
     block = Resource()
-    block.putChild(b'get', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(GetBlockApp(block_store))))
-    block.putChild(b'gets', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(GetBlocksApp(block_store))))
-    block.putChild(b'store', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(StoreBlocksApp(block_store))))
-    block.putChild(b'list', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(ListBlocksApp(block_store))))
-    block.putChild(b'check', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(CheckBlocksApp(block_store))))
+    for (wsgi_verb, wsgi_app) in wsgi_block_operation_map.items() :
+        logger.info('add handler for %s', wsgi_verb)
+        verb = wsgi_verb.encode('utf8')
+        app = AppWrapperMiddleware(wsgi_app(config, block_store, service_keys))
+        block.putChild(verb, WSGIResource(reactor, thread_pool, app))
 
     root = Resource()
-    root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(block_store))))
+    root.putChild(b'info', WSGIResource(reactor, thread_pool, AppWrapperMiddleware(InfoApp(config, service_keys))))
     root.putChild(b'block', block)
 
     site = Site(root, timeout=60)
@@ -171,7 +172,7 @@ def LocalMain(config) :
             service_config = config.get('StorageService', {})
             create = config.get('create', False)
             block_store_file = service_config['BlockStore']
-            block_store = BlockStoreManager(block_store_file, service_keys=service_keys, create_block_store=create)
+            block_store = BlockStoreManager(block_store_file, create_block_store=create)
 
         except KeyError as ke :
             logger.error('missing configuration for StorageService.%s', str(ke))
@@ -188,7 +189,7 @@ def LocalMain(config) :
 
             if gcinterval > 0 :
                 StartGarbageCollector(block_store, gcinterval)
-            StartStorageService(config, block_store)
+            StartStorageService(config, block_store, service_keys)
         except Exception as e :
             logger.error('failed to start services; %s', str(e))
             sys.exit(-1)

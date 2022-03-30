@@ -23,6 +23,7 @@ before logging is enabled.
 import os
 import sys
 import warnings
+from functools import reduce
 
 import re
 import toml
@@ -43,10 +44,16 @@ def initialize_shared_configuration(config) :
     __shared_configuration__ = config     # may need deep copy, leave it shallow for now
     return __shared_configuration__
 
-def shared_configuration() :
+def shared_configuration(keylist=[], default=None) :
     global __shared_configuration__
     if __shared_configuration__ is None :
         raise RuntimeError("shared configuration is not initialized")
+
+    try :
+        return reduce(dict.get, keylist, __shared_configuration__) or default
+    except TypeError :
+        return None
+
     return __shared_configuration__
 
 # -----------------------------------------------------------------

@@ -68,10 +68,9 @@ class Contract(object) :
             raise Exception('invalid contract file; {}'.format(filename))
 
         try :
-            state = ContractState.read_from_cache(contract_id, current_state_hash, data_dir=data_dir)
+            state = ContractState.read_from_cache(contract_id, current_state_hash)
             if state is None :
                 state = ContractState.get_from_ledger(ledger_config, contract_id, current_state_hash)
-                state.save_to_cache(data_dir=data_dir)
         except Exception as e :
             logger.error('error occurred retreiving contract state; %s', str(e))
             raise Exception("invalid contract file; {}".format(filename))
@@ -118,16 +117,10 @@ class Contract(object) :
         # pull the defaults from the configuration if they are not
         # otherwise set by the caller
         if num_provable_replicas is None :
-            try :
-                num_provable_replicas = pconfig.shared_configuration()['Replication']['NumProvableReplicas']
-            except KeyError :
-                num_provable_replicas = 1
+            num_provable_replicas = pconfig.shared_configuration(['Replication','NumProvableReplicas'], 1)
 
         if availability_duration is None :
-            try :
-                availability_duration = pconfig.shared_configuration()['Replication']['Duration']
-            except KeyError :
-                availability_duration = 120
+            availability_duration = pconfig.shared_configuration(['Replication','Duration'], 120)
 
         self.replication_params = dict()
         self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())

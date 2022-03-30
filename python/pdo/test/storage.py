@@ -27,6 +27,7 @@ import pdo.common.logger as plogger
 logger = logging.getLogger(__name__)
 
 import pdo.common.crypto as crypto
+import pdo.common.block_store_manager as pblocks
 from pdo.service_client.storage import StorageServiceClient
 
 # -----------------------------------------------------------------
@@ -47,10 +48,10 @@ plogger.setup_loggers({'LogLevel' : options.loglevel.upper(), 'LogFile' : option
 def decode_block_id(block_id) :
     return base64.urlsafe_b64decode(block_id)
 
-def verify_store_signature(store_response, expiration, verifying_key) :
+def verify_store_signature(store_response, duration, verifying_key) :
     block_hashes = map(decode_block_id, store_response['block_ids'])
 
-    signing_hash_accumulator = expiration.to_bytes(32, byteorder='big', signed=False)
+    signing_hash_accumulator = duration.to_bytes(32, byteorder='big', signed=False)
     signing_hash_accumulator += b''.join(block_hashes)
     signing_hash = hashlib.sha256(signing_hash_accumulator).digest()
 
@@ -69,13 +70,13 @@ client = StorageServiceClient(options.url)
 # -----------------------------------------------------------------
 logger.info('attempt to put a single block to the service')
 # -----------------------------------------------------------------
-default_expiration = 30
+default_duration = pblocks.BlockMetadata.minimum_duration_time
 try :
     block_data = os.urandom(1000)
-    result = client.store_blocks([block_data], expiration=default_expiration)
+    result = client.store_blocks([block_data], duration=default_duration)
     assert result
 
-    assert verify_store_signature(result, default_expiration, client.verifying_key)
+    assert verify_store_signature(result, default_duration, client.verifying_key)
 
     block_ids = result['block_ids']
     assert block_ids and len(block_ids) == 1
@@ -105,17 +106,17 @@ try :
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
-    result = client.store_blocks(block_data, expiration=default_expiration)
+    result = client.store_blocks(block_data, duration=default_duration)
     assert result
 
-    assert verify_store_signature(result, default_expiration, client.verifying_key)
+    assert verify_store_signature(result, default_duration, client.verifying_key)
 
     block_ids = result['block_ids']
     logger.info('RESULT: %s', result)
     assert block_ids and len(block_ids) == 3
 
 except Exception as e :
-    logger.exception('bulk upload test failed; %s', str(e))
+    logger.error('bulk upload test failed; %s', str(e))
     sys.exit(-1)
 
 # -----------------------------------------------------------------
@@ -148,10 +149,10 @@ try :
     assert status and len(status) == 3
     for s in status :
         assert s['size'] == 10
-        assert 0 < s['expiration'] and s['expiration'] <= 30
+        assert 0 < s['duration'] and s['duration'] <= default_duration
 
 except Exception as e :
-    logger.error('bulk status failed; %s', str(e))
+    logger.exception('bulk status failed; %s', str(e))
     sys.exit(-1)
 
 # -----------------------------------------------------------------

@@ -24,6 +24,7 @@ from pdo.client.controller.contract_controller import ContractController
 import pdo.common.utility as putils
 import pdo.common.config as pconfig
 from pdo.contract.response import ContractResponse
+import pdo.common.block_store_manager as pblocks
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -168,6 +169,7 @@ def Main() :
     if config.get('Contract') is None :
         config['Contract'] = {
             'DataDirectory' : ContractData,
+            'BlockStore' : os.path.join(ContractData, "local_cache.mdb"),
             'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
         }
 
@@ -176,10 +178,12 @@ def Main() :
     if options.source_dir :
         config['Contract']['SourceSearchPath'] = options.source_dir
 
+    if config['Contract'].get('BlockStore') is None :
+        config['Contract']['BlockStore'] = os.path.join(config['Contract']['DataDirectory'], "local_cache.mdb"),
+
     # make the configuration available to all of the PDO modules
     pconfig.initialize_shared_configuration(config)
 
-    # move local options into the configuration
     if script :
         config["ScriptFile"] = script.pop(0)
 

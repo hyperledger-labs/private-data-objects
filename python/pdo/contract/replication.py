@@ -16,7 +16,7 @@ import concurrent.futures
 import queue
 import threading
 
-from pdo.contract.state import ContractState
+import pdo.common.block_store_manager as pblocks
 import pdo.service_client.service_data.eservice as service_db
 
 import logging
@@ -176,8 +176,7 @@ def __replication_worker__(service_id, pending_tasks_queue, condition_variable_f
                 continue
 
             # replicate now!
-            block_data_list = ContractState.block_data_generator(replication_request.contract_id, \
-                replication_request.blocks_to_replicate, replication_request.data_dir)
+            block_data_list = pblocks.local_block_manager().get_blocks(replication_request.blocks_to_replicate)
             expiration = replication_request.availability_duration
             request_id = response.commit_id[2]
             try:

@@ -19,9 +19,11 @@ This file defines the InvokeApp class, a WSGI interface class for
 handling contract method invocation requests.
 """
 
+import base64
+import hashlib
+from http import HTTPStatus
 from itertools import islice
 import json
-from http import HTTPStatus
 
 from pdo.common.wsgi import ErrorResponse, UnpackMultipartRequest
 
@@ -32,8 +34,9 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class StoreBlocksApp(object) :
     ## -----------------------------------------------------------------
-    def __init__(self, block_store) :
+    def __init__(self, config, block_store, service_keys) :
         self.block_store = block_store
+        self.service_keys = service_keys
 
     ## -----------------------------------------------------------------
     def block_data_iterator(self, request) :
@@ -62,7 +65,7 @@ class StoreBlocksApp(object) :
                 pass
 
             minfo = json.loads(data)
-            expiration = minfo['expiration']
+            duration = minfo['duration']
         except Exception as e :
             logger.exception('StoreBlocksApp')
             return ErrorResponse(start_response, "unknown exception while unpacking block store request")
@@ -71,13 +74,30 @@ class StoreBlocksApp(object) :
             # block_list will be an iterator for blocks in the request, this prevents
             # the need to make a copy of the data blocks
             block_list = self.block_data_iterator(request)
-            raw_result = self.block_store.store_blocks(block_list, expiration=expiration, encoding='b64')
+            block_hashes = self.block_store.store_blocks(block_list, duration=duration, encoding='b64')
         except Exception as e :
             logger.exception('StoreBlocksApp')
             return ErrorResponse(start_response, "unknown exception while storing blocks")
 
         try :
-            result = json.dumps(raw_result).encode('utf8')
+            # going to just concatenate all hashes, safe since these are all fixed size
+            signing_hash_accumulator = duration.to_bytes(32, byteorder='big', signed=False)
+            signing_hash_accumulator += b''.join(block_hashes)
+
+            signing_hash = hashlib.sha256(signing_hash_accumulator).digest()
+            signature = self.service_keys.sign(signing_hash, encoding='b64')
+        except Exception as e :
+            logger.exception("unknown exception packing response (BlockStatus); %s", str(e))
+            return ErrorResponse('signature generation failed')
+
+        encoding_fn = lambda x : base64.urlsafe_b64encode(x).decode()
+
+        result = dict()
+        result['signature'] = signature
+        result['block_ids'] = list(map(encoding_fn, block_hashes))
+
+        try :
+            result = json.dumps(result).encode('utf8')
         except Exception as e :
             logger.exception('StoreBlocksApp')
             return ErrorResponse(start_response, "unknown exception while packing response")

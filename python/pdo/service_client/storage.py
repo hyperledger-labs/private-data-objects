@@ -153,15 +153,15 @@ class StorageServiceClient(GenericServiceClient) :
             raise StorageException(str(e)) from e
 
     # -----------------------------------------------------------------
-    def store_block(self, block_data, expiration=60) :
-        return self.store_blocks([block_data], expiration)
+    def store_block(self, block_data, duration=60) :
+        return self.store_blocks([block_data], duration)
 
     # -----------------------------------------------------------------
-    def store_blocks(self, block_data_list, expiration=60) :
+    def store_blocks(self, block_data_list, duration=60) :
         """Store a list of blocks on the storage server
 
         :param block_data_list: list of blocks represented as byte strings (iterator)
-        :param expiration: number of seconds to request storage
+        :param duration: number of seconds to request storage
         :returns dictionary: decoded result of the request
         """
         request_identifier = self.request_identifier
@@ -171,7 +171,7 @@ class StorageServiceClient(GenericServiceClient) :
 
         try :
             request_data = dict()
-            request_data['operation'] = (None, json.dumps({'expiration' : expiration}), 'application/json')
+            request_data['operation'] = (None, json.dumps({'duration' : duration}), 'application/json')
             count = 0                     # just needed to uniquify the keys
             for block_data in block_data_list :
                 request_data['block{0}'.format(count)] = ('block{0}'.format(count), block_data, 'application/octet-stream')
