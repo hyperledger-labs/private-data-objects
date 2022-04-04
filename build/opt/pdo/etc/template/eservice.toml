@@ -27,6 +27,9 @@ WorkerThreads = 8
 # Suggested number of threads for processing other requests
 ReactorThreads = 8
 
+# --------------------------------------------------
+# StorageService -- information about KV block stores
+# --------------------------------------------------
 [StorageService]
 URL = "http://localhost:${{7200+_count_}}"
 BlockStore = "${data}/${{identity.replace('eservice','sservice')}}.mdb"

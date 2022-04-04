@@ -16,10 +16,15 @@
 # EnclaveService -- general information about the enclave service
 # --------------------------------------------------
 [EnclaveService]
-# Identity is a string used to identify the service in log files
+ # Identity is a string used to identify the service in log files
 Identity = "${identity}"
 HttpPort = 7100
 Host = "localhost"
+
+ # Max number of threads for processing WSGI requests
+WorkerThreads = 8
+ # Suggested number of threads for processing other requests
+ReactorThreads = 8
 
 # --------------------------------------------------
 # StorageService -- information about the associated storage service
@@ -29,11 +34,12 @@ URL = "http://localhost:7200"
 BlockStore = "${data}/${identity}.mdb"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger -- ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
 # LedgerURL is used to submit the registration transaction should
 # the enclave require registration
+LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
 Organization = "Widgets R Us"
 
