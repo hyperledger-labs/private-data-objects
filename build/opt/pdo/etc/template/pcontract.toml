@@ -34,6 +34,12 @@ Organization = "Widgets R Us"
 [Service]
 EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
 
+# --------------------------------------------------
+# StorageService -- information about KV block stores
+# --------------------------------------------------
+[StorageService]
+BlockStore = "${data}/client_${identity}.mdb"
+
 #--------------------------------------------------
 #Replication -- to maintain state availability
 #-------------------------------------------------
@@ -47,7 +53,6 @@ Duration=120 #seconds
 [Contract]
 DataDirectory = "${data}"
 SourceSearchPath = [ ".", "./contracts", "${home}/contracts" ]
-BlockStore = "${data}/${identity}.mdb"
 Interpreter = "${interpreter}"
 
 # --------------------------------------------------
