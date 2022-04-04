@@ -123,7 +123,6 @@ class Contract(object) :
             availability_duration = pconfig.shared_configuration(['Replication','Duration'], 120)
 
         self.replication_params = dict()
-        self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())
         self.replication_params['num_provable_replicas'] = num_provable_replicas
         self.replication_params['availability_duration'] = availability_duration #seconds
 

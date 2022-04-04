@@ -109,14 +109,23 @@ def __create_contract(ledger_config, client_keys, preferred_eservice_client, ese
 def command_create(state, bindings, pargs) :
     """controller command to create a contract
     """
+    default_interpreter = state.get(['Contract', 'Interpreter'])
+    default_replicas = state.get(['Replication', 'NumProvableReplicas'], 2)
+    default_duration = state.get(['Replication', 'Duration'], 120)
+
     parser = argparse.ArgumentParser(prog='create')
-    parser.add_argument('-c', '--contract-class', help='Name of the contract class', required = True, type=str)
-    parser.add_argument('-i', '--interpreter', help='Name of the interpreter used to evaluate the contract', default=state.get(['Contract', 'Interpreter']))
-    parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
-    parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', default="default")
+    parser.add_argument('-c', '--contract-class', help='Name of the contract class', required=False, type=str)
     parser.add_argument('-e', '--eservice-group', help='Name of the enclave service group to use', default="default")
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
+    parser.add_argument('-i', '--interpreter', help='Interpreter used to evaluate the contract', default=default_interpreter)
+    parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', default="default")
+    parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
+
     parser.add_argument('--symbol', help='binding symbol for result', type=str)
+    parser.add_argument('--state-replicas', help='Number of authoritative replicas of the state', default=default_replicas)
+    parser.add_argument('--state-duration', help='Duration required for state replicas', default=default_duration)
+    parser.add_argument('--extra-data', help='Simple string that can save extra data with the contract file', type=str)
+
     options = parser.parse_args(pargs)
 
     contract_class = options.contract_class
@@ -133,7 +142,8 @@ def command_create(state, bindings, pargs) :
     # ---------- read the contract source code ----------
     try :
         source_path = state.get(['Contract', 'SourceSearchPath'])
-        contract_code = ContractCode.create_from_file(contract_class, contract_source, source_path, interpreter=options.interpreter)
+        contract_code = ContractCode.create_from_file(
+            contract_class, contract_source, source_path, interpreter=options.interpreter)
     except Exception as e :
         raise Exception('unable to load contract source; {0}'.format(str(e)))
 
@@ -158,13 +168,21 @@ def command_create(state, bindings, pargs) :
     ledger_config = state.get(['Ledger'])
 
     try :
+        extra_params = {
+            'num_provable_replicas' : options.state_replicas,
+            'availability_duration' : options.state_duration,
+        }
+
+        if options.extra_data :
+            extra_params['extra_data'] = options.extra_data
+
         provisioning_service_keys = [pc.identity for pc in pservice_clients]
         contract_id = register_contract(
             ledger_config, client_keys, contract_code, provisioning_service_keys)
 
         logger.debug('Registered contract with class %s and id %s', contract_class, contract_id)
         contract_state = ContractState.create_new_state(contract_id)
-        contract = Contract(contract_code, contract_state, contract_id, client_keys.identity)
+        contract = Contract(contract_code, contract_state, contract_id, client_keys.identity, **extra_params)
 
         # must fix this later
         contract.extra_data['preferred-enclave'] = preferred_eservice_client.enclave_id
