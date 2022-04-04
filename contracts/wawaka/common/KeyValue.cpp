@@ -31,8 +31,12 @@
 bool KeyValueStore::make_key(const ww::types::ByteArray& key, ww::types::ByteArray& prefixed_key) const
 {
     prefixed_key.clear();
-    prefixed_key.insert(prefixed_key.end(), prefix_.begin(), prefix_.end());
-    prefixed_key.push_back((uint8_t)'#');
+    if (prefix_.size() > 0)
+    {
+        prefixed_key.insert(prefixed_key.end(), prefix_.begin(), prefix_.end());
+        prefixed_key.push_back((uint8_t)'#');
+    }
+
     prefixed_key.insert(prefixed_key.end(), key.begin(), key.end());
 
     return true;
