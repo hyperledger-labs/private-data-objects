@@ -122,7 +122,7 @@ class ContractState(object) :
                 self.changed_block_ids.append(block_id)
 
         # add state hash (not sure if this is part of component block_ids, if so we can skip the following)
-        # if there is any change, make sure that state hash is part of chaged_block_ids
+        # if there is any change, make sure that state hash is part of changed_block_ids
         if len(self.changed_block_ids) > 0 :
             state_hash = self.get_state_hash(encoding='b64')
             if state_hash not in self.changed_block_ids:
