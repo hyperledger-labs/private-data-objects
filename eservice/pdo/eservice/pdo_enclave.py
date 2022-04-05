@@ -62,8 +62,6 @@ _sig_rl_update_period = 8*60*60 # in seconds every 8 hours
 
 _epid_group = None
 
-_cdi_policy = None
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def __find_enclave_library(config) :
@@ -90,18 +88,6 @@ def __find_enclave_library(config) :
         ]
 
         return putils.find_file_in_path(enclave_file_name, search_path)
-
-def __set_cdi_policy(config):
-    """
-    Extract the CDI policy from the enclave's config,
-    and serialize it into json
-    """
-    global _cdi_policy
-
-    if config and _cdi_policy is None:
-        _cdi_policy = json.dumps(config['EnclavePolicy'])
-
-    logger.debug("Enclave CDI policy: %s", _cdi_policy)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -174,9 +160,8 @@ def initialize_with_configuration(config) :
 
     if not _pdo:
         signed_enclave = __find_enclave_library(config)
-        __set_cdi_policy(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
-        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'], _cdi_policy, num_of_enclaves)
+        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'], num_of_enclaves)
         logger.info("Basename: %s", get_enclave_basename())
         logger.info("MRENCLAVE: %s", get_enclave_measurement())
 
@@ -197,7 +182,6 @@ def shutdown():
     global _ias
     global _sig_rl_update_time
     global _epid_group
-    global _cdi_policy
 
     logger.info('shutdown enclave')
 
@@ -205,7 +189,6 @@ def shutdown():
     _ias = None
     _sig_rl_update_time = None
     _epid_group = None
-    _cdi_policy = None
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -246,14 +229,11 @@ def get_enclave_service_info(spid, config=None) :
 
     enclave.SetLogger(logger)
 
-    # set the policy based on the configuration
-    __set_cdi_policy(config)
-
     signed_enclave = __find_enclave_library(None)
     logger.debug("Attempting to load enclave at: %s", signed_enclave)
 
     num_of_enclaves = 1
-    pdo = enclave.pdo_enclave_info(signed_enclave, spid, _cdi_policy, num_of_enclaves)
+    pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
     if pdo is None :
         raise Exception('unable to load the enclave')
 

@@ -68,22 +68,3 @@ DataPath = "${data}"
 # BaseName is the root of the name used to store data
 # about the enclave. A 'enc' extension will be added
 BaseName = "${identity}"
-
-# --------------------------------------------------
-# EnclavePolicy -- configuration of CDI policy for the enclave
-# --------------------------------------------------
-[EnclavePolicy]
-# The AcceptAllCode flag indicates whether the CDI policy
-# only allows contract code built using trusted toolchains.
-# When false, the eservice checks whether the code is signed
-# by a trusted source
-AcceptAllCode = true
-
-# TrustedCompilerKeys is a list of public keys corresponding
-# to trusted WASM AoT compilers that sign CDI compilation reports
-TrustedCompilerKeys = []
-
-# TrustedLedgerKey is used to establish trust in WASM AoT
-# compiler keys that aren't already in the TrustedCompilerKeys list
-# TODO: currently ununsed
-TrustedLedgerKey = ""

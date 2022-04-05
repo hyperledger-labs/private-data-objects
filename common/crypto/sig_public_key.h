@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include "types.h"
+#include "sig.h"
 
 namespace pdo
 {
@@ -27,11 +28,17 @@ namespace crypto
     {
         class PrivateKey;
 
-        class PublicKey
+        class PublicKey: public Key
         {
         public:
             // default constructor: UNINITIALIZED PublicKey!
-            PublicKey();
+            PublicKey()
+            {
+                key_ = nullptr;
+                sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
+            }
+            // Custom curve constructor
+            PublicKey(const SigCurve& sigCurve);
             // copy constructor
             // throws RuntimeError
             PublicKey(const PublicKey& publicKey);
@@ -60,9 +67,7 @@ namespace crypto
             // Verify signature signature.data() on message.data() and return 1 if signature is
             // valid, 0 if signature is not valid or -1 if there was an internal error
             int VerifySignature(const ByteArray& message, const ByteArray& signature) const;
-
-        private:
-            EC_KEY* public_key_;
+            static unsigned int MaxSigSize(const std::string& encoded);
         };
     }
 }

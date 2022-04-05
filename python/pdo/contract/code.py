@@ -18,7 +18,6 @@ import json
 
 import pdo.common.crypto as crypto
 import pdo.common.utility as putils
-from pdo.contract.compilation_report import ContractCompilationReport
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class ContractCode(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter=None, compilation_report=None) :
+    def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter=None) :
         """Create a code object from a Gipsy source file
 
         :param name str: the name of the scheme contract class
@@ -54,20 +53,15 @@ class ContractCode(object) :
         with open(filename, "r") as cfile :
             code = cfile.read()
 
-        report = compilation_report
-        if interpreter == 'wawaka-aot' and report is None:
-            report = ContractCompilationReport.create_from_file(source_name, search_path)
-
-        return cls(code, name, compilation_report=report)
+        return cls(code, name)
 
     # -------------------------------------------------------
-    def __init__(self, code, name, nonce = None, compilation_report=None) :
+    def __init__(self, code, name, nonce = None) :
         if nonce is None :
             nonce = crypto.byte_array_to_hex(crypto.random_bit_string(16))
 
         self.code = code
         self.name = name
-        self.compilation_report = compilation_report
         self.nonce = nonce
 
     # -------------------------------------------------------
@@ -76,25 +70,18 @@ class ContractCode(object) :
         result['Code'] = self.code
         result['Name'] = self.name
         result['Nonce'] = self.nonce
-        result['CompilationReport'] = {}
-        if not self.compilation_report is None:
-            result['CompilationReport'] = self.compilation_report.serialize()
 
         return result
 
     # -------------------------------------------------------
     def compute_hash(self, encoding = 'raw') :
         # the code hash is a combination of the hash of the actual code,
-        # the hash of the nonce, and the hash of the compilation report.
+        # and the hash of the nonce.
         # this makes it possible to use the nonce to verify the identity
         # of the actual code (think MRENCLAVE).
         code_hash = crypto.compute_message_hash(crypto.string_to_byte_array(self.code + self.name))
         nonce_hash = crypto.compute_message_hash(crypto.string_to_byte_array(self.nonce))
         message = code_hash + nonce_hash
-
-        if self.compilation_report :
-            report_hash = self.compilation_report.compute_hash(encoding='raw')
-            message += report_hash
 
         code_hash = crypto.compute_message_hash(message)
         if encoding == 'raw' :

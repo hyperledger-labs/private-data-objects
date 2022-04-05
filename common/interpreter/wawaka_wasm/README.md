@@ -200,29 +200,6 @@ cd build
 cmake .. && make
 ```
 
-### CDI setup
-
-To build the experimental `gen-cdi-report` tool, run:
-
-```bash
-cd ${PDO_SOURCE_ROOT}/contracts/cdi
-mkdir -p build
-cd build
-cmake .. && make
-```
-
-Next, to generate a set of ECDSA signing keys used when calling
-`gen-cdi-report`, run:
-
-```bash
-openssl ecparam -name secp256k1 -genkey -noout -out cdi_compiler1_private.pem
-openssl ec -in cdi_compiler1_private.pem -pubout -out cdi_compiler1_public.pem
-```
-They key pair is placed in `${PDO_INSTALL_ROOT}/opt/pdo/keys`.
-All `cdi_compiler{i}_public.pem` keys in this directory are
-automatically added to the PDO enclave service configuration
-(see `${PDO_INSTALL_ROOT}/opt/pdo/etc/template/enclave.toml`).
-
 ### Building AoT Contracts
 
 To build an AoT contract for wawaka, run:
@@ -234,14 +211,6 @@ cd ${WASM_SRC}/wamr-compiler/build/
 
 For more options to run `wamrc`, see the
 [documentation](https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wasm_app.md#compile-wasm-to-aot-module).
-
-To generate an integrity proof for a contract to use
-the experimental CDI feature, run:
-
-```bash
-cd ${PDO_SOURCE_ROOT}/contracts/cdi/build/
-./gen-cdi-report -c <contract code file> -k <CDI signing key file> -o <CDI report file>
-```
 
 ## Basics of a Contract ##
 

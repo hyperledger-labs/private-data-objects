@@ -88,7 +88,7 @@ pdo_err_t pdo::enclave_api::contract::VerifySecrets(
         ByteArray sealed_enclave_data = Base64EncodedStringToByteArray(inSealedEnclaveData);
         ByteArray encrypted_contract_key(pdo::enclave_api::contract::EncryptedContractKeySize(inContractId.size(), enclaveIndex));
         ByteArray contract_key_signature(pdo::enclave_api::base::GetSignatureMaxSize());
-	size_t contract_key_signature_length;
+        size_t contract_key_signature_length;
 
         // xxxxx call the enclave
 

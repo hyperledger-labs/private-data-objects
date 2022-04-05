@@ -478,22 +478,22 @@ pdo_err_t ecall_GenerateEnclaveSecret(const uint8_t* inSealedEnclaveData,
 
         HexEncodedString secretsig = ByteArrayToHexEncodedString(signature);
 
-        int required_padding = 2 * SECRET_SIGNATURE_SIZE - secretsig.length();
+        int required_padding = 2 * enclaveData.max_sig_size(false) - secretsig.length();
         secretsig.append(required_padding,'0');
 
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            secretsig.length() < ENCODED_SECRET_SIGNATURE_SIZE,
+            secretsig.length() < enclaveData.max_sig_size(true),
             "secretsig is too short");
 
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            secretsig.length() > ENCODED_SECRET_SIGNATURE_SIZE,
+            secretsig.length() > enclaveData.max_sig_size(true),
             "secretsig is too long");
 
         ByteArray enclaveMessage;
         std::copy(secret.begin(), secret.end(), std::back_inserter(enclaveMessage));
         std::copy(secretsig.begin(), secretsig.end(), std::back_inserter(enclaveMessage));
         pdo::error::ThrowIf<pdo::error::ValueError>(
-            enclaveMessage.size() < ENCODED_SECRET_SIZE + ENCODED_SECRET_SIGNATURE_SIZE,
+            enclaveMessage.size() < ENCODED_SECRET_SIZE + enclaveData.max_sig_size(true),
             "enclaveMessage is too short");
 
         pdo::crypto::pkenc::PublicKey enclaveKey(enclaveEncryptKey);

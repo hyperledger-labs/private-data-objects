@@ -14,10 +14,14 @@
  */
 
 #pragma once
-#include <openssl/obj_mac.h>
 
-#ifndef PDO_USE_ECDSA_CURVE
-#define PDO_USE_ECDSA_CURVE NID_secp256k1
+#include <openssl/ec.h>
+#include <openssl/obj_mac.h> //for the NIDs
+#include <string>
+#include <map>
+
+#ifndef PDO_DEFAULT_SIGCURVE
+#define PDO_DEFAULT_SIGCURVE SECP256K1
 #endif
 
 namespace pdo
@@ -26,9 +30,48 @@ namespace crypto
 {
     namespace constants
     {
-        // Elliptic curve
-        const int CURVE = PDO_USE_ECDSA_CURVE;
-        const int MAX_SIG_SIZE = 72;
+        // IMPORTANT:
+        // This constant **MUST** be set to the max sig size, among the supported curves.
+        // See the sig.cpp file for more details on the curves.
+        // Mic has volunteered to
+        //  - maintain this constant in sync with the supported curves
+        //  - debug issues that may arise
+        const int MAX_SIG_SIZE = 104;
+    }
+
+    namespace sig
+    {
+        enum class SigCurve
+        {
+            UNDEFINED,
+            SECP256K1,
+            SECP384R1,
+            CURVE_COUNT
+        };
+
+        typedef struct {
+            SigCurve sigCurve;
+            int sslNID;
+            void (*SHAFunc)(const unsigned char*, unsigned int, unsigned char hash[]);
+            unsigned int shaDigestLength;
+            unsigned int maxSigSize;
+        } sig_details_t;
+
+        extern const sig_details_t SigDetails[];
+        extern const std::map<int, SigCurve> NidToSigCurveMap;
+
+        class Key
+        {
+        public:
+            virtual void Deserialize(const std::string& encoded) = 0;
+            virtual void SetSigDetailsFromDeserializedKey();
+            virtual std::string Serialize() const = 0;
+            virtual unsigned int MaxSigSize() const;
+
+        protected:
+            EC_KEY* key_;
+            sig_details_t sigDetails_;
+        };
     }
 }
 }

@@ -21,9 +21,7 @@ enclave {
     trusted {
         //
         public pdo_err_t ecall_CreateContractWorker(
-            size_t inThreadId,
-            [in, string] const char *inSerializedEnclavePolicy
-        );
+            size_t inThreadId);
 
         //
         public pdo_err_t ecall_ShutdownContractWorker();

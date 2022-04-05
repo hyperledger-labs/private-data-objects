@@ -15,7 +15,6 @@
 SRCDIR?=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOTDIR := $(abspath $(SRCDIR)/../..)
 EXTENSIONPATH := $(ROOTDIR)/common/build
-COMP_REPORT_GEN=cdi/build/gen-cdi-report
 
 TARGETS := all clean debug install test
 
@@ -37,13 +36,9 @@ endif
 endif
 endif
 
-$(TARGETS): $(COMP_REPORT_GEN) $(CONTRACTS)
+$(TARGETS): $(CONTRACTS)
 
 $(CONTRACTS):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
-
-$(COMP_REPORT_GEN) :
-	@echo build CDI tools
-	@$(MAKE) -C cdi $(MAKECMDGOALS)
 
 .PHONY: $(TARGETS) $(CONTRACTS)

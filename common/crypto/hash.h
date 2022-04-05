@@ -1,4 +1,4 @@
-/* Copyright 2018 Intel Corporation
+/* Copyright 2022 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,13 @@
  */
 
 #pragma once
-#include "sgx_defaults.h"
-#include <openssl/sha.h>
-#include "crypto_shared.h"
-#include "crypto_utils.h"
-#include "pkenc.h"
-#include "pkenc_private_key.h"
-#include "pkenc_public_key.h"
-#include "hash.h"
-#include "sig.h"
-#include "sig_private_key.h"
-#include "sig_public_key.h"
-#include "skenc.h"
-#include "verify_ias_report/ias-certificates.h"
-#include "verify_ias_report/verify-report.h"
+
+namespace pdo
+{
+namespace crypto
+{
+    void SHA256Hash(const unsigned char* buf, unsigned int buf_size, unsigned char hash[]);
+    void SHA384Hash(const unsigned char* buf, unsigned int buf_size, unsigned char hash[]);
+
+}
+}

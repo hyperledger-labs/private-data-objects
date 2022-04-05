@@ -23,10 +23,10 @@ INCLUDE(CMakeVariables.txt)
 # Common components for both trusted and untrusted common libraries
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h cdi/*.h packages/base64/*.h packages/parson/*.h state/*.h)
-FILE(GLOB PROJECT_SOURCES *.cpp cdi/*.cpp packages/base64/*.cpp packages/parson/*.cpp state/*.cpp)
+FILE(GLOB PROJECT_HEADERS *.h packages/base64/*.h packages/parson/*.h state/*.h)
+FILE(GLOB PROJECT_SOURCES *.cpp packages/base64/*.cpp packages/parson/*.cpp state/*.cpp)
 
-SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "cdi" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson" "state")
+SET(COMMON_PRIVATE_INCLUDE_DIRS "." "tests" "crypto" "crypto/verify_ias_report" "packages/base64" "packages/parson" "state")
 SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS} "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
 SET(U_CRYPTO_LIB_NAME updo-crypto)

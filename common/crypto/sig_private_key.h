@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include "types.h"
+#include "sig.h"
 
 namespace pdo
 {
@@ -28,13 +29,19 @@ namespace crypto
     {
         class PublicKey;
 
-        class PrivateKey
+        class PrivateKey: public Key
         {
             friend PublicKey;
 
         public:
-            // Default contructor
-            PrivateKey(): private_key_(nullptr){};
+            // Default constructor (default: secp256k1 curve)
+            PrivateKey()
+            {
+                key_ = nullptr;
+                sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
+            }
+            // Custom curve constructor
+            PrivateKey(const SigCurve& sigCurve);
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);
@@ -59,9 +66,6 @@ namespace crypto
             // Sign message.data() and return ByteArray containing raw binary signature
             // throws RuntimeError
             ByteArray SignMessage(const ByteArray& message) const;
-
-        private:
-            EC_KEY* private_key_;
         };
     }
 }
