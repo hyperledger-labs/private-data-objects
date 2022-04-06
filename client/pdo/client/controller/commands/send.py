@@ -122,11 +122,6 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         except Exception as e:
             raise Exception("Error while waiting for commit: %s", str(e))
 
-        try :
-            contract.contract_state.save_to_cache(data_dir = data_directory)
-        except Exception as e :
-            logger.exception('failed to save the new state in the cache')
-
     return update_response.invocation_response
 
 ## -----------------------------------------------------------------

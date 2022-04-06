@@ -21,6 +21,7 @@ from pdo.submitter.create import create_submitter
 from pdo.contract.request import UpdateStateRequest, InitializeStateRequest
 from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
+import pdo.common.config as pconfig
 
 import logging
 logger = logging.getLogger(__name__)
@@ -67,10 +68,9 @@ class Contract(object) :
             raise Exception('invalid contract file; {}'.format(filename))
 
         try :
-            state = ContractState.read_from_cache(contract_id, current_state_hash, data_dir=data_dir)
+            state = ContractState.read_from_cache(contract_id, current_state_hash)
             if state is None :
                 state = ContractState.get_from_ledger(ledger_config, contract_id, current_state_hash)
-                state.save_to_cache(data_dir=data_dir)
         except Exception as e :
             logger.error('error occurred retreiving contract state; %s', str(e))
             raise Exception("invalid contract file; {}".format(filename))
@@ -96,7 +96,7 @@ class Contract(object) :
         self.creator_id = creator_id
         self.extra_data = kwargs.get('extra_data', {})
         self.enclave_map = kwargs.get('enclave_map',{})
-        self.set_replication_parameters()
+        self.set_replication_parameters(**kwargs)
 
     # -------------------------------------------------------
     def set_state_encryption_key(self, enclave_id, encrypted_state_encryption_key) :
@@ -113,7 +113,14 @@ class Contract(object) :
         return hex(abs(hash(self.contract_id)))[2:]
 
     # -------------------------------------------------------
-    def set_replication_parameters(self, num_provable_replicas=1, availability_duration=120):
+    def set_replication_parameters(self, num_provable_replicas=None, availability_duration=None, **kwargs):
+        # pull the defaults from the configuration if they are not
+        # otherwise set by the caller
+        if num_provable_replicas is None :
+            num_provable_replicas = pconfig.shared_configuration(['Replication','NumProvableReplicas'], 1)
+
+        if availability_duration is None :
+            availability_duration = pconfig.shared_configuration(['Replication','Duration'], 120)
 
         self.replication_params = dict()
         self.replication_params['max_num_replicas'] = len(self.enclave_map.keys())

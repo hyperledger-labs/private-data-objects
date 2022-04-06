@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class GetBlockApp(object) :
-    def __init__(self, block_store) :
+    def __init__(self, config, block_store, service_keys) :
         self.block_store = block_store
 
     def __call__(self, environ, start_response) :
@@ -67,7 +67,7 @@ class GetBlockApp(object) :
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class GetBlocksApp(object) :
-    def __init__(self, block_store) :
+    def __init__(self, config, block_store, service_keys) :
         self.block_store = block_store
 
     def __call__(self, environ, start_response) :

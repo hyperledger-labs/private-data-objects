@@ -23,6 +23,7 @@ before logging is enabled.
 import os
 import sys
 import warnings
+from functools import reduce
 
 import re
 import toml
@@ -30,6 +31,30 @@ from string import Template
 from pdo.common.utility import find_file_in_path
 
 __all__ = [ "ConfigurationException", "parse_configuration_files", "parse_configuration_file" ]
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+__shared_configuration__ = None
+
+def initialize_shared_configuration(config) :
+    global __shared_configuration__
+    if __shared_configuration__ is not None :
+        raise RuntimeError("duplicate initialization of shared configuration")
+
+    __shared_configuration__ = config     # may need deep copy, leave it shallow for now
+    return __shared_configuration__
+
+def shared_configuration(keylist=[], default=None) :
+    global __shared_configuration__
+    if __shared_configuration__ is None :
+        raise RuntimeError("shared configuration is not initialized")
+
+    try :
+        return reduce(dict.get, keylist, __shared_configuration__) or default
+    except TypeError :
+        return None
+
+    return __shared_configuration__
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

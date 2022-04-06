@@ -20,7 +20,7 @@ import hashlib
 import random
 import json
 
-from pdo.sservice.block_store_manager import BlockStoreManager
+from pdo.common.block_store_manager import BlockStoreManager
 
 import pdo.test.helpers.secrets as secret_helper
 import pdo.eservice.pdo_helper as enclave_helper
