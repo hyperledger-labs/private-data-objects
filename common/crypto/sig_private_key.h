@@ -34,12 +34,8 @@ namespace crypto
             friend PublicKey;
 
         public:
-            // Default constructor (default: secp256k1 curve)
-            PrivateKey()
-            {
-                key_ = nullptr;
-                sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
-            }
+            // Default constructor (default curve specified in PDO_DEFAULT_SIGCURVE)
+            PrivateKey();
             // Custom curve constructor
             PrivateKey(const SigCurve& sigCurve);
             // copy constructor

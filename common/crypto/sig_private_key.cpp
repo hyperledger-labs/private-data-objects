@@ -76,6 +76,16 @@ EC_KEY* deserializeECDSAPrivateKey(const std::string& encoded)
     return private_key;
 }  // deserializeECDSAPrivateKey
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Default constructor (default curve specified in PDO_DEFAULT_SIGCURVE)
+pcrypto::sig::PrivateKey::PrivateKey()
+{
+    key_ = nullptr;
+    // PDO_DEFAULT_SIGCURVE is define that must be provided at compile time
+    // Its default value is set in the cmake file
+    sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
+}
+
 // Custom curve constructor
 pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::SigCurve& sigCurve)
 {
