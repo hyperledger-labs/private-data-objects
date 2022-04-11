@@ -97,10 +97,15 @@ public:
                 ret = mdb_dbi_open(txn_, META_DB_NAME, dbi_flags, &meta_dbi_);
                 if (ret == MDB_SUCCESS)
                     return;
+                else
+                    SAFE_LOG(PDO_LOG_ERROR, "Failed to open metadata database: %d", ret);
             }
+            else
+                SAFE_LOG(PDO_LOG_ERROR, "Failed to open main database: %d", ret);
         }
+        else
+            SAFE_LOG(PDO_LOG_ERROR, "LMDB transaction begin failed: %d", ret);
 
-        SAFE_LOG(PDO_LOG_ERROR, "Failed to open LMDB transaction : %d", ret);
         if (txn_ != NULL)
         {
             mdb_txn_abort(txn_);
@@ -113,7 +118,7 @@ public:
     ~SafeTransaction(void) {
         if (txn_ != NULL)
         {
-            SAFE_LOG(PDO_LOG_INFO, "abort transaction due to exception");
+            SAFE_LOG(PDO_LOG_DEBUG, "abort transaction due to exception");
             mdb_txn_abort(txn_);
         }
     }
@@ -199,23 +204,15 @@ static pdo_err_t put_data(
 // the size of the block, and an unsigned integer tag that can be used
 // for garbage collection.
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-typedef struct
-{
-    size_t block_size_;
-    uint64_t create_time_;      // seconds since epoch when block added to the store
-    uint64_t expiration_time_;  // seconds since epoch when block storage contract expires
-    uint64_t tag_;
-} BlockMetaData;
-
 static pdo_err_t get_metadata(
     MDB_dbi dbi,
     MDB_txn* txn,
     const uint8_t* inId,
     const size_t inIdSize,
-    BlockMetaData *metadata)
+    pdo::block_store::BlockMetaData *metadata)
 {
-    Zero(metadata, sizeof(BlockMetaData));
-    return get_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(BlockMetaData));
+    Zero(metadata, sizeof(pdo::block_store::BlockMetaData));
+    return get_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(pdo::block_store::BlockMetaData));
 }
 
 static pdo_err_t put_metadata(
@@ -223,9 +220,9 @@ static pdo_err_t put_metadata(
     MDB_txn* txn,
     const uint8_t* inId,
     const size_t inIdSize,
-    const BlockMetaData *metadata)
+    const pdo::block_store::BlockMetaData *metadata)
 {
-    return put_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(BlockMetaData));
+    return put_data(dbi, txn, inId, inIdSize, (uint8_t*)metadata, sizeof(pdo::block_store::BlockMetaData));
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -274,6 +271,24 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     size_t* outValueSize
 )
 {
+    *outValueSize = 0;
+
+    pdo::block_store::BlockMetaData metadata;
+    pdo_err_t result = pdo::block_store::BlockStoreHead(inId, inIdSize, outIsPresent, &metadata);
+    if (result == PDO_SUCCESS)
+        *outValueSize = metadata.block_size_;
+
+    return result;
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::block_store::BlockStoreHead(
+    const uint8_t* inId,
+    const size_t inIdSize,
+    bool* outIsPresent,
+    pdo::block_store::BlockMetaData *outMetadata
+)
+{
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
@@ -282,28 +297,28 @@ pdo_err_t pdo::block_store::BlockStoreHead(
 #endif
 
     *outIsPresent = false;
-    *outValueSize = 0;
 
     SafeTransaction stxn(MDB_RDONLY);
 
     if (stxn.txn_ == NULL)
         return PDO_ERR_SYSTEM;
 
-    BlockMetaData metadata;
-    pdo_err_t result = get_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, &metadata);
+    pdo_err_t result = get_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, outMetadata);
     if (result == PDO_ERR_NOTFOUND)
+    {
+        stxn.commit();
         return PDO_SUCCESS;
+    }
 
     if (result != PDO_SUCCESS)
         return result;
 
     *outIsPresent = true;
-    *outValueSize = metadata.block_size_;
 
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%zu'", idStr.c_str(), *outValueSize);
+        SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%zu'", idStr.c_str(), outMetadata->block_size_);
     }
 #endif
 
@@ -334,7 +349,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
 
     // Get the block metadata, we can check the size first and then will
     // use it later to update the access time
-    BlockMetaData metadata;
+    pdo::block_store::BlockMetaData metadata;
     result = get_metadata(stxn.meta_dbi_, stxn.txn_, inId, inIdSize, &metadata);
     if (result != PDO_SUCCESS)
     {
@@ -400,7 +415,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     struct timeval now;
     gettimeofday(&now, NULL);
 
-    BlockMetaData metadata;
+    pdo::block_store::BlockMetaData metadata;
 
     metadata.block_size_ = inValueSize;
     metadata.create_time_ = now.tv_sec;
@@ -433,6 +448,16 @@ pdo_err_t pdo::block_store::BlockStoreHead(
 )
 {
     return BlockStoreHead(inId.data(), inId.size(), outIsPresent, outValueSize);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+pdo_err_t pdo::block_store::BlockStoreHead(
+    const ByteArray& inId,
+    bool* outIsPresent,
+    pdo::block_store::BlockMetaData *outMetadata
+)
+{
+    return BlockStoreHead(inId.data(), inId.size(), outIsPresent, outMetadata);
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
