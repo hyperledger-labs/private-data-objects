@@ -32,11 +32,7 @@ namespace crypto
         {
         public:
             // default constructor: UNINITIALIZED PublicKey!
-            PublicKey()
-            {
-                key_ = nullptr;
-                sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
-            }
+            PublicKey();
             // Custom curve constructor
             PublicKey(const SigCurve& sigCurve);
             // copy constructor
