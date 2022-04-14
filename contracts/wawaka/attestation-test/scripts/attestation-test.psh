@@ -22,11 +22,7 @@ set -q --conditional -s test_data -v ${data}
 set -q --conditional -s _contracts_ -v ${home}/contracts
 set -q --conditional -s _plugins_ -v ${_contracts_}/plugins
 
-## load the eservice database
-set -q --conditional -s eservice_dbfile -v ${data}/eservice-test-db.json
-eservice_db load --database ${eservice_dbfile}
-
-## load the eservice and pservice groups for the site
+## load the eservice and pservice groups and databases for the site
 script -f ${home}/etc/site.psh
 
 ## some definitions to make it easier to display text
