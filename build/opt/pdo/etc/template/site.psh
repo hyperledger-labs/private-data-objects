@@ -19,8 +19,24 @@ if --null "${data}"
    exit
 fi
 
-set -q --conditional -s dbfile -v ${data}/eservice-db.json
-eservice_db load --database ${dbfile}
+## load the local database if it exists
+set -q --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
+
+## this returns false of the database file does not exist
+## we can use this later to save the updates
+eservice_db load --database ${dbfile} -s _database_exists_
+
+## make sure the minimal set of enclave services is included
+eservice_db add --url http://localhost:7101 --name es7101
+eservice_db add --url http://localhost:7102 --name es7102
+eservice_db add --url http://localhost:7103 --name es7103
+eservice_db add --url http://localhost:7104 --name es7104
+eservice_db add --url http://localhost:7105 --name es7105
+
+if -e ${_database_exists_} False
+   eservice_db save --database ${dbfile}
+   echo eservice database updated
+fi
 
 ## default pservice group
 pservice add --url http://localhost:7001
@@ -56,8 +72,8 @@ eservice --group e4 add --url http://localhost:7104 http://localhost:7105 http:/
 eservice --group e4 use --url http://localhost:7104
 
 ## eservice group e5
-eservice --group e4 add --url http://localhost:7105 http://localhost:7101 http://localhost:7102
-eservice --group e4 use --url http://localhost:7105
+eservice --group e5 add --url http://localhost:7105 http://localhost:7101 http://localhost:7102
+eservice --group e5 use --url http://localhost:7105
 
 ## eservice group all
 eservice --group all add --url http://localhost:7101 http://localhost:7102 http://localhost:7103 http://localhost:7104 http://localhost:7105
