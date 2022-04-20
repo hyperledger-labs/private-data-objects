@@ -28,11 +28,11 @@
 ##
 ## $ pdo-shell -s create.psh -m color <color> -m path <contract path>
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
-set -q --conditional -s color -v green
+set --conditional -s color -v green
 
 ## =================================================================
 echo create the ${color} marble vetting organization

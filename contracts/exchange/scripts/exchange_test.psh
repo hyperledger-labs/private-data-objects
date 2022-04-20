@@ -27,15 +27,15 @@
 
 ## $ pdo-shell -s exchange.psh
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
-set -q --conditional -s offer_user -v user1
-set -q --conditional -s offer_color -v green
-set -q --conditional -s exchange_user -v user6
-set -q --conditional -s exchange_color -v red
-set -q --conditional -s request_count -v 60
+set --conditional -s offer_user -v user1
+set --conditional -s offer_color -v green
+set --conditional -s exchange_user -v user6
+set --conditional -s exchange_color -v red
+set --conditional -s request_count -v 60
 
 ## =================================================================
 echo ${offer_user} creates exchange to trade ${offer_color} marbles for ${request_count} ${exchange_color} marbles

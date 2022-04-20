@@ -30,9 +30,7 @@ def __command_attestation__(state, bindings, pargs) :
     parser = argparse.ArgumentParser(prog='attestation-test')
     parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
     parser.add_argument('-f', '--save_file', help='File where contract data is stored', type=str)
-    parser.add_argument('-q', '--quiet', help='Suppress printing the result', action='store_true')
     parser.add_argument('-w', '--wait', help='Wait for the transaction to commit', action='store_true')
-
     subparsers = parser.add_subparsers(dest='command')
 
     subparser = subparsers.add_parser('initialize')
@@ -75,19 +73,19 @@ def __command_attestation__(state, bindings, pargs) :
 
     options = parser.parse_args(pargs)
 
-    extraparams={'quiet' : options.quiet, 'wait' : options.wait}
+    extraparams={'wait' : options.wait}
 
     # -------------------------------------------------------
     if options.command == 'initialize' :
         message = invocation_request('initialize', ledger_verifying_key=options.ledger_key)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'get_contract_metadata' :
         extraparams['commit'] = False
         message = invocation_request('get_contract_metadata')
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -96,7 +94,7 @@ def __command_attestation__(state, bindings, pargs) :
     if options.command == 'get_contract_code_metadata' :
         extraparams['commit'] = False
         message = invocation_request('get_contract_code_metadata')
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -108,19 +106,19 @@ def __command_attestation__(state, bindings, pargs) :
                                      ledger_attestation=options.ledger_attestation,
                                      contract_metadata=options.contract_metadata,
                                      contract_code_metadata=options.code_metadata)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'generate_secret' :
         message = invocation_request('generate_secret')
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         return
 
     # -------------------------------------------------------
     if options.command == 'send_secret' :
         message = invocation_request('send_secret', contract_id=options.contract_id)
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
 
@@ -129,7 +127,7 @@ def __command_attestation__(state, bindings, pargs) :
     # -------------------------------------------------------
     if options.command == 'recv_secret' :
         message = invocation_request('recv_secret', **options.secret)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
 
         return
 
@@ -137,7 +135,7 @@ def __command_attestation__(state, bindings, pargs) :
     if options.command == 'reveal_secret' :
         extraparams['commit'] = False
         message = invocation_request('reveal_secret', ledger_signature=options.state_attestation)
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         if result and options.symbol :
             bindings.bind(options.symbol, result)
         return
@@ -149,7 +147,7 @@ def __command_attestation__(state, bindings, pargs) :
                                      certificate=options.certificate.rstrip(),
                                      report=options.report.rstrip(),
                                      signature=options.ias_signature.rstrip())
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         if result is not None and options.symbol :
             bindings.bind(options.symbol, result)
         return

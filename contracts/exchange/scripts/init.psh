@@ -21,7 +21,7 @@ load_plugin -c exchange
 load_plugin -c auction
 
 ## load the eservice database
-set -q --conditional -s dbfile -v ${data}/eservice-db.json
+set --conditional -s dbfile -v ${data}/eservice-db.json
 eservice_db load --database ${dbfile}
 
 ## load the eservice and pservice groups for the site

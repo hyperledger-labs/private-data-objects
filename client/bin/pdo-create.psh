@@ -29,17 +29,17 @@
 ##
 ## $ ./pdo-create.psh -m class <class> -m source <source> -m identity <identity>
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${home}/etc/site.psh
 
 ## create a random string that uniquely identifies the contract
 ## that we are going to create
-set -q -s random_id -r 32
+set -s random_id -r 32
 
-set -q --conditional -s psgroup -v default
-set -q --conditional -s esgroup -v default
-set -q --conditional -s pdo_file -v ${save}/${random_id}.pdo
+set --conditional -s psgroup -v default
+set --conditional -s esgroup -v default
+set --conditional -s pdo_file -v ${save}/${random_id}.pdo
 
 ## class
 ## source

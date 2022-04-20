@@ -19,8 +19,8 @@
 ##
 ## $ pdo-shell -s create.psh -i <identity>
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
 ## =================================================================

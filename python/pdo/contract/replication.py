@@ -92,7 +92,7 @@ def __replication_manager__():
                 # check for termination signal
                 if __stop_service__:
                     __shutdown_workers__()
-                    logger.info("Exiting Replication manager thread")
+                    logger.debug("Exiting Replication manager thread")
                     break
                 else:
                     continue

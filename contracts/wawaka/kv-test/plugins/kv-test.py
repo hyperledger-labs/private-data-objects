@@ -71,7 +71,6 @@ def __command_kv__(state, bindings, pargs) :
     parser = argparse.ArgumentParser(prog='attestation-test')
     parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str, default='preferred')
     parser.add_argument('-f', '--save_file', help='File where contract data is stored', type=str)
-    parser.add_argument('-q', '--quiet', help='Suppress printing the result', action='store_true')
     parser.add_argument('-w', '--wait', help='Wait for the transaction to commit', action='store_true')
 
     subparsers = parser.add_subparsers(dest='command')
@@ -86,7 +85,7 @@ def __command_kv__(state, bindings, pargs) :
 
     options = parser.parse_args(pargs)
 
-    extraparams={'quiet' : options.quiet, 'wait' : options.wait}
+    extraparams={'wait' : options.wait}
 
     # -------------------------------------------------------
     if options.command == 'get' :
@@ -104,7 +103,7 @@ def __command_kv__(state, bindings, pargs) :
         params['state_hash'] = kv.hash_identity
         params['transfer_key'] = options.key
         message = invocation_request('kv_get', **params)
-        result = send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
         result = json.loads(result)
 
         # sync the server blocks get to the local block manager
@@ -137,7 +136,7 @@ def __command_kv__(state, bindings, pargs) :
         params['state_hash'] = kv.hash_identity
         params['transfer_key'] = options.key
         message = invocation_request('kv_set', **params)
-        send_to_contract(state, options.save_file, message, eservice_url=options.enclave, **extraparams)
+        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
 
         return
 

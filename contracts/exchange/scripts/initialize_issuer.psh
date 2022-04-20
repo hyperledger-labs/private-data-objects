@@ -28,8 +28,8 @@
 ##
 ## $ pdo-shell -s create.psh -m color <color> -m path <contract path>
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
 if --null ${color}
@@ -37,10 +37,10 @@ if --null ${color}
    exit
 fi
 
-set -q --conditional -s issuer -v ${color}_issuer
-set -q --conditional -s issuer_contract -v ${save}/${color}_issuer.pdo
-set -q --conditional -s type_contract -v ${save}/${color}_type.pdo
-set -q --conditional -s vetting_contract -v ${save}/${color}_vetting.pdo
+set --conditional -s issuer -v ${color}_issuer
+set --conditional -s issuer_contract -v ${save}/${color}_issuer.pdo
+set --conditional -s type_contract -v ${save}/${color}_type.pdo
+set --conditional -s vetting_contract -v ${save}/${color}_vetting.pdo
 
 ## =================================================================
 echo initialize ${color} marble issuer with vetting authority

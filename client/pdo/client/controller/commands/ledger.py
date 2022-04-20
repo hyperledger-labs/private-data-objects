@@ -32,7 +32,6 @@ def command_ledger(state, bindings, pargs) :
 
     parser = argparse.ArgumentParser(prog='ledger')
     parser.add_argument('--url', help='URL for the ledger', default=default_ledger_url)
-    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparsers = parser.add_subparsers(dest='command')
@@ -63,9 +62,7 @@ def command_ledger(state, bindings, pargs) :
 
     if options.command == 'ledger-key' :
         result = submitter.get_ledger_info()
-        if result and not options.quiet :
-            print(result)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, result)
         return
 
@@ -74,9 +71,7 @@ def command_ledger(state, bindings, pargs) :
         result = submitter.get_enclave_info(options.enclave_id)
         if options.path :
             result = eval(options.path, None, result)
-        if result and not options.quiet :
-            print(result)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, json.dumps(result))
         return
 
@@ -84,9 +79,7 @@ def command_ledger(state, bindings, pargs) :
         result = submitter.get_contract_info(options.contract_id)
         if options.path :
             result = eval(options.path, None, result)
-        if result and not options.quiet :
-            print(result)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, json.dumps(result))
         return
 
@@ -94,9 +87,7 @@ def command_ledger(state, bindings, pargs) :
         result = submitter.get_current_state_hash(options.contract_id)
         if options.path :
             result = eval(options.path, None, result)
-        if result and not options.quiet :
-            print(result)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, json.dumps(result))
         return
 
@@ -104,8 +95,6 @@ def command_ledger(state, bindings, pargs) :
         result = submitter.get_state_details(options.contract_id, options.state_hash)
         if options.path :
             result = eval(options.path, None, result)
-        if result and not options.quiet :
-            print(result)
-        if result and options.symbol :
+        if options.symbol :
             bindings.bind(options.symbol, json.dumps(result))
         return

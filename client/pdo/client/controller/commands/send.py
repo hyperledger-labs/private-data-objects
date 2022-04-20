@@ -33,7 +33,7 @@ __all__ = ['command_send', 'send_to_contract']
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, wait=False, commit=True) :
+def send_to_contract(state, message, save_file, eservice_url=None, wait=False, commit=True) :
 
     # ---------- load the invoker's keys ----------
     try :
@@ -84,16 +84,7 @@ def send_to_contract(state, save_file, message, eservice_url=None, quiet=False, 
         raise Exception('enclave failed to evaluate expression; {0}'.format(str(e)))
 
     if not update_response.status :
-        # not sure if this should throw an exception which would
-        # terminate the script or if it should just return an
-        # empty string that can be tested for later
-        # if not quiet :
-        #     print("FAILED: {0}".format(update_response.invocation_response))
-        # return ''
         raise ValueError(update_response.invocation_response)
-
-    if not quiet :
-        print(update_response.invocation_response)
 
     data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Ledger'])
@@ -135,7 +126,6 @@ def command_send(state, bindings, pargs) :
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('-p', '--positional', help='JSON encoded list of positional parameters', type=invocation_parameter)
     parser.add_argument('-s', '--symbol', help='Save the result in a symbol for later use', type=str)
-    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('--wait', help='Wait for the transaction to commit', action = 'store_true')
 
     parser.add_argument('-k', '--kwarg',
@@ -174,10 +164,9 @@ def command_send(state, bindings, pargs) :
 
     result = send_to_contract(
         state,
-        options.save_file,
         message,
+        options.save_file,
         eservice_url=options.enclave,
-        quiet=options.quiet,
         wait=options.wait)
     if options.symbol :
         bindings.bind(options.symbol, result)
