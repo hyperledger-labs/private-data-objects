@@ -35,8 +35,6 @@ def command_eservice_db(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='eservice_db')
-    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
-
     subparsers = parser.add_subparsers(dest='command')
 
     add_parser = subparsers.add_parser('add', description='add an eservice to the database')
@@ -110,9 +108,6 @@ def command_eservice_db(state, bindings, pargs) :
         result = enclave
         if options.field :
             result = enclave[options.field]
-
-        if not options.quiet :
-            print(json.dumps(result, indent=4, sort_keys=True))
 
         if options.symbol :
             bindings.bind(options.symbol, result)

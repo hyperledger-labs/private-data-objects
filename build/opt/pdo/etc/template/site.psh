@@ -20,7 +20,7 @@ if --null "${data}"
 fi
 
 ## load the local database if it exists
-set -q --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
+set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
 
 ## this returns false of the database file does not exist
 ## we can use this later to save the updates

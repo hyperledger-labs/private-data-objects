@@ -15,23 +15,23 @@
 ## limitations under the License.
 
 ## paths
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
-set -q --conditional -s test_data -v ${data}
+set --conditional -s data -v .
+set --conditional -s save -v .
+set --conditional -s test_data -v ${data}
 
-set -q --conditional -s _contracts_ -v ${home}/contracts
-set -q --conditional -s _plugins_ -v ${_contracts_}/plugins
+set --conditional -s _contracts_ -v ${home}/contracts
+set --conditional -s _plugins_ -v ${_contracts_}/plugins
 
 ## load the eservice and pservice groups for the site
 script -f ${home}/etc/site.psh
 
 ## some definitions to make it easier to display text
-set -q -s ENDC   -v "\033[0m"
-set -q -s BOLD   -v '\033[1m'
-set -q -s HEADER -v "\033[95m"
-set -q -s ERROR  -v "\033[91m"
-set -q -s WARN   -v "\033[93m"
-set -q -s INFO   -v "\033[92m"
+set -s ENDC   -v "\033[0m"
+set -s BOLD   -v '\033[1m'
+set -s HEADER -v "\033[95m"
+set -s ERROR  -v "\033[91m"
+set -s WARN   -v "\033[93m"
+set -s INFO   -v "\033[92m"
 
 ## load the command plugin for attestation test
 load_plugin -f ${_plugins_}/kv-test.py
@@ -45,9 +45,9 @@ create -c kv-type -s _kv-test -f ${save}/kv_contract.pdo
 ## =================================================================
 echo ${INFO} test set and get for kv parameters ${ENDC}
 ## =================================================================
-set -q -s _value_ -v "this is a test"
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+set -s _value_ -v "this is a test"
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 if --not -e ${_result_} ${_value_}
    echo {ERROR} Set and get do not match ${ENDC}
@@ -55,64 +55,64 @@ if --not -e ${_result_} ${_value_}
 fi
 
 echo test 1
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 2
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 3
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 4
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 5
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 6
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 7
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 8
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 9
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 10
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 11
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 12
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 13
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 14
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 echo test 15
-kv -f ${save}/kv_contract.pdo -w -q set -v ${_value_}
-kv -f ${save}/kv_contract.pdo -w -q get -s _result_
+kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
+kv -f ${save}/kv_contract.pdo -w get -s _result_
 
 
 

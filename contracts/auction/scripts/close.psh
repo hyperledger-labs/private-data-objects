@@ -24,8 +24,8 @@
 ## the same identity used to run the create script, only the creator
 ## of the auction is allowed to close the bidding
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
 ## =================================================================

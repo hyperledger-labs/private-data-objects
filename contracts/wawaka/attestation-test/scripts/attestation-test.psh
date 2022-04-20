@@ -15,26 +15,26 @@
 ## limitations under the License.
 
 ## paths
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
-set -q --conditional -s test_data -v ${data}
+set --conditional -s data -v .
+set --conditional -s save -v .
+set --conditional -s test_data -v ${data}
 
-set -q --conditional -s _contracts_ -v ${home}/contracts
-set -q --conditional -s _plugins_ -v ${_contracts_}/plugins
+set --conditional -s _contracts_ -v ${home}/contracts
+set --conditional -s _plugins_ -v ${_contracts_}/plugins
 
 ## load the eservice and pservice groups and databases for the site
 script -f ${home}/etc/site.psh
 
 ## some definitions to make it easier to display text
-set -q -s ENDC   -v "\033[0m"
-set -q -s BOLD   -v '\033[1m'
-set -q -s HEADER -v "\033[95m"
-set -q -s ERROR  -v "\033[91m"
-set -q -s WARN   -v "\033[93m"
-set -q -s INFO   -v "\033[92m"
+set -s ENDC   -v "\033[0m"
+set -s BOLD   -v '\033[1m'
+set -s HEADER -v "\033[95m"
+set -s ERROR  -v "\033[91m"
+set -s WARN   -v "\033[93m"
+set -s INFO   -v "\033[92m"
 
 ## make sure we are running with CCF
-set -q -s _ledger_type_ --state Ledger LedgerType
+set -s _ledger_type_ --state Ledger LedgerType
 if --not -e "${_ledger_type_}" "ccf"
    echo ${ERROR} This test requires the CCF ledger ${ENDC}
    exit -v 0
@@ -44,28 +44,28 @@ fi
 load_plugin -f ${_plugins_}/attestation-test.py
 
 ## =================================================================
-ledger -q -s _ledger_key_ ledger-key
+ledger -s _ledger_key_ ledger-key
 
 ## =================================================================
 echo ${INFO} create attestation contracts ${ENDC}
 ## =================================================================
 identity -n user1
 create -c attestation-type -s _attestation-test -f ${save}/contract1.pdo
-attestation -q -f ${save}/contract1.pdo initialize --ledger-key "${_ledger_key_}"
-attestation -q -f ${save}/contract1.pdo get_contract_metadata -s _md1_
-attestation -q -f ${save}/contract1.pdo get_contract_code_metadata -s _mdc1_
-contract -q -s _id1_ -f ${save}/contract1.pdo contract-id
-ledger -q -s _info1_ contract-info -i ${_id1_}
+attestation -f ${save}/contract1.pdo initialize --ledger-key "${_ledger_key_}"
+attestation -f ${save}/contract1.pdo get_contract_metadata -s _md1_
+attestation -f ${save}/contract1.pdo get_contract_code_metadata -s _mdc1_
+contract -s _id1_ -f ${save}/contract1.pdo contract-id
+ledger -s _info1_ contract-info -i ${_id1_}
 echo ${HEADER} contract metadata for contract 1: ${ENDC}
 echo ${_md1_}
 
 identity -n user2
 create -c attestation-type -s _attestation-test -f ${save}/contract2.pdo
-attestation -q -f ${save}/contract2.pdo initialize --ledger-key "${_ledger_key_}"
-attestation -q -f ${save}/contract2.pdo get_contract_metadata -s _md2_
-attestation -q -f ${save}/contract2.pdo get_contract_code_metadata -s _mdc2_
-contract -q -s _id2_ -f ${save}/contract2.pdo contract-id
-ledger -q -s _info2_ contract-info -i "${_id2_}"
+attestation -f ${save}/contract2.pdo initialize --ledger-key "${_ledger_key_}"
+attestation -f ${save}/contract2.pdo get_contract_metadata -s _md2_
+attestation -f ${save}/contract2.pdo get_contract_code_metadata -s _mdc2_
+contract -s _id2_ -f ${save}/contract2.pdo contract-id
+ledger -s _info2_ contract-info -i "${_id2_}"
 echo ${HEADER} contract metadata for contract 2: ${ENDC}
 echo ${_md2_}
 
@@ -73,33 +73,33 @@ echo ${_md2_}
 echo ${INFO} add an endpoint for contract 1 to contract 2 ${ENDC}
 
 identity -n user1
-attestation -q -f ${save}/contract2.pdo add_endpoint -i ${_id1_} -c "${_mdc1_}" -m "${_md1_}" -l "${_info1_}"
+attestation -f ${save}/contract2.pdo add_endpoint -i ${_id1_} -c "${_mdc1_}" -m "${_md1_}" -l "${_info1_}"
 
 ## =================================================================
 echo ${INFO} add an endpoint for contract 2 to contract 1 ${ENDC}
 
 identity -n user2
-attestation -q -f ${save}/contract1.pdo add_endpoint -i ${_id2_} -c "${_mdc2_}" -m "${_md2_}" -l "${_info2_}"
+attestation -f ${save}/contract1.pdo add_endpoint -i ${_id2_} -c "${_mdc2_}" -m "${_md2_}" -l "${_info2_}"
 
 ## =================================================================
 echo ${INFO} create a secret and share it with the other contracts ${ENDC}
 identity -n user1
-attestation -w -q -f ${save}/contract1.pdo send_secret -i ${_id2_} -s _secret_
-attestation -w -q -f ${save}/contract2.pdo recv_secret --secret "${_secret_}"
+attestation -w -f ${save}/contract1.pdo send_secret -i ${_id2_} -s _secret_
+attestation -w -f ${save}/contract2.pdo recv_secret --secret "${_secret_}"
 
 ## wait for the generate_secret operation to commit otherwise the
 ## current_state command will return an old version of state, or
 ## at least might return an old version of state
-sleep -q -t 1
+sleep -t 1
 
 identity -n user1
-ledger -q -s _sig1_ current-state -i ${_id1_} -p signature
-attestation -q -f ${save}/contract1.pdo reveal_secret -s _secret1_ -a ${_sig1_}
+ledger -s _sig1_ current-state -i ${_id1_} -p signature
+attestation -f ${save}/contract1.pdo reveal_secret -s _secret1_ -a ${_sig1_}
 ##echo ${HEADER} secret stored in contract 1 is ${_secret1_} ${ENDC}
 
 identity -n user2
-ledger -q -s _sig2_ current-state -i ${_id2_} -p signature
-attestation -q -f ${save}/contract2.pdo reveal_secret -s _secret2_ -a ${_sig2_}
+ledger -s _sig2_ current-state -i ${_id2_} -p signature
+attestation -f ${save}/contract2.pdo reveal_secret -s _secret2_ -a ${_sig2_}
 ##echo ${HEADER} secret stored in contract 2 is ${_secret2_} ${ENDC}
 
 if --not -e ${_secret1_} ${_secret2_}
@@ -113,12 +113,12 @@ echo ${HEADER} secrets matched ${ENDC}
 echo ${INFO} test sgx report verification ${ENDC}
 identity -n user1
 
-set -q -s _report_ -f ${test_data}/report.json
-set -q -s _certificate_ -f ${test_data}/certificate.pem
-set -q -s _signature_ -f ${test_data}/signature.txt
-set -q -s _bad_signature_ -f ${test_data}/bad_signature.txt
+set -s _report_ -f ${test_data}/report.json
+set -s _certificate_ -f ${test_data}/certificate.pem
+set -s _signature_ -f ${test_data}/signature.txt
+set -s _bad_signature_ -f ${test_data}/bad_signature.txt
 
-attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_signature_}
+attestation -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_signature_}
 if -e ${_r_} false
    echo failed to verify SGX report
    exit -v 1
@@ -128,13 +128,13 @@ echo ${INFO} ${_r_} ${ENDC}
 
 trap_error
 
-attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_bad_signature_}
+attestation -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r ${_report_} -i ${_bad_signature_}
 if -e ${_error_code_} 0
    echo failed to identify invalid SGX signature
    exit -v -1
 fi
 
-attestation -q -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r "badreport" -i ${_signature_}
+attestation -f ${save}/contract1.pdo verify_sgx_report -s _r_ -c ${_certificate_} -r "badreport" -i ${_signature_}
 if -e ${_error_code_} 0
    echo failed to identify invalid SGX signature
    exit -v -1
