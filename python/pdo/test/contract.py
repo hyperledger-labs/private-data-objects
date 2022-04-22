@@ -70,9 +70,6 @@ def ErrorShutdown() :
     except Exception as e :
         logger.exception('shutdown failed')
 
-    # Send termination signal to commit tasks
-    ContractResponse.exit_commit_workers()
-
     sys.exit(-1)
 
 # -----------------------------------------------------------------
@@ -463,9 +460,6 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 
     logger.info('completed in %s', time.time() - start_time)
     logger.info('passed %d of %d tests', total_tests - total_failed, total_tests)
-
-    #shutdown commit workers
-    ContractResponse.exit_commit_workers()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

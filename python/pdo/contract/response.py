@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import atexit
+
 from pdo.contract.invocation import invocation_response
 import pdo.common.crypto as crypto
 from pdo.common.utility import deprecated
@@ -42,12 +44,13 @@ class ContractResponse(object) :
 
     # -------------------------------------------------------
     @staticmethod
-    def exit_commit_workers():
+    def __exit_commit_workers__():
         """Set the global variable stop_commit_service to True. This will be picked by the workers"""
 
         if ContractResponse.__start_commit_service__ is False: #if True no service has yet been started
             stop_replication_service()
             stop_transacion_processing_service()
+            ContractResponse.__start_commit_service__ = True
 
     # -------------------------------------------------------
     def __init__(self, request, response) :
@@ -101,6 +104,8 @@ class ContractResponse(object) :
 
         #start threads for commiting response if not done before
         if ContractResponse.__start_commit_service__:
+            atexit.register(ContractResponse.__exit_commit_workers__)
+
             # start replication service
             start_replication_service()
             start_transaction_processing_service()
