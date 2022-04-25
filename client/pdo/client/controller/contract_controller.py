@@ -130,8 +130,8 @@ class Bindings(object) :
         return saved
 
     # --------------------------------------------------
-    def isbound(self, variable) :
-        return variable in self.__bindings__
+    def isbound(self, variable, default_value=None) :
+        return self.__bindings__.get(variable, default_value)
 
     # --------------------------------------------------
     def expand(self, argstring) :
