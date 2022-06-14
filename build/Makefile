@@ -100,6 +100,7 @@ $(PYTHON_DIR) :
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade websocket-client
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade msgpack
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19
+	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade mergedeep
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
