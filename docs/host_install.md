@@ -41,28 +41,12 @@ sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compil
 
 This project contains a modified version of the Tinyscheme interpreter
 for use within a secure enclave.  You **also** need a separate, plain
-copy of Tinyscheme to use outside the enclave for contract development.
+copy of Tinyscheme to use outside the enclave for contract development. Use the following
+command to install tinyscheme.
 
-- Download the Tinyscheme source:
-```bash
-wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip -P /tmp
-```
-
-- Extract and compile it:
-```bash
-cd ${PDO_SOURCE_ROOT}
-unzip /tmp/tinyscheme-1.41.zip
-cd tinyscheme-1.41
-make FEATURES='-DUSE_DL=1 -DUSE_PLIST=1'
-```
-
-- Set the `TINY_SCHEME_SRC` environment variable to the directory where
-you built the package (this environment variable will be used in
-the PDO build process so you might consider adding it to your login
-shell script (`~/.bashrc` or similar):
 
 ```bash
-export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
+sudo apt install tinyscheme
 ```
 
 ## Install SGX Platform Libraries and Services
@@ -201,7 +185,6 @@ PDO into a Python virtual environment in the directory
 `${PDO_SOURCE_ROOT}/build/_dev`.
 
 ```bash
-export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
 export SGX_MODE=SIM
 export SGX_SSL=/opt/intel/sgxssl
 source /opt/intel/sgxsdk/environment

@@ -27,14 +27,6 @@ var_set() {
 
 	i=0
 
-	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-${PDO_SOURCE_ROOT}/tinyscheme-1.41}"
-	env_desc[TINY_SCHEME_SRC]="
-		TINY_SCHEME_SRC points to the installation of the tinyscheme
-		source in order to build the library used to debug and test
-		contracts outside of the contract enclave
-	"
-	env_key_sort[$i]="TINY_SCHEME_SRC"; i=$i+1; export TINY_SCHEME_SRC=${env_val[TINY_SCHEME_SRC]};
-
 	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime}"
 	env_desc[WASM_SRC]="
 		WASM_SRC points to the installation of the wasm micro runtime
@@ -196,7 +188,7 @@ This script can be used to set the environment variables that are used
 in the build, installation & execution process. While the build should
 progress with only the default values specified, commonly five variables
 are set and then this file is evaluated. These five variables are:
-WASM_SRC, TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
+WASM_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
 PDO_LEDGER_KEY_ROOT. In case you run in SGX HW mode you usally will define
 PDO_SGX_KEY_ROOT. See further down information on these variables and
 others you could override from defaults.
@@ -208,7 +200,6 @@ local configuration file may be constructed as:
    export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
    export PDO_LEDGER_URL=http://127.0.0.1:8008
    export PDO_LEDGER_TYPE=sawtooth
-   export TINY_SCHEME_SRC=${HOME}/tinyscheme-1.41
    export WASM_SRC=${HOME}/wasm
 
 and before buidling it you call script as
