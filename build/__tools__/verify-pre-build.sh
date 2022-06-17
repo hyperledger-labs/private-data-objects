@@ -38,7 +38,6 @@ function warn () {
 
 yell --------------- CONFIG AND ENVIRONMENT PRE-BUILD CHECK ---------------
 
-([ ! -z "${TINY_SCHEME_SRC}" ] && [ -f ${TINY_SCHEME_SRC}/scheme.h ] ) || warn "Missing or invalid environment variable TINY_SCHEME_SRC"
 : "${PDO_INSTALL_ROOT:-$(warn Missing environment variable PDO_INSTALL_ROOT)}"
 : "${PDO_HOME:-$(warn Missing environment variable PDO_HOME)}"
 : "${PDO_ENCLAVE_CODE_SIGN_PEM:-$(warn Missing environment variable PDO_ENCLAVE_CODE_SIGN_PEM)}"
@@ -60,14 +59,10 @@ try command -v cmake
 try command -v swig
 try command -v make
 try command -v g++
-try command -v ${TINY_SCHEME_SRC}/scheme
+try command -v tinyscheme
 
 if [ ! -d "${PDO_INSTALL_ROOT}" ]; then
     warn "PDO_INSTALL_ROOT directory does not exist"
-fi
-
-if [ ! -d "${TINY_SCHEME_SRC}" ]; then
-    warn "TINY_SCHEME_SRC directory does not exist"
 fi
 
 if [ ! -f "${PDO_ENCLAVE_CODE_SIGN_PEM}" ]; then

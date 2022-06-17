@@ -104,14 +104,6 @@ compile flags, logging statements in the enclave, etc. Since
 happening inside a contract, do not use with confidential contracts.
 
 <!-- -------------------------------------------------- -->
-### `TINY_SCHEME_SRC`
-(default: `${PDO_SOURCE_ROOT}/tinyscheme-1.41`)
-
-`TINY_SCHEME_SRC` points to the installation of the tinyscheme source in
-order to build the library used to debug and test contracts outside of
-the contract enclave.
-
-<!-- -------------------------------------------------- -->
 ### `WASM_SRC`
 (default: `${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime`)
 

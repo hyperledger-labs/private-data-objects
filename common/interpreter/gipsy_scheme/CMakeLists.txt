@@ -18,13 +18,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 # Configure Environment
 ################################################################################
 
-# Read environment variables
-SET(TINY_SCHEME_SRC "$ENV{TINY_SCHEME_SRC}")
-
-# Error checking on environment variables
-if("${TINY_SCHEME_SRC} " STREQUAL " ")
-    message(WARNING "TINY_SCHEME_SRC environment variable not defined! Optional gipsy pcontract.so utility for building contracts will not be compiled.")
-endif()
 
 ################################################################################
 # Common components for both trusted and untrusted common libraries
@@ -41,11 +34,6 @@ SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=
 # Package headers compiled from scheme
 ################################################################################
 SET(GIPSY_PACKAGE_SRC "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm" "packages/dispatch-package.scm")
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h
-                   COMMAND packages/build-init-package.sh
-                   ARGS --package "packages/package" -- ${GIPSY_PACKAGE_SRC}
-                   DEPENDS ${GIPSY_PACKAGE_SRC}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h)
 
@@ -81,25 +69,22 @@ endif()
 # NOTE: This uses the public version of tinyscheme which is NOT included
 #       in this project!
 ################################################################################
+SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 
-if(NOT "${TINY_SCHEME_SRC} " STREQUAL " ")
-    SET(CMAKE_SHARED_LIBRARY_PREFIX "")
+SET(PCONTRACT_NAME pcontract)
+PROJECT(${PCONTRACT_NAME} CXX)
 
-    SET(PCONTRACT_NAME pcontract)
-    PROJECT(${PCONTRACT_NAME} CXX)
+# Only SchemeExtensions in the shared library
+ADD_LIBRARY(${PCONTRACT_NAME} SHARED ${PROJECT_HEADERS} SchemeExtensions.cpp)
 
-    # Only SchemeExtensions in the shared library
-    ADD_LIBRARY(${PCONTRACT_NAME} SHARED ${PROJECT_HEADERS} SchemeExtensions.cpp)
+TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${GENERIC_PRIVATE_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${GENERIC_PUBLIC_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC "../../packages/tinyscheme")
 
-    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${GENERIC_PRIVATE_INCLUDE_DIRS})
-    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${GENERIC_PUBLIC_INCLUDE_DIRS})
-    TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PUBLIC ${TINY_SCHEME_SRC})
+TARGET_COMPILE_OPTIONS(${PCONTRACT_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
 
-    TARGET_COMPILE_OPTIONS(${PCONTRACT_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
+TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-DUSE_DL=1")
+TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-D_UNTRUSTED_=1")
 
-    TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-DUSE_DL=1")
-    TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-D_UNTRUSTED_=1")
-
-    # Link the untrusted common library
-    TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS} "-lupdo-lmdb-block-store" "-lcrypto" "-lupdo-common" "-lssl" "-llmdb")
-endif()
+# Link the untrusted common library
+TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${UNTRUSTED_LIB_NAME} ${OPENSSL_LDFLAGS} "-lupdo-lmdb-block-store" "-lcrypto" "-lupdo-common" "-lssl" "-llmdb")

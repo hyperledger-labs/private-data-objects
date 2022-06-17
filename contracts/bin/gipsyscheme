@@ -26,8 +26,6 @@ PDO_SOURCE_ROOT="$(realpath ${SCRIPT_DIR}/../..)"
 source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
 
 
-: "${TINY_SCHEME_SRC:-$(die Missing environment variable TINY_SCHEME_SRC)}"
-
 INIT_FILE=$(mktemp /tmp/pdo-init.XXXXXXXXX)
 function cleanup {
     rm -f ${INIT_FILE}
@@ -48,4 +46,4 @@ fi
 GIPSY_PACKAGE_DIR=${PDO_SOURCE_ROOT}/common/interpreter/gipsy_scheme/packages/
 sed "s@PACKAGE_DIRECTORY@${GIPSY_PACKAGE_DIR}@" ${GIPSY_INIT_FILE} > ${INIT_FILE}
 
-LD_LIBRARY_PATH=${EXTENSION_PATH} TINYSCHEMEINIT=${INIT_FILE} ${TINY_SCHEME_SRC}/scheme $@
+LD_LIBRARY_PATH=${EXTENSION_PATH} TINYSCHEMEINIT=${INIT_FILE} tinyscheme $@

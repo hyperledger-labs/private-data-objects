@@ -4,7 +4,7 @@ https://creativecommons.org/licenses/by/4.0/
 --->
 # Building the common libraries
 
-Make sure you have environment variables `SGX_SDK`, `SGX_SSL` and `TINY_SCHEME_SRC` defined (see [environment.md](../docs/environment.md)) and then run
+Make sure you have environment variables `SGX_SDK`and`SGX_SSL` defined (see [environment.md](../docs/environment.md)) and then run
 ```
 mkdir build
 cd build
