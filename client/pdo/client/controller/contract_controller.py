@@ -66,33 +66,35 @@ class State(object) :
     # --------------------------------------------------
     def set_identity(self, identity, private_key_file=None) :
         if private_key_file is None :
-            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(options.name))
+            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(identity))
 
         self.identity = identity
         self.private_key_file = private_key_file
 
     # --------------------------------------------------
     def set(self, keylist, value) :
-        assert keylist
-
         current = self.__data__
         for key in keylist[:-1] :
             if key not in current :
                 current[key] = {}
+            # this can break of current is a value not a dict
+            # just let the exception happen & handle it elsewhere
             current = current[key]
 
         current[keylist[-1]] = value
+        return value
 
     # --------------------------------------------------
     def get(self, keylist, value=None) :
-        assert keylist
-
         current = self.__data__
         for key in keylist :
             if key not in current :
                 return value
+            # this can break of current is a value not a dict
+            # just let the exception happen & handle it elsewhere
             current = current[key]
         return current
+
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
