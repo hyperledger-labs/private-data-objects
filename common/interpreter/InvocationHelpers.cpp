@@ -86,6 +86,21 @@ void pc::parse_invocation_response(
     const JSON_Value* response_value = json_object_get_value(parsed_object, "Response");
     pe::ThrowIfNull(response_value, "invalid response string; missing Response field");
 
+    // status
+    outStatus = (json_object_dotget_boolean(parsed_object, "Status") == 1);
+    if (! outStatus) {
+        pe::ThrowIf<pe::RuntimeError>(
+            json_type(response_value) != JSONString,
+            "invalid invocation response; failure result must be a string");
+        outResponse = json_string(response_value);
+        outStateChanged = false;
+        return;
+    }
+
+    // state changed
+    outStateChanged = (json_object_dotget_boolean(parsed_object, "StateChanged") == 1);
+
+    // result
     size_t serialized_size = json_serialization_size(response_value);
     ByteArray serialized_response_value;
     serialized_response_value.resize(serialized_size);
@@ -110,12 +125,6 @@ void pc::parse_invocation_response(
         const char* state_hash = json_object_dotget_string(dependency, "StateHash");
         outDependencies[contract_id] = state_hash;
     }
-
-    // status
-    outStatus = (json_object_dotget_boolean(parsed_object, "Status") == 1);
-
-    // state changed
-    outStateChanged = (json_object_dotget_boolean(parsed_object, "StateChanged") == 1);
 }
 
 // -----------------------------------------------------------------
