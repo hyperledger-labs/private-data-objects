@@ -65,6 +65,7 @@ services:
         tail -f /dev/null
     volumes:
       - ./ccf_keys/:/project/pdo/build/opt/pdo/etc/keys/ledger/
+      - ./opt-pdo-logs/:/project/pdo/build/opt/pdo/logs/
 
 
   pdo-tp-ccf:

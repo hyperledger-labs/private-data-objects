@@ -19,6 +19,7 @@ jobs:
               uses: actions/checkout@v2
 
             - name: Build and run tests
+              id: build-and-run-tests
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
               run: |
@@ -27,4 +28,10 @@ jobs:
                   # this command, CI tests work on the main branch and on local
                   # branches. However, they fail as a PR is created.
                   git checkout -b we-need-a-branch-for-below-to-work
+                  touch .running-ci
                   make -C docker test
+
+            - name: Debug CI on failure
+              if: failure() && steps.build-and-run-tests.outcome != 'success'
+              run: |
+                ./build/__tools__/ci_debug.sh

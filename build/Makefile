@@ -224,6 +224,7 @@ register : $(PYTHON_DIR)
 endif
 
 test : $(PYTHON_DIR)
+	. test -f .running-ci && export PDO_LOG_LEVEL=debug
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
 
 benchmark : $(PYTHON_DIR)

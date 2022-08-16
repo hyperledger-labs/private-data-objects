@@ -57,6 +57,13 @@ DOCKER_COMPOSE_OPTS_STL += $(foreach cf, $(DOCKER_COMPOSE_FILES_STL), -f $(cf))
 DOCKER_COMPOSE_OPTS_CCF += $(foreach cf, $(DOCKER_COMPOSE_FILES_CCF), -f $(cf))
 DOCKER_COMPOSE_OPTS_CCF_ONLY += $(foreach cf, $(DOCKER_COMPOSE_FILES_CCF_ONLY), -f $(cf))
 
+#if the CI is running, we set a debug level log for run-tests
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+ifneq (,$(wildcard ${SRCDIR}/.running-ci))
+RUN_TESTS_PRE_OPTS="PDO_LOG_LEVEL=debug"
+endif
+
 all:
 
 pdo-dev-image:
@@ -128,7 +135,7 @@ test-with-no-build: test-env-setup-with-no-build
 	fi
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
-	   exec -T pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh
+	   exec -T pdo-build bash -i -c ${RUN_TESTS_PRE_OPTS} /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh
 	# - teardown
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) down
 
@@ -137,9 +144,9 @@ test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 	# - run automated tests
 	# the pdo container must add the ip address of the pdo-tp-ccf container to its no proxy list (if behind a proxy)
 	if [ ! -z "$(no_proxy)" ]; then \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && ${RUN_TESTS_PRE_OPTS} /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	else \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && ${RUN_TESTS_PRE_OPTS} /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	fi
 
 	# remove ccf keys from local folder

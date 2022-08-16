@@ -67,6 +67,7 @@ services:
         \""
     volumes:
       - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/ledger
+      - ./opt-pdo-logs/:/project/pdo/build/opt/pdo/logs/
 
   # PDO Transaction processor
   pdo-tp:
