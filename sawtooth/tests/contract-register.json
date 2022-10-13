@@ -1,8 +1,0 @@
-{
-  "af" : "pdo_contract_instance_registry",
-  "verb": "register",
-  "contract_code_hash": "code-hash-1",
-  "pdo_contract_creator_pem_key": "",
-  "pdo_signature": "",
-  "provisioning_service_ids": ["p1", "p2", "p3", "p4", "p5"]
-}
