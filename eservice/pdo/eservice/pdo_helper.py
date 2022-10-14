@@ -306,10 +306,16 @@ class Enclave(object) :
 
             submitter = create_submitter(ledger_config, pdo_signer = self.txn_keys)
 
+            if self.proof_data != "" and ledger_config.get('LedgerType', "none") == "ccf":
+                logger.warning("Zeroing proof_data field since PDO-TP in CCF does not currently support SGX HW mode")
+                proof_data = ""
+            else:
+                proof_data = self.proof_data
+
             txnsignature = submitter.register_encalve(
                 self.verifying_key,
                 self.encryption_key,
-                self.proof_data,
+                proof_data,
                 self.nonce, # registration block content
                 ledger_config.get('Organization', "EMPTY")) # Eservice Organization Info
         except Exception as e :

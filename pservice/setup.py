@@ -88,10 +88,18 @@ libraries = [
     'updo-common'
 ]
 
-if sgx_mode_env == "HW":
+if sgx_mode_env == "HW" and os.environ.get('PDO_LEDGER_TYPE', "none") != "ccf":
     libraries.append('sgx_urts')
     libraries.append('sgx_uae_service')
     SGX_SIMULATOR_value = '0'
+
+if sgx_mode_env == "HW" and os.environ.get('PDO_LEDGER_TYPE', "none") == "ccf":
+    # Forcing SIM mode since ccf does not support PDO HW mode
+    libraries.append('sgx_urts_sim')
+    libraries.append('sgx_uae_service_sim')
+    print("Forcing SIM mode in PService since ccf does not support PDO HW mode")
+    SGX_SIMULATOR_value = '1'
+
 if sgx_mode_env == "SIM":
     libraries.append('sgx_urts_sim')
     libraries.append('sgx_uae_service_sim')
