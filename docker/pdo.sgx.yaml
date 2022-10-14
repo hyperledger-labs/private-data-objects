@@ -1,0 +1,51 @@
+# Copyright 2017 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+# This docker-compose file extends the basic sawtooth-pdo template with support
+# for SGX in hardware mode. To use add a '-f sawtooth-pdo.sgx.yaml' _after_ the
+# '-f sawtooth-pdo.yaml'. This can also be combined with sawtooth-pdo.local-code.yaml.
+
+# Before you can run the containers in hardware mode, you will have to prepare following
+# files in the sgx subdirectory
+# - sgx_spid.txt
+# - sgx_spid_api_key.txt
+# - sgx_ias_key.pem
+# See 'build/common-config -h' for information on the content of these files
+#
+# in the pdo-build shell (see sawtooth-pdo.yaml), before doing any operation
+# you also will have to register sgx-related information in the ledger with
+# following steps
+#    export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/
+#    unset PDO_SPID PDO_SPID_API_KEY
+#    source /project/pdo/src/private-data-objects/build/common-config.sh
+#    make -C /project/pdo/src/private-data-objects/build conf register
+
+version: "2.1"
+
+services:
+
+  # PDO EHS, PS and client ...
+  pdo-build:
+    image: pdo-sgx-build
+    container_name: pdo-sgx-build
+    build:
+      args:
+        SGX_MODE: HW
+    volumes:
+      - ${PDO_SGX_KEY_ROOT:-./sgx/}:/project/pdo/build/opt/pdo/etc/keys/sgx/
+      - /var/run/aesmd:/var/run/aesmd
+    devices:
+      - ${SGX_DEVICE_PATH:-/dev/isgx}:${SGX_DEVICE_PATH:-/dev/isgx}
+

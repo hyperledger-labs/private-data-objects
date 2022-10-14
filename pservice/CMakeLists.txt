@@ -38,6 +38,12 @@ if("${SGX_MODE} " STREQUAL " ")
 endif()
 IF("${SGX_MODE}" STREQUAL "SIM")
     OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" TRUE)
+ELSEIF("$ENV{PDO_LEDGER_TYPE}" STREQUAL "ccf")
+    # Note: we force SIM mode in the pservice when using ccf,
+    #       because ccf currently does not accept/verify/return the proof_data field,
+    #       which is verified by the pservice in HW mode
+    message(WARNING, "Forcing SIM mode at PService because CCF is being used")
+    OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" TRUE)
 ELSE()
     OPTION(SGX_USE_SIMULATOR "Use the sgx simulator" FALSE)
     If(NOT EXISTS ${PDO_TOP_DIR}pservice/lib/libpdo_enclave/contract_enclave_mrenclave.cpp)
