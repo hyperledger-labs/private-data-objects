@@ -68,7 +68,7 @@ var_set() {
 	"
 	env_key_sort[$i]="SGX_MODE"; i=$i+1; export SGX_MODE=${env_val[SGX_MODE]}
 
-	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:8008}"
+	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:6600}"
 	env_desc[PDO_LEDGER_URL]="
 		PDO_LEDGER_URL is the URL is to submit transactions to the ledger.
 	"
@@ -76,7 +76,7 @@ var_set() {
 
 	env_val[PDO_LEDGER_TYPE]="${PDO_LEDGER_TYPE:-ccf}"
 	env_desc[PDO_LEDGER_TYPE]="
-		PDO_LEDGER_TYPE is the ledger used by PDO. Choose either sawtooth or ccf
+		PDO_LEDGER_TYPE is the ledger used by PDO. Available options: ccf
 	"
 	env_key_sort[$i]="PDO_LEDGER_TYPE"; i=$i+1; export PDO_LEDGER_TYPE=${env_val[PDO_LEDGER_TYPE]}
 
@@ -85,7 +85,7 @@ var_set() {
 		env_val[PDO_DEFAULT_SIGCURVE]="${PDO_DEFAULT_SIGCURVE:-SECP384R1}"
 		env_desc[PDO_DEFAULT_SIGCURVE]="
 			PDO_DEFAULT_SIGCURVE is the ECDSA curve used by PDO for generating signatures.
-			Choose SECP384R1 for ccf. If not set, cyrpto library uses SECP256K1 as default which works for sawtooth"
+			Choose SECP384R1 for ccf. If not set, the crypto library uses SECP256K1 by default."
 		env_key_sort[$i]="PDO_DEFAULT_SIGCURVE"; i=$i+1; export PDO_DEFAULT_SIGCURVE=${env_val[PDO_DEFAULT_SIGCURVE]}
 	fi
 
@@ -154,15 +154,6 @@ var_set() {
 		placed under this folder. These keys get generated during ccf deployment.
 	"
 	env_key_sort[$i]="PDO_LEDGER_KEY_ROOT"; i=$i+1; export PDO_LEDGER_KEY_ROOT=${env_val[PDO_LEDGER_KEY_ROOT]}
-
-	env_val[PDO_LEDGER_KEY_SKF]="${PDO_LEDGER_KEY_SKF:-${PDO_LEDGER_KEY_ROOT}/pdo_validator.priv}"
-	env_desc[PDO_LEDGER_KEY_SKF]="
-		PDO_LEDGER_KEY_SKF is used to update settings in the Sawtooth validator.
-		This is the key used by the Sawtooth ledger and is generally
-		found in the file .sawtooth/keys/ledger.priv in the
-		Sawtooth installation directory hiearchy.
-	"
-	env_key_sort[$i]="PDO_LEDGER_KEY_SKF"; i=$i+1; export PDO_LEDGER_KEY_SKF=${env_val[PDO_LEDGER_KEY_SKF]}
 	}
 
 do_export() {
@@ -198,8 +189,8 @@ local configuration file may be constructed as:
 
    export PDO_LEDGER_KEY_ROOT=${HOME}/keys/ledger
    export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
-   export PDO_LEDGER_URL=http://127.0.0.1:8008
-   export PDO_LEDGER_TYPE=sawtooth
+   export PDO_LEDGER_URL=http://127.0.0.1:6600
+   export PDO_LEDGER_TYPE=ccf
    export WASM_SRC=${HOME}/wasm
 
 and before buidling it you call script as
@@ -210,7 +201,7 @@ If passed the parameter --evalable-export it will
 return a list of export commands of the variables
 instead of directly exporting them to the environment.
 Passing parameter --reset-keys will unset keying variables
-PDO_ENCLAVE_CODE_SIGN_PEM, PDO_LEDGER_KEY_SKF,
+PDO_ENCLAVE_CODE_SIGN_PEM,
 PDO_SPID and PDO_SPID_API_KEY before setting variables.
 
 The list of variables set (in order they are defined, their defaults
@@ -238,7 +229,6 @@ do
             # depend on those variables
 	    # -----------------------------------------------------------------
 	    unset PDO_ENCLAVE_CODE_SIGN_PEM
-	    unset PDO_LEDGER_KEY_SKF
 	    unset PDO_SPID
 	    unset PDO_SPID_API_KEY
             ;;

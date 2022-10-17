@@ -48,7 +48,7 @@ version = subprocess.check_output(
 
 setup(name='pdo_client',
       version=version,
-      description='Client utilities for Sawtooth private contracts',
+      description='Client utilities for private contracts',
       author='Mic Bowman, Intel Labs',
       author_email='mic.bowman@intel.com',
       url='http://www.intel.com',

@@ -42,8 +42,8 @@ different service instances plus the `pdo-shell` client configuration.
 
 # <a name="Ledger">Run the Ledger
 
-Using PDO requires a running instance of a ledger (Hyperledger Sawtooth or
-Microsoft CCF). The easiest way to spin up an instance of the ledger for
+Using PDO requires a running instance of a ledger (Microsoft CCF).
+The easiest way to spin up an instance of the ledger for
 local testing is to use the provided Docker images.
 
 Run the following commands:

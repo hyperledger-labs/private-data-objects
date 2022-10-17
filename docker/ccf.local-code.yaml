@@ -13,10 +13,10 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# This docker-compose file extends the basic sawtooth-pdo template with support
+# This docker-compose file extends the basic ccf-pdo template with support
 # to build from code _committed_ to workspace.
-# To use add a '-f sawtooth-pdo.local-code.yaml' _after_ the
-# '-f sawtooth-pdo.yaml'. This can also be combined with sawooth-pdo.sgx.yaml.
+# To use add a '-f ccf-pdo.local-code.yaml' _after_ the
+# '-f ccf-pdo.yaml'. This can also be combined with ccf-pdo.sgx.yaml.
 # To get latest code, you might want to run 'docker-compose .... build' before
 # running 'docker-compose ... up'
 
