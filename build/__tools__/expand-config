@@ -83,12 +83,10 @@ except KeyError as ke :
     sys.exit(-1)
 
 #deduce eservice key format based on ledger type
-if LedgerType == 'sawtooth':
-    EserviceKeyFormat = 'skf'
-elif LedgerType == 'ccf':
+if LedgerType == 'ccf':
     EserviceKeyFormat = 'pem'
 else:
-    print("Cannot configure eservice keys. Invalid ledger type, Must be 'sawtooth' or 'ccf'" )
+    print("Cannot configure eservice keys. Invalid ledger type, Must be 'ccf'" )
     sys.exit(-1)
 
 ContractHost = os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
@@ -147,7 +145,7 @@ def expand_multiple(options, n) :
 # -----------------------------------------------------------------
 import argparse
 
-parser = argparse.ArgumentParser(description='Script to generate sawtooth configuration files from a template')
+parser = argparse.ArgumentParser(description='Script to generate configuration files from a template')
 
 parser.add_argument('--template', help='Name of the base configuration file to use', default='template.js')
 parser.add_argument('--template-directory', help='Directory in which the template configuration will be found', default='etc/templates')

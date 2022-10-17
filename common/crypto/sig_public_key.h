@@ -54,10 +54,10 @@ namespace crypto
             // throws RuntimeError
             std::string Serialize() const;
             // throws RuntimeError
-            // Serialize EC point (X,Y) to hex string for Sawtooth compatibility
+            // Serialize EC point (X,Y) to hex string
             // throws RuntimeError
             std::string SerializeXYToHex() const;
-            // Deserialize EC point (X,Y) hex string for Sawtooth compatibility
+            // Deserialize EC point (X,Y) hex string
             // throws RuntimeError, ValueError
             void DeserializeXYFromHex(const std::string& hexXY);
             // Verify signature signature.data() on message.data() and return 1 if signature is

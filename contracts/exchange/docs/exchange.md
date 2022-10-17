@@ -112,7 +112,7 @@ marbles, and the escrow claim. The escrow proof is set in the context of a parti
 the state of the BMC contract object. That is, the proof of escrow holds if and only if the current
 state of the BMC (which captures that Alice's holding has been escrowed) has been committed to the
 ledger. This requirement is captured by transaction dependencies that are enforced by the
-Coordination and Commit transaction processor in Sawtooth. Figure 2 shows the dependencies between
+Coordination and Commit transaction processor in the ledger. Figure 2 shows the dependencies between
 state update transactions that must be enforced by the TP.
 
 5. Once Alice finishes, Bob can examine the exchange object and see that Alice is offering 100 blue

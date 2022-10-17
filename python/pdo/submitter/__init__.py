@@ -13,6 +13,5 @@
 # limitations under the License.
 
 __all__ = [ "ccf",
-        "sawtooth",
         "submitter",
         "create"]

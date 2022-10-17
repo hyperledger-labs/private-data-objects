@@ -49,7 +49,7 @@ COPY . /tmp/build-src
 # get the pdo tp source code
 RUN mkdir -p /pdo/dev
 RUN cd /pdo \
-	&& git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} private-data-objects
+	&& git clone --single-branch --branch ${PDO_REPO_BRANCH} ${PDO_REPO_URL} private-data-objects
 WORKDIR /pdo/
 
 # Env variables needed to build pdo-tp-ccf. Also generate the enclave signing key

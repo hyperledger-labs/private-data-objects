@@ -27,8 +27,6 @@ PY_VERSION=${shell . $(abspath $(DSTDIR)/bin/activate) && python3 --version | se
 MOD_VERSION=${shell ../bin/get_version}
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
-#PROTOBUF_DPATH = pdo/submitter/sawtooth/pdo_protos/
-#PROTOBUF_SPATH = pdo/submittersawtooth/pdo_protos/protobufs//
 PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo_contract_registry.proto
 PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
 PYTHON_SOURCE = $(shell cat MANIFEST)

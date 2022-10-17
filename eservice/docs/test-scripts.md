@@ -13,7 +13,7 @@ second script, ``test-contract.py`` supports arbitrary contracts and
 reads the messages from a file.
 
 Both scripts can optionally include the provisioning service, enclave
-service and a Sawtooth ledger.
+service and a ledger.
 
 The flow for both scripts includes the following:
 1. create and register an enclave, if necessary
@@ -48,8 +48,8 @@ file.
 
 The following configuration variables can be specified:
 
-* ``Sawtooth``
-  * ``LedgerURL`` -- the URL to use for the Sawtooth ledger; if no value is
+* ``Ledger``
+  * ``LedgerURL`` -- the URL to use for the ledger; if no value is
   specified, then the test will not send transactions to the ledger
   * ``Organization`` -- the organization name used in the enclave
   registration transaction; unused if an eservice is specified
@@ -93,7 +93,7 @@ the configuration file
 * ``--config <string>`` -- name of the configuration file
 * ``--config-dir <string>`` -- path to the configuration file if the config file
   name is not absolute
-* ``--ledger <string>`` -- URL for the Sawtooth ledger
+* ``--ledger <string>`` -- URL for the ledger
 * ``--no-ledger`` -- flag to indicate that no ledger should be used
 * ``--data <string>`` -- path to directory used for storing data
 * ``--secret-count <integer>`` -- number of secrets to generate if no
@@ -176,17 +176,17 @@ extension.
 $ python test-request.py --no-ledger
 
 # Run the test with a ledger receiving transactions
-$ python test-request.py --ledger http://localhost:8008 --loglevel warn
+$ python test-request.py --ledger http://localhost:6600 --loglevel warn
 
 # Run the test with the integer key contract, a ledger
 # and two provisioningservices
-$ python test-contract.py --ledger http://localhost:8008 \
+$ python test-contract.py --ledger http://localhost:6600 \
     --pservice http://localhost:7101 http://localhost:7102 \
     --contract integer-key
 
 # Run the test with the mock-contract, a ledger, two provisioning
 # services, and an enclave service, 500 increment operations
-$ python test-request.py --ledger http://localhost:8008 \
+$ python test-request.py --ledger http://localhost:6600 \
     --pservice http://localhost:7101 http://localhost:7102 \
     --eservice http://localhost:7001 \
     --iterations 500

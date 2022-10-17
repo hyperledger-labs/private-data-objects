@@ -74,17 +74,14 @@ class ContractRequest(object) :
 
     # -------------------------------------------------------
     def make_channel_keys(self, ledger_type=os.environ.get('PDO_LEDGER_TYPE')):
-        if ledger_type=='sawtooth':
-            self.channel_keys =  keys.TransactionKeys()
-            self.channel_id = self.channel_keys.txn_public
-        elif ledger_type=='ccf':
+        if ledger_type=='ccf':
             ## the channel keys for CCF are really just a uniquifier since we don't
             ## need to hide the submitters ID (since CCF runs inside SGX)
             seed = crypto.random_bit_string(32)
             self.channel_id = crypto.byte_array_to_base64(seed)
             self.channel_keys = crypto.string_to_byte_array(self.channel_id)
         else:
-            raise Exception("Invalid Ledger Type. Must be either sawtooth or ccf.")
+            raise Exception("Invalid Ledger Type. Must be ccf.")
 
     # -------------------------------------------------------
     @property

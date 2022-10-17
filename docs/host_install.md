@@ -19,7 +19,7 @@ installation is described below.
 - Install SGX SSL
 - Install required build dependencies
 - Set up environment variables to configure the build
-- Build and install Sawtooth
+- Build and install CCF
 - Build the PDO package
 
 ## <a name="environment">Setup Build Environment</a>
@@ -205,10 +205,7 @@ Processors; transaction processors enable the distributed ledger to handle
 application requests. This repository contains the code required to build
 Transaction Processors that handle PDO requests.
 
-Currently, PDO supports two types of ledgers: Hyperledger Sawtooth and
-Microsoft CCF. The default ledger choice for PDO is Sawtooth. The CCF based
-ledger can be enabled by setting the environment variable
-`PDO_LEDGER_TYPE=ccf.`
+Currently, PDO supports one type of ledger: Microsoft CCF.
 
 We recommend running a ledger instance locally in the provided Docker image:
 ```
@@ -223,16 +220,6 @@ For details on how to configure PDO for a given ledger, see [environment.md](./e
 ### Build and Install Ledger Natively
 
 It is also possible to run the ledger natively on the host.
-
-Follow the
-[setup document](../sawtooth/docs/SETUP.md)
-to install both Sawtooth and the custom Sawtooth Transaction Processors.
-
-Note that the Sawtooth components do not depend on any other components
-of the PDO project, and can be set up on an entirely separate machine from
-the one running Private Data Objects. It is recommended that Sawtooth be
-run on Ubuntu 16.04 as it is the only operating system version on which
-Sawtooth is actively supported.
 
 See [HERE](../ccf_transaction_processor/Readme.md) to learn more about the
 ccf based transaction processor. Currently PDO supports CCF ledger under

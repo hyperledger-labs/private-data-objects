@@ -7,17 +7,10 @@ https://creativecommons.org/licenses/by/4.0/
 This page provides and index to the documentation for each of the PDO
 components.
 
-# Sawtooth & Transaction Processors
+# CCF & Transaction Processors
 
-General information about how the sawtooth transaction processors work and how
-to use the pdo-cli command-line application to query the state of the Sawtooth
-blockchain can be found [here](../sawtooth/docs/USAGE.md).
-
-Information about the three different types of transaction processors used by
-Private Data Objects is here:
-- [Contract Registry](../sawtooth/docs/cregistry.md)
-- [Enclave Registry](../sawtooth/docs/eregistry.md)
-- [Coordination and Commit Log](../sawtooth/docs/ccl.md)
+General information about how the ccf transaction processors work
+can be found [here](../ccf_transaction_processor/README.md).
 
 # Common library
 

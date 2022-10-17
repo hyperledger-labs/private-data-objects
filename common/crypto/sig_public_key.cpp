@@ -235,7 +235,7 @@ void pcrypto::sig::PublicKey::Deserialize(const std::string& encoded)
 }  // pcrypto::sig::PublicKey::Deserialize
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// Deserialize EC point (X,Y) hex string for Sawtooth compatibility
+// Deserialize EC point (X,Y) hex string
 // throws RuntimeError, ValueError
 void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
 {
@@ -329,7 +329,7 @@ std::string pcrypto::sig::PublicKey::Serialize() const
 }  // pcrypto::sig::PublicKey::Serialize
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // throws RuntimeError
-// Serialize EC point (X,Y) to hex string for Sawtooth compatibility
+// Serialize EC point (X,Y) to hex string
 std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 {
     if (key_ == nullptr)

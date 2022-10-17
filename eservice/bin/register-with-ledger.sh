@@ -90,15 +90,16 @@ function Register {
         VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
 
         : "${PDO_LEDGER_URL:?Registration failed! PDO_LEDGER_URL environment variable not set}"
-        : "${PDO_LEDGER_KEY_SKF:?Registration failed! PDO_LEDGER_KEY_SKF environment variable not set}"
         : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
-        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-            pdo.test.registry.measurements ${VAR_MRENCLAVE}
-        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-            pdo.test.registry.basenames ${VAR_BASENAME}
-        try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-            pdo.test.registry.public_key "$(cat $PDO_IAS_KEY_PEM)"
+        yell WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+        yell ""
+        yell Skipping registration to the ledger ${PDO_LEDGER_URL} of
+        yell "MRENCLAVE=${VAR_MRENCLAVE}"
+        yell "BASENAME=${VAR_BASENAME}"
+        yell "PDO_IAS_KEY_PEM=${PDO_IAS_KEY_PEM}"
+        yell ""
+        yell WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
     fi
 }
 
