@@ -24,8 +24,6 @@ $(error must be run with python3)
 endif
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
-PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo_contract_registry.proto
-PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
 CRYPTO_SWIG_SOURCE = pdo/common/crypto.i
@@ -58,12 +56,6 @@ endif
 
 all: $(EGG_FILE)
 
-#$(PROTOBUF_DPATH)%_pb2.py : $(PROTOBUF_SPATH)%.proto
-#	protoc --python_out=$(PROTOBUF_DPATH) --proto_path=$(PROTOBUF_SPATH) $<
-
-#$(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH),$(PROTOBUF_SOURCE))
-
-#$(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
 $(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(PYTHON_SOURCE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py bdist_egg
@@ -87,7 +79,6 @@ test: install
 	(cd ../common/tests/crypto && python3 test_cryptoWrapper.py)
 
 clean:
-	#rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
 	rm -f $(addprefix pdo/common/, crypto.py crypto_wrap.cpp)
 	rm -f $(addprefix pdo/common/key_value_swig/, key_value_swig.py key_value_swig_wrap.cpp)
 	rm -rf build dist pdo_common_library.egg-info

@@ -48,12 +48,6 @@ yell --------------- CONFIG AND ENVIRONMENT PRE-BUILD CHECK ---------------
 
 $(pkg-config --atleast-version=1.1.0g openssl) || warn "WARNING: Openssl version found in PKG_CONFIG_PATH must be 1.1.0g or greater"
 
-try command -v protoc
-PROTOC_VERSION=$(protoc --version | sed 's/libprotoc \([0-9]\).*/\1/')
-if [[ "$PROTOC_VERSION" -lt 3 ]]; then
-    warn "protoc must be version3 or higher"
-fi
-
 try command -v python3
 try command -v cmake
 try command -v swig

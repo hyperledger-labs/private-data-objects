@@ -101,7 +101,6 @@ $(PYTHON_DIR) :
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade twisted
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyyaml
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade google
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade protobuf==3.19.0
 	. $(abspath $(DSTDIR)/bin/activate) && pip install secp256k1==0.13.2
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade cryptography
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyparsing
