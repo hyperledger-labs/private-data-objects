@@ -27,8 +27,6 @@ PY_VERSION=${shell . $(abspath $(DSTDIR)/bin/activate) && python3 --version | se
 MOD_VERSION=${shell ../bin/get_version}
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
-PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo_contract_registry.proto
-PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
 CRYPTO_SWIG_SOURCE = pdo/common/crypto.i
@@ -51,12 +49,6 @@ COMMON_LIB = ../common/build/libupdo-common.a
 
 all: $(EGG_FILE)
 
-#$(PROTOBUF_DPATH)%_pb2.py : $(PROTOBUF_SPATH)%.proto
-#	protoc --python_out=$(PROTOBUF_DPATH) --proto_path=$(PROTOBUF_SPATH) $<
-
-#$(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH),$(PROTOBUF_SOURCE))
-
-#$(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
 $(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(PYTHON_SOURCE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		python setup.py bdist_egg
@@ -73,7 +65,6 @@ test: install
 	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
 
 clean:
-	#rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		python setup.py clean --all
 

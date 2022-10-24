@@ -30,7 +30,7 @@ distributions will require similar packages.
 ```bash
 sudo apt install -y cmake curl git pkg-config unzip xxd libssl-dev build-essential
 sudo apt install -y swig python3 python3-dev python3-venv virtualenv
-sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compiler libncurses5-dev
+sudo apt install -y liblmdb-dev libsecp256k1-dev libncurses5-dev
 ```
 
 <!--
