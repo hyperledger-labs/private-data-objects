@@ -27,7 +27,7 @@ class ContractMessage(object) :
     def __init__(self, request_originator_keys, channel_id, **kwargs) :
         """
         :param request_originator_keys: object of type ServiceKeys
-        :param channel_keys: object of type TransactionKeys
+        :param channel_id: nonce
         """
         self.__request_originator_keys = request_originator_keys
         self.channel_id = channel_id

@@ -92,6 +92,7 @@ function Register {
         : "${PDO_LEDGER_URL:?Registration failed! PDO_LEDGER_URL environment variable not set}"
         : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
+        # FIXME: Replace when CCF TP has been updated for HW mode.
         yell WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
         yell ""
         yell Skipping registration to the ledger ${PDO_LEDGER_URL} of
