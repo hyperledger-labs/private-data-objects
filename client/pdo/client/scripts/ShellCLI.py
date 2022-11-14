@@ -37,14 +37,12 @@ def LocalMain(config) :
 
         logger.info("Processing script file %s", str(script_file))
         exit_code = ContractController.ProcessScript(shell, script_file)
-        ContractResponse.exit_commit_workers()
         sys.exit(exit_code)
 
     shell = ContractController.CreateController(config, echo=True, interactive=True)
     shell.cmdloop()
     print("")
 
-    ContractResponse.exit_commit_workers()
     sys.exit(shell.exit_code)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

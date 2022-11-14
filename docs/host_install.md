@@ -28,7 +28,7 @@ On a minimal Ubuntu system, the following packages are required. Other
 distributions will require similar packages.
 
 ```bash
-sudo apt install -y cmake curl git pkg-config unzip xxd libssl-dev
+sudo apt install -y cmake curl git pkg-config unzip xxd libssl-dev build-essential
 sudo apt install -y swig python3 python3-dev python3-venv virtualenv
 sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compiler libncurses5-dev
 ```
@@ -41,28 +41,12 @@ sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compil
 
 This project contains a modified version of the Tinyscheme interpreter
 for use within a secure enclave.  You **also** need a separate, plain
-copy of Tinyscheme to use outside the enclave for contract development.
+copy of Tinyscheme to use outside the enclave for contract development. Use the following
+command to install tinyscheme.
 
-- Download the Tinyscheme source:
-```bash
-wget https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip -P /tmp
-```
-
-- Extract and compile it:
-```bash
-cd ${PDO_SOURCE_ROOT}
-unzip /tmp/tinyscheme-1.41.zip
-cd tinyscheme-1.41
-make FEATURES='-DUSE_DL=1 -DUSE_PLIST=1'
-```
-
-- Set the `TINY_SCHEME_SRC` environment variable to the directory where
-you built the package (this environment variable will be used in
-the PDO build process so you might consider adding it to your login
-shell script (`~/.bashrc` or similar):
 
 ```bash
-export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
+sudo apt install tinyscheme
 ```
 
 ## Install SGX Platform Libraries and Services
@@ -75,7 +59,7 @@ Following commands will download and install PSW:
 echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
 wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
 sudo apt-get update
-sudo apt-get build-essential python #dependencies
+sudo apt-get install build-essential python #dependencies
 sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 ```
 
@@ -99,7 +83,7 @@ the SDK into the directory `/opt/intel`.
 
 ```bash
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/
-SDK_FILE=sgx_linux_x64_sdk_2.15.1.101.1.bin
+SDK_FILE=sgx_linux_x64_sdk_2.15.101.1.bin
 
 wget ${DRIVER_REPO}/${SDK_FILE} -P /tmp
 chmod a+x /tmp/${SDK_FILE}
@@ -201,7 +185,6 @@ PDO into a Python virtual environment in the directory
 `${PDO_SOURCE_ROOT}/build/_dev`.
 
 ```bash
-export TINY_SCHEME_SRC=${PDO_SOURCE_ROOT}/tinyscheme-1.41
 export SGX_MODE=SIM
 export SGX_SSL=/opt/intel/sgxssl
 source /opt/intel/sgxsdk/environment
@@ -231,7 +214,7 @@ We recommend running a ledger instance locally in the provided Docker image:
 ```
 cd $PDO_SOURCE_ROOT
 mkdir -p $PDO_LEDGER_KEY_ROOT
-make -C docker test-env-setup(-ccf)
+make -C docker test-env-setup # for CCF ledger use make -C docker test-env-setup-ccf-only
 cp docker/ccf_keys/*.pem $PDO_LEDGER_KEY_ROOT # only for CCF ledger
 ```
 

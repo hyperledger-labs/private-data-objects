@@ -223,6 +223,7 @@ say increment the value with a simple expression ${n} times, querying enclaves i
 for v in $(seq 1 ${n}) ; do
     e=$((v % pcontract_es + 1))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                       --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
                        --enclave "http://localhost:710${e}" --identity user1 \
                        --pdo_file ${SAVE_FILE} --method inc_value)
     if [ $value != $v ]; then
@@ -233,6 +234,7 @@ done
 say get the value and check it
 v=$((v+1)); e=$((v % pcontract_es + 1))
 value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                   --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
                    --enclave "http://localhost:710${e}" --identity user1 \
                    --pdo_file ${SAVE_FILE} --method get_value)
 if [ $value != $((n)) ]; then
@@ -261,7 +263,7 @@ try ${SRCDIR}/build/tests/shell-test.psh --loglevel ${PDO_LOG_LEVEL}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-if [[ "$PDO_INTERPRETER" =~ ^"wawaka-" ]]; then
+if [[ "$PDO_INTERPRETER" =~ ^"wawaka" ]]; then
     yell run system tests for contracts
 
     cd ${SRCDIR}/contracts/wawaka

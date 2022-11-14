@@ -23,10 +23,9 @@ using namespace tls;
 namespace ccfapp
 {
 
-
     bool TPHandlerRegistry ::verify_sig_static(
         vector<uint8_t> signature,
-        const tls::PublicKeyPtr & pubk_verifier,
+        const PublicKeyPtr & pubk_verifier,
         const vector<uint8_t>& contents)
     {
         // verify & return true or false
@@ -40,9 +39,9 @@ namespace ccfapp
         const vector<uint8_t>& contents)
     {
         // format the verifying key as needed by CCF to create the verifier
-        const auto public_key_pem = tls::Pem(CBuffer(verifying_key));
-        auto pubk_verifier = tls::make_public_key(public_key_pem, true); // false means use mbed, true means use bitcoin
-        return pubk_verifier->verify(contents, signature); // return true/false
+        const auto public_key_pem = crypto::Pem(CBuffer(verifying_key));
+        auto pubk_verifier = crypto::make_public_key(public_key_pem);
+        return pubk_verifier->verify(contents, signature); 
     }
 
     bool TPHandlerRegistry ::verify_pdo_transaction_signature_register_enclave(
@@ -102,7 +101,7 @@ namespace ccfapp
 
     bool TPHandlerRegistry ::verify_enclave_signature_add_enclave(
         const string& signature,
-        const tls::PublicKeyPtr & pubk_verifier,
+        const PublicKeyPtr & pubk_verifier,
         const string & contract_creator_key,
         const string & contract_id,
         const vector<ProvisioningKeysToSecretMap> & prov_key_maps,
@@ -141,7 +140,7 @@ namespace ccfapp
         const vector<uint8_t>& contract_metadata_hash,
         const string & contract_creator_verifying_key,
         const vector<uint8_t>& enclave_signature,
-        const tls::PublicKeyPtr & enclave_verifying_key)
+        const PublicKeyPtr & enclave_verifying_key)
     {
         vector<uint8_t> contents;
         contents.insert(contents.end(), nonce.begin(), nonce.end());
@@ -160,7 +159,7 @@ namespace ccfapp
         const vector<uint8_t> & contract_code_hash,
         const StateUpdateInfo & state_update_info,
         const vector<uint8_t>& enclave_signature,
-        const tls::PublicKeyPtr & enclave_verifying_key)
+        const PublicKeyPtr & enclave_verifying_key)
     {
         vector<uint8_t> contents;
 

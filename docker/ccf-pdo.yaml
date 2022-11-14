@@ -15,7 +15,7 @@
 
 # This docker-compose file starts a complete end-to-end environment for PDO/CCF with 
 # sgx in simulator mode. The code used are the main branch for pdo. For CCF,
-# we use version 0.11.7.  
+# we use version 1.0.19 
 #
 # To use, define the env host_ip (= host_ip_address) & do the following
 # - build base pdo-dev image (see docker/Dockerfile.pdo-dev for build-time options ..)

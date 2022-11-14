@@ -27,9 +27,9 @@
 ##    identity -- the identity of the contract creator
 ## $ ./pdo-invoke.psh -m contract <contract> -expr <expression> -m identity <identity>
 
-set -q --conditional -s data -v .
-set -q --conditional -s params -v ""
-set -q --conditional -s method -v ""
+set --conditional -s data -v .
+set --conditional -s params -v ""
+set --conditional -s method -v ""
 
 script -f ${home}/etc/site.psh
 
@@ -53,9 +53,9 @@ fi
 trap_error
 
 if -n ${params}
-   send -f ${pdo_file} ${method}
+   send -s _result_ -f ${pdo_file} ${method}
 else
-   send -f ${pdo_file} -p ${params} ${method}
+   send -s _result_ -f ${pdo_file} -p ${params} ${method}
 fi
 
 if -o ${_error_code_} 0
@@ -63,4 +63,5 @@ if -o ${_error_code_} 0
    exit -v ${_error_code_}
 fi
 
+echo ${_result_}
 exit

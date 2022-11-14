@@ -154,7 +154,6 @@ class EnclaveKeys(object) :
         :param signature: encoded signature
         :param encoding: the encoding used for the signature; one of raw, hex, b64
         """
-        logger.debug("signature for verification: %s", encoded_signature)
 
         if type(message) is bytes :
             message_byte_array = message
@@ -171,9 +170,6 @@ class EnclaveKeys(object) :
             decoded_signature = crypto.base64_to_byte_array(encoded_signature)
         else :
             raise ValueError('unknown encoding; {0}'.format(encoding))
-
-        logger.debug("verifying key: %s", self._verifying_key.Serialize())
-        logger.debug("signature for verification: %s", crypto.byte_array_to_hex(decoded_signature))
 
         result = self._verifying_key.VerifySignature(message_byte_array, decoded_signature)
         if result < 0 :
@@ -207,9 +203,6 @@ class EnclaveKeys(object) :
         else :
             raise ValueError('unknown encoding; {0}'.format(encoding))
 
-        logger.debug("message: %s", message)
-        logger.debug("encrypted message: %s", encoded_bytes)
-
         return encoded_bytes
 
 # -----------------------------------------------------------------
@@ -230,8 +223,12 @@ class ServiceKeys(object) :
 
     # -------------------------------------------------------
     @classmethod
-    def create_service_keys(cls) :
-        signing_key = crypto.SIG_PrivateKey()
+    def create_service_keys(cls, ledger_type=os.environ.get('PDO_LEDGER_TYPE')) :
+
+        if ledger_type == "ccf":
+            signing_key = crypto.SIG_PrivateKey(crypto.SigCurve_SECP384R1)
+        else:
+            signing_key = crypto.SIG_PrivateKey()
         signing_key.Generate()
         return cls(signing_key)
 
@@ -269,7 +266,6 @@ class ServiceKeys(object) :
         :param signature: encoded signature
         :param encoding: the encoding used for the signature; one of raw, hex, b64
         """
-        logger.debug("signature for verification: %s", encoded_signature)
 
         if type(message) is bytes :
             message_byte_array = message
@@ -318,8 +314,5 @@ class ServiceKeys(object) :
             encoded_signature = crypto.byte_array_to_base64(signature)
         else :
             raise ValueError('unknown encoding; {0}'.format(encoding))
-
-        logger.debug("message: %s", message)
-        logger.debug("signature: %s", encoded_signature)
 
         return encoded_signature

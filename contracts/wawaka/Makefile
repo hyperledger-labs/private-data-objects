@@ -16,8 +16,8 @@ ifndef PDO_INSTALL_ROOT
 $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
-ifndef PDO_INTERPRETER
-$(error Incomplete configuration, PDO_INTERPRETER is not defined)
+ifndef PDO_HOME
+$(error Incomplete configuration, PDO_HOME is not defined)
 endif
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -54,17 +54,7 @@ debug :
 test : install interface-test interpreter-test memory-test mock-contract-test
 
 # this is the system test target, these tests require an eservice
-system-test : install eservice-db attestation-test
-
-ESERVICE_DB=$(DATA_DIR)/eservice-test-db.json
-eservice-db:
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) reset --create && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) add -u http://localhost:7101 -n es7101 && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) add -u http://localhost:7102 -n es7102 && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) add -u http://localhost:7103 -n es7103 && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) add -u http://localhost:7104 -n es7104 && \
-		pdo-eservicedb --loglevel $(TEST_LOG_LEVEL) -d $(ESERVICE_DB) add -u http://localhost:7105 -n es7105
+system-test : install attestation-test kv-test
 
 interface-test:
 	@echo run test: $@
@@ -99,10 +89,15 @@ attestation-test:
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		cd attestation-test && \
 		scripts/attestation-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-			-m eservice_dbfile $(ESERVICE_DB) \
 			-m test_data $(SCRIPTDIR)/attestation-test/scripts
 
-install : build
+kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		cd kv-test && \
+		scripts/kv-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
+
+install : build $(PLUGIN_SOURCE) $(SCRIPT_SOURCE)
 	@echo install contracts
 	@cd build && make install
 	@mkdir -p $(PLUGIN_INSTALL_DIR); cp $(PLUGIN_SOURCE) $(PLUGIN_INSTALL_DIR)
@@ -113,7 +108,7 @@ build :
 	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
 
 .PHONY: test interface-test mock-contract-test interpreter-test memory-test
-.PHONY: system-test eservice-db attestation-test
+.PHONY: system-test eservice-db attestation-test kv-test
 .PHONY : all clean debug install test
 
 # Note: build is NOT a phony in this case; we make the directory and

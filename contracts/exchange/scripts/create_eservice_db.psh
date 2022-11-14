@@ -14,7 +14,7 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-set -q --conditional -s dbfile -v ${data}/eservice-db.json
+set --conditional -s dbfile -v ${data}/eservice-db.json
 
 eservice_db clear
 eservice_db add --url http://localhost:7101 --name es7101

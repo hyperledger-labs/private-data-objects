@@ -12,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
+endif
+
+ifndef PDO_INTERPRETER
+$(error Incomplete configuration, PDO_INTERPRETER is not defined)
+endif
+
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+DSTDIR ?= $(PDO_INSTALL_ROOT)
+
+PY_VERSION=${shell . $(abspath $(DSTDIR)/bin/activate) && python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
@@ -22,8 +33,22 @@ PROTOBUF_SOURCE = pdo_contract_ccl.proto pdo_contract_enclave_registry.proto pdo
 PROTOBUF_PYTHON = $(subst .proto,_pb2.py,$(PROTOBUF_SOURCE))
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
-SWIG_FILES = pdo/common/crypto.i
-SWIG_TARGET = pdo/common/crypto.py
+CRYPTO_SWIG_SOURCE = pdo/common/crypto.i
+CRYPTO_SWIG_TARGET = pdo/common/crypto.py
+CRYPTO_SWIG_FILES =				\
+	pdo/common/crypto.py			\
+	pdo/common/crypto_wrap.cpp
+KV_SWIG_SOURCE =					\
+	pdo/common/key_value_swig/key_value_swig.i	\
+	pdo/common/key_value_swig/block_store.h		\
+	pdo/common/key_value_swig/block_store.cpp	\
+	pdo/common/key_value_swig/key_value.h		\
+	pdo/common/key_value_swig/key_value.cpp
+KV_SWIG_TARGET = pdo/common/key_value_swig/key_value_swig.py
+KV_SWIG_FILES =							\
+	pdo/common/key_value_swig/key_value_swig.py		\
+	pdo/common/key_value_swig/key_value_swig_wrap.cpp
+
 COMMON_LIB = ../common/build/libupdo-common.a
 
 all: $(EGG_FILE)
@@ -33,21 +58,25 @@ $(PROTOBUF_DPATH)%_pb2.py : $(PROTOBUF_SPATH)%.proto
 
 $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH),$(PROTOBUF_SOURCE))
 
-$(EGG_FILE) : $(SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
-	python setup.py bdist_egg
+$(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python setup.py bdist_egg
 
-$(SWIG_TARGET) : $(SWIG_FILES) $(COMMON_LIB)
-	python setup.py build_ext --force
+$(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB)
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python setup.py build_ext --force
 
 install: $(EGG_FILE)
-	python setup.py install
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python setup.py install
 
 test: install
 	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
 
 clean:
 	rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
-	python setup.py clean --all
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python setup.py clean --all
 
 .phony : all
 .phony : clean

@@ -28,6 +28,34 @@ namespace pdo
      */
     namespace block_store
     {
+        typedef struct
+        {
+            size_t block_size_;
+            uint64_t create_time_;      // seconds since epoch when block added to the store
+            uint64_t expiration_time_;  // seconds since epoch when block storage contract expires
+            uint64_t tag_;
+        } BlockMetaData;
+
+        /**
+         * Gets the size of a block in the block store
+         * Primary expected use: ocall
+         *
+         * @param inId          pointer to id byte array
+         * @param inIdSize      length of inId
+         * @param outIsPresent  [output] true if value is present, false if not
+         * @param metadata [output] contents of the metadata entry if present
+         *
+         * @return
+         *  PDO_SUCCESS  outValueSize set to the number of bytes of value
+         *  else         failed, outValueSize undefined
+         */
+        pdo_err_t BlockStoreHead(
+            const uint8_t* inId,
+            const size_t inIdSize,
+            bool* outIsPresent,
+            BlockMetaData *metadata
+            );
+
         /**
          * Gets the size of a block in the block store
          * Primary expected use: ocall
@@ -104,6 +132,25 @@ namespace pdo
             const ByteArray& inId,
             bool* outIsPresent,
             size_t* outValueSize
+            );
+
+
+        /**
+         * Gets the size of a block in the block store
+         * Primary expected use: python / untrusted side
+         *
+         * @param inId          id byte array
+         * @param outIsPresent  [output] true if value is present, false if not
+         * @param outMetadata  [output] block metadata for the ID if present
+         *
+         * @return
+         *  PDO_SUCCESS  outValueSize set to the number of bytes of value
+         *  else         failed, outValueSize undefined
+         */
+        pdo_err_t BlockStoreHead(
+            const ByteArray& inId,
+            bool* outIsPresent,
+            pdo::block_store::BlockMetaData *outMetadata
             );
 
         /**

@@ -38,7 +38,7 @@ __local_block_manager__ = None
 def local_block_manager() :
     global __local_block_manager__
     if __local_block_manager__ is None :
-        block_store_file = pconfig.shared_configuration(['Contract','BlockStore'], "./blockstore.mdb")
+        block_store_file = pconfig.shared_configuration(['StorageService','BlockStore'], "./blockstore.mdb")
 
         __local_block_manager__ = BlockStoreManager(block_store_file, True)
     return __local_block_manager__
@@ -90,6 +90,7 @@ class BlockStoreManager(object) :
         :param service_keys ServiceKeys: ECDSA keys used to sign storage contracts
         :param create_block_store boolean: flag to note that missing blockstore file should be created
         """
+        self.block_store_file = block_store_file
         self.block_store_env = lmdb.open(
             block_store_file,
             create=create_block_store,
@@ -350,7 +351,6 @@ def sync_block_store(src_block_store, dst_block_store, root_block_id, root_block
     :param root_block_id string: block identifier for the root block
     :param root_block string: block data for the root block
     """
-
     if root_block is None :
         root_block = src_block_store.get_block(root_block_id)
 
@@ -365,13 +365,17 @@ def sync_block_store(src_block_store, dst_block_store, root_block_id, root_block
     root_block_json = json.loads(root_block)
     block_ids.extend(root_block_json['BlockIds'])
 
-    minimum_duration = kwargs.get('minimum_duration', pconfig.shared_configuration(['Replication', 'MinimumDuration'], 5))
-    duration = kwargs.get('duration', pconfig.shared_configuration(['Replication', 'Duration'], 60))
+    default_minimum_duration = pconfig.shared_configuration(['Replication', 'MinimumDuration'], 5)
+    minimum_duration = kwargs.get('minimum_duration', default_minimum_duration)
+
+    default_duration = pconfig.shared_configuration(['Replication', 'Duration'], 60)
+    duration = kwargs.get('duration', default_duration)
 
     # check to see which blocks need to be pushed
     blocks_to_push = []
     blocks_to_extend = []
     block_status_list = dst_block_store.check_blocks(block_ids)
+
     for block_status in block_status_list :
         # if the size is 0 then the block is unknown to the storage service
         if block_status['size'] == 0 :

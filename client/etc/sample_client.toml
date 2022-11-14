@@ -19,15 +19,22 @@
 Identity = "${identity}"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger -- ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
+# LedgerURL is used to submit the registration transaction should
+# the enclave require registration
+LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
+Organization = "Widgets R Us"
 
 # --------------------------------------------------
 # Service -- Information about enclave/provisioning services
 # --------------------------------------------------
 [Service]
+
+# Name of the default file for enclave service information
+EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
 
 # PreferredEnclaveService is the enclave service that
 # will be used by default for interactions with the
@@ -54,6 +61,19 @@ ProvisioningServiceURLs = [
 ]
 
 # --------------------------------------------------
+# StorageService -- information about KV block stores
+# --------------------------------------------------
+[StorageService]
+BlockStore = "${data}/client_${identity}.mdb"
+
+#--------------------------------------------------
+#Replication -- to maintain state availability
+#-------------------------------------------------
+[Replication]
+NumProvableReplicas=2
+Duration=120 #seconds
+
+# --------------------------------------------------
 # Contract -- Contract configuration
 # --------------------------------------------------
 [Contract]
@@ -78,6 +98,8 @@ DataDirectory = "${data}"
 # the contract information
 SaveFile = "${contract}.pdo"
 
+Interpreter = "${interpreter}"
+
 # --------------------------------------------------
 # Logging -- configuration of service logging
 # --------------------------------------------------
@@ -92,3 +114,13 @@ LogFile  = "${logs}/${identity}.log"
 # This key is the contract owner's private elliptic curve PEM key
 SearchPath = [ ".", "./keys", "${keys}" ]
 FileName = "${identity}.pem"
+
+# --------------------------------------------------
+# Bindings -- macro expansions for pdo-shell
+# --------------------------------------------------
+[Bindings]
+data = "${data}"
+save = "${data}/__contract_cache__"
+home = "${home}"
+base = "${base}"
+identity = "${identity}"

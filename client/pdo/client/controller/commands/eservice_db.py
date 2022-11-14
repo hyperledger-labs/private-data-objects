@@ -35,8 +35,6 @@ def command_eservice_db(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='eservice_db')
-    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
-
     subparsers = parser.add_subparsers(dest='command')
 
     add_parser = subparsers.add_parser('add', description='add an eservice to the database')
@@ -53,6 +51,7 @@ def command_eservice_db(state, bindings, pargs) :
 
     load_parser = subparsers.add_parser('load', description='load an eservice database')
     load_parser.add_argument('--database', help='Name of the eservice database to use', type=str, required=True)
+    load_parser.add_argument('-s', '--symbol', help='binding symbol for the result', type=str)
     merge_group = load_parser.add_mutually_exclusive_group(required=False)
     merge_group.add_argument('--merge', help='Merge new database with current db', dest='merge', action='store_true')
     merge_group.add_argument('--no-merge', help='Overwrite current db with new database', dest='merge', action='store_false')
@@ -64,6 +63,7 @@ def command_eservice_db(state, bindings, pargs) :
 
     save_parser = subparsers.add_parser('save', description='save the current eservice database')
     save_parser.add_argument('--database', help='Name of the eservice database to use', type=str, required=True)
+    save_parser.add_argument('-s', '--symbol', help='binding symbol for the result', type=str)
 
     options = parser.parse_args(pargs)
 
@@ -109,16 +109,16 @@ def command_eservice_db(state, bindings, pargs) :
         if options.field :
             result = enclave[options.field]
 
-        if not options.quiet :
-            print(json.dumps(result, indent=4, sort_keys=True))
-
         if options.symbol :
             bindings.bind(options.symbol, result)
 
         return
 
     if options.command == 'load' :
-        eservice_db.load_database(options.database, options.merge)
+        result = eservice_db.load_database(options.database, options.merge)
+        if options.symbol :
+            bindings.bind(options.symbol, result)
+
         return
 
     if options.command == 'remove' :
@@ -126,7 +126,10 @@ def command_eservice_db(state, bindings, pargs) :
         return
 
     if options.command == 'save' :
-        eservice_db.save_database(options.database, True)
+        result = eservice_db.save_database(options.database, True)
+        if options.symbol :
+            bindings.bind(options.symbol, result)
+
         return
 
     raise Exception('unknown subcommand')

@@ -15,19 +15,10 @@
 cmake_minimum_required(VERSION 3.11)
 
 include(${CCF_DIR}/cmake/preproject.cmake)
-
 project(pdoenc LANGUAGES C CXX)
-
-include(${CCF_DIR}/cmake/ccf.cmake)
 include(${CCF_DIR}/cmake/ccf_app.cmake)
 
-# Error checking on environment variable
-# the PDO TP app will be signed with the RSA key whose locaation is
-# pointed to by PDO_ENCLAVE_CODE_SIGN_PEM
-IF (NOT EXISTS "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
-  MESSAGE(FATAL_ERROR "The enclave signing key pointed to by PDO_ENCLAVE_CODE_SIGN_PEM environment variable does not exist!")
-ENDIF()
-SET(PDO_ENCLAVE_CODE_SIGN_PEM "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
+find_package(ccf REQUIRED)
 
 # Add the PDO transaction processor target
 add_ccf_app(pdoenc
@@ -37,4 +28,3 @@ add_ccf_app(pdoenc
 
 install(TARGETS pdoenc.virtual DESTINATION lib)
 
-sign_app_library(pdoenc.enclave ../etc/oe_sign.conf ${PDO_ENCLAVE_CODE_SIGN_PEM})

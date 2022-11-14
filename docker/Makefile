@@ -25,6 +25,8 @@ DOCKER_COMPOSE_OPTS_CCF=
 
 DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.yaml sawtooth-pdo.local-code.yaml
 DOCKER_COMPOSE_FILES_CCF += ccf-pdo.yaml ccf-pdo.local-code.yaml
+DOCKER_COMPOSE_FILES_CCF_ONLY += ccf.yaml ccf.local-code.yaml
+
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.sgx.yaml
    SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx/enclave" ]; then echo "/dev/sgx/enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
@@ -45,6 +47,7 @@ endif
 ifdef DO_PROXY
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.proxy.yaml
    DOCKER_COMPOSE_FILES_CCF += ccf-pdo.proxy.yaml
+   DOCKER_COMPOSE_FILES_CCF_ONLY += ccf.proxy.yaml
 endif
 ifdef PDO_DEBUG_BUILD
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.debugging.yaml
@@ -52,6 +55,7 @@ endif
 
 DOCKER_COMPOSE_OPTS_STL += $(foreach cf, $(DOCKER_COMPOSE_FILES_STL), -f $(cf))
 DOCKER_COMPOSE_OPTS_CCF += $(foreach cf, $(DOCKER_COMPOSE_FILES_CCF), -f $(cf))
+DOCKER_COMPOSE_OPTS_CCF_ONLY += $(foreach cf, $(DOCKER_COMPOSE_FILES_CCF_ONLY), -f $(cf))
 
 all:
 
@@ -78,6 +82,9 @@ pdo-composition: pdo-dev-image
 pdo-composition-ccf: pdo-dev-image
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) build
 
+ccf-only:
+	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF_ONLY) build
+
 
 test-stl: pdo-composition test-with-no-build
 test-ccf: pdo-composition-ccf test-with-no-build-ccf
@@ -85,6 +92,7 @@ test: test-stl test-ccf
 
 test-env-setup: pdo-composition test-env-setup-with-no-build
 test-env-setup-ccf: pdo-composition-ccf test-env-setup-with-no-build-ccf
+test-env-setup-ccf-only: ccf-only test-env-setup-with-no-build-ccf-only
 
 test-env-setup-with-no-build:
 	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
@@ -99,6 +107,12 @@ test-env-setup-with-no-build:
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
 	      exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
 	fi
+
+test-env-setup-with-no-build-ccf-only:
+	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
+	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF_ONLY) down
+	# - start services
+	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF_ONLY) up -d
 
 test-env-setup-with-no-build-ccf:
 	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
@@ -130,9 +144,7 @@ test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 
 	# remove ccf keys from local folder
 	rm ccf_keys/networkcert.pem
-	rm ccf_keys/userccf_cert.pem
-	rm ccf_keys/userccf_privk.pem
-	
+
 	# - teardown
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) down
 

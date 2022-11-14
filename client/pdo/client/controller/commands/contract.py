@@ -32,7 +32,6 @@ def command_contract(state, bindings, pargs) :
     """
 
     parser = argparse.ArgumentParser(prog='contract')
-    parser.add_argument('-q', '--quiet', help='Do not print the result', action='store_true')
     parser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str, required=True)
 
@@ -62,8 +61,6 @@ def command_contract(state, bindings, pargs) :
     if options.command == 'code-nonce' :
         result = contract.contract_code.nonce
 
-    if result and not options.quiet :
-        print(result)
     if result and options.symbol :
         bindings.bind(options.symbol, result)
 

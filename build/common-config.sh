@@ -27,14 +27,6 @@ var_set() {
 
 	i=0
 
-	env_val[TINY_SCHEME_SRC]="${TINY_SCHEME_SRC:-${PDO_SOURCE_ROOT}/tinyscheme-1.41}"
-	env_desc[TINY_SCHEME_SRC]="
-		TINY_SCHEME_SRC points to the installation of the tinyscheme
-		source in order to build the library used to debug and test
-		contracts outside of the contract enclave
-	"
-	env_key_sort[$i]="TINY_SCHEME_SRC"; i=$i+1; export TINY_SCHEME_SRC=${env_val[TINY_SCHEME_SRC]};
-
 	env_val[WASM_SRC]="${WASM_SRC:-${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime}"
 	env_desc[WASM_SRC]="
 		WASM_SRC points to the installation of the wasm micro runtime
@@ -87,6 +79,15 @@ var_set() {
 		PDO_LEDGER_TYPE is the ledger used by PDO. Choose either sawtooth or ccf
 	"
 	env_key_sort[$i]="PDO_LEDGER_TYPE"; i=$i+1; export PDO_LEDGER_TYPE=${env_val[PDO_LEDGER_TYPE]}
+
+	if [ ${PDO_LEDGER_TYPE} == "ccf" ];
+	then
+		env_val[PDO_DEFAULT_SIGCURVE]="${PDO_DEFAULT_SIGCURVE:-SECP384R1}"
+		env_desc[PDO_DEFAULT_SIGCURVE]="
+			PDO_DEFAULT_SIGCURVE is the ECDSA curve used by PDO for generating signatures.
+			Choose SECP384R1 for ccf. If not set, cyrpto library uses SECP256K1 as default which works for sawtooth"
+		env_key_sort[$i]="PDO_DEFAULT_SIGCURVE"; i=$i+1; export PDO_DEFAULT_SIGCURVE=${env_val[PDO_DEFAULT_SIGCURVE]}
+	fi
 
 	env_val[PDO_INSTALL_ROOT]="${PDO_INSTALL_ROOT:-${SCRIPTDIR}/_dev}"
 	env_desc[PDO_INSTALL_ROOT]="
@@ -149,7 +150,7 @@ var_set() {
 	env_desc[PDO_LEDGER_KEY_ROOT]="
 		PDO_LEDGER_KEY_ROOT is the root directory where the system keys are stored
 		for ledger integration; files in this directory are not automatically generated. When ccf is used
-		as ledger, the ccf keys {networkcert.pem, userccf_cert.pem, userccf_privk.pem} must be
+		as ledger, the ccf network cert {networkcert.pem} must be
 		placed under this folder. These keys get generated during ccf deployment.
 	"
 	env_key_sort[$i]="PDO_LEDGER_KEY_ROOT"; i=$i+1; export PDO_LEDGER_KEY_ROOT=${env_val[PDO_LEDGER_KEY_ROOT]}
@@ -187,7 +188,7 @@ This script can be used to set the environment variables that are used
 in the build, installation & execution process. While the build should
 progress with only the default values specified, commonly five variables
 are set and then this file is evaluated. These five variables are:
-WASM_SRC, TINY_SCHEME_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
+WASM_SRC, PDO_LEDGER_URL, PDO_INSTALL_ROOT, and
 PDO_LEDGER_KEY_ROOT. In case you run in SGX HW mode you usally will define
 PDO_SGX_KEY_ROOT. See further down information on these variables and
 others you could override from defaults.
@@ -199,7 +200,6 @@ local configuration file may be constructed as:
    export PDO_INSTALL_ROOT=${HOME}/pdo-test-env
    export PDO_LEDGER_URL=http://127.0.0.1:8008
    export PDO_LEDGER_TYPE=sawtooth
-   export TINY_SCHEME_SRC=${HOME}/tinyscheme-1.41
    export WASM_SRC=${HOME}/wasm
 
 and before buidling it you call script as

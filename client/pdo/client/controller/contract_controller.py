@@ -66,33 +66,35 @@ class State(object) :
     # --------------------------------------------------
     def set_identity(self, identity, private_key_file=None) :
         if private_key_file is None :
-            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(options.name))
+            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(identity))
 
         self.identity = identity
         self.private_key_file = private_key_file
 
     # --------------------------------------------------
     def set(self, keylist, value) :
-        assert keylist
-
         current = self.__data__
         for key in keylist[:-1] :
             if key not in current :
                 current[key] = {}
+            # this can break of current is a value not a dict
+            # just let the exception happen & handle it elsewhere
             current = current[key]
 
         current[keylist[-1]] = value
+        return value
 
     # --------------------------------------------------
     def get(self, keylist, value=None) :
-        assert keylist
-
         current = self.__data__
         for key in keylist :
             if key not in current :
                 return value
+            # this can break of current is a value not a dict
+            # just let the exception happen & handle it elsewhere
             current = current[key]
         return current
+
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -130,8 +132,8 @@ class Bindings(object) :
         return saved
 
     # --------------------------------------------------
-    def isbound(self, variable) :
-        return variable in self.__bindings__
+    def isbound(self, variable, default_value=None) :
+        return self.__bindings__.get(variable, default_value)
 
     # --------------------------------------------------
     def expand(self, argstring) :
@@ -372,13 +374,10 @@ class ContractController(cmd.Cmd) :
             pargs = self.__arg_parse__(args)
 
             parser = argparse.ArgumentParser(prog='sleep')
-            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
             parser.add_argument('-t', '--time', help='time to sleep', type=int, required=True)
 
             options = parser.parse_args(pargs)
 
-            if not options.quiet :
-                print("Sleeping for {} seconds".format(options.time))
             time.sleep(options.time)
 
         except SystemExit as se :
@@ -398,7 +397,6 @@ class ContractController(cmd.Cmd) :
             pargs = self.__arg_parse__(args)
 
             parser = argparse.ArgumentParser(prog='parse')
-            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
             parser.add_argument('-e', '--expression', help='json expression to parse', type=str, required=True)
             parser.add_argument('-p', '--path', help='path to retrieve within the expression', type=str, required=True)
             parser.add_argument('-s', '--symbol', help='symbol in which to store the result', required=True)
@@ -418,8 +416,6 @@ class ContractController(cmd.Cmd) :
             value = json.dumps(python_value)
 
             self.bindings.bind(options.symbol,value)
-            if not options.quiet :
-                print("${} = {}".format(options.symbol, value))
 
         except SystemExit as se :
             return self.__arg_error__('parse', args, se.code)
@@ -438,7 +434,6 @@ class ContractController(cmd.Cmd) :
             pargs = self.__arg_parse__(args)
 
             parser = argparse.ArgumentParser(prog='set')
-            parser.add_argument('-q', '--quiet', help='suppress printing the result', action='store_true')
             parser.add_argument('-s', '--symbol', help='symbol in which to store the identifier', required=True)
             parser.add_argument('-c', '--conditional', help='set the value only if it is undefined', action='store_true')
 
@@ -473,8 +468,6 @@ class ContractController(cmd.Cmd) :
                 value = self.state.get(options.state)
 
             self.bindings.bind(options.symbol,value)
-            if not options.quiet :
-                print("${} = {}".format(options.symbol, value))
 
         except SystemExit as se :
             return self.__arg_error__('set', args, se.code)

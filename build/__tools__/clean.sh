@@ -29,8 +29,8 @@ yell --------------- COMMON ---------------
 cd $SRCDIR/common/crypto/verify_ias_report
 rm -f ias-certificates.cpp
 
-cd $SRCDIR/common/interpreter/gipsy_scheme/packages
-rm -f package.h package.scm
+#cd $SRCDIR/common/interpreter/gipsy_scheme/packages
+#rm -f package.h package.scm
 
 cd $SRCDIR/common
 rm -rf build

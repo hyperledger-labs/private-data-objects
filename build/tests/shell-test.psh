@@ -14,8 +14,8 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+st --conditional -s data -v .
+st --conditional -s save -v .
 
 ## create an eservice db with the known enclave services
 eservice_db clear
@@ -61,15 +61,15 @@ eservice --group all add --url http://localhost:7102 http://localhost:7103 --nam
 eservice --group all use --name es7104
 
 ## create some contracts
-set -q -s contract1 -r 32
-set -q -s contract2 -r 32
-set -q -s contract3 -r 32
+set -s contract1 -r 32
+set -s contract2 -r 32
+set -s contract3 -r 32
 
 identity -n user1
 create -c mock-contract -s _mock-contract -f ${save}/${contract1}.pdo
-send -q -f ${save}/${contract1}.pdo inc_value
-send -q -f ${save}/${contract1}.pdo inc_value
-send -q -f ${save}/${contract1}.pdo -s value inc_value
+send -f ${save}/${contract1}.pdo inc_value
+send -f ${save}/${contract1}.pdo inc_value
+send -f ${save}/${contract1}.pdo -s value inc_value
 if -e ${value} 3
     echo shell test 1 succeeded
 else
@@ -79,11 +79,11 @@ fi
 
 identity -n user2
 create -c mock-contract -s _mock-contract -p all -e all -f ${save}/${contract2}.pdo
-send -q -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7101
-send -q -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7102
-send -q -f ${save}/${contract2}.pdo --wait inc_value -e random
-send -q -f ${save}/${contract2}.pdo --wait inc_value -e random
-send -q -f ${save}/${contract2}.pdo get_value -s value
+send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7101
+send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7102
+send -f ${save}/${contract2}.pdo --wait inc_value -e random
+send -f ${save}/${contract2}.pdo --wait inc_value -e random
+send -f ${save}/${contract2}.pdo get_value -s value
 if -e ${value} 4
     echo shell test 2 succeeded
 else
@@ -93,10 +93,10 @@ fi
 
 identity -n user3
 create -c mock-contract -s _mock-contract -p p1 -e e1 -f ${save}/${contract3}.pdo
-send -q -f ${save}/${contract3}.pdo inc_value -s r8 -e preferred
-send -q -f ${save}/${contract3}.pdo inc_value -s r9 -e random
-send -q -f ${save}/${contract3}.pdo inc_value -s r10 -e random
-send -q -f ${save}/${contract3}.pdo get_value -s value
+send -f ${save}/${contract3}.pdo inc_value -s r8 -e preferred
+send -f ${save}/${contract3}.pdo inc_value -s r9 -e random
+send -f ${save}/${contract3}.pdo inc_value -s r10 -e random
+send -f ${save}/${contract3}.pdo get_value -s value
 if -e ${value} 3
     echo shell test 3 succeeded
 else

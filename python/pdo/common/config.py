@@ -20,6 +20,7 @@ NOTE: functions defined in this file are designed to be run
 before logging is enabled.
 """
 
+import mergedeep
 import os
 import sys
 import warnings
@@ -89,7 +90,7 @@ def parse_configuration_files(cfiles, search_path, variable_map = None) :
 
     for filename in files_found :
         try :
-            config.update(parse_configuration_file(filename, variable_map))
+            mergedeep.merge(config, parse_configuration_file(filename, variable_map))
         except IOError as detail :
             raise ConfigurationException(filename, "IO error; {0}".format(str(detail)))
         except ValueError as detail :

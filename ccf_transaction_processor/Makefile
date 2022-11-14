@@ -25,10 +25,6 @@ ifndef PDO_LEDGER_KEY_ROOT
 $(error Incomplete configuration, PDO_LEDGER_KEY_ROOT is not defined)
 endif
 
-ifndef SGX_MODE
-$(error Incomplete configuration, SGX_MODE is not defined)
-endif
-
 ifndef CCF_BASE
 $(error Incomplete configuration, CCF_BASE is not defined)
 endif
@@ -47,10 +43,9 @@ BLDDIR := $(SCRIPTDIR)/build
 KEYGEN=$(abspath $(BLDDIR)/keygenerator.sh
 CNFGEN=$(abspath $(PDO_SOURCE_ROOT)/build/__tools__/expand-config)
 
-PYTHON_DIR=$(CCFDSTDIR)/lib/python3.7
+PYTHON_DIR=$(CCFDSTDIR)/lib/python3.8
 
-# this should be determined by SGX_MODE
-CCF_MODE=virtual
+COMPILE_TARGET=virtual
 
 all: environment keys config install
 
@@ -59,7 +54,8 @@ build: build-ccf build-pdo-tp
 build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
 		-DCCF_DIR=$(CCF_BASE) \
-		-DCOMPILE_TARGETS=virtual \
+		-DCOMPILE_TARGETS=$(COMPILE_TARGET) \
+		-DLVI_MITIGATIONS=OFF \
 		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
 
@@ -71,7 +67,7 @@ clean-build:
 clean-install :
 	rm -rf $(CCFDSTDIR)
 
-config : $(ETCDIR)/cchost.toml $(ETCDIR)/gov.lua
+config : $(ETCDIR)/cchost.toml $(ETCDIR)/constitution.js
 
 $(ETCDIR)/cchost.toml : etc/cchost.toml
 	@ echo create configuration file for cchost
@@ -80,8 +76,8 @@ $(ETCDIR)/cchost.toml : etc/cchost.toml
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
-$(ETCDIR)/gov.lua : etc/gov.lua
-	cp etc/gov.lua $(ETCDIR)/gov.lua
+$(ETCDIR)/constitution.js : etc/constitution.js
+	cp etc/constitution.js $(ETCDIR)/constitution.js
 
 environment : $(CCFDSTDIR) $(PYTHON_DIR)
 
@@ -99,10 +95,11 @@ $(CCFDSTDIR) :
 
 $(PYTHON_DIR) :
 	echo ${PYTHON_DIR}
-	virtualenv -p python3.7 --no-download $(CCFDSTDIR)
+	virtualenv -p python3.8 --no-download $(CCFDSTDIR)
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade pip
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade setuptools
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade -r $(CCF_BASE)/bin/requirements.txt
+	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19 toml
 
 install : install-ccf install-pdo-tp
 
@@ -117,7 +114,6 @@ install-pdo-tp : build-pdo-tp
 
 keys :
 	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name memberccf --gen-enc-key
-	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name userccf --gen-enc-key
 
 .PHONY : all build build-ccf build-pdo-tp
 .PHONY : clean clean-build clean-install

@@ -27,19 +27,19 @@
 
 ## $ pdo-shell -s auction.psh
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
-set -q --conditional -s auction_user -v user1
-set -q --conditional -s auction_color -v green
-set -q --conditional -s bidder1 -v user6
-set -q --conditional -s bidder2 -v user7
-set -q --conditional -s bidder3 -v user8
-set -q --conditional -s bidder4 -v user9
-set -q --conditional -s bidder5 -v user10
-set -q --conditional -s bid_color -v red
-set -q --conditional -s minimum_bid -v 50
+set --conditional -s auction_user -v user1
+set --conditional -s auction_color -v green
+set --conditional -s bidder1 -v user6
+set --conditional -s bidder2 -v user7
+set --conditional -s bidder3 -v user8
+set --conditional -s bidder4 -v user9
+set --conditional -s bidder5 -v user10
+set --conditional -s bid_color -v red
+set --conditional -s minimum_bid -v 50
 
 ## =================================================================
 echo ${auction_user} creates an auction to trade ${auction_color} marbles for at least ${minimum_bid} ${bid_color} marbles

@@ -29,8 +29,8 @@
 
 ## $ pdo-shell issue.psh -m color <color> -m issuee <identity> -m count <count>
 
-set -q --conditional -s data -v .
-set -q --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 script -f ${path}/init.psh
 
 if --null ${color}
@@ -48,13 +48,13 @@ if --null ${issuee}
    exit
 fi
 
-set -q --conditional -s issuer -v ${color}_issuer
+set --conditional -s issuer -v ${color}_issuer
 
 ## =================================================================
 echo issue ${count} ${color} marbles to ${issuee}
 ## =================================================================
 identity -n ${issuer}
-set -q -s _issuee_key -i ${issuee}
+set -s _issuee_key -i ${issuee}
 issuer -q -w -f ${save}/${color}_issuer.pdo issue -o ${_issuee_key} -c ${count}
 
 exit
