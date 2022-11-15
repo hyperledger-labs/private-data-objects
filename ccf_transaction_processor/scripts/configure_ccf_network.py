@@ -24,6 +24,7 @@ import os
 import sys
 import toml
 import time
+from urllib.parse import urlparse
 
 from ccf.proposal_generator import transition_node_to_trusted
 from ccf.proposal_generator import transition_service_to_open
@@ -34,7 +35,7 @@ from ccf.clients import CCFClient
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
+ContractHome = os.environ.get("CCF_HOME") or os.path.realpath("/opt/pdo")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
@@ -106,7 +107,12 @@ def Main() :
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
     network_cert = config["start"]["network-cert-file"]
-    (host, port) = config["rpc-address"].split(':')
+
+    if os.environ.get("PDO_LEDGER_URL") is not None:
+        url =  os.environ.get("PDO_LEDGER_URL")
+        (host, port) = urlparse(url).netloc.split(':')
+    else :
+        (host, port) = config["rpc-address"].split(':')
 
     try:
         member_client = CCFClient(

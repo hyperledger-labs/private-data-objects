@@ -78,6 +78,7 @@ class SawtoothSubmitter(sub.Submitter):
         organizational_info,
         **extra_params):
 
+
         json_input = JsonPayloadBuilder.build_enclave_registration_from_data(
             enclave_verifying_key,
             enclave_encryption_key,

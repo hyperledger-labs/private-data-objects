@@ -28,7 +28,7 @@ from ccf.clients import CCFClient
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
+ContractHome = os.environ.get("CCF_HOME") or os.path.realpath("/opt/pdo")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 

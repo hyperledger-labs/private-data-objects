@@ -34,17 +34,22 @@ CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
-def generate_ledger_authority(client, options, config):
+def register_enclave_expected_measurements(client, options, config):
     try :
-        r = client.post("/app/generate_signing_key_for_read_payloads", dict())
+        params = {}
+        params['mrenclave'] = options.mrenclave
+        params['basename'] = options.basename
+        params['ias_public_key'] = options.ias_public_key
+
+        r = client.post("/app/register_enclave_expected_measurements", params)
         if r.status_code != http.HTTPStatus.OK.value:
-            LOG.error('failed to generate ledger authority the member: {}, code: {}'.format(
+            LOG.error('failed to register enclave expected measurements: {}, code: {}'.format(
                 r.body, r.status_code))
             sys.exit(-1)
     except Exception as e:
-        LOG.error('failed to generate ledger authority the member: {}'.format(str(e)))
+        LOG.error('failed to register enclave expected measurements: {}'.format(str(e)))
         sys.exit(-1)
-    
+
 # -----------------------------------------------------------------
 def Main() :
     default_config = os.path.join(CCF_Etc, 'cchost.toml')
@@ -53,10 +58,14 @@ def Main() :
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', default='__screen__', type=str)
-    parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
+    parser.add_argument('--loglevel', help='Logging level', default='INFO', type=str)
 
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
     parser.add_argument('--member-name', help="Name of the user being added", default = "memberccf", type=str)
+
+    parser.add_argument('--mrenclave', help="Expected MRENCLAVE of pdo enclaves", required=True, type=str)
+    parser.add_argument('--basename', help="Pdo enclave basename", required=True, type=str)
+    parser.add_argument('--ias-public-key', help="IAS public derived from IAS cert used to verify singature on IAS reports", required=True, type=str)
 
     options = parser.parse_args()
 
@@ -96,9 +105,12 @@ def Main() :
         LOG.error('failed to connect to CCF service : {}'.format(str(e)))
         sys.exit(-1)
 
-    generate_ledger_authority(member_client, options, config)
+    try:
+        register_enclave_expected_measurements(member_client, options, config)
+    except Exception as e:
+        raise
 
-    LOG.info('successfully generated ledger authority')
+    LOG.info('successfully registered enclave expected measurements')
     sys.exit(0)
 
 # -----------------------------------------------------------------

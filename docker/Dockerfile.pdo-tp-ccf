@@ -37,6 +37,7 @@ FROM ccfciteam/ccf-app-ci:1.0.19
 
 #install a few extra utilities
 RUN apt-get update && apt-get install -y python3-pip vim net-tools
+RUN apt-get update && apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 RUN pip3 install virtualenv
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
@@ -62,6 +63,8 @@ ENV PDO_ENCLAVE_CODE_SIGN_PEM=/pdo/private-data-objects/ccf_transaction_processo
 ENV PDO_LEDGER_KEY_ROOT=/pdo/dev/opt/pdo/ccf/keys/
 ENV SGX_MODE=SIM
 ENV PDO_HOME=/pdo/dev/opt/pdo/
+ENV CCF_INSTALL_ROOT=/pdo/dev/
+ENV CCF_HOME=/pdo/dev/opt/pdo/
 #note that currently we have only tested for SIM SGX mode for pdo/ccf combo
 
 # build pdo-tp

@@ -41,7 +41,29 @@ namespace ccfapp
         // format the verifying key as needed by CCF to create the verifier
         const auto public_key_pem = crypto::Pem(CBuffer(verifying_key));
         auto pubk_verifier = crypto::make_public_key(public_key_pem);
-        return pubk_verifier->verify(contents, signature); 
+        return pubk_verifier->verify(contents, signature);
+    }
+
+    bool TPHandlerRegistry ::verify_rsa_sig(
+        vector<uint8_t> signature,
+        const string & verifying_key,
+        const vector<uint8_t>& contents)
+    {
+        // format the verifying key as needed by CCF to create the verifier
+        const auto public_key_pem = crypto::Pem(CBuffer(verifying_key));
+        auto pubk_verifier = crypto::make_rsa_public_key(public_key_pem);
+        return pubk_verifier->verify(contents.data(), contents.size(), signature.data(), signature.size(), MDType::SHA256);
+    }
+
+    bool TPHandlerRegistry ::verify_ias_signature(
+        const string& signature,
+        const string& ias_public_key,
+        const string& verification_report_string)
+    {
+
+        vector<uint8_t> contents(verification_report_string.begin(), verification_report_string.end());
+
+        return verify_rsa_sig(raw_from_b64(signature), ias_public_key, contents);
     }
 
     bool TPHandlerRegistry ::verify_pdo_transaction_signature_register_enclave(
