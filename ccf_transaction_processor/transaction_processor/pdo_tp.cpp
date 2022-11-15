@@ -18,6 +18,8 @@
 using namespace std;
 using namespace ccf;
 using namespace tls;
+using namespace crypto;
+
 
 namespace ccfapp
 {
@@ -38,6 +40,7 @@ namespace ccfapp
 
     TPHandlerRegistry ::TPHandlerRegistry (AbstractNodeContext& context):
         UserEndpointRegistry(context),
+        enclave_expected_measurements("expected_measurements"),
         enclavetable("enclaves"),
         contracttable("contracts"),
         ccltable("ccl_updates"),
@@ -50,6 +53,29 @@ namespace ccfapp
         auto ping = [this](auto& ctx, const nlohmann::json&) {
             return ccf::make_success(true);
         };
+
+        //======================================================================================================
+        // register enclave expected measurements (member method)
+        auto register_enclave_expected_measurements = [this](auto& ctx, const nlohmann::json& params) {
+
+            const auto in = params.get<RegisterEnclaveExpectedMeasurements::In>();
+
+            // get the current measurements view
+            auto measurements_view = ctx.tx.rw(enclave_expected_measurements);
+
+            // collect the data to be stored
+            EnclaveExpectedMeasurements expected_measurements;
+
+            expected_measurements.mrenclave = in.mrenclave;
+            expected_measurements.basename = in.basename;
+            expected_measurements.ias_public_key = in.ias_public_key;
+
+            //store the data
+            measurements_view->put(PDO_ENCLAVE_EXPECTED, expected_measurements);
+
+            return ccf::make_success(true);
+        };
+
 
         //======================================================================================================
         // gen_signing_key implementation
@@ -138,12 +164,133 @@ namespace ccfapp
             }
 
             // Verify enclave data
-            string proof_data = in.proof_data;
-            if (proof_data.empty()) {
+            if (in.proof_data.empty()) {
                 // Enclave proof data is empty - simulation mode
             }else{
-                return ccf::make_error(
-                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Only simulation mode is currently supported");
+                /* HW mode, following items are verified
+
+                1. ias report signature
+                2. epid pseudonym
+                3. enclave quote status
+                4. MREnclave
+                5. nonce
+                6. basename
+                7. user report data
+
+                */
+                
+                ProofData enclave_proof_data;
+                VerificationReport verification_report;
+
+                // Parse the proof data JSON
+                try {
+                    auto j = nlohmann::json::parse(in.proof_data);
+                    enclave_proof_data = j.get<ProofData>();
+                }
+                catch(...){
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Unable to parse proof data JSON");
+                }
+
+                string ias_signature = enclave_proof_data.signature;
+                string verification_report_string = enclave_proof_data.verification_report;
+
+                // Ensure that expected measurements exist in the ledger
+                auto expected_measurements_view = ctx.tx.rw(enclave_expected_measurements);
+                auto expected_measurements_r = expected_measurements_view->get(PDO_ENCLAVE_EXPECTED);
+                if (!expected_measurements_r.has_value()){
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Cannot register Enclave in HW mode without registering expected measurements");
+                }
+
+                // expected measurements exist, get the value now
+                auto expected_measurements = expected_measurements_r.value();
+
+                // verify ias report signature
+                if (!verify_ias_signature(ias_signature, expected_measurements.ias_public_key, verification_report_string)){
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "unable to verify IAS report signature for registering enclave");
+                }
+
+                // Parse ias verification report JSON string
+                try {
+                    auto j = nlohmann::json::parse(verification_report_string);
+                    verification_report = j.get<VerificationReport>();
+                }
+                catch(...){
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Unable to parse IAS verification report");
+                }
+
+                string enclave_quote_body_b64 = verification_report.isvEnclaveQuoteBody;
+                vector<uint8_t> enclave_quote_body_raw = raw_from_b64(enclave_quote_body_b64);
+
+                // Verify that the verification report EPID pseudonym matches the enclave_persistent_id
+                if (in.enclave_persistent_id != verification_report.epidPseudonym) {
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid epid pseudonym");
+                }
+
+                // Verify the verification report enclave quote status
+                transform(verification_report.isvEnclaveQuoteStatus.begin(), verification_report.isvEnclaveQuoteStatus.end(), 
+                    verification_report.isvEnclaveQuoteStatus.begin(), ::toupper);
+                if ((verification_report.isvEnclaveQuoteStatus != OK_QUOTE_STATUS) && (verification_report.isvEnclaveQuoteStatus != GROUP_OUT_OF_DATE_QUOTE_STATUS)) {
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid quote status");
+                }
+                
+                // Extract ReportData and MR_ENCLAVE from isvEnclaveQuoteBody in Verification Report
+                // The next 5 lines are copied from pservice/lib/libpdo_enclave/secret_enclave.cpp
+                sgx_quote_t* quoteBody = reinterpret_cast<sgx_quote_t*>(enclave_quote_body_raw.data());
+                sgx_report_body_t* reportBody = &quoteBody->report_body;
+                sgx_report_data_t expectedReportData = *(&reportBody->report_data);
+                sgx_measurement_t mrEnclaveFromReport = *(&reportBody->mr_enclave);
+                sgx_basename_t mrBasename = *(&quoteBody->basename);
+                                
+                // Verify MREnclave
+                std::vector<uint8_t> mrEnclaveFromReport_vector(mrEnclaveFromReport.m, mrEnclaveFromReport.m + SGX_HASH_SIZE);
+                std::string mrEnclavFromReport_hex = ds::to_hex(mrEnclaveFromReport_vector);
+                transform(mrEnclavFromReport_hex.begin(), mrEnclavFromReport_hex.end(), mrEnclavFromReport_hex.begin(), ::toupper);
+                if (mrEnclavFromReport_hex != expected_measurements.mrenclave) {
+                    return ccf::make_error(HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid MREnclave");
+                }
+
+                // Verify Nonce
+                if (in.registration_block_context != verification_report.nonce) {
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid Nonce in the Verification Report");
+                }
+
+                // Verify Base Name
+                std::vector<uint8_t> basenameFromReport_vector(mrBasename.name, mrBasename.name + BASENAME_SIZE);
+                std::string basenameFromReport_hex = ds::to_hex(basenameFromReport_vector);
+                transform(basenameFromReport_hex.begin(), basenameFromReport_hex.end(), basenameFromReport_hex.begin(), ::toupper);
+                if (basenameFromReport_hex != expected_measurements.basename) {
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid enclave base name");
+                }
+
+                // Verify user report data
+                std::vector<uint8_t> originator_key(in.EHS_verifying_key.begin(), in.EHS_verifying_key.end());
+                std::vector<uint8_t> originator_key_hash = crypto::SHA256(originator_key);
+                std::string originator_key_hash_hex = ds::to_hex(originator_key_hash);
+                originator_key_hash_hex.resize(ORIGINATOR_KEY_HASH_TRUNCATED_SIZE); 
+                    //To understand why we truncate, check implementation of pdo.common.keys.ServiceKeys.hashed_indentity
+                std::transform(originator_key_hash_hex.begin(), originator_key_hash_hex.end(), originator_key_hash_hex.begin(), ::tolower);
+
+                std::string user_data_hash_input = in.verifying_key;
+                user_data_hash_input += in.encryption_key;
+                user_data_hash_input += originator_key_hash_hex;
+                
+                std::vector<uint8_t> user_data_hash_input_vector(user_data_hash_input.begin(), user_data_hash_input.end());
+                std::vector<uint8_t> user_data_hash = crypto::SHA256(user_data_hash_input_vector);
+                user_data_hash.resize(SGX_REPORT_DATA_SIZE, 0);
+                std::vector<uint8_t> userdataFromReport_vector(expectedReportData.d, expectedReportData.d + SGX_REPORT_DATA_SIZE);
+                if (user_data_hash != userdataFromReport_vector) {
+                    return ccf::make_error(
+                        HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid user report data");
+                }
+
             }
 
             // collect the enclave data to be stored
@@ -751,6 +898,12 @@ namespace ccfapp
             GEN_SIGNING_KEY,
             HTTP_POST,
             json_adapter(gen_signing_key),
+            member_cert_sign_required).install();
+
+        make_endpoint(
+            REGISTER_ENCLAVE_EXPECTED_MEASUREMENTS,
+            HTTP_POST,
+            json_adapter(register_enclave_expected_measurements),
             member_cert_sign_required).install();
 
         make_endpoint(

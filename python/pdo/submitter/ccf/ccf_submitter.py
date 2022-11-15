@@ -467,7 +467,7 @@ class PayloadBuilder(object):
         payloadblob['encryption_key'] = encryption_key
         payloadblob['proof_data'] = proof_data
         if proof_data:
-            payloadblob['enclave_persistent_id'] = get_epid_pseudonym_from_proof_data(proof_data)
+            payloadblob['enclave_persistent_id'] = sub.get_epid_pseudonym_from_proof_data(proof_data)
         else:
             payloadblob['enclave_persistent_id'] = "ignored field, no proof data"
         payloadblob['registration_block_context'] = registration_block_context

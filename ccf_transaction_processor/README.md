@@ -55,6 +55,13 @@ is being installed. CCF is not required by PDO clients to use a CCF based PDO TP
 
 ## Build and Install PDO TP
 
+PDO TP requires certain sgx header files for IAS atteastion report verification. To ensure that these are present in your system, run the
+following command:
+
+```bash
+sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
+```
+
 To build the PDO TP the [PDO environment variables](../docs/environment.md)
 must be set. See the PDO configuration script `common-config.sh` for
 more information.

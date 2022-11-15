@@ -21,6 +21,50 @@ using namespace std;
 namespace ccf
 {
 
+  struct EnclaveExpectedMeasurements {
+    string mrenclave;
+    string basename;
+    string ias_public_key;
+  };
+
+  DECLARE_JSON_TYPE(EnclaveExpectedMeasurements);
+  DECLARE_JSON_REQUIRED_FIELDS(EnclaveExpectedMeasurements,
+    mrenclave,
+    basename,
+    ias_public_key);
+
+
+  struct ProofData{
+    vector<string> certificates;
+    string verification_report;
+    string signature;
+  };
+  DECLARE_JSON_TYPE(ProofData);
+  DECLARE_JSON_REQUIRED_FIELDS(ProofData,
+  certificates,
+  verification_report,
+  signature);
+
+  struct VerificationReport{
+    string epidPseudonym;
+    string id;
+    string isvEnclaveQuoteStatus;
+    string isvEnclaveQuoteBody;
+    int version;
+    string nonce;
+    string timestamp;
+  };
+  DECLARE_JSON_TYPE(VerificationReport);
+  DECLARE_JSON_REQUIRED_FIELDS(VerificationReport,
+  epidPseudonym,
+  id,
+  isvEnclaveQuoteStatus,
+  isvEnclaveQuoteBody,
+  version,
+  nonce,
+  timestamp
+  );
+
   // Kv store value data structure for enclave registry
   struct EnclaveInfo {
       string verifying_key;
@@ -34,12 +78,12 @@ namespace ccf
 
   DECLARE_JSON_TYPE(EnclaveInfo);
   DECLARE_JSON_REQUIRED_FIELDS(EnclaveInfo,
-    verifying_key, 
-    encryption_key, 
-    proof_data, 
-    enclave_persistent_id, 
-    registration_block_context, 
-    organizational_info, 
+    verifying_key,
+    encryption_key,
+    proof_data,
+    enclave_persistent_id,
+    registration_block_context,
+    organizational_info,
     EHS_verifying_key);
 
   //schema definition for rpcs
@@ -71,6 +115,14 @@ namespace ccf
     };
   };
 
+  struct RegisterEnclaveExpectedMeasurements {
+    struct In {
+      string mrenclave;
+      string basename;
+      string ias_public_key;
+    };
+  };
+
   DECLARE_JSON_TYPE(Register_enclave::In);
   DECLARE_JSON_REQUIRED_FIELDS(Register_enclave::In, verifying_key, encryption_key, proof_data, enclave_persistent_id, \
     registration_block_context, organizational_info, EHS_verifying_key, signature);
@@ -81,4 +133,8 @@ namespace ccf
   DECLARE_JSON_TYPE(Verify_enclave::Out);
   DECLARE_JSON_REQUIRED_FIELDS(Verify_enclave::Out, verifying_key, encryption_key, proof_data, last_registration_block_context, \
     owner_id, signature);
+
+  DECLARE_JSON_TYPE(RegisterEnclaveExpectedMeasurements::In);
+  DECLARE_JSON_REQUIRED_FIELDS(RegisterEnclaveExpectedMeasurements::In, mrenclave, basename, ias_public_key);
+
 }
