@@ -20,6 +20,10 @@ ifndef PDO_HOME
 $(error Incomplete configuration, PDO_HOME is not defined)
 endif
 
+ifndef PDO_SOURCE_ROOT
+$(error Incomplete configuration, PDO_SOURCE_ROOT is not defined)
+endif
+
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
