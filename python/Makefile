@@ -38,6 +38,7 @@ CRYPTO_SWIG_TARGET = pdo/common/crypto.py
 CRYPTO_SWIG_FILES =				\
 	pdo/common/crypto.py			\
 	pdo/common/crypto_wrap.cpp
+
 KV_SWIG_SOURCE =					\
 	pdo/common/key_value_swig/key_value_swig.i	\
 	pdo/common/key_value_swig/block_store.h		\
@@ -49,7 +50,16 @@ KV_SWIG_FILES =							\
 	pdo/common/key_value_swig/key_value_swig.py		\
 	pdo/common/key_value_swig/key_value_swig_wrap.cpp
 
-COMMON_LIB = ../common/build/libupdo-common.a
+KEYVAL_LIB = ../common/build/libpdo-lmdb-block-store.a
+
+BUILD_CLIENT ?= 0
+ifeq ($(BUILD_CLIENT),1)
+	COMMON_LIB = ../common/build/libcpdo-common.a
+	CRYPTO_LIB = ../common/build/libcpdo-crypto.a
+else
+	COMMON_LIB = ../common/build/libupdo-common.a
+	CRYPTO_LIB = ../common/build/libupdo-crypto.a
+endif
 
 all: $(EGG_FILE)
 
@@ -60,15 +70,15 @@ $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH
 
 $(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python setup.py bdist_egg
+		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py bdist_egg
 
-$(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB)
+$(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB) $(CRYPTO_LIB) $(KEYVAL_LIB)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python setup.py build_ext --force
+		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py build_ext --force
 
 install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python setup.py install
+		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py install
 
 test: install
 	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
