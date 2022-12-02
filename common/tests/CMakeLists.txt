@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# NOTE: this file is included by the common CMakeLists.txt;
+# it should not be evaluated independently
+
 ################################################################################
 # Run the tests automatically after building (dependencies added in subfolders)
 ################################################################################
