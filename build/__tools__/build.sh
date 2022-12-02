@@ -29,7 +29,26 @@ if [ "$NUM_CORES " == " " ]; then
     NUM_CORES=4
 fi
 
-CMAKE_ARGS=
+F_CLIENT='no'
+
+TEMP=$(getopt -o '' --long 'client,trusted,untrusted' -n "build.sh" -- "$@")
+if [ $? != 0 ] ; then echo "Usage: build.sh [--client]" >&2 ; exit 1 ; fi
+
+eval set -- "$TEMP"
+while true ; do
+    case "$1" in
+        --client) F_CLIENT="yes" ; shift 1 ;;
+    	--) shift ; break ;;
+    	*) echo "Internal error!" ; exit 1 ;;
+        esac
+    done
+TEMP
+
+BUILD_CLIENT=0
+if [ ${F_CLIENT} == "yes" ]; then
+    CMAKE_ARGS="-DBUILD_CLIENT=1 -DBUILD_TRUSTED=0 -DBUILD_UNTRUSTED=0"
+    BUILD_CLIENT=1
+fi
 
 # -----------------------------------------------------------------
 # BUILD
@@ -52,25 +71,29 @@ try make install
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-try make "-j$NUM_CORES"
-try make install
+try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
+try make BUILD_CLIENT=${BUILD_CLIENT} install
 
 yell --------------- ESERVICE ---------------
-cd $SRCDIR/eservice
-try make "-j$NUM_CORES"
-try make install
+if [ ${F_CLIENT} == "no" ]; then
+    cd $SRCDIR/eservice
+    try make "-j$NUM_CORES"
+    try make install
+fi
 
 yell --------------- PSERVICE ---------------
-cd $SRCDIR/pservice
-try make "-j$NUM_CORES"
-try make install
+if [ ${F_CLIENT} == "no" ]; then
+    cd $SRCDIR/pservice
+    try make "-j$NUM_CORES"
+    try make install
+fi
 
 yell --------------- CLIENT ---------------
 cd $SRCDIR/client
-try make "-j$NUM_CORES"
-try make install
+try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
+try make BUILD_CLIENT=${BUILD_CLIENT} install
 
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
-try make all "-j$NUM_CORES"
-try make install
+try make BUILD_CLIENT=${BUILD_CLIENT} "-j$NUM_CORES" all
+try make BUILD_CLIENT=${BUILD_CLIENT} install

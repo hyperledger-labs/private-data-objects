@@ -223,6 +223,11 @@ register : $(PYTHON_DIR)
 .PHONY : register
 endif
 
+client: environment template build-client $(CONTRACT_CONF) $(USER_PEM) $(ETCDIR)/site.psh
+
+build-client : $(PYTHON_DIR)
+	. $(abspath $(DSTDIR)/bin/activate) && $(BUILD) --client
+
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
 
