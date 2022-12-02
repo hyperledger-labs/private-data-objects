@@ -19,13 +19,13 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 ################################################################################
 
 # Error checking on environment variables
-IF (NOT EXISTS "$ENV{WASM_SRC}")
+IF (NOT DEFINED ENV{WASM_SRC})
   MESSAGE(FATAL_ERROR "WASM_SRC environment variable not defined!")
 ENDIF()
 
 # Make sure wasm-micro-runtime submodule has been cloned
-file(GLOB WAMR_SUBMOD "$ENV{WASM_SRC}")
-list(LENGTH WAMR_SUBMOD SUBMOD_CONTENTS)
+FILE(GLOB WAMR_SUBMOD "$ENV{WASM_SRC}")
+LIST(LENGTH WAMR_SUBMOD SUBMOD_CONTENTS)
 IF (SUBMOD_CONTENTS EQUAL 0)
   # submodule directory is empty
   MESSAGE(FATAL_ERROR "WAMR git submodule has not been cloned. Please run `git submodule update --init` first.")
@@ -40,59 +40,59 @@ SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
 SET(PDO_INTERPRETER "$ENV{PDO_INTERPRETER}")
 
 # Reset default linker flags
-set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-set (CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+SET (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+SET (CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 # Set WAMR_BUILD_TARGET
-if (NOT DEFINED WAMR_BUILD_TARGET)
-  if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+IF (NOT DEFINED WAMR_BUILD_TARGET)
+  IF (CMAKE_SIZEOF_VOID_P EQUAL 8)
     # Build as X86_64 by default in 64-bit platform
-    set (WAMR_BUILD_TARGET "X86_64")
-  else ()
+    SET (WAMR_BUILD_TARGET "X86_64")
+  ELSE ()
     # Build as X86_32 by default in 32-bit platform
-    set (WAMR_BUILD_TARGET "X86_32")
-  endif ()
-endif ()
+    SET (WAMR_BUILD_TARGET "X86_32")
+  ENDIF ()
+ENDIF ()
 
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE Release)
 endif ()
 
 IF (PDO_INTERPRETER STREQUAL "wawaka-aot")
   # Enable AOT.
-  set (WAMR_BUILD_AOT 1)
+  SET (WAMR_BUILD_AOT 1)
   # Disable Interpreter for AoT mode
-  set (WAMR_BUILD_INTERP 0)
-  set (WAMR_BUILD_FAST_INTERP 0)
-  add_definitions (-DUSE_WAWAKA_AOT=1)
-  message(WARNING "!!Building wawaka in experimental AoT mode. Not ready for production use!!")
+  SET (WAMR_BUILD_INTERP 0)
+  SET (WAMR_BUILD_FAST_INTERP 0)
+  ADD_DEFINITIONS (-DUSE_WAWAKA_AOT=1)
+  MESSAGE(WARNING "!!Building wawaka in experimental AoT mode. Not ready for production use!!")
 ELSE ()
   # Disable AoT by default
-  set (WAMR_BUILD_AOT 0)
-  set (WAMR_BUILD_INTERP 1)
-  if (PDO_INTERPRETER STREQUAL "wawaka-opt")
-    set (WAMR_BUILD_FAST_INTERP 1)
-    add_definitions (-DUSE_WAWAKA_OPT=1)
-    message(STATUS "Building wawaka in optimized INTERP mode")
-  else()
+  SET (WAMR_BUILD_AOT 0)
+  SET (WAMR_BUILD_INTERP 1)
+  IF (PDO_INTERPRETER STREQUAL "wawaka-opt")
+    SET (WAMR_BUILD_FAST_INTERP 1)
+    ADD_DEFINITIONS (-DUSE_WAWAKA_OPT=1)
+    MESSAGE(STATUS "Building wawaka in optimized INTERP mode")
+  ELSE()
     # Disable optimized interpreter by default
-    set (WAMR_BUILD_FAST_INTERP 0)
-    message(STATUS "Building wawaka in INTERP mode")
-  endif()
+    SET (WAMR_BUILD_FAST_INTERP 0)
+    MESSAGE(STATUS "Building wawaka in INTERP mode")
+  ENDIF()
 ENDIF()
 
 # Disable JIT by default for all runtime modes.
-set (WAMR_BUILD_JIT 0)
+SET (WAMR_BUILD_JIT 0)
 
-if (NOT DEFINED WAMR_BUILD_LIBC_BUILTIN)
+IF (NOT DEFINED WAMR_BUILD_LIBC_BUILTIN)
   # Enable libc builtin support by default
-  set (WAMR_BUILD_LIBC_BUILTIN 1)
-endif ()
+  SET (WAMR_BUILD_LIBC_BUILTIN 1)
+ENDIF ()
 
-if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
+IF (NOT DEFINED WAMR_BUILD_LIBC_WASI)
   # Disable libc wasi support by default
-  set (WAMR_BUILD_LIBC_WASI 0)
-endif ()
+  SET (WAMR_BUILD_LIBC_WASI 0)
+ENDIF ()
 
 # Set the memory configuration for wawaka
 # RUNTIME_MEM_POOL_SIZE: The WASM runtime's global memory pool size
@@ -100,25 +100,15 @@ endif ()
 # STACK_SIZE: Size of the runtime's stack for executing a WASM module
 # Layout: RUNTIME_MEM_POOL_SIZE > HEAP_SIZE + STACK_SIZE + padding
 IF (WASM_MEM_CONFIG STREQUAL "SMALL")
-  add_definitions (-DRUNTIME_MEM_POOL_SIZE=1*1024*1024 -DHEAP_SIZE=512*1024 -DSTACK_SIZE=64*1024)
-  message(STATUS "Using SMALL memory configuration")
+  ADD_DEFINITIONS (-DRUNTIME_MEM_POOL_SIZE=1*1024*1024 -DHEAP_SIZE=512*1024 -DSTACK_SIZE=64*1024)
+  MESSAGE(STATUS "Using SMALL memory configuration")
 ELSEIF (WASM_MEM_CONFIG STREQUAL "LARGE")
-  add_definitions (-DRUNTIME_MEM_POOL_SIZE=4*1024*1024 -DHEAP_SIZE=3*1024*1024 -DSTACK_SIZE=256*1024)
-  message(STATUS "Using LARGE memory configuration")
+  ADD_DEFINITIONS (-DRUNTIME_MEM_POOL_SIZE=4*1024*1024 -DHEAP_SIZE=3*1024*1024 -DSTACK_SIZE=256*1024)
+  MESSAGE(STATUS "Using LARGE memory configuration")
 ELSE ()
-  add_definitions (-DRUNTIME_MEM_POOL_SIZE=2*1024*1024 -DHEAP_SIZE=1536*1024 -DSTACK_SIZE=128*1024)
-  message(STATUS "Using MEDIUM memory configuration")
+  ADD_DEFINITIONS (-DRUNTIME_MEM_POOL_SIZE=2*1024*1024 -DHEAP_SIZE=1536*1024 -DSTACK_SIZE=128*1024)
+  MESSAGE(STATUS "Using MEDIUM memory configuration")
 ENDIF ()
-
-SET(PDO_INCLUDE_DIRS ".")
-LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common")
-LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/crypto")
-LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/state")
-LIST(APPEND PDO_INCLUDE_DIRS "${PDO_TOP_DIR}/common/interpreter")
-
-SET(SGX_INCLUDE_DIRS "${SGX_SDK}/include")
-LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/tlibc")
-LIST(APPEND SGX_INCLUDE_DIRS "${SGX_SDK}/include/libcxx")
 
 ################################################################################
 
@@ -126,51 +116,51 @@ SET(IWASM_STATIC_NAME iwasm)
 SET(WAWAKA_STATIC_NAME wwasm)
 PROJECT(wawaka_wasm C CXX)
 
-set (WAMR_BUILD_PLATFORM "linux-sgx")
+SET (WAMR_BUILD_PLATFORM "linux-sgx")
 
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -ffunction-sections -fdata-sections \
+SET (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -ffunction-sections -fdata-sections \
                                      -Wall -Wno-unused-parameter -Wno-pedantic \
                                      -nostdinc -fvisibility=hidden -fpie" )
 
-set (WAMR_ROOT_DIR ${WASM_SRC})
-set (SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
-set (IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
-set (APP_FRAMEWORK_DIR ${WAMR_ROOT_DIR}/core/app-framework)
+SET (WAMR_ROOT_DIR ${WASM_SRC})
+SET (SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+SET (IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
+SET (APP_FRAMEWORK_DIR ${WAMR_ROOT_DIR}/core/app-framework)
 
-enable_language (ASM)
+ENABLE_LANGUAGE (ASM)
 
 #################################################################
 # WAMR Library
 #################################################################
 
 # include the build config template file
-include (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
+INCLUDE (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
 
-include (${SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
-include (${SHARED_DIR}/mem-alloc/mem_alloc.cmake)
-include (${SHARED_DIR}/utils/shared_utils.cmake)
-if (WAMR_BUILD_LIBC_BUILTIN EQUAL 1)
-  include (${IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
-endif ()
-if (WAMR_BUILD_LIBC_WASI EQUAL 1)
-  include (${IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
-endif ()
+INCLUDE (${SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
+INCLUDE (${SHARED_DIR}/mem-alloc/mem_alloc.cmake)
+INCLUDE (${SHARED_DIR}/utils/shared_utils.cmake)
+IF (WAMR_BUILD_LIBC_BUILTIN EQUAL 1)
+  INCLUDE (${IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
+ENDIF ()
+IF (WAMR_BUILD_LIBC_WASI EQUAL 1)
+  INCLUDE (${IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
+ENDIF ()
 
-include (${IWASM_DIR}/common/iwasm_common.cmake)
+INCLUDE (${IWASM_DIR}/common/iwasm_common.cmake)
 
-if (WAMR_BUILD_INTERP EQUAL 1 OR WAMR_BUILD_JIT EQUAL 1)
-  include (${IWASM_DIR}/interpreter/iwasm_interp.cmake)
-endif ()
+IF (WAMR_BUILD_INTERP EQUAL 1 OR WAMR_BUILD_JIT EQUAL 1)
+  INCLUDE (${IWASM_DIR}/interpreter/iwasm_interp.cmake)
+ENDIF ()
 
-if (WAMR_BUILD_AOT EQUAL 1)
-  include (${IWASM_DIR}/aot/iwasm_aot.cmake)
-  if (WAMR_BUILD_JIT EQUAL 1)
-    include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
-  endif ()
-endif ()
+IF (WAMR_BUILD_AOT EQUAL 1)
+  INCLUDE (${IWASM_DIR}/aot/iwasm_aot.cmake)
+  IF (WAMR_BUILD_JIT EQUAL 1)
+    INCLUDE (${IWASM_DIR}/compilation/iwasm_compl.cmake)
+  ENDIF ()
+ENDIF ()
 
-add_library (${IWASM_STATIC_NAME}
+ADD_LIBRARY (${IWASM_STATIC_NAME}
              ${PLATFORM_SHARED_SOURCE}
              ${MEM_ALLOC_SHARED_SOURCE}
              ${UTILS_SHARED_SOURCE}
@@ -186,7 +176,7 @@ TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PRIVATE ".")
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${IWASM_DIR}/include)
 
-TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SGX_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SGX_TRUSTED_INCLUDE_DIRS})
 
 #################################################################
 # Wawaka Interpreter
@@ -201,17 +191,17 @@ ADD_LIBRARY(${WAWAKA_STATIC_NAME}
              ${WWASM_PROJECT_SOURCES})
 
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ".")
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ${PDO_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ${COMMON_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PRIVATE ${INTERP_INCLUDE_DIRS})
+
 
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${IWASM_DIR}/include)
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)
 
-TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SGX_INCLUDE_DIRS})
+TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC ${SGX_TRUSTED_INCLUDE_DIRS})
 TARGET_INCLUDE_DIRECTORIES(${WAWAKA_STATIC_NAME} PUBLIC "${SGX_SSL}/include")
 
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
-#TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fvisibility=hidden")
-#TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fpie")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-nostdinc")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-nostdinc++")
 TARGET_COMPILE_OPTIONS(${WAWAKA_STATIC_NAME} PRIVATE "-fno-builtin-printf")

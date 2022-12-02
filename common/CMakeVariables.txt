@@ -12,6 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Variable for library names
+# c* is for client, sgx is not required for building or using
+# u* is for untrusted, untrusted handlers for enclave code
+# t* is for trusted, for use inside an enclave
+SET(C_CRYPTO_LIB_NAME cpdo-crypto)
+SET(U_CRYPTO_LIB_NAME updo-crypto)
+SET(T_CRYPTO_LIB_NAME tpdo-crypto)
+
+SET(C_COMMON_LIB_NAME cpdo-common)
+SET(U_COMMON_LIB_NAME updo-common)
+SET(T_COMMON_LIB_NAME tpdo-common)
+
+# Block store library does not depend on sgx at all
+SET(BLOCK_STORE_LIB_NAME pdo-lmdb-block-store)
+
+# include macros
+LIST(APPEND COMMON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
+LIST(APPEND COMMON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/state)
+LIST(APPEND COMMON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/crypto)
+LIST(APPEND COMMON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/packages/base64)
+LIST(APPEND COMMON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/packages/parson)
+
+SET(TINYSCHEME_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/packages/tinyscheme)
+SET(INTERP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/interpreter)
+
+SET(COMMON_CXX_FLAGS ${DEBUG_FLAGS})
+LIST(APPEND COMMON_CXX_FLAGS "-m64" "-fvisibility=hidden" "-fpie" "-fPIC" "-fstack-protector" "-std=c++11" "-Wall")
 
 ################################################################################
 # Configure Environment
@@ -19,60 +46,63 @@
 
 SET(PDO_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
-
-IF($ENV{PDO_DEBUG_BUILD})
+IF (ENV{PDO_DEBUG_BUILD})
     SET(DEBUG_FLAGS "-Og" "-g" "-DPDO_DEBUG_BUILD=1")
-    message(STATUS "Compiling in debug mode without optimizations (-Og -g)")
+    MESSAGE(STATUS "Compiling in debug mode without optimizations (-Og -g)")
 ELSE()
     SET(DEBUG_FLAGS "-O2" "-DPDO_DEBUG_BUILD=0")
-    message(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
+    MESSAGE(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
 ENDIF()
 
-SET(SGX_SDK "$ENV{SGX_SDK}")
-if("${SGX_SDK} " STREQUAL " ")
-    message(FATAL_ERROR "SGX_SDK environment variable not defined!")
-endif()
+IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
 
-if(NOT UNTRUSTED_ONLY)
-    SET(PDO_ENCLAVE_CODE_SIGN_PEM "$ENV{PDO_ENCLAVE_CODE_SIGN_PEM}")
-    if("${PDO_ENCLAVE_CODE_SIGN_PEM} " STREQUAL " ")
-        message(FATAL_ERROR "PDO_ENCLAVE_CODE_SIGN_PEM environment variable not defined!")
-    endif()
+  IF (NOT DEFINED ENV{SGX_SDK})
+    MESSAGE(FATAL_ERROR "SGX_SDK environment variable not defined!")
+  ENDIF()
+  SET(SGX_SDK $ENV{SGX_SDK})
 
-    SET(SGX_MODE "$ENV{SGX_MODE}")
-    if("${SGX_MODE} " STREQUAL " ")
-        message(FATAL_ERROR "SGX_MODE environment variable not defined!")
-    endif()
-    IF("${SGX_MODE}" STREQUAL "SIM")
-        SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
-        SET(URTS_LIBRARY_NAME "sgx_urts_sim")
-        SET(AE_SERVICE_LIBRARY_NAME "sgx_uae_service_sim")
-        SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
-    ELSE()
-        SET(TRTS_LIBRARY_NAME "sgx_trts")
-        SET(URTS_LIBRARY_NAME "sgx_urts")
-        SET(AE_SERVICE_LIBRARY_NAME "")
-        SET(SERVICE_LIBRARY_NAME "sgx_tservice")
-    ENDIF()
+  IF (NOT DEFINED ENV{PDO_ENCLAVE_CODE_SIGN_PEM})
+    MESSAGE(FATAL_ERROR "PDO_ENCLAVE_CODE_SIGN_PEM environment variable not defined!")
+  ENDIF()
+  SET(PDO_ENCLAVE_CODE_SIGN_PEM $ENV{PDO_ENCLAVE_CODE_SIGN_PEM})
 
-    SET(SGX_SSL "$ENV{SGX_SSL}")
-    if("${SGX_SSL} " STREQUAL " ")
-        message(FATAL_ERROR "SGX_SSL environment variable not defined!")
-    endif()
-endif()
+  IF (NOT DEFINED ENV{SGX_MODE})
+    MESSAGE(FATAL_ERROR "SGX_MODE environment variable not defined!($ENV{SGX_MODE})")
+  ENDIF()
+  SET(SGX_MODE $ENV{SGX_MODE})
 
-SET(SGX_EDGER "${SGX_SDK}/bin/x64/sgx_edger8r")
-SET(SGX_SIGN "${SGX_SDK}/bin/x64/sgx_sign")
+  IF (${SGX_MODE} STREQUAL "SIM")
+    SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
+    SET(URTS_LIBRARY_NAME "sgx_urts_sim")
+    SET(AE_SERVICE_LIBRARY_NAME "sgx_uae_service_sim")
+    SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
+  ELSE()
+    SET(TRTS_LIBRARY_NAME "sgx_trts")
+    SET(URTS_LIBRARY_NAME "sgx_urts")
+    SET(AE_SERVICE_LIBRARY_NAME "")
+    SET(SERVICE_LIBRARY_NAME "sgx_tservice")
+  ENDIF()
 
-SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include")
-SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
-                        "${SGX_SDK}/include/tlibc"
-                        "${SGX_SDK}/include/libcxx")
+  IF (NOT DEFINED ENV{SGX_SSL})
+    MESSAGE(FATAL_ERROR "SGX_SSL environment variable not defined!")
+  ENDIF()
+  SET(SGX_SSL $ENV{SGX_SSL})
 
-SET(GENERIC_PRIVATE_INCLUDE_DIRS "." ".." "../crypto" "../crypto/verify_ias_report" "../packages/base64" "../state")
-SET(GENERIC_PUBLIC_INCLUDE_DIRS "${SGX_SDK}/include")
+  SET(SGX_EDGER "${SGX_SDK}/bin/x64/sgx_edger8r")
+  SET(SGX_SIGN "${SGX_SDK}/bin/x64/sgx_sign")
 
-enable_testing()
+  SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include")
+  SET(SGX_TRUSTED_INCLUDE_DIRS
+    "${SGX_SDK}/include"
+    "${SGX_SDK}/include/tlibc"
+    "${SGX_SDK}/include/libcxx")
+
+  SET(SGX_UNTRUSTED_INCLUDE_DIRS
+    "${SGX_SDK}/include")
+
+ENDIF()
+
+ENABLE_TESTING()
 
 ################################################################################
 # Functions
