@@ -20,7 +20,7 @@
 
 #ifndef __STDC_LIB_EXT1__
 
-#ifdef _UNTRUSTED_
+#if _UNTRUSTED_
 int memset_s(void *dest, size_t max, int c, size_t count)
 {
     // Figure out how many characters we are going to set (either the count or

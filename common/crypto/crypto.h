@@ -14,7 +14,10 @@
  */
 
 #pragma once
+#if _CLIENT_ONLY_
+#else
 #include "sgx_defaults.h"
+#endif
 #include <openssl/sha.h>
 #include "crypto_shared.h"
 #include "crypto_utils.h"
@@ -26,5 +29,8 @@
 #include "sig_private_key.h"
 #include "sig_public_key.h"
 #include "skenc.h"
+#if _CLIENT_ONLY_
+#else
 #include "verify_ias_report/ias-certificates.h"
 #include "verify_ias_report/verify-report.h"
+#endif

@@ -16,13 +16,15 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#if _CLIENT_ONLY_
+#else
+
 #include "error.h"
 #include "sgx_support.h"
 #include "c11_support.h"
 
 namespace pdo {
     namespace error {
-
         typedef struct _sgx_errlist_t {
             const sgx_status_t err;
             const char *msg;
@@ -186,3 +188,5 @@ namespace pdo {
         } // ThrowSgxError
     }
 } // namespace pdo
+
+#endif // _CLIENT_ONLY_

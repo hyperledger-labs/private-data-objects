@@ -19,11 +19,16 @@
 #include <string>
 
 #include "pdo_error.h"
+#if _CLIENT_ONLY_
+#else
 #include "sgx_error.h"
+#endif
 
 namespace pdo {
     namespace error {
 
+#if _CLIENT_ONLY_
+#else
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         class SgxError : public std::exception
         {
@@ -45,6 +50,7 @@ namespace pdo {
         private:
             sgx_status_t errorCode;
         }; // class SgxError
+#endif
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         class Error : public std::runtime_error
@@ -194,10 +200,13 @@ namespace pdo {
         } // ThrowIf
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#if _CLIENT_ONLY_
+#else
         void ThrowSgxError(
             sgx_status_t ret,
             const char* msg = nullptr
             );
+#endif
     }
 
 } // namespace pdo
