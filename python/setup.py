@@ -44,8 +44,17 @@ data_files = [
 
 # -----------------------------------------------------------------
 # set up common flags
+#
+# note that setuptools does not make it easy to pass custom command
+# line parameters so we have to use environment variables
 # -----------------------------------------------------------------
-debug_flag = os.environ.get('PDO_DEBUG_BUILD',0)
+debug_flag = int(os.environ.get('PDO_DEBUG_BUILD', 0))
+if debug_flag :
+    print("Build debug")
+
+client_only_flag = int(os.environ.get('BUILD_CLIENT', 0))
+if client_only_flag :
+    print("Build client")
 
 compile_args = [
     '-std=c++11',
@@ -60,6 +69,20 @@ if debug_flag :
     compile_args += ['-g']
 
 swig_flags = ['-c++', '-threads']
+
+if client_only_flag :
+    compile_args += ['-D_CLIENT_ONLY_=1']
+
+if client_only_flag :
+    common_libs = [
+        'cpdo-common',
+        'cpdo-crypto'
+    ]
+else :
+    common_libs = [
+        'updo-common',
+        'updo-crypto',
+    ]
 
 # -----------------------------------------------------------------
 # set up the crypto module
@@ -81,17 +104,16 @@ crypto_module_files = [
 ]
 
 crypto_include_dirs = [
-    os.path.join(os.environ['SGX_SDK'], "include"),
     os.path.join(pdo_root_dir, 'common'),
     os.path.join(pdo_root_dir, 'common/crypto'),
     os.path.join(pdo_root_dir, 'common/state'),
     os.path.join(pdo_root_dir, 'common/packages/base64'),
 ] + openssl_include_dirs
 
-crypto_libraries = [
-    'updo-common',
-    'updo-crypto',
-    ] + openssl_libs
+if not client_only_flag :
+    crypto_include_dirs += [ os.path.join(os.environ['SGX_SDK'], "include") ]
+
+crypto_libraries = common_libs + openssl_libs
 
 crypto_library_dirs = [
     os.path.join(pdo_root_dir, "common", "build"),
@@ -118,18 +140,15 @@ key_value_module_files = [
 ]
 
 key_value_include_dirs = [
-    os.path.join(os.environ['SGX_SDK'], "include"),
     os.path.join(pdo_root_dir, 'common'),
     os.path.join(pdo_root_dir, 'common/crypto'),
     os.path.join(pdo_root_dir, 'common/state'),
 ]
 
-key_value_libraries = [
-    'updo-common',
-    'updo-crypto',
-    'updo-lmdb-block-store',
-    'lmdb',
-] + openssl_libs
+if not client_only_flag :
+    key_value_include_dirs += [ os.path.join(os.environ['SGX_SDK'], "include") ]
+
+key_value_libraries = common_libs + [ 'pdo-lmdb-block-store', 'lmdb' ] + openssl_libs
 
 key_value_library_dirs = [
     os.path.join(pdo_root_dir, "common", "build"),

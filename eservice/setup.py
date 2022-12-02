@@ -97,7 +97,7 @@ library_dirs = [
 
 libraries = [
     'updo-common',
-    'updo-lmdb-block-store',
+    'pdo-lmdb-block-store',
     'lmdb'
 ]
 
