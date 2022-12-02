@@ -14,6 +14,8 @@
 
 cmake_minimum_required (VERSION 3.5 FATAL_ERROR)
 
+PROJECT(wawaka-contracts)
+
 INCLUDE(contract-build.cmake)
 INCLUDE(wawaka_common.cmake)
 
