@@ -1,0 +1,10 @@
+pdo/sservice/scripts/SServiceCLI.py
+pdo/sservice/scripts/__init__.py
+pdo/sservice/__init__.py
+pdo/sservice/wsgi/check_blocks.py
+pdo/sservice/wsgi/list_blocks.py
+pdo/sservice/wsgi/info.py
+pdo/sservice/wsgi/store_blocks.py
+pdo/sservice/wsgi/__init__.py
+pdo/sservice/wsgi/get_block.py
+pdo/__init__.py

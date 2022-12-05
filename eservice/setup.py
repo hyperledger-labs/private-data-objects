@@ -44,10 +44,11 @@ if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
 data_files = [
     (bin_dir, [
         'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
-        'bin/ss-start.sh', 'bin/ss-stop.sh', 'bin/ss-status.sh',
         ]),
     (dat_dir, []),
-    (etc_dir, [ 'etc/sample_eservice.toml', 'etc/sample_sservice.toml' ]),
+    (etc_dir, [
+        'etc/sample_eservice.toml',
+        ]),
     (log_dir, []),
     (key_dir, []),
     ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')])
@@ -173,7 +174,6 @@ setup(name='pdo_eservice',
       data_files = data_files,
       entry_points = {
           'console_scripts': [
-              'sservice = pdo.sservice.scripts.SServiceCLI:Main',
               'eservice = pdo.eservice.scripts.EServiceCLI:Main',
               'eservice-enclave-info = pdo.eservice.scripts.EServiceEnclaveInfoCLI:Main'
           ]

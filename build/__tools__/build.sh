@@ -85,6 +85,11 @@ cd $SRCDIR/python
 try make ${MAKE_ARGS}
 try make ${MAKE_ARGS} install
 
+yell --------------- SSERVICE ---------------
+cd $SRCDIR/sservice
+try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
+try make install BUILD_CLIENT=${BUILD_CLIENT}
+
 yell --------------- ESERVICE ---------------
 if [ ${F_CLIENT} == "no" ]; then
     cd $SRCDIR/eservice
