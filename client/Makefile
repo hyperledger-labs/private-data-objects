@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
+PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 EGG_FILE=dist/pdo_client-${MOD_VERSION}-py${PY_VERSION}.egg
 

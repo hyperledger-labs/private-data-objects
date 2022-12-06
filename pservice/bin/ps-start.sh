@@ -14,15 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit 1
-fi
-
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
 source ${F_SERVICEHOME}/bin/lib/common.sh
 source ${F_SERVICEHOME}/bin/lib/common_service.sh
+
+check_python_version
 
 F_BASENAME='pservice'
 F_SERVICE_CMD='pservice'

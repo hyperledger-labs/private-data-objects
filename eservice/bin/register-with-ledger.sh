@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit 101
-fi
-
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 DSTDIR=${PDO_INSTALL_ROOT}
@@ -36,6 +29,7 @@ PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
 eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 source ${SRCDIR}/bin/lib/common.sh
+check_python_version
 
 function cleanup {
     yell "Clean up temporary files"
