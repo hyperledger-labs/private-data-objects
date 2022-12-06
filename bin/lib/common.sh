@@ -56,3 +56,12 @@ function die() {
 function try() {
     "$@" || die "operation failed: $*"
 }
+
+# Common function to test python version
+#-----------------------------------------
+function check_python_version() {
+    VERSION=$(python3 --version | sed 's/Python 3\.\([0-9][0-9]*\).*/\1/')
+    if [[ $VERSION -lt 5 ]]; then
+        die unsupported version of python
+    fi
+}

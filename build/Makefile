@@ -53,7 +53,7 @@ CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
 BENCHMARKSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
+PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
 ifndef NO_SGX_RUN_DURING_BUILD

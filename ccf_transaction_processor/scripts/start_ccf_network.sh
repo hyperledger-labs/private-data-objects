@@ -14,16 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    echo activate python3 first
-    exit 1
-fi
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
 source ${F_SERVICEHOME}/bin/lib/pdo_common.sh
+
+check_python_version
 
 if [ -f ${F_SERVICEHOME}/run/cchost.pid ]; then
     if ps -p $(cat ${F_SERVICEHOME}/run/cchost.pid) > /dev/null

@@ -23,7 +23,7 @@ endif
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
-PY_VERSION=${shell . $(abspath $(DSTDIR)/bin/activate) && python3 --version | sed 's/Python \(3\.[0-9]\).*/\1/'}
+PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
