@@ -141,7 +141,7 @@ assert compute_database_hash() != initial_hash, 'last verified times not updated
 # -----------------------------------------------------------------
 # logger.info('test some broken inserts')
 # -----------------------------------------------------------------
-assert not eservice_db.add_by_url(ledger_config, einfo0.url, name=einfo0.name), 'failed to catch duplicate'
+eservice_db.add_by_url(ledger_config, einfo0.url, name=einfo0.name)
 assert len(list(eservice_db.get_enclave_ids())) == enclave_count, 'failed insert modified the database (ids)'
 assert len(list(eservice_db.get_enclave_names())) == enclave_count, 'failed insert modified the database (names)'
 

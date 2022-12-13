@@ -40,6 +40,7 @@ def command_eservice_db(state, bindings, pargs) :
     add_parser = subparsers.add_parser('add', description='add an eservice to the database')
     add_parser.add_argument('--url', help='URL for the enclave service to add', type=str, required=True)
     add_parser.add_argument('--name', help='Short name for the enclave service', type=str, required=True)
+    add_parser.add_argument('--update', help='Update and verify enclave information', action='store_true')
 
     clear_parser = subparsers.add_parser('clear', description='remove all eservices in the database')
     list_parser = subparsers.add_parser('list', description='list eservices in the database')
@@ -71,7 +72,7 @@ def command_eservice_db(state, bindings, pargs) :
     ledger_config = state.get(['Ledger'])
 
     if options.command == 'add' :
-        if not eservice_db.add_by_url(ledger_config, options.url, name=options.name, update=True) :
+        if not eservice_db.add_by_url(ledger_config, options.url, name=options.name, update=options.update) :
             raise Exception('failed to add eservice {0} to the database'.format(options.name))
         return
 

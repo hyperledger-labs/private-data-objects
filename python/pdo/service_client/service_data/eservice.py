@@ -265,6 +265,18 @@ def add_by_url(ledger_config, url, name='', update=False) :
     """add to the in-memory database information about the enclave
     hosted by an eservice at the provided url.
     """
+
+    # check to see if this eservice is already in the database; if
+    # it is, then don't re-add unless the update flag is set
+    if name and not update :
+        try :
+            einfo = get_by_name(name)
+            if einfo and einfo.url == url :
+                logger.debug('found existing eservice entry for {}'.format(url))
+                return einfo
+        except :
+            pass
+
     try :
         client = EnclaveServiceClient(url)
     except Exception as e :
