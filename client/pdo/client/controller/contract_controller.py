@@ -753,6 +753,23 @@ class ContractController(cmd.Cmd) :
         return False
 
     # -----------------------------------------------------------------
+    def do_sservice(self, args) :
+        """sservice -- manage storage service lists for contract creation
+        """
+        if self.deferred > 0 : return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+            sservice(self.state, self.bindings, pargs)
+
+        except SystemExit as se :
+            return self.__arg_error__('sservice', args, se.code)
+        except Exception as e :
+            return self.__error__('sservice', args, str(e))
+
+        return False
+
+    # -----------------------------------------------------------------
     def do_eservice_db(self, args) :
         """eservice_db -- manage enclave service list
         """

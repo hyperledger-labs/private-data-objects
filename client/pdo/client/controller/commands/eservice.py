@@ -41,7 +41,7 @@ def __expand_eservice_names__(names) :
 def command_eservice(state, bindings, pargs) :
     """controller command to manage the list of enclave services
     """
-    subcommands = ['add', 'remove', 'set', 'list', 'create-group', 'use' ]
+    subcommands = ['add', 'remove', 'set', 'list', 'use' ]
 
     parser = argparse.ArgumentParser(prog='eservice')
     parser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
