@@ -60,6 +60,28 @@ eservice --group all add --url http://localhost:7101
 eservice --group all add --url http://localhost:7102 http://localhost:7103 --name es7104 es7105
 eservice --group all use --name es7104
 
+## default sservice group
+set -s persistent_storage_service -v http://localhost:7201
+
+sservice add --url http://localhost:7201
+sservice add --url http://localhost:7202
+sservice add --url http://localhost:7203
+sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s2
+sservice --group s2 add --url http://localhost:7102
+sservice --group s2 add --url http://localhost:7103
+sservice --group s2 add --url http://localhost:7104
+sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## all sservices
+sservice --group all add --url http://localhost:7201
+sservice --group all add --url http://localhost:7202
+sservice --group all add --url http://localhost:7203
+sservice --group all add --url http://localhost:7204
+sservice --group all add --url http://localhost:7205
+sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
 ## create some contracts
 set -s contract1 -r 32
 set -s contract2 -r 32
@@ -78,7 +100,7 @@ else
 fi
 
 identity -n user2
-create -c mock-contract -s _mock-contract -p all -e all -f ${save}/${contract2}.pdo
+create -c mock-contract -s _mock-contract -r all -p all -e all -f ${save}/${contract2}.pdo
 send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7101
 send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7102
 send -f ${save}/${contract2}.pdo --wait inc_value -e random
@@ -92,7 +114,7 @@ else
 fi
 
 identity -n user3
-create -c mock-contract -s _mock-contract -p p1 -e e1 -f ${save}/${contract3}.pdo
+create -c mock-contract -s _mock-contract -r s2 -p p1 -e e1 -f ${save}/${contract3}.pdo
 send -f ${save}/${contract3}.pdo inc_value -s r8 -e preferred
 send -f ${save}/${contract3}.pdo inc_value -s r9 -e random
 send -f ${save}/${contract3}.pdo inc_value -s r10 -e random

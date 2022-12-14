@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [ 'contract', 'create', 'eservice', 'eservice_db', 'ledger', 'pservice', 'send' ]
+__all__ = [ 'contract', 'create', 'eservice', 'eservice_db', 'ledger', 'pservice', 'send', 'sservice' ]
 
 import pdo.client.controller.commands.contract
 contract = contract.command_contract
@@ -34,3 +34,6 @@ pservice = pservice.command_pservice
 
 import pdo.client.controller.commands.send
 send = send.command_send
+
+import pdo.client.controller.commands.sservice
+sservice = sservice.command_sservice

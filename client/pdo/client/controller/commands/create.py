@@ -23,6 +23,7 @@ import pdo.common.crypto as pcrypto
 
 from pdo.client.controller.commands.eservice import get_eservice, get_eservice_list
 from pdo.client.controller.commands.pservice import get_pservice_list
+from pdo.client.controller.commands.sservice import get_replica_count, get_replica_duration, get_persistent_storage_service
 
 from pdo.common.keys import ServiceKeys
 from pdo.contract import ContractCode
@@ -115,19 +116,25 @@ def create_contract(state, save_file, contract_source, **kwargs) :
     @param contract_class : optional parameter to specific class in the contract source
     @param eservice_group : name of the eservice group to provision the contract
     @param pservice_group : name of the pservice group to provision the contract
+    @param sservice_group : name of the sservice group to specify storage parameters
     @param interpreter : name of the interpreter that is expected from the eservices
-    @param state_replicas : number of mandatory copies of state
-    @param state_duration : minimum duration replicas must be available
     @param extra_data : opaque data that can be store in the contract file
     """
 
     contract_class = kwargs.get('contract_class') or os.path.basename(contract_source)
     eservice_group = kwargs.get('eservice_group') or 'default'
     pservice_group = kwargs.get('pservice_group') or 'default'
+    sservice_group = kwargs.get('sservice_group') or 'default'
     interpreter = kwargs.get('interpreter') or state.get(['Contract', 'Interpreter'])
-    state_replicas = kwargs.get('state_replicas') or state.get(['Replication', 'NumProvableReplicas'], 2)
-    state_duration = kwargs.get('state_duration') or state.get(['Replication', 'Duration'], 120)
-    extra_data = kwargs.get('extra_data')
+    extra_data = kwargs.get('extra_data') or dict()
+
+    # ---------- pull out replication parameters ----------
+    state_replicas = get_replica_count(state, sservice_group)
+    state_duration = get_replica_duration(state, sservice_group)
+    if 'persistent_storage_service' not in extra_data :
+        persistent_url = get_persistent_storage_service(state, sservice_group)
+        if persistent_url :
+            extra_data['persistent_storage_service'] = persistent_url
 
     # ---------- load the invoker's keys ----------
     try :
@@ -156,6 +163,8 @@ def create_contract(state, save_file, contract_source, **kwargs) :
     if preferred_eservice_client.interpreter != interpreter :
         raise Exception('enclave interpreter does not match requested contract interpreter %s', interpreter)
 
+    extra_data['preferred-enclave'] = preferred_eservice_client.enclave_id
+
     # ---------- set up the provisioning service clients ----------
     pservice_clients = get_pservice_list(state, pservice_group)
     if len(pservice_clients) == 0 :
@@ -169,10 +178,8 @@ def create_contract(state, save_file, contract_source, **kwargs) :
         extra_params = {
             'num_provable_replicas' : state_replicas,
             'availability_duration' : state_duration,
+            'extra_data' : extra_data
         }
-
-        if extra_data :
-            extra_params['extra_data'] = extra_data
 
         provisioning_service_keys = [pc.identity for pc in pservice_clients]
         contract_id = register_contract(
@@ -181,9 +188,6 @@ def create_contract(state, save_file, contract_source, **kwargs) :
         logger.debug('Registered contract with class %s and id %s', contract_class, contract_id)
         contract_state = ContractState.create_new_state(contract_id)
         contract = Contract(contract_code, contract_state, contract_id, client_keys.identity, **extra_params)
-
-        # must fix this later
-        contract.extra_data['preferred-enclave'] = preferred_eservice_client.enclave_id
 
         contract_file = "{0}_{1}.pdo".format(contract_class, contract.short_id)
         if save_file :
@@ -229,14 +233,19 @@ def command_create(state, bindings, pargs) :
     parser.add_argument('-f', '--save-file', help='File where contract data is stored', type=str)
     parser.add_argument('-i', '--interpreter', help='Interpreter used to evaluate the contract', type=str)
     parser.add_argument('-p', '--pservice-group', help='Name of the provisioning service group to use', type=str)
+    parser.add_argument('-r', '--sservice-group', help='Name of the storage service group to use', type=str)
     parser.add_argument('-s', '--contract-source', help='File that contains contract source code', required=True, type=str)
 
     parser.add_argument('--symbol', help='binding symbol for result', type=str)
-    parser.add_argument('--state-replicas', help='Number of authoritative replicas of the state', type=int)
-    parser.add_argument('--state-duration', help='Duration required for state replicas', type=int)
-    parser.add_argument('--extra-data', help='Simple string that can save extra data with the contract file', type=str)
+    parser.add_argument('--extra-data', help='Extra data to be associated with the contract file', nargs=2, action='append')
 
     options = parser.parse_args(pargs)
+
+    if options.extra_data :
+        extra_data = {}
+        for (k, v) in options.extra_data :
+            extra_data[k] = v
+        options.extra_data = extra_data
 
     contract_id = create_contract(state, **vars(options))
     if contract_id and options.symbol :

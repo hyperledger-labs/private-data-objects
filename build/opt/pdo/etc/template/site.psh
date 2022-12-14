@@ -27,6 +27,7 @@ set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
 eservice_db load --database ${dbfile} -s _database_exists_
 
 ## make sure the minimal set of enclave services is included
+## if these are already in the database they will not be re-added
 eservice_db add --url http://localhost:7101 --name es7101
 eservice_db add --url http://localhost:7102 --name es7102
 eservice_db add --url http://localhost:7103 --name es7103
@@ -37,6 +38,9 @@ if -e ${_database_exists_} False
    eservice_db save --database ${dbfile}
    echo eservice database updated
 fi
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
 
 ## default pservice group
 pservice add --url http://localhost:7001
@@ -55,26 +59,86 @@ pservice --group all add --url http://localhost:7003
 pservice --group all add --url http://localhost:7004
 pservice --group all add --url http://localhost:7005
 
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+
 ## default eservice group
-eservice add --url http://localhost:7101 http://localhost:7102 http://localhost:7103
+eservice add --url http://localhost:7101
+eservice add --url http://localhost:7102
+eservice add --url http://localhost:7103
 eservice use --url http://localhost:7101
 
 ## eservice group e2
-eservice --group e2 add --url http://localhost:7102 http://localhost:7103 http://localhost:7104
+eservice --group e2 add --url http://localhost:7102
+eservice --group e2 add --url http://localhost:7103
+eservice --group e2 add --url http://localhost:7104
 eservice --group e2 use --url http://localhost:7102
 
 ## eservice group e3
-eservice --group e2 add --url http://localhost:7103 http://localhost:7104 http://localhost:7105
-eservice --group e2 use --url http://localhost:7103
+eservice --group e3 add --url http://localhost:7103
+eservice --group e3 add --url http://localhost:7104
+eservice --group e3 add --url http://localhost:7105
+eservice --group e3 use --url http://localhost:7103
 
 ## eservice group e4
-eservice --group e4 add --url http://localhost:7104 http://localhost:7105 http://localhost:7101
+eservice --group e4 add --url http://localhost:7104
+eservice --group e4 add --url http://localhost:7105
+eservice --group e4 add --url http://localhost:7101
 eservice --group e4 use --url http://localhost:7104
 
 ## eservice group e5
-eservice --group e5 add --url http://localhost:7105 http://localhost:7101 http://localhost:7102
+eservice --group e5 add --url http://localhost:7105
+eservice --group e5 add --url http://localhost:7101
+eservice --group e5 add --url http://localhost:7102
 eservice --group e5 use --url http://localhost:7105
 
 ## eservice group all
-eservice --group all add --url http://localhost:7101 http://localhost:7102 http://localhost:7103 http://localhost:7104 http://localhost:7105
+eservice --group all add --url http://localhost:7101
+eservice --group all add --url http://localhost:7102
+eservice --group all add --url http://localhost:7103
+eservice --group all add --url http://localhost:7104
+eservice --group all add --url http://localhost:7105
 eservice --group all use --url http://localhost:7101
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+
+set -s persistent_storage_service -v http://localhost:7201
+
+## default sservice group
+sservice add --url http://localhost:7201
+sservice add --url http://localhost:7202
+sservice add --url http://localhost:7203
+sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s2
+sservice --group s2 add --url http://localhost:7102
+sservice --group s2 add --url http://localhost:7103
+sservice --group s2 add --url http://localhost:7104
+sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s3
+sservice --group s3 add --url http://localhost:7103
+sservice --group s3 add --url http://localhost:7104
+sservice --group s3 add --url http://localhost:7105
+sservice --group s3 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s4
+sservice --group s4 add --url http://localhost:7104
+sservice --group s4 add --url http://localhost:7105
+sservice --group s4 add --url http://localhost:7101
+sservice --group s4 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s5
+sservice --group s5 add --url http://localhost:7105
+sservice --group s5 add --url http://localhost:7101
+sservice --group s5 add --url http://localhost:7102
+sservice --group s5 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## all sservices
+sservice --group all add --url http://localhost:7201
+sservice --group all add --url http://localhost:7202
+sservice --group all add --url http://localhost:7203
+sservice --group all add --url http://localhost:7204
+sservice --group all add --url http://localhost:7205
+sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
