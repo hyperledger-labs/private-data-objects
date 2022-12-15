@@ -107,7 +107,7 @@ IF (BUILD_TRUSTED)
   TARGET_COMPILE_OPTIONS(${T_COMMON_LIB_NAME} PRIVATE -nostdinc)
   TARGET_COMPILE_OPTIONS(${T_COMMON_LIB_NAME} PRIVATE -nostdinc++)
   TARGET_COMPILE_OPTIONS(${T_COMMON_LIB_NAME} PRIVATE -fno-builtin-printf)
-endif()
+ENDIF()
 
 ################################################################################
 # Other libraries in common
