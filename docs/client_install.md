@@ -35,7 +35,7 @@ sudo apt install -y liblmdb-dev libprotobuf-dev libsecp256k1-dev protobuf-compil
 ## Build and Install PDO
 
 Assuming you have installed and configured the pre-requisites in the
-default location lcations, the following commands will build and install
+default location, the following commands will build and install
 PDO into a Python virtual environment in the directory
 `${PDO_SOURCE_ROOT}/build/_dev`.
 
