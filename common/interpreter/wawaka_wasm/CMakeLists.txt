@@ -56,7 +56,7 @@ ENDIF ()
 
 if (NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
-endif ()
+ENDIF()
 
 IF (PDO_INTERPRETER STREQUAL "wawaka-aot")
   # Enable AOT.
