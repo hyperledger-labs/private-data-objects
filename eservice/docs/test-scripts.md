@@ -70,6 +70,7 @@ The following configuration variables can be specified:
   * ``ias_url`` --  URL of the Intel Attestation Service (IAS) server (ignored)
   * ``https_proxy`` -- proxy used to contact IAS server (ignored)
   * ``spid_api_key`` -- the api key corresponding to spid (ignored)
+  * ``attestation_type`` -- the type of attestation that the eservice will use (ignored)
 
 * ``contract`` -- the base name of the contract to use, this is
   expected to reference a file found in ``SchemeSearchPath``

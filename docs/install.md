@@ -127,6 +127,7 @@ or you can define yours with `export PDO_SGX_KEY_ROOT=<your folder>`):
 * save your API key in `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`
 * save the IAS root CA certificate in `${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`
   (`wget https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem -O ${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`)
+* save the attestation type `epid-linkable` or `dcap` in `${PDO_SGX_KEY_ROOT}/sgx_attestation_type.txt`
 
 #### Install the SGX Kernel Driver (Hardware Support)
 

@@ -51,7 +51,7 @@ them to the environment.
 
 Passing parameter `--reset-keys` will unset key variables
 `PDO_ENCLAVE_CODE_SIGN_PEM`,
-`PDO_SPID` and `PDO_SPID_API_KEY` before setting variables.
+`PDO_SPID`, `PDO_SPID_API_KEY`, `PDO_ATTESTATION_TYPE` before setting variables.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
@@ -152,6 +152,13 @@ you should provide your own version, at least for `PDO_SPID` and
 [BUILD document](install.md) for more information.
 
 <!-- -------------------------------------------------- -->
+
+### `PCCS_URL`
+(default: `https://$(hostname -A | cut -d" " -f1):8081/sgx/certification/v3/`)
+
+`PCCS_URL` is the url of the SGX PCCS service which is necessary for DCAP attestations.
+For other types of attestations, this value is ignored.
+
 ### `PDO_ENCLAVE_CODE_SIGN_PEM`
 (default: `${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem`):
 
@@ -195,6 +202,14 @@ If the variable is unset, the configuration script
 The default value will work for SGX simulation mode. See
 [SGX section](install.md#SGX) of the [BUILD document](install.md) for
 instructions to create the API key to support SGX hardware mode.
+
+### `PDO_ATTESTATION_TYPE`
+(default `simulated`)
+
+`PDO_ATTESTATION_TYPE` contains the type of attestation used by the eservice
+for the contract enclave.
+The default value is `simulated`, in SGX SIM mode.
+In SGX HW mode, the available types are `epid-linkable` and `dcap`.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
