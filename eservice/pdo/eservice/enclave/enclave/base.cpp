@@ -75,6 +75,7 @@ std::string pdo::enclave_api::base::GetLastError(void)
 pdo_err_t pdo::enclave_api::base::Initialize(
     const std::string& inPathToEnclave,
     const HexEncodedString& inSpid,
+    const std::string& inAttestationType,
     const int numOfEnclaves
     )
 {
@@ -96,6 +97,7 @@ pdo_err_t pdo::enclave_api::base::Initialize(
             for (pdo::enclave_api::Enclave& enc : g_Enclave)
             {
                 enc.SetSpid(inSpid);
+                enc.SetAttestationType(inAttestationType);
                 enc.Load(inPathToEnclave);
                 enc.StartWorker();
             }

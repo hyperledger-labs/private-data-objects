@@ -80,10 +80,10 @@ def shutdown_enclave() :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def get_enclave_service_info(spid, config=None) :
+def get_enclave_service_info(spid, attestation_type, config=None) :
     """get_enclave_service_info -- Retrieve enclave MRENCLAVE & BASENAME
     """
-    return pdo_enclave.get_enclave_service_info(spid, config=config)
+    return pdo_enclave.get_enclave_service_info(spid, attestation_type, config=config)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

@@ -78,6 +78,7 @@ try :
     LedgerType = os.environ["PDO_LEDGER_TYPE"]
     SPID = os.environ["PDO_SPID"]
     SPID_API_KEY = os.environ["PDO_SPID_API_KEY"]
+    PDO_ATTESTATION_TYPE = os.environ["PDO_ATTESTATION_TYPE"]
 except KeyError as ke :
     print("incomplete configuration, missing definition of {0}".format(str(ke)))
     sys.exit(-1)
@@ -112,7 +113,8 @@ config_map = {
     'eservice_key_format': EserviceKeyFormat,
     'proxy' : HttpsProxy,
     'spid' : SPID,
-    'spid_api_key' : SPID_API_KEY
+    'spid_api_key' : SPID_API_KEY,
+    'attestation_type' : PDO_ATTESTATION_TYPE
 }
 
 # -----------------------------------------------------------------

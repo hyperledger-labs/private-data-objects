@@ -26,6 +26,7 @@ public:
     pdo_enclave_info(
         const std::string& enclaveModulePath,
         const std::string& spid,
+        const std::string& attestation_type,
         const int num_of_enclaves
         );
     virtual ~pdo_enclave_info();

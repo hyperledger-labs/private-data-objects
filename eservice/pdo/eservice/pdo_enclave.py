@@ -61,6 +61,7 @@ _sig_rl_update_time = None
 _sig_rl_update_period = 8*60*60 # in seconds every 8 hours
 
 _epid_group = None
+_attestation_type = ""
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -133,11 +134,12 @@ def initialize_with_configuration(config) :
     global _pdo
     global _ias
     global logger
+    global _attestation_type
 
     enclave.SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
-    valid_keys = set(['spid', 'ias_url', 'spid_api_key'])
+    valid_keys = set(['spid', 'ias_url', 'spid_api_key', 'attestation_type'])
     found_keys = set(config.keys())
 
     missing_keys = valid_keys.difference(found_keys)
@@ -150,7 +152,9 @@ def initialize_with_configuration(config) :
 
     num_of_enclaves = int(config.get('num_of_enclaves', 1))
 
-    if not _ias:
+    _attestation_type = config.get('attestation_type', "")
+
+    if not _ias and _attestation_type == "epid-linkable":
         _ias = \
             ias_client.IasClient(
                 IasServer = config['ias_url'],
@@ -161,19 +165,24 @@ def initialize_with_configuration(config) :
     if not _pdo:
         signed_enclave = __find_enclave_library(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
-        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'], num_of_enclaves)
+        _pdo = enclave.pdo_enclave_info(
+                signed_enclave,
+                config['spid'],
+                _attestation_type,
+                num_of_enclaves)
         logger.info("Basename: %s", get_enclave_basename())
         logger.info("MRENCLAVE: %s", get_enclave_measurement())
 
-    sig_rl_updated = False
-    while not sig_rl_updated:
-        try:
-            update_sig_rl()
-            sig_rl_updated = True
-        except (SSLError, Timeout, HTTPError) as e:
-            logger.warning("Failed to retrieve initial sig rl from IAS: %s", str(e))
-            logger.warning("Retrying in 60 sec")
-            time.sleep(60)
+    if _attestation_type == "epid-linkable":
+        sig_rl_updated = False
+        while not sig_rl_updated:
+            try:
+                update_sig_rl()
+                sig_rl_updated = True
+            except (SSLError, Timeout, HTTPError) as e:
+                logger.warning("Failed to retrieve initial sig rl from IAS: %s", str(e))
+                logger.warning("Retrying in 60 sec")
+                time.sleep(60)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -216,7 +225,7 @@ def send_to_contract_encoded(sealed_data, encrypted_session_key, encrypted_reque
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def get_enclave_service_info(spid, config=None) :
+def get_enclave_service_info(spid, attestation_type, config=None) :
     """Retrieve information about the enclave. This function should
     only be called outside of the normal initialization of the enclave
     and corresponding libraries.
@@ -233,7 +242,7 @@ def get_enclave_service_info(spid, config=None) :
     logger.debug("Attempting to load enclave at: %s", signed_enclave)
 
     num_of_enclaves = 1
-    pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
+    pdo = enclave.pdo_enclave_info(signed_enclave, spid, attestation_type, num_of_enclaves)
     if pdo is None :
         raise Exception('unable to load the enclave')
 
@@ -267,9 +276,10 @@ def get_enclave_epid_group():
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def create_signup_info(originator_public_key_hash, nonce):
-    # Part of what is returned with the signup data is an enclave quote, we
-    # want to update the revocation list first.
-    update_sig_rl()
+    if _attestation_type == "epid-linkable":
+        # Part of what is returned with the signup data is an enclave quote, we
+        # want to update the revocation list first.
+        update_sig_rl()
 
     # Now, let the enclave create the signup data
     signup_data = enclave.create_enclave_data(originator_public_key_hash)
@@ -292,33 +302,39 @@ def create_signup_info(originator_public_key_hash, nonce):
     # If we are not running in the simulator, we are going to go and get
     # an attestation verification report for our signup data.
     if not enclave.is_sgx_simulator():
-        logger.debug("posting verification to IAS")
-        response = _ias.post_verify_attestation(quote=signup_data['enclave_quote'], nonce=nonce)
-        logger.debug("posted verification to IAS")
+        if _attestation_type != "dcap":
+            logger.debug("posting verification to IAS")
+            response = _ias.post_verify_attestation(quote=signup_data['enclave_quote'], nonce=nonce)
+            logger.debug("posted verification to IAS")
 
-        #check verification report
-        if not _ias.verify_report_fields(signup_data['enclave_quote'], response['verification_report']):
-            logger.debug("last error: " + _ias.last_verification_error())
-            if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
-                logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
-            else:
-                logger.error("invalid report fields")
-                return None
-        #ALL checks have passed
-        logger.info("report fields verified")
+            #check verification report
+            if not _ias.verify_report_fields(signup_data['enclave_quote'], response['verification_report']):
+                logger.debug("last error: " + _ias.last_verification_error())
+                if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
+                    logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
+                else:
+                    logger.error("invalid report fields")
+                    return None
+            #ALL checks have passed
+            logger.info("report fields verified")
 
-        # Now put the proof data into the dictionary
-        signup_info['proof_data'] = \
-            json.dumps({
-                'verification_report': response['verification_report'],
-                'certificates': response['ias_certificates'], # Note: this is a list with certification path, signer first
-                'signature': response['ias_signature']
-            })
+            # Now put the proof data into the dictionary
+            signup_info['proof_data'] = \
+                json.dumps({
+                    'verification_report': response['verification_report'],
+                    'certificates': response['ias_certificates'], # Note: this is a list with certification path, signer first
+                    'signature': response['ias_signature']
+                })
 
-        # Grab the EPID psuedonym and put it in the enclave-persistent ID for the
-        # signup info
-        verification_report_dict = json.loads(response['verification_report'])
-        signup_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
+            # Grab the EPID psuedonym and put it in the enclave-persistent ID for the
+            # signup info
+            verification_report_dict = json.loads(response['verification_report'])
+            signup_info['enclave_persistent_id'] = verification_report_dict.get('epidPseudonym')
+
+        else: # this is a dcap attestation
+            logger.warning("WARNING: DCAP attestation incomplete in HW mode, zeroing proof data")
+            # TODO conversion of quote to verification report with iSecL
+            signup_info['proof_data'] = ''
 
     # Now we can finally serialize the signup info and create a corresponding
     # signup info object.  Because we don't want the sealed signup data in the

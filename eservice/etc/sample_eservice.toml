@@ -94,3 +94,6 @@ https_proxy = ''
 
 # spid_api_key is a 32-digit hex string tied to the SPID
 spid_api_key = 'DEADBEEF00000000DEADBEEF00000000'
+
+# attestation type is a string: 'simulated', epid-linkable, or 'dcap'
+attestation_type = 'simulated'

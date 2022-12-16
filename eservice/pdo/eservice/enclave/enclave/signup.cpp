@@ -31,6 +31,7 @@
 #include "enclave/base.h"
 #include "enclave/signup.h"
 
+#include "sgx_dcap_ql_wrapper.h"
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 static size_t CalculateSealedEnclaveDataSize(void)
@@ -107,6 +108,7 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
     try {
         pdo_err_t presult;
         sgx_status_t sresult;
+        quote3_error_t qe3_ret;
 
         outPublicEnclaveData.resize(CalculatePublicEnclaveDataSize());
 
@@ -117,15 +119,7 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
 
         // We need target info in order to create signup data report
         sgx_target_info_t target_info = { 0 };
-        sgx_epid_group_id_t epidGroupId = { 0 };
-
-        sresult =
-            g_Enclave[0].CallSgx(
-                [&target_info,
-                 &epidGroupId] () {
-                    return sgx_init_quote(&target_info, &epidGroupId);
-                });
-        pdo::error::ThrowSgxError(sresult, "SGX enclave call failed (sgx_init_quote), failed to initialize the quote");
+        g_Enclave[0].GetTargetInfo(&target_info);
 
         // Properly size the sealed signup data buffer for the caller
         // and call into the enclave to create the signup data
@@ -174,6 +168,8 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
         ByteArray enclave_quote_buffer(quote_size);
         g_Enclave[0].CreateQuoteFromReport(&enclave_report, enclave_quote_buffer);
         outEnclaveQuote = ByteArrayToBase64EncodedString(enclave_quote_buffer);
+
+        SAFE_LOG(PDO_LOG_DEBUG, "outEnclaveQuote: %s\n", outEnclaveQuote.c_str());
 
     } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());

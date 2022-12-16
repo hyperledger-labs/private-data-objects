@@ -67,6 +67,9 @@ ARG SGX=2.15.1
 ARG OPENSSL=1.1.1g
 ARG SGXSSL=2.10_1.1.1g
 
+ARG PCCS_URL=https://localhost:8081/sgx/certification/v3/
+ENV PCCS_URL=${PCCS_URL}
+
 ARG ADD_APT_PKGS=
 
 # Add necessary packages
@@ -153,6 +156,17 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
       #   correspondingly, also libsgx_uae_service.so and <sgx_uae_service.h>
       #   is split into corresponding smaller libraries and header-files to make
       #   integration with DCAP easier and minimize pulling in unnecessary dependencies
+
+# Install SGX DCAP packages
+RUN apt-get install -y \
+    libsgx-dcap-ql \
+    libsgx-dcap-ql-dev \
+    libsgx-dcap-default-qpl
+
+# Disable certificate check for PCCS
+RUN sed -i 's/"use_secure_cert": true/"use_secure_cert": false/' /etc/sgx_default_qcnl.conf
+# set the PCCS URL provided as input
+RUN sed -i 's#"pccs_url": ".*"#"pccs_url": "'${PCCS_URL}'"#' /etc/sgx_default_qcnl.conf
 
 # Install SGX SDK
 RUN mkdir -p /opt/intel

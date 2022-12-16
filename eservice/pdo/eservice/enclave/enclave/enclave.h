@@ -52,10 +52,7 @@ namespace pdo {
 
             void ShutdownWorker();
 
-            size_t GetQuoteSize() const
-            {
-                return this->quoteSize;
-            } // GetQuoteSize
+            size_t GetQuoteSize() const;
 
             size_t GetSealedSignupDataSize() const
             {
@@ -66,6 +63,10 @@ namespace pdo {
                 sgx_epid_group_id_t* outEpidGroup
                 );
 
+            void GetTargetInfo(
+                sgx_target_info_t* reportTargetInfo
+                );
+
             void GetEnclaveCharacteristics(
                 sgx_measurement_t* outEnclaveMeasurement,
                 sgx_basename_t* outEnclaveBasename
@@ -73,6 +74,10 @@ namespace pdo {
 
             void SetSpid(
                 const HexEncodedString& inSpid
+                );
+
+            void SetAttestationType(
+                const std::string& inAttestationType
                 );
 
             void SetSignatureRevocationList(
@@ -105,6 +110,17 @@ namespace pdo {
             }
 
         protected:
+            void CreateDCAPQuoteFromReport(
+                const sgx_report_t* inEnclaveReport,
+                ByteArray& outEnclaveQuote
+                );
+            void CreateEPIDQuoteFromReport(
+                const sgx_report_t* inEnclaveReport,
+                ByteArray& outEnclaveQuote
+                );
+
+            const uint8_t* GetSignatureRevocationList(uint32_t* pRevocationListSize) const;
+
             void LoadEnclave();
             static void QuerySgxStatus();
 
@@ -112,11 +128,12 @@ namespace pdo {
             sgx_enclave_id_t enclaveId;
             long threadId;
 
-            size_t quoteSize;
             size_t sealedSignupDataSize;
 
             std::string signatureRevocationList;
             sgx_spid_t spid;
+
+            std::string attestationType;
 
             sgx_target_info_t reportTargetInfo;
             sgx_epid_group_id_t epidGroupId;

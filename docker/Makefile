@@ -25,10 +25,25 @@ DOCKER_COMPOSE_FILES_CCF += ccf-pdo.yaml ccf-pdo.local-code.yaml
 DOCKER_COMPOSE_FILES_CCF_ONLY += ccf.yaml ccf.local-code.yaml
 
 ifeq ($(SGX_MODE),HW)
-   DOCKER_COMPOSE_FILES_CCF += pdo.sgx.yaml
-   SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx/enclave" ]; then echo "/dev/sgx/enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
-   DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
+	DOCKER_COMPOSE_FILES_CCF += pdo.sgx.yaml
+
+	SGX_ATTESTATION_TYPE=$(shell if [ -e "./sgx/sgx_attestation_type.txt" ]; then cat "./sgx/sgx_attestation_type.txt"; fi)
+
+ifeq ($(SGX_ATTESTATION_TYPE),epid-linkable)
+	SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx/enclave" ]; then echo "/dev/sgx/enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
 endif
+
+ifeq ($(SGX_ATTESTATION_TYPE),dcap)
+	SGX_DEVICE_PATH=$(shell if [ -e "/dev/sgx_enclave" ]; then echo "/dev/sgx_enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
+	SGX_PROVISION_DEVICE_PATH=$(shell if [ -e "/dev/sgx_provision" ]; then echo "/dev/sgx_provision"; else echo "ERROR: NO SGX PROV DEVICE FOUND"; fi)
+	# set pccs url: grab from env, or assume it's in the local host listening on 8081
+	PCCS_URL:=$(if $(PCCS_URL),$(PCCS_URL),https://$(shell hostname -A | cut -d" " -f1):8081/sgx/certification/v3/)
+	DOCKER_BUILD_OPTS := ${DOCKER_BUILD_OPTS} --build-arg PCCS_URL=${PCCS_URL}
+endif
+
+	DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} env SGX_PROVISION_DEVICE_PATH=${SGX_PROVISION_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
+endif
+
 ifdef http_proxy
    DO_PROXY = 1
 endif
@@ -99,7 +114,7 @@ test-env-setup-with-no-build-ccf:
 	# - configure
 	if [ "$(SGX_MODE)" = "HW" ]; then \
        $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) \
-		   exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
+		   exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME PDO_ATTESTATION_TYPE && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
     fi
 
 test-with-no-build-ccf: test-env-setup-with-no-build-ccf

@@ -36,6 +36,8 @@
 
 #include "enclave.h"
 
+#include "sgx_dcap_ql_wrapper.h"
+
 std::vector<pdo::enclave_api::Enclave> g_Enclave;
 
 namespace pdo {
@@ -65,18 +67,9 @@ namespace pdo {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         Enclave::Enclave() :
             enclaveId(0),
-            sealedSignupDataSize(0)
+            sealedSignupDataSize(0),
+            attestationType("")
         {
-            uint32_t size;
-            sgx_status_t ret = sgx_calc_quote_size(nullptr, 0, &size);
-            pdo::error::ThrowSgxError(ret, "Failed to get SGX quote size.");
-            this->quoteSize = size;
-
-            //initialize the targetinfo and epid variables
-            ret = g_Enclave[0].CallSgx([this] () {
-                    return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId);
-                });
-            pdo::error::ThrowSgxError(ret, "Failed to initialized quote in enclave constructore");
         } // Enclave::Enclave
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -199,17 +192,36 @@ namespace pdo {
             pthread_join(this->threadId, NULL);
         }// Enclave::ShutdownWorker
 
+        size_t Enclave::GetQuoteSize() const
+        {
+            uint32_t quoteSize;
+
+            if(this->attestationType == "dcap")
+            {
+                quote3_error_t qe3_ret;
+                qe3_ret = sgx_qe_get_quote_size(&quoteSize);
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                        SGX_QL_SUCCESS != qe3_ret,
+                        "Failed to get quote size");
+            }
+            else
+            {
+                uint32_t rlSize;
+                const uint8_t* prl = this->GetSignatureRevocationList(&rlSize);
+                pdo::error::ThrowSgxError(sgx_calc_quote_size(prl, rlSize, &quoteSize));
+            }
+
+            return quoteSize;
+        }
+
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEpidGroup(
             sgx_epid_group_id_t* outEpidGroup
             )
         {
-            sgx_status_t ret;
-            //retrieve epid by calling init quote
-            ret = g_Enclave[0].CallSgx([this] () {
-                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId);
-                    });
-            pdo::error::ThrowSgxError(ret, "Failed to get epid group id from init_quote");
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    this->attestationType.empty(),
+                    "Error: epid group not available, attestation type not set");
 
             //copy epid group into output parameter
             memcpy_s(
@@ -220,11 +232,30 @@ namespace pdo {
         } // Enclave::GetEpidGroup
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        void Enclave::GetTargetInfo(
+             sgx_target_info_t* outTagetInfo
+             )
+        {
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    this->attestationType.empty(),
+                    "Error: target info not available, attestation type not set");
+
+            memcpy_s(
+                outTagetInfo,
+                sizeof(sgx_target_info_t),
+                &this->reportTargetInfo,
+                sizeof(sgx_target_info_t));
+        } // Enclave::GetTargetInfo
+
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::GetEnclaveCharacteristics(
             sgx_measurement_t* outEnclaveMeasurement,
             sgx_basename_t* outEnclaveBasename
             )
         {
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    this->attestationType.empty(),
+                    "Error: EnclaveCharacteristics not available, attestation type not set");
             pdo::error::ThrowIfNull(
                 outEnclaveMeasurement,
                 "Enclave measurement pointer is NULL");
@@ -239,32 +270,22 @@ namespace pdo {
             // basename only by getting a quote.  To do that, we need to first
             // generate a report.
 
-            // Initialize a quote
-            sgx_target_info_t targetInfo = { 0 };
-            sgx_epid_group_id_t gid = { 0 };
-
-            sgx_status_t ret = this->CallSgx([&targetInfo, &gid] () {
-                    return sgx_init_quote(&targetInfo, &gid);
-                });
-            pdo::error::ThrowSgxError(ret, "Failed to initialize enclave quote");
-
             // Now retrieve a fake enclave report so that we can later
             // create a quote from it.  We need to the quote so that we can
             // get some of the information (basename and mr_enclave,
             // specifically) being requested.
             sgx_report_t enclaveReport = { 0 };
             pdo_err_t pdoRet = PDO_SUCCESS;
-            ret =
+            sgx_status_t ret =
                 this->CallSgx(
                     [this,
                      &pdoRet,
-                     &targetInfo,
                      &enclaveReport] () {
                         sgx_status_t ret =
                         ecall_CreateErsatzEnclaveReport(
                             this->enclaveId,
                             &pdoRet,
-                            &targetInfo,
+                            &this->reportTargetInfo,
                             &enclaveReport);
                         return error::ConvertErrorStatus(ret, pdoRet);
                     });
@@ -275,51 +296,34 @@ namespace pdo {
 
             // Properly size a buffer to receive an enclave quote and then
             // retrieve it.  The enclave quote contains the basename.
-            ByteArray enclaveQuoteBuffer(this->quoteSize);
+            ByteArray enclaveQuoteBuffer(this->GetQuoteSize());
+            this->CreateQuoteFromReport(&enclaveReport, enclaveQuoteBuffer);
+
+            // Copy the mr_enclave and basename to the caller's buffers
+            //
+            // ******************IMPORTANT NOTE:
+            // the quote buffer can contain any type of quote (epid or dcap);
+            // epid quotes use the sgx_quote_t structure;
+            // dcap quotes use the sqx_quote3_t structure;
+            // the space before the repord_body field is the same in both structures;
+            // hence, we can use either of them to get the mrenclave
+            // clearly, basename is only meaningful in epid
+            // *********************************
             sgx_quote_t* enclaveQuote =
                 reinterpret_cast<sgx_quote_t *>(&enclaveQuoteBuffer[0]);
-            const uint8_t* pRevocationList = nullptr;
-            if (this->signatureRevocationList.size()) {
-                pRevocationList =
-                    reinterpret_cast<const uint8_t *>(
-                        this->signatureRevocationList.c_str());
-            }
-
-            ret =
-                this->CallSgx(
-                    [this,
-                     &enclaveReport,
-                     pRevocationList,
-                     &enclaveQuoteBuffer] () {
-                        return
-                        sgx_get_quote(
-                            &enclaveReport,
-                            SGX_LINKABLE_SIGNATURE,
-                            &this->spid,
-                            nullptr,
-                            pRevocationList,
-                            static_cast<uint32_t>(
-                                this->signatureRevocationList.size()),
-                            nullptr,
-                            reinterpret_cast<sgx_quote_t *>(
-                                &enclaveQuoteBuffer[0]),
-                            static_cast<uint32_t>(enclaveQuoteBuffer.size()));
-                    });
-            pdo::error::ThrowSgxError(
-                ret,
-                "Failed to create linkable quote for enclave report");
-
-            // Copy the mr_enclave and basenaeme to the caller's buffers
             memcpy_s(
                 outEnclaveMeasurement,
                 sizeof(*outEnclaveMeasurement),
                 &enclaveQuote->report_body.mr_enclave,
                 sizeof(*outEnclaveMeasurement));
-            memcpy_s(
-                outEnclaveBasename,
-                sizeof(*outEnclaveBasename),
-                &enclaveQuote->basename,
-                sizeof(*outEnclaveBasename));
+            if(this->attestationType == "epid-linkable")
+            {
+                memcpy_s(
+                        outEnclaveBasename,
+                        sizeof(*outEnclaveBasename),
+                        &enclaveQuote->basename,
+                        sizeof(*outEnclaveBasename));
+            }
         } // Enclave::GetEnclaveCharacteristics
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -335,6 +339,39 @@ namespace pdo {
         } // Enclave::SetSpid
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        void Enclave::SetAttestationType(
+            const std::string& inAttestationType
+            )
+        {
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                inAttestationType != "simulated" &&
+                inAttestationType != "epid-linkable" &&
+                inAttestationType != "dcap",
+                "Invalid attestation type");
+
+            this->attestationType = inAttestationType;
+
+            // set the report target info based on the attestation type
+
+            if(inAttestationType == "dcap")
+            {
+                quote3_error_t qe3_ret;
+                qe3_ret = sgx_qe_get_target_info(&this->reportTargetInfo);
+                pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                        SGX_QL_SUCCESS != qe3_ret,
+                        "Failed to get qe target info");
+            }
+            else
+            {
+                //initialize the targetinfo and epid variables
+                sgx_status_t ret = g_Enclave[0].CallSgx([this] () {
+                        return sgx_init_quote(&this->reportTargetInfo, &this->epidGroupId);
+                        });
+                pdo::error::ThrowSgxError(ret, "Failed to initialize quote");
+            }
+        } // Enclave::SetAttestationType
+
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::SetSignatureRevocationList(
             const std::string& inSignatureRevocationList
             )
@@ -343,22 +380,23 @@ namespace pdo {
             // version and then retrieve the, potentially, new quote size
             // and cache that value.
             this->signatureRevocationList = inSignatureRevocationList;
+        } // Enclave::SetSignatureRevocationList
 
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        const uint8_t* Enclave::GetSignatureRevocationList(uint32_t* pRevocationListSize) const
+        {
             const uint8_t* pRevocationList = nullptr;
-            uint32_t revocationListSize = this->signatureRevocationList.size();
-            if (revocationListSize) {
+            *pRevocationListSize = this->signatureRevocationList.size();
+            if (*pRevocationListSize) {
                 pRevocationList =
                     reinterpret_cast<const uint8_t *>(
                         this->signatureRevocationList.c_str());
             }
-
-            uint32_t size;
-            pdo::error::ThrowSgxError(sgx_calc_quote_size(pRevocationList, revocationListSize, &size));
-            this->quoteSize = size;
-        } // Enclave::SetSignatureRevocationList
+            return pRevocationList;
+        } // Enclave::GetSignatureRevocationList
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        void Enclave::CreateQuoteFromReport(
+        void Enclave::CreateDCAPQuoteFromReport(
             const sgx_report_t* inEnclaveReport,
             ByteArray& outEnclaveQuote
             )
@@ -366,22 +404,44 @@ namespace pdo {
             pdo::error::ThrowIfNull(
                 inEnclaveReport,
                 "Enclave report pointer is NULL");
-            const uint8_t* pRevocationList = nullptr;
-            if (this->signatureRevocationList.size()) {
-                pRevocationList =
-                    reinterpret_cast<const uint8_t *>(
-                        this->signatureRevocationList.c_str());
-            }
+
+            //dcap quote
+            quote3_error_t qe3_ret;
+
+            outEnclaveQuote.resize(this->GetQuoteSize());
+
+            qe3_ret = sgx_qe_get_quote(
+                    inEnclaveReport,
+                    outEnclaveQuote.size(),
+                    reinterpret_cast<uint8_t *>(&outEnclaveQuote[0]));
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                    SGX_QL_SUCCESS != qe3_ret,
+                    "Failed to get quote");
+        } // Enclave::CreateDCAPQuoteFromReport
+
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        void Enclave::CreateEPIDQuoteFromReport(
+            const sgx_report_t* inEnclaveReport,
+            ByteArray& outEnclaveQuote
+            )
+        {
+            pdo::error::ThrowIfNull(
+                inEnclaveReport,
+                "Enclave report pointer is NULL");
+
+            uint32_t rlSize;
+            const uint8_t* pRevocationList = this->GetSignatureRevocationList(&rlSize);
 
             // Properly size the enclave quote buffer for the caller and zero it
             // out so we have predicatable contents.
-            outEnclaveQuote.resize(this->quoteSize);
+            outEnclaveQuote.resize(this->GetQuoteSize());
 
             sgx_status_t sresult =
                 this->CallSgx(
                     [this,
                      &inEnclaveReport,
                      pRevocationList,
+                     rlSize,
                      &outEnclaveQuote] () {
                         return
                         sgx_get_quote(
@@ -390,8 +450,7 @@ namespace pdo {
                             &this->spid,
                             nullptr,
                             pRevocationList,
-                            static_cast<uint32_t>(
-                                this->signatureRevocationList.size()),
+                            rlSize,
                             nullptr,
                             reinterpret_cast<sgx_quote_t *>(&outEnclaveQuote[0]),
                             static_cast<uint32_t>(outEnclaveQuote.size()));
@@ -399,7 +458,23 @@ namespace pdo {
             pdo::error::ThrowSgxError(
                 sresult,
                 "Failed to create linkable quote for enclave report");
-        } // Enclave::GenerateSignupData
+        } // Enclave::CreateEPIDQuoteFromReport
+
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        void Enclave::CreateQuoteFromReport(
+            const sgx_report_t* inEnclaveReport,
+            ByteArray& outEnclaveQuote
+            )
+        {
+            if(this->attestationType == "dcap")
+            {
+                this->CreateDCAPQuoteFromReport(inEnclaveReport, outEnclaveQuote);
+            }
+            else
+            {
+                this->CreateEPIDQuoteFromReport(inEnclaveReport, outEnclaveQuote);
+            }
+        } // Enclave::CreateQuoteFromReport
 
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         // XX Private helper methods                                 XX

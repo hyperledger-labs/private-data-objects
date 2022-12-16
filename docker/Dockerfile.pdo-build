@@ -51,7 +51,7 @@
 #     you will have to
 #     - PDO_SGX_KEY_ROOT env var pointing to the directory with the actual files and/or
 #       PDO_LEDGER_URL properly configured ..
-#     - unset PDO_SPID PDO_SPID_API_KEY
+#     - unset PDO_SPID PDO_SPID_API_KEY PDO_ATTESTATION_TYPE
 #     - call 'source /project/pdo/src/private-data-objects/build/common-config.sh'
 #     - run 'make -C /project/pdo/src/private-data-objects/build conf'
 #   - if you want to debug with gdb and alike, you also might want to add options

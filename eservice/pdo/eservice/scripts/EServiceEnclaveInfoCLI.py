@@ -33,13 +33,13 @@ import time
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 
-def GetBasename(spid, save_path, config) :
+def GetBasename(spid, attestation_type, save_path, config) :
     attempts = 0
     while True :
         try :
             logger.debug('initialize the enclave')
             enclave_config = {}
-            info = pdo_enclave_helper.get_enclave_service_info(spid, config=enclave_config)
+            info = pdo_enclave_helper.get_enclave_service_info(spid, attestation_type, config=enclave_config)
 
             logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
             with open(save_path, "w") as file :
@@ -94,8 +94,8 @@ def GetIasCertificates(config) :
     pdo_enclave.shutdown()
     return
 
-def LocalMain(config, spid, save_path) :
-    GetBasename(spid, save_path, config)
+def LocalMain(config, spid, attestation_type, save_path) :
+    GetBasename(spid, attestation_type, save_path, config)
     GetIasCertificates(config)
 
     sys.exit(0)
@@ -141,6 +141,7 @@ def Main() :
 
     parser.add_argument('--identity', help='Identity to use for the process', required = True, type = str)
     parser.add_argument('--spid', help='SPID to generate enclave basename', type=str)
+    parser.add_argument('--attestation-type', help='Attestation type used by the eservice', type=str)
     parser.add_argument('--save', help='Where to save MR_ENCLAVE and BASENAME', type=str)
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
@@ -160,6 +161,9 @@ def Main() :
 
     if options.spid :
         spid = options.spid
+
+    if options.attestation_type :
+        attestation_type = options.attestation_type
 
     global config_map
     config_map['identity'] = options.identity
@@ -184,7 +188,7 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # GO!
-    LocalMain(config, spid, save_path)
+    LocalMain(config, spid, attestation_type, save_path)
 
 ## -----------------------------------------------------------------
 ## Entry points

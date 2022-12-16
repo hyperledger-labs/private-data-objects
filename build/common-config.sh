@@ -68,6 +68,12 @@ var_set() {
 	"
 	env_key_sort[$i]="SGX_MODE"; i=$i+1; export SGX_MODE=${env_val[SGX_MODE]}
 
+    env_val[PCCS_URL]="${PCCS_URL:-https://$(hostname -A | cut -d" " -f1):8081/sgx/certification/v3/}"
+    env_desc[PCCS_URL]="
+        PCCS_URL is the URL of the SGX PCCS service necessary for dcap-based attestations.
+    "
+    env_key_sort[$i]="PCCS_URL"; i=$i+1; export PCCS_URL=${env_val[PCCS_URL]}
+
 	env_val[PDO_LEDGER_URL]="${PDO_LEDGER_URL:-http://127.0.0.1:6600}"
 	env_desc[PDO_LEDGER_URL]="
 		PDO_LEDGER_URL is the URL is to submit transactions to the ledger.
@@ -131,6 +137,13 @@ var_set() {
                 The default path points to a key which is generated during built on-demand.
 	"
 	env_key_sort[$i]="PDO_ENCLAVE_CODE_SIGN_PEM"; i=$i+1; export PDO_ENCLAVE_CODE_SIGN_PEM=${env_val[PDO_ENCLAVE_CODE_SIGN_PEM]}
+
+    env_val[PDO_ATTESTATION_TYPE]="${PDO_ATTESTATION_TYPE:-$(cat ${PDO_SGX_KEY_ROOT}/sgx_attestation_type.txt)}"
+    env_desc[PDO_ATTESTATION_TYPE]="
+        PDO_ATTESTATION_TYPE indicates the type of attestation that will be used.
+        simulated in SIM mode; epid-linkable or dcap in HW mode.
+    "
+    env_key_sort[$i]="PDO_ATTESTATION_TYPE"; i=$i+1; export PDO_ATTESTATION_TYPE=${env_val[PDO_ATTESTATION_TYPE]}
 
 	env_val[PDO_SPID]="${PDO_SPID:-$(cat ${PDO_SGX_KEY_ROOT}/sgx_spid.txt)}"
 	env_desc[PDO_SPID]="
@@ -231,6 +244,7 @@ do
 	    unset PDO_ENCLAVE_CODE_SIGN_PEM
 	    unset PDO_SPID
 	    unset PDO_SPID_API_KEY
+	    unset PDO_ATTESTATION_TYPE
             ;;
         --evalable-export|-e)
 	    is_sourced=0

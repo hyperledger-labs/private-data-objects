@@ -1,3 +1,4 @@
 enclave_code_sign.pem
 sgx_ias_key.pem
 sgx_spid.txt
+sgx_attestation_type.txt

@@ -101,6 +101,7 @@ libraries = [
     'lmdb'
 ]
 
+
 if sgx_mode_env == "HW":
     libraries.append('sgx_urts')
     libraries.append('sgx_uae_service')
@@ -110,6 +111,7 @@ if sgx_mode_env == "SIM":
     libraries.append('sgx_uae_service_sim')
     SGX_SIMULATOR_value = '1'
 
+libraries.append('sgx_dcap_ql')
 libraries.append('sgx_usgxssl')
 
 module_files = [

@@ -50,6 +50,12 @@ if (( "$#" == 1 )) ; then
     SPID=$1
 fi
 
+#Set ATTESTATION_TYPE to parameter if passed
+ATTESTATION_TYPE=$PDO_ATTESTATION_TYPE
+if (( "$#" == 2 )) ; then
+    ATTESTATION_TYPE=$2
+fi
+
 function DeriveIasPublicKey {
     try test -e ${PDO_IAS_SIGNING_CERT_PATH}
     try openssl x509 -pubkey -noout -in ${PDO_IAS_SIGNING_CERT_PATH} > ${PDO_IAS_KEY_PEM}
@@ -69,13 +75,16 @@ function DeriveIasPublicKey {
 # However, getting basename via enclave invocation & quote is somewhat cleaner than below ..
 function Store {
     : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
+    : "${ATTESTATION_TYPE:?Need PDO_ATTESTATION_TYPE environment variable set or passed in}"
     try test -e ${ETCDIR}/${ESERVICE_TOML}
     try test -e ${ETCDIR}/${ENCLAVE_TOML}
     yell Download IAS certificates and Compute the enclave information
     try eservice-enclave-info \
         --spid ${SPID} \
+        --attestation-type ${ATTESTATION_TYPE} \
         --save ${eservice_enclave_info_file} \
         --loglevel warn \
+        --logfile __screen__ \
         --identity ${ESERVICE_IDENTITY} \
         --config ${ESERVICE_TOML} ${ENCLAVE_TOML} \
         --config-dir ${ETCDIR}
@@ -105,9 +114,13 @@ function Register {
 }
 
 if [ "$SGX_MODE" = "HW" ]; then
-    Store
-    DeriveIasPublicKey
-    Register
+    if [ "$ATTESTATION_TYPE" = "epid-linkable" ]; then
+        Store
+        DeriveIasPublicKey
+        Register
+    else
+        yell Registration failed! attestation type not set to epid-linkable
+    fi
 else
     yell Registration failed! SGX_MODE not set to HW
 fi

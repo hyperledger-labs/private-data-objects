@@ -22,13 +22,14 @@
 # - sgx_spid.txt
 # - sgx_spid_api_key.txt
 # - sgx_ias_key.pem
+# - sgx_attestation_type.txt
 # See 'build/common-config -h' for information on the content of these files
 #
 # in the pdo-build shell (see ccf-pdo.yaml), before doing any operation
 # you also will have to register sgx-related information in the ledger with
 # following steps
 #    export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/
-#    unset PDO_SPID PDO_SPID_API_KEY
+#    unset PDO_SPID PDO_SPID_API_KEY PDO_ATTESTATION_TYPE
 #    source /project/pdo/src/private-data-objects/build/common-config.sh
 #    make -C /project/pdo/src/private-data-objects/build conf register
 
@@ -48,4 +49,5 @@ services:
       - /var/run/aesmd:/var/run/aesmd
     devices:
       - ${SGX_DEVICE_PATH:-/dev/isgx}:${SGX_DEVICE_PATH:-/dev/isgx}
+      - ${SGX_PROVISION_DEVICE_PATH:-/dev/null}:${SGX_PROVISION_DEVICE_PATH:-/tmp/no_prov_device}
 
