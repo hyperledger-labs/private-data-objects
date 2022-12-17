@@ -59,6 +59,9 @@ ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/l
 ENCLAVE_FILES += $(wildcard ${SGX_SSL}/include/*.edl)
 ENCLAVE_FILES += $(wildcard ${SRCDIR}/common/build/*.a)
 
+TEST_LOG_LEVEL ?= warn
+TEST_LOG_FILE ?= __screen__
+
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
@@ -84,8 +87,8 @@ install: $(EGG_FILE)
 # paths as the installed libraries
 test:
 	@echo run the local secrets and requests tests
-	cd tests && python test-secrets.py --logfile __screen__ --loglevel warn
-	cd tests && pdo-test-request --no-ledger --iterations 10 --logfile __screen__ --loglevel warn
+	cd tests && python test-secrets.py --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
+	cd tests && pdo-test-request --no-ledger --iterations 10 --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
 
 clean:
 	rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)

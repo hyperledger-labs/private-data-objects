@@ -23,6 +23,8 @@ from pdo.contract.state import ContractState
 from pdo.contract.code import ContractCode
 import pdo.common.config as pconfig
 
+import pdo.service_client.service_data.eservice as eservice_db
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -67,22 +69,29 @@ class Contract(object) :
             logger.error('error occurred retreiving contract state hash; %s', str(e))
             raise Exception('invalid contract file; {}'.format(filename))
 
+        extra_data = contract_info.get('extra_data', {})
+
         try :
             state = ContractState.read_from_cache(contract_id, current_state_hash)
             if state is None :
-                state = ContractState.get_from_ledger(ledger_config, contract_id, current_state_hash)
+                persistent_replica = extra_data.get('persistent_storage_service')
+                if persistent_replica is None :
+                    raise Exception("contract state is not available")
+                state = ContractState.import_from_persistent_storage(contract_id, current_state_hash, persistent_replica)
         except Exception as e :
             logger.error('error occurred retreiving contract state; %s', str(e))
             raise Exception("invalid contract file; {}".format(filename))
 
-        extra_data = contract_info.get('extra_data', {})
         obj = cls(code, state, contract_info['contract_id'], contract_info['creator_id'], extra_data=extra_data)
         for enclave in contract_info['enclaves_info'] :
             obj.set_state_encryption_key(
                 enclave['contract_enclave_id'],
                 enclave['encrypted_contract_state_encryption_key'])
 
-        obj.set_replication_parameters(contract_info['num_provable_replicas'], contract_info['availability_duration'])
+        obj.set_replication_parameters(
+            contract_info['num_provable_replicas'],
+            contract_info['availability_duration'],
+            contract_info['replication_set'])
 
         return obj
 
@@ -113,7 +122,14 @@ class Contract(object) :
         return hex(abs(hash(self.contract_id)))[2:]
 
     # -------------------------------------------------------
-    def set_replication_parameters(self, num_provable_replicas=None, availability_duration=None, **kwargs):
+    def set_replication_parameters(self, num_provable_replicas=None, availability_duration=None, replication_set=None, **kwargs):
+        def eservice_to_sservice(eservice_id) :
+            logger.warning('look up {}'.format(eservice_id))
+            einfo = eservice_db.get_by_enclave_id(eservice_id)
+            if einfo is None :
+                raise Exception('unknown eservice {}'.format(eservice_id))
+            return einfo.client.storage_service_url
+
         # pull the defaults from the configuration if they are not
         # otherwise set by the caller
         if num_provable_replicas is None :
@@ -122,12 +138,16 @@ class Contract(object) :
         if availability_duration is None :
             availability_duration = pconfig.shared_configuration(['Replication','Duration'], 120)
 
+        if replication_set is None :
+            if num_provable_replicas > 0 :
+                replication_set = list(map(lambda eservice_id : eservice_to_sservice(eservice_id), self.enclave_map.keys()))
+            else :
+                replication_set = []
+
         self.replication_params = dict()
         self.replication_params['num_provable_replicas'] = num_provable_replicas
         self.replication_params['availability_duration'] = availability_duration #seconds
-
-        # we replicate to storage services associated with all provisioned encalves
-        self.replication_params['service_ids'] = self.enclave_map.keys()
+        self.replication_params['replication_set'] = replication_set
 
     # -------------------------------------------------------
     @property
@@ -189,6 +209,7 @@ class Contract(object) :
         # add replication params
         serialized['num_provable_replicas'] = self.replication_params['num_provable_replicas']
         serialized['availability_duration'] = self.replication_params['availability_duration']
+        serialized['replication_set'] = self.replication_params['replication_set']
 
         filename = putils.build_file_name(basename, data_dir, self.__path__, self.__extension__)
 

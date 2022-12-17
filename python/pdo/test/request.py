@@ -79,19 +79,25 @@ def AddReplicationParamsToContract(config, enclave_clients, contract):
     replication_config = config['Replication']
 
     # ---------- get replication parameters from config --------------------------------------------------
+    if use_eservice :
+        try :
+            num_provable_replicas = replication_config['NumProvableReplicas']
+            availability_duration = replication_config['Duration']
+            replication_set = list(map(lambda e : e.storage_service_url, enclave_clients))
+        except Exception as e :
+            logger.error('Replication is enabled with incomplete configuration; %s', str(e))
+            sys.exit(-1)
 
-    try :
-        num_provable_replicas = replication_config['NumProvableReplicas']
-        availability_duration = replication_config['Duration']
-    except Exception as e :
-        logger.error('Replication is enabled with incomplete configuration.')
-        sys.exit(-1)
+    else :
+        num_provable_replicas = 0
+        availability_duration = 0
+        replication_set = []
 
-    assert num_provable_replicas >= 0 , "Invalid configuration for num_provable_replicas: Must be a postive integer for proof of replication "
-    assert num_provable_replicas <= len(enclave_clients), "Invalid configuration for num_provable_replicas : Can be at most number of provisioned eservices"
-    assert availability_duration > 0 , "Invalid configuration for availability duration: Must be positive."
+    assert num_provable_replicas >= 0, "Number of provable replicas must be a postive integer"
+    assert num_provable_replicas <= len(replication_set), "Insufficient enclaves for replication policy"
+    assert availability_duration >= 0 , "Replication duration must be a positive integer"
 
-    contract.set_replication_parameters(num_provable_replicas, availability_duration)
+    contract.set_replication_parameters(num_provable_replicas, availability_duration, replication_set)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
