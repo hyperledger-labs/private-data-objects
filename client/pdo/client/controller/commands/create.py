@@ -23,7 +23,7 @@ import pdo.common.crypto as pcrypto
 
 from pdo.client.controller.commands.eservice import get_eservice, get_eservice_list
 from pdo.client.controller.commands.pservice import get_pservice_list
-from pdo.client.controller.commands.sservice import get_replica_count, get_replica_duration, get_persistent_storage_service
+from pdo.client.controller.commands.sservice import *
 
 from pdo.common.keys import ServiceKeys
 from pdo.contract import ContractCode
@@ -129,8 +129,9 @@ def create_contract(state, save_file, contract_source, **kwargs) :
     extra_data = kwargs.get('extra_data') or dict()
 
     # ---------- pull out replication parameters ----------
-    state_replicas = get_replica_count(state, sservice_group)
-    state_duration = get_replica_duration(state, sservice_group)
+    replica_count = get_replica_count(state, sservice_group)
+    replica_duration = get_replica_duration(state, sservice_group)
+    replicas = get_replica_list(state, sservice_group)
     if 'persistent_storage_service' not in extra_data :
         persistent_url = get_persistent_storage_service(state, sservice_group)
         if persistent_url :
@@ -176,8 +177,9 @@ def create_contract(state, save_file, contract_source, **kwargs) :
 
     try :
         extra_params = {
-            'num_provable_replicas' : state_replicas,
-            'availability_duration' : state_duration,
+            'num_provable_replicas' : replica_count,
+            'availability_duration' : replica_duration,
+            'replication_set' : replicas,
             'extra_data' : extra_data
         }
 

@@ -39,7 +39,7 @@ SCRIPT_SOURCE=$(wildcard $(SCRIPTDIR)/*/scripts/*.psh)
 DATA_DIR ?= $(PDO_HOME)/data
 
 TEST_LOG_LEVEL ?= warn
-TEST_LOG_FILE ?= /dev/null
+TEST_LOG_FILE ?= __screen__
 
 ## This would point you to the WAMR version of the built in libraries
 ## WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wamr_toolchain.cmake

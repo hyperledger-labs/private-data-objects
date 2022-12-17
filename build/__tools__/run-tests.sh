@@ -66,19 +66,19 @@ yell run unit tests for python, common, contracts and eservice
 # -----------------------------------------------------------------
 say run unit tests for python package
 cd ${SRCDIR}/python
-try make test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
 
 say run unit tests for common library
 cd ${SRCDIR}/common/build
-try make test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
 
 say run unit tests for eservice
 cd ${SRCDIR}/eservice
-try make test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
 
 say run unit tests for contracts
 cd ${SRCDIR}/contracts
-try make test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
 
 # -----------------------------------------------------------------
 yell start enclave and provisioning services

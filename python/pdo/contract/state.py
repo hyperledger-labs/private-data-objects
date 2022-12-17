@@ -18,6 +18,7 @@ import pdo.common.crypto as crypto
 import pdo.common.utility as putils
 from pdo.submitter.create import create_submitter
 import pdo.common.block_store_manager as pblocks
+from pdo.service_client.storage import StorageServiceClient
 
 import logging
 logger = logging.getLogger(__name__)
@@ -77,7 +78,30 @@ class ContractState(object) :
         :param state_hash str: b64 encoded string
         """
         raw_data = pblocks.local_block_manager().get_block(state_hash)
+        if raw_data is None :
+            logger.debug('state hash not found in the cache, {0}'.format(state_hash))
+            return None
+
         return cls(contract_id, raw_data)
+
+    # --------------------------------------------------
+    @classmethod
+    def import_from_persistent_storage(cls, contract_id, state_hash, persistent_replica) :
+        """
+        import contract state from a persistent storage service; primarily used to load
+        a contract for the first time or to catch up on uncached state changes
+
+        :param contract_id str: contract identifier, base64 encoded
+        :param state_hash str: b64 encoded string
+        :param persistent_replica : url for the persistent storage service
+        """
+
+        storage_service_client = StorageServiceClient(persistent_replica)
+        block_manager = pblocks.local_block_manager()
+        pulled_blocks = pblocks.sync_block_store(storage_service_client, block_manager, state_hash)
+        logger.debug("imported %d new blocks from persistent storage service", pulled_blocks)
+
+        return cls.read_from_cache(contract_id, state_hash)
 
     # --------------------------------------------------
     @classmethod
