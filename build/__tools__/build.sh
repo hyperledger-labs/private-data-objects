@@ -20,13 +20,7 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 source ${SRCDIR}/bin/lib/common.sh
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    die activate python3 first
-fi
+check_python_version
 
 # Automatically determine how many cores the host system has
 # (for use with multi-threaded make)

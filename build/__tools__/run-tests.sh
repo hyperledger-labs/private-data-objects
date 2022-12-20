@@ -20,6 +20,7 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 source ${SRCDIR}/bin/lib/common.sh
+check_python_version
 
 PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
 
@@ -31,11 +32,6 @@ fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-PY3_VERSION=$(python --version | sed 's/Python 3\.\([0-9]\).*/\1/')
-if [[ $PY3_VERSION -lt 5 ]]; then
-    die activate python3 first
-fi
-
 SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
