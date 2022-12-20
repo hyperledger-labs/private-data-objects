@@ -20,6 +20,7 @@
 ## Optional:
 ##    psgroup -- the provisioning service group as defined in site.psh
 ##    esgroup -- the enclave service group as defined in site.psh
+##    ssgroup -- the storage service group as defined in site.psh
 ##    save -- directory where the pdo file will be saved
 ##
 ## Required:
@@ -39,6 +40,7 @@ set -s random_id -r 32
 
 set --conditional -s psgroup -v default
 set --conditional -s esgroup -v default
+set --conditional -s ssgroup -v default
 set --conditional -s pdo_file -v ${save}/${random_id}.pdo
 
 ## class
@@ -64,7 +66,7 @@ identity -n ${identity}
 
 trap_error
 
-create -c ${class} -s ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup}
+create -c ${class} -s ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup} -r ${ssgroup}
 if -o ${_error_code_} 0
    echo ERROR: ${_error_message_}
    exit -v ${_error_code_}

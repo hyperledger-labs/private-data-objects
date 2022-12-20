@@ -14,6 +14,7 @@
 
 F_LOGDIR=$F_SERVICEHOME/logs
 F_CONFDIR=$F_SERVICEHOME/etc
+F_BINDIR=$PDO_INSTALL_ROOT/bin
 
 SCRIPT_NAME=$(basename ${BASH_SOURCE[-1]} )
 
@@ -89,8 +90,9 @@ service_start() {
     done
 
     # (1) do not start if service already running
-    pgrepf  "\b${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b"
-    if [ $? == 0 ] ; then
+    ## pgrepf  "\b${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b"
+    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
+    if [ -n "$PLIST" ] ; then
         echo existing ${F_SERVICE_NANME} services detected, please shutdown first
         exit 1
     fi
@@ -171,7 +173,7 @@ service_status() {
 
     echo "running processes of ${F_SERVICE_NAME} service"
 
-    PLIST=$(pgrepf  "\b${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
+    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
     if [ -n "$PLIST" ] ; then
         ps -h --format pid,start,cmd -p $PLIST
     fi

@@ -68,11 +68,16 @@ sservice add --url http://localhost:7202
 sservice add --url http://localhost:7203
 sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
-## sservice group s2
-sservice --group s2 add --url http://localhost:7102
-sservice --group s2 add --url http://localhost:7103
-sservice --group s2 add --url http://localhost:7104
+## sservice group s1
+sservice --group s1 add --url http://localhost:7203
+sservice --group s1 add --url http://localhost:7204
+sservice --group s1 add --url http://localhost:7205
 sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s2
+sservice --group s2 add --url http://localhost:7201
+sservice --group s2 add --url http://localhost:7202
+sservice --group s2 set --duration 120 --replicas 1 --persistent ${persistent_storage_service}
 
 ## all sservices
 sservice --group all add --url http://localhost:7201
@@ -86,6 +91,7 @@ sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_
 set -s contract1 -r 32
 set -s contract2 -r 32
 set -s contract3 -r 32
+set -s contract4 -r 32
 
 identity -n user1
 create -c mock-contract -s _mock-contract -f ${save}/${contract1}.pdo
@@ -114,7 +120,7 @@ else
 fi
 
 identity -n user3
-create -c mock-contract -s _mock-contract -r s2 -p p1 -e e1 -f ${save}/${contract3}.pdo
+create -c mock-contract -s _mock-contract -r s1 -p p1 -e e1 -f ${save}/${contract3}.pdo
 send -f ${save}/${contract3}.pdo inc_value -s r8 -e preferred
 send -f ${save}/${contract3}.pdo inc_value -s r9 -e random
 send -f ${save}/${contract3}.pdo inc_value -s r10 -e random
@@ -123,6 +129,26 @@ if -e ${value} 3
     echo shell test 3 succeeded
 else
     echo shell test 3 failed
+    exit -v -1
+fi
+
+identity -n user4
+create -c mock-contract -s _mock-contract -r s2 -p p1 -e e1 -f ${save}/${contract4}.pdo
+send -f ${save}/${contract4}.pdo inc_value -s v -e preferred
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo inc_value -s v -e random
+send -f ${save}/${contract4}.pdo get_value -s value
+if -e ${value} 10
+    echo shell test 4 succeeded
+else
+    echo shell test 4 failed
     exit -v -1
 fi
 

@@ -185,56 +185,12 @@ for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
 done
 
 ## -----------------------------------------------------------------
-yell start pdo-create and pdo-update tests
 ## -----------------------------------------------------------------
-
-# make sure we have the necessary files in place
-CONFIG_FILE=${PDO_HOME}/etc/pcontract.toml
-if [ ! -f ${CONFIG_FILE} ]; then
-    die missing client configuration file, ${CONFIG_FILE}
-fi
-
-if [ "$PDO_INTERPRETER" == "gipsy" ]; then
-    CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.scm
+if [[ "$PDO_INTERPRETER" =~ ^"wawaka" ]]; then
+    yell start multi-user tests
+    try ${SRCDIR}/build/tests/multi-user.sh
 else
-    CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.b64
-fi
-
-if [ ! -f ${CONTRACT_FILE} ]; then
-    die missing contract source file, ${CONTRACT_FILE}
-fi
-
-say create the contract
-try ${PDO_HOME}/bin/pdo-create.psh \
-    --loglevel ${PDO_LOG_LEVEL} \
-    --identity user1 --ps_group default --es_group all \
-    --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
-
-# this will invoke the increment operation 5 times on each enclave round robin
-# fashion; the objective of this test is to ensure that the client touches
-# multiple, independent enclave services and pushes missing state correctly
-declare -i pcontract_es=3 #.see ../opt/pdo/etc/template/pcontract.toml
-declare -i n=$((NUM_SERVICES*pcontract_es)) e v value
-say increment the value with a simple expression ${n} times, querying enclaves in round robin
-for v in $(seq 1 ${n}) ; do
-    e=$((v % pcontract_es + 1))
-    value=$(${PDO_HOME}/bin/pdo-invoke.psh \
-                       --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
-                       --enclave "http://localhost:710${e}" --identity user1 \
-                       --pdo_file ${SAVE_FILE} --method inc_value)
-    if [ $value != $v ]; then
-        die "contract has the wrong value ($value instead of $v) for enclave $e"
-    fi
-done
-
-say get the value and check it
-v=$((v+1)); e=$((v % pcontract_es + 1))
-value=$(${PDO_HOME}/bin/pdo-invoke.psh \
-                   --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
-                   --enclave "http://localhost:710${e}" --identity user1 \
-                   --pdo_file ${SAVE_FILE} --method get_value)
-if [ $value != $((n)) ]; then
-    die "contract has the wrong value ($value instead of $((n+1))) for enclave $e"
+    yell no multi-user test for ${PDO_INTERPRETER}
 fi
 
 ## -----------------------------------------------------------------

@@ -97,6 +97,26 @@ bool inc_value(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // -----------------------------------------------------------------
+// NAME: anonymous_inc_value
+//
+// Simple test for multiple users updating a contract
+// -----------------------------------------------------------------
+bool anonymous_inc_value(const Message& msg, const Environment& env, Response& rsp)
+{
+    // get the value and increment it
+    uint32_t value;
+    if (! value_store.get(test_key, value))
+        return rsp.error("no such key");
+
+    value += 1;
+    if (! value_store.set(test_key, value))
+        return rsp.error("failed to save the new value");
+
+    ww::value::Number v((double)value);
+    return rsp.value(v, true);
+}
+
+// -----------------------------------------------------------------
 // NAME: get_value
 // -----------------------------------------------------------------
 bool get_value(const Message& msg, const Environment& env, Response& rsp)
@@ -115,6 +135,7 @@ bool get_value(const Message& msg, const Environment& env, Response& rsp)
 
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(inc_value),
+    CONTRACT_METHOD(anonymous_inc_value),
     CONTRACT_METHOD(get_value),
     { NULL, NULL }
 };
