@@ -110,7 +110,7 @@ happening inside a contract, do not use with confidential contracts.
 `WASM_SRC` points to the installation of the wasm-micro-runtime. This
 is used to build the WASM interpreter for the wawaka contract interpreter.
 The git submodule points to the latest tagged commit of [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime) we have validated:
-`WAMR-01-18-2022`.
+`WAMR-1.1.2`.
 
 <!-- -------------------------------------------------- -->
 ### `WASM_MEM_CONFIG`
