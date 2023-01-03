@@ -20,7 +20,7 @@ import pdo.common.utility as putils
 from pdo.submitter.create import create_submitter
 from pdo.contract.request import UpdateStateRequest, InitializeStateRequest
 from pdo.contract.state import ContractState
-from pdo.contract.code import ContractCode
+from pdo.contract.code import ContractCode, CompactContractCode
 import pdo.common.config as pconfig
 
 import pdo.service_client.service_data.eservice as eservice_db
@@ -51,7 +51,7 @@ class Contract(object) :
 
         try :
             code_info = contract_info['contract_code']
-            code = ContractCode(code_info['Code'], code_info['Name'], code_info['Nonce'])
+            code = CompactContractCode.deserialize(code_info)
         except KeyError as ke :
             logger.error('invalid contract data file; missing %s', str(ke))
             raise Exception("invalid contract file; {}".format(filename))
@@ -193,7 +193,7 @@ class Contract(object) :
         serialized['extra_data'] = self.extra_data
         serialized['contract_id'] = self.contract_id
         serialized['creator_id'] = self.creator_id
-        serialized['contract_code'] = self.contract_code.serialize()
+        serialized['contract_code'] = self.contract_code.serialize(compact=True)
 
         # this encoding is rather verbose, but mirrors the one that the ledger
         # currently uses
