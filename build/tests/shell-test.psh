@@ -14,8 +14,8 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-st --conditional -s data -v .
-st --conditional -s save -v .
+set --conditional -s data -v .
+set --conditional -s save -v .
 
 ## create an eservice db with the known enclave services
 eservice_db clear

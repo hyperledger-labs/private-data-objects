@@ -40,14 +40,17 @@ while true ; do
         --client) F_CLIENT="yes" ; shift 1 ;;
     	--) shift ; break ;;
     	*) echo "Internal error!" ; exit 1 ;;
-        esac
-    done
+    esac
+done
 TEMP
 
-BUILD_CLIENT=0
 if [ ${F_CLIENT} == "yes" ]; then
     CMAKE_ARGS="-DBUILD_CLIENT=1 -DBUILD_TRUSTED=0 -DBUILD_UNTRUSTED=0"
-    BUILD_CLIENT=1
+    MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=1"
+else
+    CMAKE_ARGS="-DBUILD_CLIENT=0 -DBUILD_TRUSTED=1 -DBUILD_UNTRUSTED=1"
+    MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=0"
+    MAKE_ARGS="BUILD_CLIENT=0"
 fi
 
 # -----------------------------------------------------------------
@@ -59,41 +62,49 @@ yell --------------- COMMON ---------------
 # now build the rest of common
 cd $SRCDIR/common
 
-mkdir -p build
+if [ ! -d build ]; then
+    yell create the build directory
+    mkdir -p build
+    pushd build
+    try cmake ${CMAKE_ARGS} ..
+    popd
+fi
+
 cd build
-try cmake ${CMAKE_ARGS} ..
-try make "-j$NUM_CORES"
+#try cmake ${CMAKE_ARGS} ..
+#try make ${MAKE_ARGS}
+try cmake --build . -- ${MAKE_ARGS}
 
 yell --------------- BIN ---------------
 cd $SRCDIR/bin
-try make "-j$NUM_CORES"
-try make install
+try make ${MAKE_ARGS}
+try make ${MAKE_ARGS} install
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
-try make BUILD_CLIENT=${BUILD_CLIENT} install
+try make ${MAKE_ARGS}
+try make ${MAKE_ARGS} install
 
 yell --------------- ESERVICE ---------------
 if [ ${F_CLIENT} == "no" ]; then
     cd $SRCDIR/eservice
-    try make "-j$NUM_CORES"
-    try make install
+    try make ${MAKE_ARGS}
+    try make ${MAKE_ARGS} install
 fi
 
 yell --------------- PSERVICE ---------------
 if [ ${F_CLIENT} == "no" ]; then
     cd $SRCDIR/pservice
-    try make "-j$NUM_CORES"
-    try make install
+    try make ${MAKE_ARGS}
+    try make ${MAKE_ARGS} install
 fi
 
 yell --------------- CLIENT ---------------
 cd $SRCDIR/client
-try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
-try make BUILD_CLIENT=${BUILD_CLIENT} install
+try make ${MAKE_ARGS}
+try make ${MAKE_ARGS} install
 
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts
-try make BUILD_CLIENT=${BUILD_CLIENT} "-j$NUM_CORES" all
-try make BUILD_CLIENT=${BUILD_CLIENT} install
+try make ${MAKE_ARGS} all
+try make ${MAKE_ARGS} install
