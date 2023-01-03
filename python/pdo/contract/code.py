@@ -65,11 +65,13 @@ class ContractCode(object) :
         self.nonce = nonce
 
     # -------------------------------------------------------
-    def serialize(self) :
+    def serialize(self, compact=False) :
         result = dict()
-        result['Code'] = self.code
+        if not compact :
+            result['Code'] = self.code
         result['Name'] = self.name
         result['Nonce'] = self.nonce
+        result['CodeHash'] = self.compute_hash(encoding='b64')
 
         return result
 
@@ -90,5 +92,47 @@ class ContractCode(object) :
             return crypto.byte_array_to_hex(code_hash)
         elif encoding == 'b64' :
             return crypto.byte_array_to_base64(code_hash)
+        else :
+            raise ValueError('unknown hash encoding; {}'.format(encoding))
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+class CompactContractCode(object) :
+    """Class for storing contract code object after state initialization when
+    the actual code is no longer necessary since it is stored in the contract
+    state.
+    """
+
+    @classmethod
+    def deserialize(cls, serialized) :
+        code_hash = serialized['CodeHash']
+        name = serialized['Name']
+        nonce = serialized['Nonce']
+        return cls(code_hash, name, nonce)
+
+    # -------------------------------------------------------
+    def __init__(self, code_hash, name, nonce) :
+        self.code_hash = code_hash
+        self.name = name
+        self.nonce = nonce
+
+    # -------------------------------------------------------
+    def serialize(self, compact=False) :
+        result = dict()
+        result['Name'] = self.name
+        result['Nonce'] = self.nonce
+        result['CodeHash'] = self.compute_hash(encoding='b64')
+
+        return result
+
+    # -------------------------------------------------------
+    def compute_hash(self, encoding = 'raw') :
+        raw_code_hash = crypto.base64_to_byte_array(self.code_hash)
+        if encoding == 'raw' :
+            return raw_code_hash
+        elif encoding == 'hex' :
+            return crypto.byte_array_to_hex(raw_code_hash)
+        elif encoding == 'b64' :
+            return crypto.byte_array_to_base64(raw_code_hash)
         else :
             raise ValueError('unknown hash encoding; {}'.format(encoding))
