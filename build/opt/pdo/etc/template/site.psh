@@ -19,6 +19,19 @@ if --null "${data}"
    exit
 fi
 
+## -----------------------------------------------------------------
+## Set the default set of eservices that this file knows
+## about. There may be more that have been added to the
+## eservice database. This list is primarily that ones that
+## will be used by the local client to create & interact with
+## contracts.
+## -----------------------------------------------------------------
+set -s eservice1 -v http://localhost:7101
+set -s eservice2 -v http://localhost:7102
+set -s eservice3 -v http://localhost:7103
+set -s eservice4 -v http://localhost:7104
+set -s eservice5 -v http://localhost:7105
+
 ## load the local database if it exists
 set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
 
@@ -28,11 +41,11 @@ eservice_db load --database ${dbfile} -s _database_exists_
 
 ## make sure the minimal set of enclave services is included
 ## if these are already in the database they will not be re-added
-eservice_db add --url http://localhost:7101 --name es7101
-eservice_db add --url http://localhost:7102 --name es7102
-eservice_db add --url http://localhost:7103 --name es7103
-eservice_db add --url http://localhost:7104 --name es7104
-eservice_db add --url http://localhost:7105 --name es7105
+eservice_db add --url ${eservice1} --name es7101
+eservice_db add --url ${eservice2} --name es7102
+eservice_db add --url ${eservice3} --name es7103
+eservice_db add --url ${eservice4} --name es7104
+eservice_db add --url ${eservice5} --name es7105
 
 if -e ${_database_exists_} False
    eservice_db save --database ${dbfile}
@@ -40,105 +53,141 @@ if -e ${_database_exists_} False
 fi
 
 ## -----------------------------------------------------------------
+## Define provisioning service groups to simplify specification
+## of contract key provisioning. Each group specifies a set of
+## provisioning services that will be used for provisioning keys
+## into the contract enclaves.
 ## -----------------------------------------------------------------
+
+set -s pservice1 -v http://localhost:7001
+set -s pservice2 -v http://localhost:7002
+set -s pservice3 -v http://localhost:7003
+set -s pservice4 -v http://localhost:7004
+set -s pservice5 -v http://localhost:7005
 
 ## default pservice group
-pservice add --url http://localhost:7001
-pservice add --url http://localhost:7002
-pservice add --url http://localhost:7003
+pservice add --url ${pservice1}
+pservice add --url ${pservice2}
+pservice add --url ${pservice3}
 
 ## pservice group p1
-pservice --group p1 add --url http://localhost:7003
-pservice --group p1 add --url http://localhost:7004
-pservice --group p1 add --url http://localhost:7005
+pservice --group p1 add --url ${pservice3}
+pservice --group p1 add --url ${pservice4}
+pservice --group p1 add --url ${pservice5}
 
 ## pservice group all
-pservice --group all add --url http://localhost:7001
-pservice --group all add --url http://localhost:7002
-pservice --group all add --url http://localhost:7003
-pservice --group all add --url http://localhost:7004
-pservice --group all add --url http://localhost:7005
+pservice --group all add --url ${pservice1}
+pservice --group all add --url ${pservice2}
+pservice --group all add --url ${pservice3}
+pservice --group all add --url ${pservice4}
+pservice --group all add --url ${pservice5}
 
 ## -----------------------------------------------------------------
+## Define enclave service groups to simplify specification
+## of eservices to be provisioned for the contract object. Each
+## group specifies a set of enclave services that may be used
+## to interact with the contract. It also specifies (through the
+## "use" command) a preferred service. The preferred service will
+## often have the current state already cached.
 ## -----------------------------------------------------------------
 
 ## default eservice group
-eservice add --url http://localhost:7101
-eservice add --url http://localhost:7102
-eservice add --url http://localhost:7103
-eservice use --url http://localhost:7101
+eservice add --url ${eservice1}
+eservice add --url ${eservice2}
+eservice add --url ${eservice3}
+eservice use --url ${eservice1}
 
 ## eservice group e2
-eservice --group e2 add --url http://localhost:7102
-eservice --group e2 add --url http://localhost:7103
-eservice --group e2 add --url http://localhost:7104
-eservice --group e2 use --url http://localhost:7102
+eservice --group e2 add --url ${eservice2}
+eservice --group e2 add --url ${eservice3}
+eservice --group e2 add --url ${eservice4}
+eservice --group e2 use --url ${eservice2}
 
 ## eservice group e3
-eservice --group e3 add --url http://localhost:7103
-eservice --group e3 add --url http://localhost:7104
-eservice --group e3 add --url http://localhost:7105
-eservice --group e3 use --url http://localhost:7103
+eservice --group e3 add --url ${eservice3}
+eservice --group e3 add --url ${eservice4}
+eservice --group e3 add --url ${eservice5}
+eservice --group e3 use --url ${eservice3}
 
 ## eservice group e4
-eservice --group e4 add --url http://localhost:7104
-eservice --group e4 add --url http://localhost:7105
-eservice --group e4 add --url http://localhost:7101
-eservice --group e4 use --url http://localhost:7104
+eservice --group e4 add --url ${eservice4}
+eservice --group e4 add --url ${eservice5}
+eservice --group e4 add --url ${eservice1}
+eservice --group e4 use --url ${eservice4}
 
 ## eservice group e5
-eservice --group e5 add --url http://localhost:7105
-eservice --group e5 add --url http://localhost:7101
-eservice --group e5 add --url http://localhost:7102
-eservice --group e5 use --url http://localhost:7105
+eservice --group e5 add --url ${eservice5}
+eservice --group e5 add --url ${eservice1}
+eservice --group e5 add --url ${eservice2}
+eservice --group e5 use --url ${eservice5}
 
 ## eservice group all
-eservice --group all add --url http://localhost:7101
-eservice --group all add --url http://localhost:7102
-eservice --group all add --url http://localhost:7103
-eservice --group all add --url http://localhost:7104
-eservice --group all add --url http://localhost:7105
-eservice --group all use --url http://localhost:7101
+eservice --group all add --url ${eservice1}
+eservice --group all add --url ${eservice2}
+eservice --group all add --url ${eservice3}
+eservice --group all add --url ${eservice4}
+eservice --group all add --url ${eservice5}
+eservice --group all use --url ${eservice1}
 
 ## -----------------------------------------------------------------
+## Define storage service groups to simplify specification
+## of contract state storage and replication policies. Each
+## group specifies a set of storage services, the policy
+## for how long the storage services will keep a copy of
+## the contract state, and the number of replicas that
+## must be completed before the ledger will accept a state
+## update.
+##
+## the persistent storage service adds a notation to the
+## contract file a storage service that will maintain
+## a persistent copy of the state of the contract object
+## that is, there is a HINT (not a guarantee) that the
+## current state of the object can be retrieved from the
+## persistent storage service
 ## -----------------------------------------------------------------
 
-set -s persistent_storage_service -v http://localhost:7201
+set -s sservice1 -v http://localhost:7201
+set -s sservice2 -v http://localhost:7202
+set -s sservice3 -v http://localhost:7203
+set -s sservice4 -v http://localhost:7204
+set -s sservice5 -v http://localhost:7205
+
+set -s persistent_storage_service -v ${sservice1}
 
 ## default sservice group
-sservice add --url http://localhost:7201
-sservice add --url http://localhost:7202
-sservice add --url http://localhost:7203
+sservice add --url ${sservice1}
+sservice add --url ${sservice2}
+sservice add --url ${sservice3}
 sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s2
-sservice --group s2 add --url http://localhost:7102
-sservice --group s2 add --url http://localhost:7103
-sservice --group s2 add --url http://localhost:7104
+sservice --group s2 add --url ${sservice2}
+sservice --group s2 add --url ${sservice3}
+sservice --group s2 add --url ${sservice4}
 sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s3
-sservice --group s3 add --url http://localhost:7103
-sservice --group s3 add --url http://localhost:7104
-sservice --group s3 add --url http://localhost:7105
+sservice --group s3 add --url ${sservice3}
+sservice --group s3 add --url ${sservice4}
+sservice --group s3 add --url ${sservice5}
 sservice --group s3 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s4
-sservice --group s4 add --url http://localhost:7104
-sservice --group s4 add --url http://localhost:7105
-sservice --group s4 add --url http://localhost:7101
+sservice --group s4 add --url ${sservice4}
+sservice --group s4 add --url ${sservice5}
+sservice --group s4 add --url ${sservice1}
 sservice --group s4 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s5
-sservice --group s5 add --url http://localhost:7105
-sservice --group s5 add --url http://localhost:7101
-sservice --group s5 add --url http://localhost:7102
+sservice --group s5 add --url ${sservice5}
+sservice --group s5 add --url ${sservice1}
+sservice --group s5 add --url ${sservice2}
 sservice --group s5 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## all sservices
-sservice --group all add --url http://localhost:7201
-sservice --group all add --url http://localhost:7202
-sservice --group all add --url http://localhost:7203
-sservice --group all add --url http://localhost:7204
-sservice --group all add --url http://localhost:7205
+sservice --group all add --url ${sservice1}
+sservice --group all add --url ${sservice2}
+sservice --group all add --url ${sservice3}
+sservice --group all add --url ${sservice4}
+sservice --group all add --url ${sservice5}
 sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}

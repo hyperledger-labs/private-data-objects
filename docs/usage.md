@@ -8,10 +8,19 @@ This document describes what to do with your Hyperledger Private Data Objects
 project once you have followed the steps in the
 [installation guide](install.md).
 
+The easiest way to test the basic functionality is to follow the
+instructions in the [docker guide](../docker/README.md). This document
+contains information about running the various services outside the
+containers.
+
 ## Table of Contents
 
+- [Configure the Installation](#configure)
+- [Start the Ledger](#ledger)
 - [Validate the Installation](#validating)
-- [Develop Contracts](#contracts)
+- [Run Services](#services)
+- [Develop Contracts](../contracts/docs/contracts.md)
+- [Work with Objects](../client/docs/USAGE.md)
 
 # <a name="configure">Configure the Installation
 
@@ -27,32 +36,32 @@ configuration file:
 
 | Application | Description  | Configuration File  |
 |:--|:--|:--|
-| `eservice` | contract enclave service | `eservice.toml` |
-| `pservice` | contract provisioning service | `pservice.toml` |
-| `sservice` | state storage service associated with an enclave service | `sservice.toml` |
-| `pdo-shell` | the PDO client shell for creating contracts and invoking methods | `pcontract.toml` |
+| `eservice` | contract enclave service | [`eservice.toml`](../build/opt/pdo/templates/eservice.toml) |
+| `pservice` | contract provisioning service | [`pservice.toml`](../build/opt/pdo/templates/pservice.toml) |
+| `sservice` | state storage service associated with an enclave service | [`sservice.toml`](../build/opt/pdo/templates/sservice.toml) |
+| `pdo-shell` | the PDO client shell for creating contracts and invoking methods | [`pcontract.toml`](../build/opt/pdo/templates/pcontract.toml) |
 
 For simplicity in installation, the file `enclave.toml` in the
 `${PDO_HOME}/etc` directory contains the configuration for the accessing
 the Intel Attestation Service.
 
+In addition, most provided `pdo-shell` scripts use the service
+configuration information found in
+[`${PDO_HOME}/etc/site.psh`](../build/opt/pdo/templates/site.psh).
+That can be included in scripts to load and configure a database of
+enclave, provisioning and storage services. This will simplify script
+execution. Add or change service references as necessary.
+
 Default versions of the configuration files are constructed during the
 build process. The default setup provides configuration files for five
 different service instances plus the `pdo-shell` client configuration.
 
-# <a name="Ledger">Run the Ledger
+# <a name="ledger">Start the Ledger
 
-Using PDO requires a running instance of a ledger (Hyperledger Sawtooth or
-Microsoft CCF). The easiest way to spin up an instance of the ledger for
-local testing is to use the provided Docker images.
-
-Run the following commands:
-```
-cd $PDO_SOURCE_ROOT
-mkdir -p $PDO_LEDGER_KEY_ROOT
-make -C docker test-env-setup(-ccf)
-cp docker/ccf_keys/*.pem $PDO_LEDGER_KEY_ROOT # only for CCF ledger
-```
+Using PDO requires a running instance of a ledger. Documentation for
+building, installing and running the ledgers are available for bot
+[Hyperledger Sawtooth](../sawtooth/docs/USAGE.md) and
+[Microsoft CCF](../ccf_transaction_processor/README.md).
 
 # <a name="validating">Validate the Installation
 
@@ -68,45 +77,6 @@ make test
 ```
 
 A variety of tests are run that exercise different components of the
-installation.
-
-# <a name="contracts">Contracts
-
-A "contract" is, at its core, just some Gipsy Scheme code. This code runs
-inside the contract enclave where it is protected from eavesdropping
-(confidentiality) and tampering (integrity). The contracts themselves enforce
-what they can and can not do - they are just code that runs on data. More
-information about contracts is available
-[here](../contracts/docs/contract.md).
-
-This project comes bundled with a few example contracts which you can
-experiment with. Here is a brief overview of each one:
-
-- [mock-contract](../contracts/test-contracts/mock-contract.scm)
-A very simple contract which allows the contract owner to increment and
-retrieve a stored value. Other parties can not interact with the contract.
-
-- [integer-key](../contracts/integer-key/integer-key.scm)
-Like mock contract, provides an interface for interacting with a stored integer
-value. Only the contract owner may retrieve and decrement the value. Anyone may
-increment the counter, and the owner can transfer some or all of the value to a
-different integer-key contract owned by someone else. Additionally, the owner
-can choose to transfer ownership of the contract to someone else. Integer key
-also supports escrow - the ability to transfer control of the value to another
-entity temporarily (such as when participating in an auction).
-
-- [auction](../contracts/auction/integer-key-auction.scm)
-More sophisticated contract that implements a "silent" auction. Participants in
-the auction can "bid" integer-key values by placing them in escrow.
-Participants may only see the highest bid and their current bid - not even the
-owner of the auction can retrieve all of the bids. The owner may choose when to
-close bidding and select a winner, after which point the "for sale" value is
-exchanged with the highest bid.
-
-- [exchange](../contracts/exchange/docs/exchange.md)
-Where the integer-key and auction contracts are primarily for demonstration and testing, the suite
-of contracts that make up the asset exchange can be used to implement a multi-asset ledger with
-several types of exchanges possible. The exchange contract suite includes plugins for the pdo client
-shell to simplify interaction with the contracts and
-[example scripts](../contracts/exchange/scripts/README.md)
-that can be used to set up asset ledgers.
+installation. Note that the test process will start the necessary
+eservies, pservices and sservices. It assumes that the ledger is
+already running and configured.

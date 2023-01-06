@@ -89,8 +89,3 @@ prompt> easy_install dist/pdo_client-0.0.1.dev1-py3.6-linux-x86_64.egg
 
 Note that the name of the egg file will depend on the version of Python
 you are using.
-
-# <a name="usage">Using the Client Utilities
-
-See the main [USAGE](../../USAGE.md) document about how to use the client to
-interact with Private Data Objects contracts.
