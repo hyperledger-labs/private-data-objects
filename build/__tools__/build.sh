@@ -50,7 +50,6 @@ if [ ${F_CLIENT} == "yes" ]; then
 else
     CMAKE_ARGS="-DBUILD_CLIENT=0 -DBUILD_TRUSTED=1 -DBUILD_UNTRUSTED=1"
     MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=0"
-    MAKE_ARGS="BUILD_CLIENT=0"
 fi
 
 # -----------------------------------------------------------------

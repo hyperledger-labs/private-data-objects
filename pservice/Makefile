@@ -62,14 +62,14 @@ $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE): $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE
 	VAR_MRENCLAVE=$$(perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $$eh = $$1; $$eh=~s/0x| |\n//g; $$eh=~tr/a-z/A-Z/; print "$${eh}\n"; }' $(CONTRACT_ENCLAVE_MRENCLAVE_META_FILE)) && \
 	sed "s/MR_ENCLAVE_PLACEMARK/$${VAR_MRENCLAVE}/" $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE) > $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE)
 
-$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+$(ENCLAVE_LIB) : build
 	@echo Build Enclave
 	$(MAKE) -C build
 
 $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
 	python setup.py build_ext
 
-build :
+build : $(ENCLAVE_FILES)
 	mkdir $@
 	cd $@ && cmake .. -G "Unix Makefiles"
 
