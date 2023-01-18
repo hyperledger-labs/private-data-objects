@@ -15,10 +15,12 @@
 
 #pragma once
 
+#include <map>
 #include <openssl/ec.h>
 #include <openssl/obj_mac.h> //for the NIDs
 #include <string>
-#include <map>
+
+#include "types.h"
 
 namespace pdo
 {
@@ -48,7 +50,7 @@ namespace crypto
         typedef struct {
             SigCurve sigCurve;
             int sslNID;
-            void (*SHAFunc)(const unsigned char*, unsigned int, unsigned char hash[]);
+            void (*SHAFunc)(const ByteArray& message, ByteArray& hash);
             unsigned int shaDigestLength;
             unsigned int maxSigSize;
         } sig_details_t;

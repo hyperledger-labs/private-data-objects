@@ -110,6 +110,7 @@ namespace std {
 %include "crypto.h"
 %include "crypto_utils.h"
 %include "crypto_shared.h"
+%include "hash.h"
 %include "sig.h"
 %include "pkenc.h"
 %include "skenc.h"
