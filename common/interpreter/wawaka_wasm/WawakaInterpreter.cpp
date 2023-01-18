@@ -77,9 +77,10 @@ void wasm_logger(unsigned int level, const char *msg, const int value)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-void wasm_printer(const char *msg)
+int wasm_printer(const char *msg)
 {
     SAFE_LOG(PDO_LOG_ERROR, msg);
+    return 0; // for updated WAMR os_print_function_t
 }
 
 } /* extern "C" */
