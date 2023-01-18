@@ -360,7 +360,9 @@ std::string pcrypto::sig::PublicKey::SerializeXYToHex() const
 int pcrypto::sig::PublicKey::VerifySignature(
     const ByteArray& message, const ByteArray& signature) const
 {
-    unsigned char hash[sigDetails_.shaDigestLength];
+    ByteArray hash;
+    sigDetails_.SHAFunc(message, hash);
+
     // Decode signature B64 -> DER -> ECDSA_SIG
     const unsigned char* der_SIG = (const unsigned char*)signature.data();
     ECDSA_SIG_ptr sig(
@@ -369,10 +371,9 @@ int pcrypto::sig::PublicKey::VerifySignature(
     {
         return -1;
     }
-    sigDetails_.SHAFunc((const unsigned char*)message.data(), message.size(), hash);
+
     // Verify
-    return ECDSA_do_verify(
-        (const unsigned char*)hash, sigDetails_.shaDigestLength, sig.get(), key_);
+    return ECDSA_do_verify(hash.data(), hash.size(), sig.get(), key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
 
 unsigned int pcrypto::sig::PublicKey::MaxSigSize(const std::string& encoded)

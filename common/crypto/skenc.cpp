@@ -25,6 +25,7 @@
 #include "crypto_shared.h"
 #include "crypto_utils.h"
 #include "error.h"
+#include "hash.h"
 #include "hex_string.h"
 
 /***Conditional compile untrusted/trusted***/
@@ -55,16 +56,6 @@ namespace constants = pdo::crypto::constants;
 
 //***Private functions***//
 
-// Compute SHA256 digest
-static void SHA256Hash(
-    const unsigned char* buf, int buf_size, unsigned char hash[SHA256_DIGEST_LENGTH])
-{
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, buf, buf_size);
-    SHA256_Final(hash, &sha256);
-}  // pcrypto::SHA256Hash
-
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Generate symmetric authenticated encryption key
 // throws RuntimeError
@@ -81,10 +72,14 @@ ByteArray pcrypto::skenc::GenerateIV(const std::string& IVstring)
     // generate random IV if no input
     if (IVstring.compare("") == 0)
         return pcrypto::RandomBitString(constants::IV_LEN);
+
     // else use IVstring
     ByteArray hash(SHA256_DIGEST_LENGTH);
-    SHA256Hash((const unsigned char*)IVstring.data(), IVstring.size(), hash.data());
+    ByteArray message(IVstring.begin(), IVstring.end());
+
+    pdo::crypto::SHA256Hash(message, hash);
     hash.resize(constants::IV_LEN);
+
     return hash;
 }  // pcrypto::skenc::GenerateIV
 

@@ -179,7 +179,7 @@ void pcrypto::sig::PrivateKey::Generate()
 {
     if (key_)
         EC_KEY_free(key_);
-    
+
     EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
 
     if (!private_key)
@@ -259,18 +259,16 @@ std::string pcrypto::sig::PrivateKey::Serialize() const
 // throws RuntimeError
 ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
 {
-    unsigned char hash[sigDetails_.shaDigestLength];
+    //unsigned char hash[sigDetails_.shaDigestLength];
+    ByteArray hash;
+
     // Hash
-    sigDetails_.SHAFunc((const unsigned char*)message.data(), message.size(), hash);
+    sigDetails_.SHAFunc(message, hash);
     // Then Sign
 
-    ECDSA_SIG_ptr sig(ECDSA_do_sign((const unsigned char*)hash, sigDetails_.shaDigestLength, key_),
-        ECDSA_SIG_free);
-    if (!sig)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not compute ECDSA signature");
-        throw Error::RuntimeError(msg);
-    }
+    ECDSA_SIG_ptr sig(ECDSA_do_sign(hash.data(), hash.size(), key_), ECDSA_SIG_free);
+    pdo::error::ThrowIf<Error::RuntimeError>(!sig, "Crypto Error (SignMessage): Could not compute ECDSA signature");
+
     const BIGNUM* sc;
     const BIGNUM* rc;
     BIGNUM* r = nullptr;
@@ -279,73 +277,39 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
     ECDSA_SIG_get0(sig.get(), &rc, &sc);
 
     s = BN_dup(sc);
-    if (!s)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not dup BIGNUM for s");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!s, "Crypto Error (SignMessage): Could not dup BIGNUM for s");
+
     r = BN_dup(rc);
-    if (!r)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not dup BIGNUM for r");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!r, "Crypto Error (SignMessage): Could not dup BIGNUM for r");
+
     BIGNUM_ptr ord(BN_new(), BN_free);
-    if (!ord)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not create BIGNUM for ord");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!ord,"Crypto Error (SignMessage): Could not create BIGNUM for ord");
 
     BIGNUM_ptr ordh(BN_new(), BN_free);
-    if (!ordh)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not create BIGNUM for ordh");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!ordh, "Crypto Error (SignMessage): Could not create BIGNUM for ordh");
 
     int res = EC_GROUP_get_order(EC_KEY_get0_group(key_), ord.get(), NULL);
-    if (!res)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not get order");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!res, "Crypto Error (SignMessage): Could not get order");
 
     res = BN_rshift(ordh.get(), ord.get(), 1);
-
-    if (!res)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not shft order BN");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!res, "Crypto Error (SignMessage): Could not shft order BN");
 
     if (BN_cmp(s, ordh.get()) >= 0)
     {
         res = BN_sub(s, ord.get(), s);
-        if (!res)
-        {
-            std::string msg("Crypto Error (SignMessage): Could not sub BNs");
-            throw Error::RuntimeError(msg);
-        }
+        pdo::error::ThrowIf<Error::RuntimeError>(!res, "Crypto Error (SignMessage): Could not sub BNs");
     }
 
     res = ECDSA_SIG_set0(sig.get(), r, s);
-    if (!res)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not set r and s");
-        throw Error::RuntimeError(msg);
-    }
+    pdo::error::ThrowIf<Error::RuntimeError>(!res, "Crypto Error (SignMessage): Could not set r and s");
 
     // The -1 here is because we canonoicalize the signature as in Bitcoin
     unsigned int der_sig_size = i2d_ECDSA_SIG(sig.get(), nullptr);
     ByteArray der_SIG(der_sig_size, 0);
     unsigned char* data = der_SIG.data();
-    res = i2d_ECDSA_SIG(sig.get(), &data);
 
-    if (!res)
-    {
-        std::string msg("Crypto Error (SignMessage): Could not convert signatureto DER");
-        throw Error::RuntimeError(msg);
-    }
+    res = i2d_ECDSA_SIG(sig.get(), &data);
+    pdo::error::ThrowIf<Error::RuntimeError>(!res, "Crypto Error (SignMessage): Could not convert signatureto DER");
+
     return der_SIG;
 }  // pcrypto::sig::PrivateKey::SignMessage

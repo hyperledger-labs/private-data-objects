@@ -15,12 +15,24 @@
 
 #pragma once
 
+#include "types.h"
+
 namespace pdo
 {
 namespace crypto
 {
-    void SHA256Hash(const unsigned char* buf, unsigned int buf_size, unsigned char hash[]);
-    void SHA384Hash(const unsigned char* buf, unsigned int buf_size, unsigned char hash[]);
+    void SHA256Hash(const ByteArray& message, ByteArray& hash);
+    void SHA256HMAC(const ByteArray& message, const ByteArray& key, ByteArray& hmac);
+
+    void SHA384Hash(const ByteArray& message, ByteArray& hash);
+    void SHA384HMAC(const ByteArray& message, const ByteArray& key, ByteArray& hmac);
+
+    void SHA512Hash(const ByteArray& message, ByteArray& hash);
+    void SHA512HMAC(const ByteArray& message, const ByteArray& key, ByteArray& hmac);
+
+    // these default to the sha256 hash functions
+    ByteArray ComputeMessageHash(const ByteArray& message);
+    ByteArray ComputeMessageHMAC(const ByteArray& key, const ByteArray& message);
 
 }
 }
