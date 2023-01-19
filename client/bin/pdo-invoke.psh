@@ -30,6 +30,7 @@
 set --conditional -s data -v .
 set --conditional -s params -v ""
 set --conditional -s method -v ""
+set --conditional -s wait -v "no"
 
 script -f ${home}/etc/site.psh
 
@@ -53,9 +54,17 @@ fi
 trap_error
 
 if -n ${params}
-   send -s _result_ -f ${pdo_file} ${method}
+   if -e ${wait} "yes"
+      send --wait -s _result_ -f ${pdo_file} ${method}
+   else
+      send -s _result_ -f ${pdo_file} ${method}
+   fi
 else
-   send -s _result_ -f ${pdo_file} -p ${params} ${method}
+   if -e ${wait} "yes"
+      send --wait -s _result_ -f ${pdo_file} -p ${params} ${method}
+   else
+      send -s _result_ -f ${pdo_file} -p ${params} ${method}
+   fi
 fi
 
 if -o ${_error_code_} 0
