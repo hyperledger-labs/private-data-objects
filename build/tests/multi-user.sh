@@ -89,6 +89,7 @@ for v in $(seq 1 ${iterations}) ; do
     u=$((v % user_count + base_user))
     p=$((v % port_count + base_port))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                       --wait yes \
                        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
                        --enclave "http://localhost:${p}" --identity user${u} \
                        --pdo_file ${SAVE_FILE} --method anonymous_inc_value)
