@@ -151,7 +151,19 @@ bool rsa_decrypt_message(
     uint8_t** msg_buffer_pointer,
     size_t* msg_length_pointer);
 
-bool crypto_hash(
+bool sha256_hash(
+    const uint8_t* msg_buffer,
+    const size_t msg_length,
+    uint8_t** hash_buffer_pointer,
+    size_t* hash_length_pointer);
+
+bool sha384_hash(
+    const uint8_t* msg_buffer,
+    const size_t msg_length,
+    uint8_t** hash_buffer_pointer,
+    size_t* hash_length_pointer);
+
+bool sha512_hash(
     const uint8_t* msg_buffer,
     const size_t msg_length,
     uint8_t** hash_buffer_pointer,

@@ -118,7 +118,21 @@ extern "C" bool rsa_decrypt_message_wrapper(
     int32 msg_buffer_pointer_offset,
     int32 msg_length_pointer_offset);
 
-extern "C" bool crypto_hash_wrapper(
+extern "C" bool sha256_hash_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset,
+    const int32 msg_buffer_length,
+    int32 hash_buffer_pointer_offset,
+    int32 hash_length_pointer_offset);
+
+extern "C" bool sha384_hash_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset,
+    const int32 msg_buffer_length,
+    int32 hash_buffer_pointer_offset,
+    int32 hash_length_pointer_offset);
+
+extern "C" bool sha512_hash_wrapper(
     wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset,
     const int32 msg_buffer_length,
