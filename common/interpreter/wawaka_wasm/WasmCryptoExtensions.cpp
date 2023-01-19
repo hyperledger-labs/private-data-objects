@@ -682,6 +682,144 @@ extern "C" bool random_identifier_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: sha256_hmac_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool sha256_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset, // uint8_t*
+    const int32 msg_buffer_length, // size_t
+    const int32 key_buffer_offset, // uint8_t*
+    const int32 key_buffer_length, // size_t
+    int32 hmac_buffer_pointer_offset, // uint8_t**
+    int32 hmac_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
+        if (msg_buffer == NULL)
+            return false;
+
+        ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
+
+        uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
+        if (key_buffer == NULL)
+            return false;
+
+        ByteArray key(key_buffer, key_buffer + key_buffer_length);
+
+        ByteArray hmac;
+        pcrypto::SHA256HMAC(msg, key, hmac);
+        if (hmac.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst, hmac, hmac_buffer_pointer_offset, hmac_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: sha384_hmac_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool sha384_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset, // uint8_t*
+    const int32 msg_buffer_length, // size_t
+    const int32 key_buffer_offset, // uint8_t*
+    const int32 key_buffer_length, // size_t
+    int32 hmac_buffer_pointer_offset, // uint8_t**
+    int32 hmac_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
+        if (msg_buffer == NULL)
+            return false;
+
+        ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
+
+        uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
+        if (key_buffer == NULL)
+            return false;
+
+        ByteArray key(key_buffer, key_buffer + key_buffer_length);
+
+        ByteArray hmac;
+        pcrypto::SHA384HMAC(msg, key, hmac);
+        if (hmac.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst, hmac, hmac_buffer_pointer_offset, hmac_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: sha512_hmac_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool sha512_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset, // uint8_t*
+    const int32 msg_buffer_length, // size_t
+    const int32 key_buffer_offset, // uint8_t*
+    const int32 key_buffer_length, // size_t
+    int32 hmac_buffer_pointer_offset, // uint8_t**
+    int32 hmac_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
+        if (msg_buffer == NULL)
+            return false;
+
+        ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
+
+        uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
+        if (key_buffer == NULL)
+            return false;
+
+        ByteArray key(key_buffer, key_buffer + key_buffer_length);
+
+        ByteArray hmac;
+        pcrypto::SHA512HMAC(msg, key, hmac);
+        if (hmac.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst, hmac, hmac_buffer_pointer_offset, hmac_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: verify_sgx_report_wrapper(
  * ----------------------------------------------------------------- */
 extern "C" bool verify_sgx_report_wrapper(

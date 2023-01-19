@@ -139,6 +139,33 @@ extern "C" bool sha512_hash_wrapper(
     int32 hash_buffer_pointer_offset,
     int32 hash_length_pointer_offset);
 
+extern "C" bool sha256_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset,
+    const int32 msg_buffer_length,
+    const int32 key_buffer_offset,
+    const int32 key_buffer_length,
+    int32 hmac_buffer_pointer_offset,
+    int32 hmac_length_pointer_offset);
+
+extern "C" bool sha384_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset,
+    const int32 msg_buffer_length,
+    const int32 key_buffer_offset,
+    const int32 key_buffer_length,
+    int32 hmac_buffer_pointer_offset,
+    int32 hmac_length_pointer_offset);
+
+extern "C" bool sha512_hmac_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset,
+    const int32 msg_buffer_length,
+    const int32 key_buffer_offset,
+    const int32 key_buffer_length,
+    int32 hmac_buffer_pointer_offset,
+    int32 hmac_length_pointer_offset);
+
 extern "C" bool random_identifier_wrapper(
     wasm_exec_env_t exec_env,
     const int32 length,
