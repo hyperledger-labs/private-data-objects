@@ -51,7 +51,7 @@ class CCFClientWrapper(CCFClient) :
             raise Exception("Cannot locate CCF network certificate. Aborting transaction")
 
         # create the request client
-        logger.info("Creating the CCF Request client")
+        logger.debug("Creating the CCF Request client")
         super().__init__(host, port, ca_file)
 
         #get CCF verifying key (specific to PDO TP)
@@ -73,7 +73,7 @@ class CCFClientWrapper(CCFClient) :
                 response = self.submit_rpc(tx_method, tx_params)
                 if response.status_code == http.HTTPStatus.OK:
                     return response.body.json()
-            except Exception as e: 
+            except Exception as e:
                 raise
         #read failed even after retries
         raise Exception("read request failed after multiple retries for tx_method {}".format(str(tx_method)))
@@ -235,7 +235,7 @@ class CCFSubmitter(sub.Submitter):
             )
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True): 
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
                 # reponse body will be "True" for enclave registration transaction
                 return tx_params['nonce']
             else:
@@ -276,7 +276,7 @@ class CCFSubmitter(sub.Submitter):
             message_hash,
             dependencies
             )
- 
+
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
