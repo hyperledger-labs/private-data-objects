@@ -38,6 +38,11 @@ namespace crypto
         const ww::types::ByteArray& buffer,
         ww::types::ByteArray& hash);
 
+    bool crypto_hmac(
+        const ww::types::ByteArray& buffer,
+        const ww::types::ByteArray& key,
+        ww::types::ByteArray& hmac);
+
     namespace hash
     {
         bool sha256_hash(
@@ -49,6 +54,18 @@ namespace crypto
         bool sha512_hash(
             const ww::types::ByteArray& buffer,
             ww::types::ByteArray& hash);
+        bool sha256_hmac(
+            const ww::types::ByteArray& buffer,
+            const ww::types::ByteArray& key,
+            ww::types::ByteArray& hmac);
+        bool sha384_hmac(
+            const ww::types::ByteArray& buffer,
+            const ww::types::ByteArray& key,
+            ww::types::ByteArray& hmac);
+        bool sha512_hmac(
+            const ww::types::ByteArray& buffer,
+            const ww::types::ByteArray& key,
+            ww::types::ByteArray& hmac);
     };
 
     namespace aes

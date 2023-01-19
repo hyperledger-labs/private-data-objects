@@ -169,6 +169,30 @@ bool sha512_hash(
     uint8_t** hash_buffer_pointer,
     size_t* hash_length_pointer);
 
+bool sha256_hmac(
+    const uint8_t* msg_buffer,
+    const size_t msg_length,
+    const uint8_t* key_buffer,
+    const size_t key_length,
+    uint8_t** hmac_buffer_pointer,
+    size_t* hmac_length_pointer);
+
+bool sha384_hmac(
+    const uint8_t* msg_buffer,
+    const size_t msg_length,
+    const uint8_t* key_buffer,
+    const size_t key_length,
+    uint8_t** hmac_buffer_pointer,
+    size_t* hmac_length_pointer);
+
+bool sha512_hmac(
+    const uint8_t* msg_buffer,
+    const size_t msg_length,
+    const uint8_t* key_buffer,
+    const size_t key_length,
+    uint8_t** hmac_buffer_pointer,
+    size_t* hmac_length_pointer);
+
 bool random_identifier(
     const size_t length,
     uint8_t* buffer_pointer);

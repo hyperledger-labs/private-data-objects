@@ -168,6 +168,86 @@ bool ww::crypto::hash::sha512_hash(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha256_hmac
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha256_hmac(
+    const ww::types::ByteArray& buffer,
+    const ww::types::ByteArray& key,
+    ww::types::ByteArray& hmac)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::sha256_hmac(buffer.data(), buffer.size(), key.data(), key.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hmac");
+        return false;
+    }
+
+    return copy_internal_pointer(hmac, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha384_hmac
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha384_hmac(
+    const ww::types::ByteArray& buffer,
+    const ww::types::ByteArray& key,
+    ww::types::ByteArray& hmac)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::sha384_hmac(buffer.data(), buffer.size(), key.data(), key.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hmac");
+        return false;
+    }
+
+    return copy_internal_pointer(hmac, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha512_hmac
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha512_hmac(
+    const ww::types::ByteArray& buffer,
+    const ww::types::ByteArray& key,
+    ww::types::ByteArray& hmac)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::sha512_hmac(buffer.data(), buffer.size(), key.data(), key.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hmac");
+        return false;
+    }
+
+    return copy_internal_pointer(hmac, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::aes::generate_key
+ * ----------------------------------------------------------------- */
+bool ww::crypto::crypto_hmac(
+    const ww::types::ByteArray& buffer,
+    const ww::types::ByteArray& key,
+    ww::types::ByteArray& hmac)
+{
+    return ww::crypto::hash::sha256_hmac(buffer, key, hmac);
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: ww::crypto::aes::generate_key
  * ----------------------------------------------------------------- */
 bool ww::crypto::aes::generate_key(ww::types::ByteArray& key)
