@@ -38,6 +38,19 @@ namespace crypto
         const ww::types::ByteArray& buffer,
         ww::types::ByteArray& hash);
 
+    namespace hash
+    {
+        bool sha256_hash(
+            const ww::types::ByteArray& buffer,
+            ww::types::ByteArray& hash);
+        bool sha384_hash(
+            const ww::types::ByteArray& buffer,
+            ww::types::ByteArray& hash);
+        bool sha512_hash(
+            const ww::types::ByteArray& buffer,
+            ww::types::ByteArray& hash);
+    };
+
     namespace aes
     {
         bool generate_key(ww::types::ByteArray& key);

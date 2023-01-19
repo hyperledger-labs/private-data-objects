@@ -98,10 +98,64 @@ bool ww::crypto::crypto_hash(
     const ww::types::ByteArray& buffer,
     ww::types::ByteArray& hash)
 {
+    return ww::crypto::hash::sha256_hash(buffer, hash);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha256_hash
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha256_hash(
+    const ww::types::ByteArray& buffer,
+    ww::types::ByteArray& hash)
+{
     uint8_t* data_pointer = NULL;
     size_t data_size = 0;
 
-    if (! ::crypto_hash(buffer.data(), buffer.size(), &data_pointer, &data_size))
+    if (! ::sha256_hash(buffer.data(), buffer.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hash");
+        return false;
+    }
+
+    return copy_internal_pointer(hash, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha384_hash
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha384_hash(
+    const ww::types::ByteArray& buffer,
+    ww::types::ByteArray& hash)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::sha384_hash(buffer.data(), buffer.size(), &data_pointer, &data_size))
+        return false;
+
+    if (data_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function crypto_hash");
+        return false;
+    }
+
+    return copy_internal_pointer(hash, data_pointer, data_size);
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha512_hash
+ * ----------------------------------------------------------------- */
+bool ww::crypto::hash::sha512_hash(
+    const ww::types::ByteArray& buffer,
+    ww::types::ByteArray& hash)
+{
+    uint8_t* data_pointer = NULL;
+    size_t data_size = 0;
+
+    if (! ::sha512_hash(buffer.data(), buffer.size(), &data_pointer, &data_size))
         return false;
 
     if (data_pointer == NULL)

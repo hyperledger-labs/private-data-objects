@@ -536,9 +536,9 @@ extern "C" bool rsa_decrypt_message_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
- * NAME: crypto_hash_wrapper
+ * NAME: sha256_hash_wrapper
  * ----------------------------------------------------------------- */
-extern "C" bool crypto_hash_wrapper(
+extern "C" bool sha256_hash_wrapper(
     wasm_exec_env_t exec_env,
     const int32 msg_buffer_offset, // uint8_t*
     const int32 msg_buffer_length, // size_t
@@ -552,7 +552,82 @@ extern "C" bool crypto_hash_wrapper(
             return false;
 
         ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
-        ByteArray hash = pcrypto::ComputeMessageHash(msg);
+        ByteArray hash;
+        pcrypto::SHA256Hash(msg, hash);
+        if (hash.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst, hash, hash_buffer_pointer_offset, hash_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: sha384_hash_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool sha384_hash_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset, // uint8_t*
+    const int32 msg_buffer_length, // size_t
+    int32 hash_buffer_pointer_offset, // uint8_t**
+    int32 hash_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
+        if (msg_buffer == NULL)
+            return false;
+
+        ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
+        ByteArray hash;
+        pcrypto::SHA384Hash(msg, hash);
+        if (hash.size() == 0)
+            return false;
+
+        if (! save_buffer(module_inst, hash, hash_buffer_pointer_offset, hash_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: sha512_hash_wrapper
+ * ----------------------------------------------------------------- */
+extern "C" bool sha512_hash_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 msg_buffer_offset, // uint8_t*
+    const int32 msg_buffer_length, // size_t
+    int32 hash_buffer_pointer_offset, // uint8_t**
+    int32 hash_length_pointer_offset) // size_t*
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        uint8_t* msg_buffer = (uint8_t*)get_buffer(module_inst, msg_buffer_offset, msg_buffer_length);
+        if (msg_buffer == NULL)
+            return false;
+
+        ByteArray msg(msg_buffer, msg_buffer + msg_buffer_length);
+        ByteArray hash;
+        pcrypto::SHA512Hash(msg, hash);
         if (hash.size() == 0)
             return false;
 
