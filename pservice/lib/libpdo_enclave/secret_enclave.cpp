@@ -46,7 +46,7 @@
 #include "enclave_data.h"
 #include "enclave_utils.h"
 #include "secret_enclave.h"
-#include "contract_enclave_mrenclave.h"
+#include "eservice_mrenclave.h"
 
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -655,7 +655,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     sgx_measurement_t mrEnclaveFromReport = *(&reportBody->mr_enclave);
     sgx_basename_t mrBasename = *(&quoteBody->basename);
 
-    ByteArray allowedContractMR_ENCLAVE = HexEncodedStringToByteArray(ALLOWED_CONTRACT_ENCLAVE_MR_ENCLAVE);
+    ByteArray allowedContractMR_ENCLAVE = HexEncodedStringToByteArray(ESERVICE_ENCLAVE_MRENCLAVE);
 
     //CHECK MR_ENCLAVE
     pdo::error::ThrowIf<pdo::error::ValueError>(
