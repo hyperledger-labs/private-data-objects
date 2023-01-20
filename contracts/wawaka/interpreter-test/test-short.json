@@ -2,6 +2,7 @@
     { "MethodName" : "ecdsa_test", "KeywordParameters": { "message" : "hello there" } },
     { "MethodName" : "aes_test", "KeywordParameters": { "message" : "hello there" } },
     { "MethodName" : "rsa_test"},
+    { "MethodName" : "hash_test", "expected" : "[tT]rue"},
     { "MethodName" : "kv_test_set", "expected" : "[tT]rue"},
     { "MethodName" : "kv_test_get", "expected" : "1"},
     { "MethodName" : "privileged_test_get", "expected" : "[tT]rue"}
