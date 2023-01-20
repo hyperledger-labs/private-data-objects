@@ -205,6 +205,71 @@ bool rsa_test(const Message& msg, const Environment& env, Response& rsp)
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// NAME: hash_test
+//
+// test the hash and hmac functions. for the moment this only tests
+// the 256 bit versions.
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool hash_test(const Message& msg, const Environment& env, Response& rsp)
+{
+    ww::types::ByteArray hash;
+    std::string encoded_hash;
+
+    ww::types::ByteArray hmac;
+    std::string encoded_hmac;
+
+    const ww::types::ByteArray hmackey{4, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+    const ww::types::ByteArray hmackey_badkey{0, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+    const std::string test_msg_str("Proof of Elapsed Time");
+    const std::string test_msg_bad_str("Proof of Elapsed Time 2");
+    const std::string expected_hmac("mO+yrlHk5HH1vyDlKuSjhTgWR0Y9Iqv1JlZW+pKDwWk=");
+    const std::string expected_hash("43fTaEjBzvug9rf0RRU6anIHfgdoqNjQ/dy/jzcVcAk=");
+
+    ww::types::ByteArray test_msg(test_msg_str.begin(), test_msg_str.end());
+    ww::types::ByteArray test_msg_bad(test_msg_bad_str.begin(), test_msg_bad_str.end());
+
+    // hash
+    if (! ww::crypto::crypto_hash(test_msg, hash))
+        return rsp.error("failed to compute hash");
+    if (! ww::crypto::b64_encode(hash, encoded_hash))
+        return rsp.error("failed to encode hash");
+    if (encoded_hash != expected_hash)
+        return rsp.error("failed to compute the correct hash");
+
+    if (! ww::crypto::crypto_hash(test_msg_bad, hash))
+        return rsp.error("failed to compute hash");
+    if (! ww::crypto::b64_encode(hash, encoded_hash))
+        return rsp.error("failed to encode hash");
+    if (encoded_hash == expected_hash)
+        return rsp.error("failed to compute the incorrect hash");
+
+    // hmac
+    if (! ww::crypto::crypto_hmac(test_msg, hmackey, hmac))
+        return rsp.error("failed to compute hmac");
+    if (! ww::crypto::b64_encode(hmac, encoded_hmac))
+        return rsp.error("failed to encode hmac");
+    if (encoded_hmac != expected_hmac)
+        return rsp.error("failed to compute the correct hmac");
+
+    if (! ww::crypto::crypto_hmac(test_msg, hmackey_badkey, hmac))
+        return rsp.error("failed to compute hmac");
+    if (! ww::crypto::b64_encode(hmac, encoded_hmac))
+        return rsp.error("failed to encode hmac");
+    if (encoded_hmac == expected_hmac)
+        return rsp.error("failed to identify bad hmac");
+
+    if (! ww::crypto::crypto_hmac(test_msg_bad, hmackey, hmac))
+        return rsp.error("failed to compute hmac");
+    if (! ww::crypto::b64_encode(hmac, encoded_hmac))
+        return rsp.error("failed to encode hmac");
+    if (encoded_hmac == expected_hmac)
+        return rsp.error("failed to identify bad hmac");
+
+    // ---------- Create the return value ----------
+    return rsp.success(true);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // kv store test
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 bool kv_test_set(const Message& msg, const Environment& env, Response& rsp)
@@ -304,6 +369,7 @@ contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(ecdsa_test),
     CONTRACT_METHOD(aes_test),
     CONTRACT_METHOD(rsa_test),
+    CONTRACT_METHOD(hash_test),
     CONTRACT_METHOD(kv_test_set),
     CONTRACT_METHOD(kv_test_get),
     CONTRACT_METHOD(privileged_test_get),
