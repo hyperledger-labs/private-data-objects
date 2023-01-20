@@ -12,19 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifndef PDO_INSTALL_ROOT
-$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
-endif
-
-ifndef PDO_INTERPRETER
-$(error Incomplete configuration, PDO_INTERPRETER is not defined)
-endif
-
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
+
+ifneq ($(basename ${PY_VERSION}),3)
+$(error must be run with python3)
+endif
 
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 PROTOBUF_DPATH = pdo/submitter/sawtooth/pdo_protos/
@@ -70,23 +67,23 @@ $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) : $(addprefix $(PROTOBUF_SPATH
 
 $(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON)) $(PYTHON_SOURCE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py bdist_egg
+		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py bdist_egg
 
 $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB) $(CRYPTO_LIB) $(KEYVAL_LIB)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py build_ext --force
+		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py build_ext --force
 
 install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		BUILD_CLIENT=$(BUILD_CLIENT) python setup.py install
+		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py install
 
 test: install
-	(cd ../common/tests/crypto && python test_cryptoWrapper.py)
+	(cd ../common/tests/crypto && python3 test_cryptoWrapper.py)
 
 clean:
 	rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python setup.py clean --all
+		python3 setup.py clean --all
 
 .phony : all
 .phony : clean

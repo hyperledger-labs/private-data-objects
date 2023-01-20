@@ -14,16 +14,17 @@
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+DSTDIR ?= $(PDO_INSTALL_ROOT)
 
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
-ifndef SGX_MODE
-$(error Incomplete configuration, SGX_MODE is not defined)
-endif
-
 ifneq ($(basename ${PY_VERSION}),3)
 $(error must be run with python3)
+endif
+
+ifndef SGX_MODE
+$(error Incomplete configuration, SGX_MODE is not defined)
 endif
 
 EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
@@ -55,10 +56,6 @@ SCRIPTS = \
 	bin/ss-stop.sh \
 	bin/ss-status.sh
 
-ENCLAVE_FILES = $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
-ENCLAVE_FILES += $(wildcard ${SGX_SSL}/include/*.edl)
-ENCLAVE_FILES += $(wildcard ${SRCDIR}/common/build/*.a)
-
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= __screen__
 
@@ -66,28 +63,32 @@ all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
-	python setup.py bdist_egg
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py bdist_egg
 
-$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+$(ENCLAVE_LIB) : build
 	@echo Build Enclave
-	$(MAKE) -C build
+	cmake --build build
 
 $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
-	python setup.py build_ext
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py build_ext
 
 build :
 	mkdir $@
 	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
-	python setup.py install
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py install
 
 # these cannot be run in the current directory because python tries to
 # pick up the local versions of the library which do not have the same
 # paths as the installed libraries
 test:
 	@echo run the local secrets and requests tests
-	cd tests && python test-secrets.py --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		cd tests && python3 test-secrets.py --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
 	cd tests && pdo-test-request --no-ledger --iterations 10 --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
 
 clean:

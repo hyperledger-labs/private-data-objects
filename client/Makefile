@@ -12,20 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+DSTDIR ?= $(PDO_INSTALL_ROOT)
+
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
-EGG_FILE=dist/pdo_client-${MOD_VERSION}-py${PY_VERSION}.egg
 
+ifneq ($(basename ${PY_VERSION}),3)
+$(error must be run with python3)
+endif
+
+EGG_FILE=dist/pdo_client-${MOD_VERSION}-py${PY_VERSION}.egg
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
 all : $(EGG_FILE)
 
 install: $(EGG_FILE)
-	python setup.py install
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py install
 
 $(EGG_FILE) : $(PYTHON_SOURCE) bin/pdo-invoke.psh bin/pdo-create.psh
 	@echo Build Distribution
-	python setup.py bdist_egg
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py bdist_egg
 
 clean :
 	rm -rf build dist *.egg-info

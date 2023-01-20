@@ -14,8 +14,9 @@
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+DSTDIR ?= $(PDO_INSTALL_ROOT)
 
-PY_VERSION=${shell python --version | sed 's/Python \([0-9]\.[0-9]\).*/\1/'}
+PY_VERSION=${shell python3 --version | sed 's/Python \([0-9]\.[0-9]\).*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
 
 ifneq ($(basename ${PY_VERSION}),3)
@@ -35,10 +36,12 @@ all : $(EGG_FILE)
 
 $(EGG_FILE) : $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
-	python setup.py bdist_egg
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py bdist_egg
 
 install: $(EGG_FILE)
-	python setup.py install
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py install
 
 clean:
 	rm -rf build deps dist *.egg-info
