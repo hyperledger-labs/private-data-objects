@@ -23,10 +23,6 @@ ifneq ($(basename ${PY_VERSION}),3)
 $(error must be run with python3)
 endif
 
-ifndef SGX_MODE
-$(error Incomplete configuration, SGX_MODE is not defined)
-endif
-
 EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 
 ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
