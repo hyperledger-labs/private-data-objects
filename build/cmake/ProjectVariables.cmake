@@ -1,4 +1,4 @@
-# Copyright 2020 Intel Corporation
+# Copyright 2023 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# NOTE: this file is included by the common CMakeLists.txt;
-# it should not be evaluated independently
+################################################################################
+# Common variables
+################################################################################
 
-################################################################################
-# Compile sub-folders
-################################################################################
-ADD_SUBDIRECTORY (crypto)
-ADD_SUBDIRECTORY (state)
+# These options apply to all PDO projects
+ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector -Wall)
+ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
+
+IF (ENV{PDO_DEBUG_BUILD})
+  ADD_COMPILE_OPTIONS(-Og -g)
+  ADD_COMPILE_DEFINITIONS(PDO_DEBUG_BUILD=1)
+  MESSAGE(STATUS "Compiling in debug mode without optimizations (-Og -g)")
+ELSE()
+  ADD_COMPILE_OPTIONS(-O2)
+  ADD_COMPILE_DEFINITIONS(PDO_DEBUG_BUILD=0)
+  MESSAGE(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
+ENDIF()

@@ -18,22 +18,19 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 # Configure Environment
 ################################################################################
 
+# This file has been modified to accommodate changes in the way we
+# build the gipsy interpreter. Specifically, that packages file is
+# no longer generated automatically because of problems with the
+# tinyscheme garbage collector as it runs on ubuntu 20.04. If the gipsy
+# packages are changed, then package.h must be rebuilt by hand and added
+# to the distribution.
 
 ################################################################################
 # Common components for both trusted and untrusted common libraries
 ################################################################################
 
-FILE(GLOB PROJECT_HEADERS *.h packages/init-package.h packages/catch-package.h packages/oops-package.h packages/dispatch-package.h)
+FILE(GLOB PROJECT_HEADERS *.h packages/package.h)
 FILE(GLOB PROJECT_SOURCES *.cpp)
-
-SET(GENERIC_CXX_FLAGS ${DEBUG_FLAGS} "-Wall" "-fPIC" "-Wno-write-strings" "-std=c++11")
-
-################################################################################
-# Package headers compiled from scheme
-################################################################################
-SET(GIPSY_PACKAGE_SRC "packages/init-package.scm" "packages/catch-package.scm" "packages/oops-package.scm" "packages/dispatch-package.scm")
-
-set_property(SOURCE GipsyInterpreter.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/packages/package.h)
 
 #################################################################################
 ## Trusted Static Gipsy Library
@@ -43,20 +40,11 @@ IF (BUILD_TRUSTED)
   PROJECT(${GIPSY_STATIC_NAME} CXX)
 
   ADD_LIBRARY(${GIPSY_STATIC_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES})
+  SGX_PREPARE_TRUSTED(${GIPSY_STATIC_NAME})
 
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE ${COMMON_INCLUDE_DIRS})
   TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE ${TINYSCHEME_INCLUDE_DIRS})
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE ${INTERP_INCLUDE_DIRS})
+  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE ${INTERPRETER_INCLUDE_DIRS})
   TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/packages)
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE "${SGX_SDK}/include")
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE "${SGX_SDK}/include/tlibc")
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE "${SGX_SDK}/include/libcxx")
-  TARGET_INCLUDE_DIRECTORIES(${GIPSY_STATIC_NAME} PRIVATE "${SGX_SSL}/include")
-
-  TARGET_COMPILE_OPTIONS(${GIPSY_STATIC_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
-  TARGET_COMPILE_OPTIONS(${GIPSY_STATIC_NAME} PRIVATE "-nostdinc")
-  TARGET_COMPILE_OPTIONS(${GIPSY_STATIC_NAME} PRIVATE "-nostdinc++")
-  TARGET_COMPILE_OPTIONS(${GIPSY_STATIC_NAME} PRIVATE "-fno-builtin-printf")
 
   TARGET_COMPILE_DEFINITIONS(${GIPSY_STATIC_NAME} PRIVATE "-DUSE_DL=1")
 ENDIF()
@@ -75,21 +63,19 @@ IF (BUILD_UNTRUSTED)
 
   # Only SchemeExtensions in the shared library
   ADD_LIBRARY(${PCONTRACT_NAME} SHARED ${PROJECT_HEADERS} SchemeExtensions.cpp)
+  SGX_PREPARE_UNTRUSTED(${PCONTRACT_NAME})
 
-  TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${COMMON_INCLUDE_DIRS})
-  TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${TINYSCHEME_INCLUDE_DIRS})
+  TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "USE_DL=1")
+  TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "_UNTRUSTED_=1")
+
   TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/packages)
-  TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE "${SGX_SDK}/include")
-
-  TARGET_COMPILE_OPTIONS(${PCONTRACT_NAME} PRIVATE "${GENERIC_CXX_FLAGS}")
-
-  TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-DUSE_DL=1")
-  TARGET_COMPILE_DEFINITIONS(${PCONTRACT_NAME} PRIVATE "-D_UNTRUSTED_=1")
+  TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${TINYSCHEME_INCLUDE_DIRS})
+  TARGET_INCLUDE_DIRECTORIES(${PCONTRACT_NAME} PRIVATE ${INTERPRETER_INCLUDE_DIRS})
 
   # Link the untrusted common library
-  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${U_COMMON_LIB_NAME})
+  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} "-Wl,--start-group")
+  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${COMMON_UNTRUSTED_LIBS})
   TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${OPENSSL_LDFLAGS})
-  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${BLOCK_STORE_LIB_NAME})
-  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} ${U_CRYPTO_LIB_NAME})
-  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} "-lssl" "-llmdb")
+  TARGET_LINK_LIBRARIES(${PCONTRACT_NAME} "-Wl,--end-group")
+
 ENDIF()

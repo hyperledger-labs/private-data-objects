@@ -62,7 +62,7 @@ $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		python3 setup.py bdist_egg
 
-$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+$(ENCLAVE_LIB) : build
 	@echo Build Enclave
 	cmake --build build
 
