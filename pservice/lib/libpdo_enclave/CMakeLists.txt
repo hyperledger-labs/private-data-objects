@@ -13,6 +13,7 @@
 # limitations under the License.
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
+
 PROJECT(libpdo-enclave C CXX)
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -21,104 +22,32 @@ PROJECT(libpdo-enclave C CXX)
 FILE(GLOB PROJECT_HEADERS *.h)
 FILE(GLOB PROJECT_SOURCES *.cpp)
 FILE(GLOB PROJECT_EDL enclave.edl)
-
-FILE(GLOB PROJECT_KEY $ENV{PDO_ENCLAVE_CODE_SIGN_PEM})
 FILE(GLOB PROJECT_CONFIG *.xml)
-
-SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
-SET (LIBPDO_ENCLAVE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-
-INCLUDE_DIRECTORIES(/opt/intel/sgxssl/include)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/eservice/deps/include)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/crypto)
-INCLUDE_DIRECTORIES(${PDO_TOP_DIR}/common/packages/parson)
-
-# If are compiling for Linux, then we have special linking for the trusted
-# runtime service
-IF(${SGX_USE_SIMULATOR})
-    SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
-    SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
-ELSE()
-    SET(TRTS_LIBRARY_NAME "sgx_trts")
-    SET(SERVICE_LIBRARY_NAME "sgx_tservice")
-ENDIF()
+FILE(GLOB PROJECT_LDS *.lds)
 
 SGX_EDGE_TRUSTED(${PROJECT_EDL} PROJECT_EDGE_SOURCES)
+SET (LIBPDO_ENCLAVE_EDL ${PROJECT_EDL} PARENT_SCOPE)
 
-# These compiler and linker flags for g++/gcc were derived from the make
-# files provided with the SGX sample enclave
-# To generate a proper enclave, it is recommended to follow below guideline
-# to link the trusted libraries:
-#    1. Link sgx_trts with the `--whole-archive' and `--no-whole-archive'
-#       options, so that the whole content of trts is included in the
-#       enclave.
-#    2. For other libraries, you just need to pull the required symbols.
-#       Use `--start-group' and `--end-group' to link these libraries.
-# Do NOT move the libraries linked with `--start-group' and `--end-group'
-# within `--whole-archive' and `--no-whole-archive' options.  Otherwise,
-# you may get some undesirable errors.
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
-IF($ENV{PDO_DEBUG_BUILD})
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og")
-  ADD_DEFINITIONS(-DPDO_DEBUG_BUILD=1)
-ELSE()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-  ADD_DEFINITIONS(-DPDO_DEBUG_BUILD=0)
+IF(NOT EXISTS "${PDO_SOURCE_ROOT}/eservice/deps/include/eservice_mrenclave.h")
+  MESSAGE(FATAL_ERROR "complete eservice build first; eservice mrenclave is missing")
 ENDIF()
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpie")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++")
-
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m64")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -O2")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -nostdlib")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -nodefaultlibs")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -nostartfiles")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bstatic")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-pie,-eenclave_entry")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--export-dynamic")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--defsym,__ImageBase=0")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/pdo_enclave.lds")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SDK}/lib64")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,$ENV{SGX_SSL}/lib64/release")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-L,${PDO_TOP_DIR}/common/build")
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Compile targets
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-# CMake likes to prepend "lib" to project name when creating library...since we
-# already have lib in the project name, liblibpdo-enclave is stupid.  Stop
-# CMake from doing it.
 SET(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED  ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${PROJECT_EDGE_SOURCES} ${PROJECT_EDL})
-SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PROJECT_KEY} ${PROJECT_CONFIG})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--whole-archive -l${TRTS_LIBRARY_NAME} -Wl,--no-whole-archive)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group -ltpdo-common -ltpdo-crypto -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l${SERVICE_LIBRARY_NAME} -Wl,--end-group)
-TARGET_INCLUDE_DIRECTORIES( ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${SGX_ENCLAVE_INCLUDE})
+SGX_PREPARE_TRUSTED(${PROJECT_NAME})
 
-ADD_CUSTOM_COMMAND(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PRIVATE ${PDO_SOURCE_ROOT}/eservice/deps/include)
 
-    # move the enclave library into a "permanent" location
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPS_DIR}/bin"
-    COMMAND ${CMAKE_COMMAND} -E copy "${SIGNED_ENCLAVE}" "${DEPS_DIR}/bin"
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--version-script=${PROJECT_LDS})
 
-    # build a header file that can be included to verify the eservice MRENCLAVE
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPS_DIR}/include"
-    COMMAND ${PDO_TOP_DIR}/build/__tools__/generate_mrenclave_header --metadata ${LIBRARY_OUTPUT_PATH}/${PROJECT_NAME}.signed.so.meta --header "${DEPS_DIR}/include/pservice_mrenclave.h" --enclave PSERVICE
-)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--start-group)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${COMMON_TRUSTED_LIBS})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -Wl,--end-group)
+
+SGX_PREPARE_TRUSTED_LINK(${PROJECT_NAME})
+SGX_SIGN_ENCLAVE(${PROJECT_NAME} ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PROJECT_CONFIG})
+SGX_DEPLOY_FILES(${PROJECT_NAME} pservice)
