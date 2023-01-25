@@ -71,7 +71,6 @@ compile_args = [
     '-Wno-switch',
     '-Wno-unused-function',
     '-Wno-unused-variable',
-    '-Wno-strict-prototypes',
 ]
 
 # by default the extension class adds '-O2' to the compile
