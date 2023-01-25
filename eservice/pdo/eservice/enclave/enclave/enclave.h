@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "sgx_urts.h"
-#include "sgx_uae_service.h"
+#include "sgx_uae_epid.h"
 
 #include "error.h"
 #include "pdo_error.h"
