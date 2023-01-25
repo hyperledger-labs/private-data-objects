@@ -61,7 +61,6 @@ compile_args = [
     '-Wno-switch',
     '-Wno-unused-function',
     '-Wno-unused-variable',
-    '-Wno-strict-prototypes',
     '-D_UNTRUSTED_=1',
 ]
 
@@ -69,9 +68,6 @@ if debug_flag :
     compile_args += ['-g']
 
 swig_flags = ['-c++', '-threads']
-
-if client_only_flag :
-    compile_args += ['-D_CLIENT_ONLY_=1']
 
 if client_only_flag :
     common_libs = [
@@ -83,6 +79,15 @@ else :
         'updo-common',
         'updo-crypto',
     ]
+
+compile_defs = [
+    ('_UNTRUSTED_', 1),
+    ('PDO_DEBUG_BUILD', debug_flag),
+]
+
+if client_only_flag :
+    compile_defs += ('_CLIENT_ONLY_', 1)
+
 
 # -----------------------------------------------------------------
 # set up the crypto module
@@ -126,7 +131,9 @@ crypto_module = Extension(
     extra_compile_args = compile_args,
     include_dirs = crypto_include_dirs,
     library_dirs = crypto_library_dirs,
-    libraries = crypto_libraries)
+    libraries = crypto_libraries,
+    define_macros = compile_defs,
+    )
 
 # -----------------------------------------------------------------
 # set up the key value module
@@ -161,7 +168,9 @@ key_value_module = Extension(
     extra_compile_args = compile_args,
     include_dirs = key_value_include_dirs,
     library_dirs = key_value_library_dirs,
-    libraries = key_value_libraries)
+    libraries = key_value_libraries,
+    define_macros = compile_defs,
+    )
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
