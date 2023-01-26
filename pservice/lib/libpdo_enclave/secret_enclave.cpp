@@ -376,7 +376,6 @@ pdo_err_t ecall_UnsealSecret(const uint8_t* inSealedSecret,
     uint32_t inAllocatedPlainSecretSize)
 {
     pdo_err_t result = PDO_SUCCESS;
-    sgx_key_128bit_t key;
 
     try {
         pdo::error::ThrowIfNull(inSealedSecret, "SealedSecret pointer is NULL");
@@ -653,7 +652,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     sgx_report_body_t* reportBody = &quoteBody->report_body;
     sgx_report_data_t expectedReportData = *(&reportBody->report_data);
     sgx_measurement_t mrEnclaveFromReport = *(&reportBody->mr_enclave);
-    sgx_basename_t mrBasename = *(&quoteBody->basename);
 
     ByteArray allowedContractMR_ENCLAVE = HexEncodedStringToByteArray(ESERVICE_ENCLAVE_MRENCLAVE);
 

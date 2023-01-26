@@ -24,7 +24,6 @@
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: main)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
 #  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
-#  - wamr version:		                WAMR    (default: WAMR-1.1.2)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -106,13 +105,6 @@ ENV PDO_LEDGER_TYPE=${PDO_LEDGER_TYPE}
 
 ARG PDO_LEDGER_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/ledger
 ENV PDO_LEDGER_KEY_ROOT=${PDO_LEDGER_KEY_ROOT}
-
-# - web-assembly/wasm/wawaka
-#   - Configure WAMR source
-ARG WAMR=WAMR-1.1.2
-RUN cd /project/pdo/src/private-data-objects/interpreters/wasm-micro-runtime \
- && git checkout ${WAMR}\
- && echo "export WASM_SRC=$(pwd)" >> /etc/profile.d/pdo.sh
 
 RUN \
 # as we added now PDO source, also define PDO_SOURCE_ROOT to pdo env, ..

@@ -36,8 +36,8 @@ class CCFClientWrapper(CCFClient) :
     #There is a small time delay before local commit appears globally.
     #To accomodate the possibility that a read might be invoked immediately following a write,
     #each read is re-attempted 3 (at most) times if there is a failure. The following array
-    #describes the wait time before the ith read, i = 0, 1, 2, 3.
-    read_backoff_duration = [0, 0.5, 1, 2]
+    #describes the wait time before the ith read
+    read_backoff_duration = [0.25, 0.5, 1, 2, 3]
 
     # -----------------------------------------------------------------
     def __init__(self, host, port) :
@@ -51,7 +51,7 @@ class CCFClientWrapper(CCFClient) :
             raise Exception("Cannot locate CCF network certificate. Aborting transaction")
 
         # create the request client
-        logger.info("Creating the CCF Request client")
+        logger.debug("Creating the CCF Request client")
         super().__init__(host, port, ca_file)
 
         #get CCF verifying key (specific to PDO TP)
@@ -66,15 +66,14 @@ class CCFClientWrapper(CCFClient) :
     # -----------------------------------------------------------------
     def submit_read_request(self, tx_method, tx_params) :
         for wait in self.read_backoff_duration :
+            #if read fails due to lack of global commit, response.status_code will not be OK
+            response = self.submit_rpc(tx_method, tx_params)
+            if response.status_code == http.HTTPStatus.OK:
+                return response.body.json()
+
+            logger.debug('ccf read request failed ({}); waiting {} for next attempt'.format(response.status_code, wait))
             time.sleep(wait)
 
-            try:
-                #if read fails due to lack of global commit, response.status_code will not be OK
-                response = self.submit_rpc(tx_method, tx_params)
-                if response.status_code == http.HTTPStatus.OK:
-                    return response.body.json()
-            except Exception as e: 
-                raise
         #read failed even after retries
         raise Exception("read request failed after multiple retries for tx_method {}".format(str(tx_method)))
 
@@ -235,7 +234,7 @@ class CCFSubmitter(sub.Submitter):
             )
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
-            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True): 
+            if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):
                 # reponse body will be "True" for enclave registration transaction
                 return tx_params['nonce']
             else:
@@ -276,7 +275,7 @@ class CCFSubmitter(sub.Submitter):
             message_hash,
             dependencies
             )
- 
+
         try:
             response = self.ccf_client.submit_rpc(tx_method, tx_params)
             if (response.status_code == http.HTTPStatus.OK) and (response.body.json() is True):

@@ -204,7 +204,7 @@ def __transaction_worker__():
             except:
                 # check for termination signal
                 if __stop_service__:
-                    logger.info("Exiting transaction submission thread")
+                    logger.debug("Exiting transaction submission thread")
                     break
                 else:
                     continue

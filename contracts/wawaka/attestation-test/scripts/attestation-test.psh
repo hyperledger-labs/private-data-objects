@@ -87,11 +87,6 @@ identity -n user1
 attestation -w -f ${save}/contract1.pdo send_secret -i ${_id2_} -s _secret_
 attestation -w -f ${save}/contract2.pdo recv_secret --secret "${_secret_}"
 
-## wait for the generate_secret operation to commit otherwise the
-## current_state command will return an old version of state, or
-## at least might return an old version of state
-sleep -t 1
-
 identity -n user1
 ledger -s _sig1_ current-state -i ${_id1_} -p signature
 attestation -f ${save}/contract1.pdo reveal_secret -s _secret1_ -a ${_sig1_}

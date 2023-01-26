@@ -62,11 +62,9 @@ module_src_path = os.path.join(script_dir, module_path)
 
 compile_args = [
     '-std=c++11',
-    '-g',
     '-Wno-switch',
     '-Wno-unused-function',
     '-Wno-unused-variable',
-    '-Wno-strict-prototypes',
 ]
 
 include_dirs = [

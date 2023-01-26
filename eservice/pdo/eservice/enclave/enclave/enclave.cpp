@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <sgx_uae_service.h>
+#include <sgx_uae_epid.h>
 #include "sgx_support.h"
 
 #include "log.h"
@@ -128,7 +128,7 @@ namespace pdo {
         {
             Enclave* enc = static_cast<Enclave* >(arg);
 
-            pdo::logger::LogV(PDO_LOG_INFO, "Enclave::Worker[%ld] %ld", (long)enc->GetEnclaveId(), enc->GetThreadId());
+            pdo::logger::LogV(PDO_LOG_DEBUG, "Enclave::Worker[%ld] %ld", (long)enc->GetEnclaveId(), enc->GetThreadId());
 
             sgx_status_t ret;
             pdo_err_t pdoError = PDO_SUCCESS;
@@ -178,7 +178,7 @@ namespace pdo {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::ShutdownWorker()
         {
-            pdo::logger::LogV(PDO_LOG_INFO, "Enclave::ShutdownWorker[%ld]", (long)this->GetEnclaveId());
+            pdo::logger::LogV(PDO_LOG_DEBUG, "Enclave::ShutdownWorker[%ld]", (long)this->GetEnclaveId());
 
             sgx_status_t ret;
             pdo_err_t pdoError = PDO_SUCCESS;

@@ -35,7 +35,7 @@ def LocalMain(config) :
     if script_file :
         shell = ContractController.CreateController(config, echo=False, interactive=False)
 
-        logger.info("Processing script file %s", str(script_file))
+        logger.debug("Processing script file %s", str(script_file))
         exit_code = ContractController.ProcessScript(shell, script_file)
         sys.exit(exit_code)
 
