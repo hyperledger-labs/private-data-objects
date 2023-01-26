@@ -20,6 +20,7 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 
+import pdo.common.crypto as crypto
 from pdo.common.keys import ServiceKeys
 from pdo.service_client.enclave import EnclaveServiceClient
 
@@ -28,6 +29,8 @@ from pdo.client.controller.commands.eservice import get_eservice
 import pdo.service_client.service_data.eservice as eservice_db
 from pdo.client.controller.util import invocation_parameter
 from pdo.contract import invocation_request
+
+from pdo.submitter.create import create_submitter
 
 __all__ = ['command_send', 'send_to_contract']
 
@@ -112,6 +115,17 @@ def send_to_contract(state, message, save_file, eservice_url=None, wait=False, c
                 raise Exception("Did not receive txn id for the send operation")
         except Exception as e:
             raise Exception("Error while waiting for commit: %s", str(e))
+
+        if wait :
+            try :
+                # we are trusting the submitter to handle polling of the ledger
+                # and we dont care what the result is... if there is a result then
+                # the state has been successfully committed
+                submitter = create_submitter(ledger_config)
+                encoded_state_hash = crypto.byte_array_to_base64(update_response.new_state_hash)
+                _ = submitter.get_state_details(update_response.contract_id, encoded_state_hash)
+            except Exception as e:
+                raise Exception("Error while waiting for global commit: %s", str(e))
 
     return update_response.invocation_response
 
