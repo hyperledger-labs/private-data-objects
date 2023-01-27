@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+DSTDIR ?= $(PDO_INSTALL_ROOT)
+
 PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
 MOD_VERSION=${shell ../bin/get_version}
+
+ifneq ($(basename ${PY_VERSION}),3)
+$(error must be run with python3)
+endif
 
 EGG_FILE=dist/pdo_pservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 
@@ -47,34 +55,28 @@ PYTHON_FILES = \
 	pdo/pservice/utility/__init__.py \
 	pdo/__init__.py
 
-CONTRACT_ENCLAVE_MRENCLAVE_C_FILE = lib/libpdo_enclave/contract_enclave_mrenclave.cpp
-CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE = lib/libpdo_enclave/contract_enclave_mrenclave.cpp.template
-CONTRACT_ENCLAVE_MRENCLAVE_META_FILE = ../eservice/build/lib/libpdo-enclave.signed.so.meta
-ENCLAVE_FILES = $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE) $(wildcard lib/libpdo_enclave/*.cpp lib/libpdo_enclave/*.h lib/libpdo_enclave/*.edl)
-
 all : $(ENCLAVE_LIB) $(EGG_FILE)
 
 $(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
-	python setup.py bdist_egg
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py bdist_egg
 
-$(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE): $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE) $(CONTRACT_ENCLAVE_MRENCLAVE_META_FILE)
-	VAR_MRENCLAVE=$$(perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $$eh = $$1; $$eh=~s/0x| |\n//g; $$eh=~tr/a-z/A-Z/; print "$${eh}\n"; }' $(CONTRACT_ENCLAVE_MRENCLAVE_META_FILE)) && \
-	sed "s/MR_ENCLAVE_PLACEMARK/$${VAR_MRENCLAVE}/" $(CONTRACT_ENCLAVE_MRENCLAVE_TEMPLATE_FILE) > $(CONTRACT_ENCLAVE_MRENCLAVE_C_FILE)
-
-$(ENCLAVE_LIB) : build $(ENCLAVE_FILES)
+$(ENCLAVE_LIB) : build
 	@echo Build Enclave
-	$(MAKE) -C build
+	cmake --build build
 
 $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
-	python setup.py build_ext
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py build_ext
 
 build :
 	mkdir $@
 	cd $@ && cmake .. -G "Unix Makefiles"
 
 install: $(EGG_FILE)
-	python setup.py install
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		python3 setup.py install
 
 clean:
 	rm -f $(addprefix pdo/pservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
@@ -82,12 +84,7 @@ clean:
 	find . -iname '*.pyc' -delete
 	find . -iname '__pycache__' -delete
 
-print_enclave_files:
-	@echo $(ENCLAVE_FILES)
-
 .phony : all
 .phony : clean
-.phony : enclave
 .phone : install
 .phony : test
-.phony : print_enclave_files
