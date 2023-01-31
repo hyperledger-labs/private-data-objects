@@ -19,6 +19,7 @@ project(pdoenc LANGUAGES C CXX)
 include(${CCF_DIR}/cmake/ccf_app.cmake)
 
 find_package(ccf REQUIRED)
+SET(SGX_MODE "$ENV{SGX_MODE}")
 
 # Add the PDO transaction processor target
 add_ccf_app(pdoenc
@@ -26,5 +27,9 @@ add_ccf_app(pdoenc
   INCLUDE_DIRS ${CCF_DIR}/include/ccf ${CCF_DIR}/include/3rdparty ${CCF_DIR}/include}
 )
 
-install(TARGETS pdoenc.virtual DESTINATION lib)
+IF(${SGX_MODE} MATCHES "HW")
+    message("SGX_MODE is HW")
+    TARGET_COMPILE_DEFINITIONS(pdoenc.virtual PRIVATE "CHECK_ATTESTATION=1")
+ENDIF()
 
+install(TARGETS pdoenc.virtual DESTINATION lib)

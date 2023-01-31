@@ -25,16 +25,17 @@ from urllib.parse import urlparse
 from ccf.clients import Identity
 from ccf.clients import CCFClient
 
+from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
-ContractHome = os.environ.get("CCF_HOME") or os.path.realpath("/opt/pdo")
+ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
-def register_enclave_expected_measurements(client, options, config):
+def register_enclave_expected_measurements(client, options):
     try :
         params = {}
         params['mrenclave'] = options.mrenclave
@@ -78,18 +79,18 @@ def Main() :
 
     # -----------------------------------------------------------------
     try :
-        config = toml.load(options.ccf_config)
+        config = toml.load(options.ccf_config) #If config exists, it is used to set ledger host, port.
+                                               #else we read from env PDO_LEDGER_URL
+                                               #both cases are used. for end-to-end docker testing, we rely on config
+                                               #for tp in docker, and pdo in bare-metal, we do not rely on config
+                                               #(since tp config is not created unless during tp installation)
     except :
-        LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
-        sys.exit(-1)
+        config = None
 
-    network_cert = config["start"]["network-cert-file"]
-    if os.environ.get("PDO_LEDGER_URL") is not None:
-        url =  os.environ.get("PDO_LEDGER_URL")
-        (host, port) = urlparse(url).netloc.split(':')
-    else :
-        (host, port) = config["rpc-address"].split(':')
+    host, port = parse_ledger_url(config)
+    LOG.info(host)
 
+    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
 
@@ -106,7 +107,7 @@ def Main() :
         sys.exit(-1)
 
     try:
-        register_enclave_expected_measurements(member_client, options, config)
+        register_enclave_expected_measurements(member_client, options)
     except Exception as e:
         raise
 

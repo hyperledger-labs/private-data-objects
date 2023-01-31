@@ -1,5 +1,5 @@
 
-enclave-file = "${ccf_home}/ccf/lib/libpdoenc.virtual.so"
+enclave-file = "${home}/ccf/lib/libpdoenc.virtual.so"
 enclave-type = "virtual"
 consensus = "cft"
 rpc-address = "${host_address}:6600"
@@ -8,4 +8,4 @@ node-address = "${host_address}:7700"
 [start]
 network-cert-file = "${ledger_key_root}/networkcert.pem"
 member-info = "${ledger_key_root}/memberccf_cert.pem,${ledger_key_root}/memberccf_enc_pubk.pem"
-constitution = "${ccf_home}/ccf/etc/constitution.js"
+constitution = "${home}/ccf/etc/constitution.js"

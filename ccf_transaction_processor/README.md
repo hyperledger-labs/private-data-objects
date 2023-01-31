@@ -64,7 +64,9 @@ sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 
 To build the PDO TP the [PDO environment variables](../docs/environment.md)
 must be set. See the PDO configuration script `common-config.sh` for
-more information.
+more information. Specifically, if operating PDO in `HW` mode, ensure that `SGX_MODE`
+env variable is set to `HW` before building PDO TP, so that PDO TP will enforce
+submission of valid attestation reports while processing enclave registration rpcs.
 
 To build and install the PDO TP,
 ```bash
@@ -74,7 +76,7 @@ make clean
 make
 ```
 
-Please note that while installing CCF, a pip depenency related ERROR regarding  cryptography package may showup. However, we believe currently that this 
+Please note that while installing CCF, a pip depenency related ERROR regarding  cryptography package may showup. However, we believe currently that this
 does not affect either the installation or PDO/CCF execution. Please report if your experience is different. Further, we beleive the ERROR is realted to the
 issue discussed at https://github.com/pyca/cryptography/issues/6548.
 

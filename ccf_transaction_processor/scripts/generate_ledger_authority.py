@@ -25,11 +25,12 @@ from urllib.parse import urlparse
 from ccf.clients import Identity
 from ccf.clients import CCFClient
 
+from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
-ContractHome = os.environ.get("CCF_HOME") or os.path.realpath("/opt/pdo")
+ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
@@ -75,11 +76,7 @@ def Main() :
         sys.exit(-1)
 
     network_cert = config["start"]["network-cert-file"]
-    if os.environ.get("PDO_LEDGER_URL") is not None:
-        url =  os.environ.get("PDO_LEDGER_URL")
-        (host, port) = urlparse(url).netloc.split(':')
-    else :
-        (host, port) = config["rpc-address"].split(':')
+    host, port = parse_ledger_url(config)
 
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))

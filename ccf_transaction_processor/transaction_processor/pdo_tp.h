@@ -53,7 +53,7 @@ namespace ccfapp
     const string OK_QUOTE_STATUS{"OK"};
     const string GROUP_OUT_OF_DATE_QUOTE_STATUS{"GROUP_OUT_OF_DATE"};
     const int BASENAME_SIZE{32};
-    const int ORIGINATOR_KEY_HASH_TRUNCATED_SIZE{16};
+    const int ORIGINATOR_KEY_HASH_SIZE{64};
     
     // test method
     static constexpr auto PingMe = "ping";
@@ -97,11 +97,13 @@ namespace ccfapp
                 const string & verifying_key,
                 const EnclaveInfo & enclave_info);
 
+            /* RSA sig verification */
             bool verify_rsa_sig(
                 vector<uint8_t> signature,
                 const string & verifying_key,
                 const vector<uint8_t> & contents);
             
+            /* ECDSA sig verification */
             bool verify_sig(
                 vector<uint8_t> signature,
                 const string & verifying_key,

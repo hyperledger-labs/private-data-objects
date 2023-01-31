@@ -560,12 +560,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIfNull(svalue, "Invalid owner_id");
     const std::string ownerId(svalue);
 
-    return result;
-
-    // With CCF TP, pservice non longer needs to -re-verify pdo enclave attestation reports, since they are already verified by ccf enclaves.
-    // Recall that pservice gets encalve info directly from PDO TP, and PDO TP registers enclave info only after veriyfing enclave attestation.
-
-    /*
     if (IS_SGX_SIMULATOR){
         return result;
     }
@@ -615,9 +609,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIfNull(svalue, "Invalid epid_pseudonym");
     const std::string epid_pseudonym(svalue);
 
-
     //Verify verification report signature
-
     int r;
     // verify quote (group-of-date is considered ok)
     r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(), QSF_ACCEPT_GROUP_OUT_OF_DATE);
@@ -685,7 +677,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
 
 
     return result;
-    */
 
 }// VerifyEnclaveInfo
 

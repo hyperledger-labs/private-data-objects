@@ -16,8 +16,8 @@
 # SRCDIR defaults to the parent directory
 # Both can be overridden with environment variables
 
-ifndef CCF_INSTALL_ROOT
-$(error Incomplete configuration, CCF_INSTALL_ROOT is not defined)
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
 ifndef PDO_LEDGER_KEY_ROOT
@@ -35,7 +35,7 @@ endif
 NINJA ?= ninja $(NINJA_OPTIONS)
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-CCFDSTDIR ?= $(CCF_INSTALL_ROOT)/opt/pdo/ccf
+CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 KEYDIR := $(PDO_LEDGER_KEY_ROOT)
 ETCDIR := $(CCFDSTDIR)/etc/
@@ -106,7 +106,7 @@ $(PYTHON_DIR) :
 install : install-ccf install-pdo-tp
 
 PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
-PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_expected_measurements.py
+PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_expected_measurements.py utils.py
 
 install-pdo-tp : build-pdo-tp
 	cd $(BLDDIR) && $(NINJA) install

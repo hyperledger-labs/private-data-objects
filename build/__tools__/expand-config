@@ -74,7 +74,6 @@ def parse_configuration_file(filename, variable_map) :
 ## -----------------------------------------------------------------
 try :
     ContractHome = os.environ["PDO_HOME"]
-    CCFHome = os.environ['CCF_HOME']
     LedgerURL = os.environ["PDO_LEDGER_URL"]
     LedgerType = os.environ["PDO_LEDGER_TYPE"]
     SPID = os.environ["PDO_SPID"]
@@ -105,7 +104,6 @@ config_map = {
     'data' : ContractData,
     'etc'  : ContractEtc,
     'home' : ContractHome,
-    'ccf_home': CCFHome,
     'host' : ContractHost,
     'host_address' : ContractHostAddress,
     'keys' : ContractKeys,

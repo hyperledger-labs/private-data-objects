@@ -56,13 +56,13 @@ namespace ccf
   };
   DECLARE_JSON_TYPE(VerificationReport);
   DECLARE_JSON_REQUIRED_FIELDS(VerificationReport,
-  epidPseudonym,
-  id,
-  isvEnclaveQuoteStatus,
-  isvEnclaveQuoteBody,
-  version,
-  nonce,
-  timestamp
+    epidPseudonym,
+    id,
+    isvEnclaveQuoteStatus,
+    isvEnclaveQuoteBody,
+    version,
+    nonce,
+    timestamp
   );
 
   // Kv store value data structure for enclave registry
