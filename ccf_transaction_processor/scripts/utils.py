@@ -29,11 +29,13 @@ def parse_ledger_url(config = None):
 
     if config:
         (host, port) = config["rpc-address"].split(':')
+        host = socket.gethostbyname(host)
         return host, port
 
     if os.environ.get("PDO_LEDGER_URL") is not None:
        url =  os.environ.get("PDO_LEDGER_URL")
        (host, port) = urlparse(url).netloc.split(':')
+       host = socket.gethostbyname(host)
        return host, port
 
     raise Exception("Insufficient info to parse ledger url")

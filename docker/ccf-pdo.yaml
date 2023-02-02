@@ -72,7 +72,7 @@ services:
       context: .
       dockerfile: Dockerfile.pdo-tp-ccf
       args:
-        SGX_MODE: SIM
+        SGX_MODE: ${SGX_MODE:-SIM}
     container_name: pdo-tp-ccf
     ports:
       - "6600:6600"

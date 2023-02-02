@@ -88,10 +88,10 @@ ENTRYPOINT `/pdo/private-data-objects/build/common-config.sh -e` \
 	&& . dev/opt/pdo/ccf/bin/activate \
 	&& . /pdo/set_no_proxy.sh \
 	&& dev/opt/pdo/ccf/bin/start_ccf_network.sh \
-	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_privk.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_privk.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_cert.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_pubk.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
 	&& chmod a+rw /ccf_keys/* \
 	&& tail -f /dev/null

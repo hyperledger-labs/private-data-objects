@@ -29,6 +29,7 @@ DOCKER_COMPOSE_FILES_CCF_ONLY += ccf.yaml ccf.local-code.yaml
 
 ifeq ($(SGX_MODE),HW)
    DOCKER_COMPOSE_FILES_STL += sawtooth-pdo.sgx.yaml
+   DOCKER_COMPOSE_FILES_CCF += ccf-pdo.sgx.yaml
    SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; then echo "/dev/isgx"; elif [ -e "/dev/sgx/enclave" ]; then echo "/dev/sgx/enclave"; else echo "ERROR: NO SGX DEVICE FOUND"; fi)
    DOCKER_COMPOSE_COMMAND := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} ${DOCKER_COMPOSE_COMMAND}
 endif
@@ -119,6 +120,10 @@ test-env-setup-with-no-build-ccf:
 	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) down
 	# - start services
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) up -d
+	if [ "$(SGX_MODE)" = "HW" ]; then \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) \
+	      exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
+	fi
 
 test-with-no-build: test-env-setup-with-no-build
 	# 'sawtooth-pdo.debugging.yaml' doesn't start pdo-tp, so we will have to manually start it
