@@ -1,4 +1,4 @@
-# Copyright 2022 Intel Corporation
+# Copyright 2023 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,14 +28,14 @@ def parse_ledger_url(config = None):
     """Parse Ledger URL into host & port"""
 
     if config:
-        (host, port) = config["rpc-address"].split(':')
-        host = socket.gethostbyname(host)
+        (hostname, port) = config["rpc-address"].split(':')
+        host = socket.gethostbyname(hostname)
         return host, port
 
     if os.environ.get("PDO_LEDGER_URL") is not None:
        url =  os.environ.get("PDO_LEDGER_URL")
-       (host, port) = urlparse(url).netloc.split(':')
-       host = socket.gethostbyname(host)
+       (hostname, port) = urlparse(url).netloc.split(':')
+       host = socket.gethostbyname(hostname)
        return host, port
 
     raise Exception("Insufficient info to parse ledger url")

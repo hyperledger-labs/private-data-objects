@@ -1,4 +1,4 @@
-# Copyright 2017 Intel Corporation
+# Copyright 2023 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# This docker-compose file extends the basic sawtooth-pdo template with support
-# for SGX in hardware mode. To use add a '-f sawtooth-pdo.sgx.yaml' _after_ the
-# '-f sawtooth-pdo.yaml'. This can also be combined with sawtooth-pdo.local-code.yaml.
+# This docker-compose file extends the basic ccf-pdo template with support
+# for SGX in hardware mode. To use add a '-f ccf-pdo.sgx.yaml' _after_ the
+# '-f ccf-pdo.yaml'. This can also be combined with ccf-pdo.local-code.yaml.
 
 # Before you can run the containers in hardware mode, you will have to prepare following
 # files in the sgx subdirectory
@@ -24,7 +24,7 @@
 # - sgx_ias_key.pem
 # See 'build/common-config -h' for information on the content of these files
 #
-# in the pdo-build shell (see sawtooth-pdo.yaml), before doing any operation
+# in the pdo-build shell (see ccf-pdo.yaml), before doing any operation
 # you also will have to register sgx-related information in the ledger with
 # following steps
 #    export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/

@@ -287,7 +287,9 @@ namespace ccfapp
 
                     std::vector<uint8_t> user_data_hash_input_vector(user_data_hash_input.begin(), user_data_hash_input.end());
                     std::vector<uint8_t> user_data_hash = crypto::SHA256(user_data_hash_input_vector);
-                    user_data_hash.resize(SGX_REPORT_DATA_SIZE, 0);
+		    //Pad the user data hash with zeros so that it becomes 64 bytes, instead of 32 bytes.
+		    //We do this since the sgx report data field is 64 bytes
+		    user_data_hash.resize(SGX_REPORT_DATA_SIZE, 0);
                     std::vector<uint8_t> userdataFromReport_vector(expectedReportData.d, expectedReportData.d + SGX_REPORT_DATA_SIZE);
                     if (user_data_hash != userdataFromReport_vector) {
                         return ccf::make_error(
