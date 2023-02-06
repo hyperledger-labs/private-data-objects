@@ -33,69 +33,67 @@ namespace pcrypto = pdo::crypto;
 // -----------------------------------------------------------------
 // Hash Functions
 // -----------------------------------------------------------------
+static void _ComputeHash_(
+    const EVP_MD *hashfunc(void),
+    const ByteArray& message,
+    ByteArray& hash)
+{
+    const EVP_MD *md = hashfunc();
+    hash.resize(EVP_MD_size(md));
+
+    std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)> evp_md_ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+    pdo::error::ThrowIfNull(evp_md_ctx.get(), "invalid hash context");
+
+    int ret;
+    ret = EVP_DigestInit_ex(evp_md_ctx.get(), md, NULL);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hash init failed");
+
+    ret = EVP_DigestUpdate(evp_md_ctx.get(), message.data(), message.size());
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hash update failed");
+
+    ret = EVP_DigestFinal_ex(evp_md_ctx.get(), hash.data(), NULL);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hash final failed");
+}
 
 void pcrypto::SHA256Hash(const ByteArray& message, ByteArray& hash)
 {
-    hash.resize(SHA256_DIGEST_LENGTH);
-
-    SHA256_CTX sha;
-    SHA256_Init(&sha);
-    SHA256_Update(&sha, message.data(), message.size());
-    SHA256_Final(hash.data(), &sha);
+    _ComputeHash_(EVP_sha256, message, hash);
 }
 
 void pcrypto::SHA384Hash(const ByteArray& message, ByteArray& hash)
 {
-    hash.resize(SHA384_DIGEST_LENGTH);
-
-    SHA512_CTX sha;
-    SHA384_Init(&sha);
-    SHA384_Update(&sha, message.data(), message.size());
-    SHA384_Final(hash.data(), &sha);
+    _ComputeHash_(EVP_sha384, message, hash);
 }
 
 void pcrypto::SHA512Hash(const ByteArray& message, ByteArray& hash)
 {
-    hash.resize(SHA512_DIGEST_LENGTH);
-
-    SHA512_CTX sha;
-    SHA512_Init(&sha);
-    SHA512_Update(&sha, message.data(), message.size());
-    SHA512_Final(hash.data(), &sha);
+    _ComputeHash_(EVP_sha512, message, hash);
 }
 
 // -----------------------------------------------------------------
 // HMAC Functions
 // -----------------------------------------------------------------
-
 static void _ComputeHMAC_(
     const EVP_MD *hashfunc(void),
     const ByteArray& message,
     const ByteArray& key,
     ByteArray& hmac)
 {
-    HMAC_CTX* hmac_ctx = HMAC_CTX_new();
-    pdo::error::ThrowIfNull(hmac_ctx, "invalid hmac context");
+    const EVP_MD *md = hashfunc();
+    hmac.resize(EVP_MD_size(md));
 
-    try
-    {
-        int ret;
-        ret = HMAC_Init_ex(hmac_ctx, key.data(), key.size(), hashfunc(), NULL);
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac init failed");
+    std::unique_ptr<HMAC_CTX, void (*)(HMAC_CTX*)> hmac_ctx(HMAC_CTX_new(), HMAC_CTX_free);
+    pdo::error::ThrowIfNull(hmac_ctx.get(), "invalid hmac context");
 
-        ret = HMAC_Update(hmac_ctx, message.data(), message.size());
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac update failed");
+    int ret;
+    ret = HMAC_Init_ex(hmac_ctx.get(), key.data(), key.size(), md, NULL);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac init failed");
 
-        ret = HMAC_Final(hmac_ctx, hmac.data(), NULL);
-        pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac final failed");
-    }
-    catch(...)
-    {
-        HMAC_CTX_free(hmac_ctx);
-        throw;
-    }
+    ret = HMAC_Update(hmac_ctx.get(), message.data(), message.size());
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac update failed");
 
-    HMAC_CTX_free(hmac_ctx);
+    ret = HMAC_Final(hmac_ctx.get(), hmac.data(), NULL);
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "hmac final failed");
 }
 
 void pcrypto::SHA256HMAC(
@@ -103,7 +101,6 @@ void pcrypto::SHA256HMAC(
     const ByteArray& key,
     ByteArray& hmac)
 {
-    hmac.resize(SHA256_DIGEST_LENGTH);
     _ComputeHMAC_(EVP_sha256, message, key, hmac);
 }
 
@@ -112,7 +109,6 @@ void pcrypto::SHA384HMAC(
     const ByteArray& key,
     ByteArray& hmac)
 {
-    hmac.resize(SHA384_DIGEST_LENGTH);
     _ComputeHMAC_(EVP_sha384, message, key, hmac);
 }
 
@@ -121,7 +117,6 @@ void pcrypto::SHA512HMAC(
     const ByteArray& key,
     ByteArray& hmac)
 {
-    hmac.resize(SHA512_DIGEST_LENGTH);
     _ComputeHMAC_(EVP_sha512, message, key, hmac);
 }
 
