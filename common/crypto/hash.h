@@ -21,6 +21,8 @@ namespace pdo
 {
 namespace crypto
 {
+    const unsigned int PBDK_Iterations = 10000;
+
     void SHA256Hash(const ByteArray& message, ByteArray& hash);
     void SHA256HMAC(const ByteArray& message, const ByteArray& key, ByteArray& hmac);
 
@@ -30,9 +32,11 @@ namespace crypto
     void SHA512Hash(const ByteArray& message, ByteArray& hash);
     void SHA512HMAC(const ByteArray& message, const ByteArray& key, ByteArray& hmac);
 
+    void SHA512PasswordBasedKeyDerivation(const std::string& password, const ByteArray& salt, ByteArray& hmac);
+
     // these default to the sha256 hash functions
     ByteArray ComputeMessageHash(const ByteArray& message);
     ByteArray ComputeMessageHMAC(const ByteArray& key, const ByteArray& message);
-
+    ByteArray ComputePasswordBasedKeyDerivation(const std::string& password, const ByteArray& salt);
 }
 }

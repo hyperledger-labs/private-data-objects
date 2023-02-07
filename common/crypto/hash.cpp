@@ -121,6 +121,35 @@ void pcrypto::SHA512HMAC(
 }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//
+static void _ComputePasswordBasedKeyDerivation_(
+    const EVP_MD *hashfunc(void),
+    const std::string& password,
+    const ByteArray& salt,
+    const unsigned int iterations,
+    ByteArray& key)
+{
+    const EVP_MD *md = hashfunc();
+    key.resize(EVP_MD_size(md));
+
+    int ret;
+    ret = PKCS5_PBKDF2_HMAC(
+        password.c_str(), password.size(),
+        salt.data(), salt.size(),
+        iterations, md,
+        key.size(), key.data());
+    pdo::error::ThrowIf<pdo::error::RuntimeError>(ret == 0, "password derivation failed");
+}
+
+void pcrypto::SHA512PasswordBasedKeyDerivation(
+    const std::string& password,
+    const ByteArray& salt,
+    ByteArray& key)
+{
+    _ComputePasswordBasedKeyDerivation_(EVP_sha512, password, salt, pcrypto::PBDK_Iterations, key);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Compute SHA256 hash of message.data()
 // returns ByteArray containing raw binary data
 ByteArray pcrypto::ComputeMessageHash(const ByteArray& message)
@@ -139,3 +168,15 @@ ByteArray pcrypto::ComputeMessageHMAC(const ByteArray& key, const ByteArray& mes
     pcrypto::SHA256HMAC(message, key, hmac);
     return hmac;
 }  // pcrypto::ComputeMessageHMAC
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Derive key from password and salt using SHA512
+// returns ByteArray containing raw binary data
+ByteArray pcrypto::ComputePasswordBasedKeyDerivation(
+    const std::string& password,
+    const ByteArray& salt)
+{
+    ByteArray key;
+    pcrypto::SHA512PasswordBasedKeyDerivation(password, salt, key);
+    return key;
+}
