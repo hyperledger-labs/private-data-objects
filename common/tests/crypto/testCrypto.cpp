@@ -495,6 +495,43 @@ int pcrypto::testCrypto()
     SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: ComputeMessageHMAC test passed!\n\n");
     // End Test ComputMessageHMAC
 
+    {
+        const std::string hmac_str =
+            "V1BtMN7LheUugD6yPaMP6YMM0RHDt5zDZdxApm+vZCSC5CI7wfJQzs+weuDc7ldECD7mLf35CpRmrxyZtymqCw==";
+
+        const std::string pass = "Proof of Elapsed Time";
+        const std::string bad_pass = "Proof of Elapsed Time -- BAD";
+        const ByteArray salt{4, 6, 8, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+        const ByteArray bad_salt{0, 0, 0, 5, 1, 2, 3, 4, 3, 4, 7, 8, 9, 7, 8, 0};
+
+        {
+            ByteArray hmac = ComputePasswordBasedKeyDerivation(pass, salt);
+            std::string hmac_B64 = ByteArrayToBase64EncodedString(hmac);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                hmac_B64 != hmac_str,
+                "testCrypto: ComputePasswordBasedKeyDerivation, wrong hmac");
+        }
+
+        {
+            ByteArray hmac = ComputePasswordBasedKeyDerivation(bad_pass, salt);
+            std::string hmac_B64 = ByteArrayToBase64EncodedString(hmac);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                hmac_B64 == hmac_str,
+                "testCrypto: ComputePasswordBasedKeyDerivation, did not catch the incorrect password");
+        }
+
+        {
+            ByteArray hmac = ComputePasswordBasedKeyDerivation(pass, bad_salt);
+            std::string hmac_B64 = ByteArrayToBase64EncodedString(hmac);
+            pdo::error::ThrowIf<pdo::error::RuntimeError>(
+                hmac_B64 == hmac_str,
+                "testCrypto: ComputePasswordBasedKeyDerivation, did not catch the incorrect salt");
+        }
+    }
+
+    SAFE_LOG(PDO_LOG_DEBUG, "testCrypto: ComputePasswordBasedKeyDerivation test passed!\n\n");
+    // End Test ComputMessageHMAC
+
     // Tesf of SignMessage and VerifySignature
     ByteArray sig;
     try

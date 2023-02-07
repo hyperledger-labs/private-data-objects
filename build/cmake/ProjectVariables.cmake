@@ -20,7 +20,13 @@
 ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector -Wall)
 ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
 
-IF (ENV{PDO_DEBUG_BUILD})
+OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" FALSE)
+
+IF (DEFINED ENV{PDO_DEBUG_BUILD})
+  SET(PDO_DEBUG_BUILD $ENV{PDO_DEBUG_BUILD})
+ENDIF()
+
+IF (${PDO_DEBUG_BUILD})
   ADD_COMPILE_OPTIONS(-Og -g)
   ADD_COMPILE_DEFINITIONS(PDO_DEBUG_BUILD=1)
   MESSAGE(STATUS "Compiling in debug mode without optimizations (-Og -g)")
