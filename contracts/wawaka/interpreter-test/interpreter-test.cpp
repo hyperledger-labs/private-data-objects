@@ -265,6 +265,49 @@ bool hash_test(const Message& msg, const Environment& env, Response& rsp)
     if (encoded_hmac == expected_hmac)
         return rsp.error("failed to identify bad hmac");
 
+    // pbkd
+    const std::string expected_key(
+        "ec/eXNCjxB/5J49/4Gq5OCCNwh1KkiA/fWo8Lifp/sCvC9ivr6SXK+rpW4cuB1Yk1ea52BdT3FEcYuI5Fdoyxg==");
+    const std::string test_pw(
+        "inside genius hold void transfer multiply truth market journey mention picnic stand");
+    const std::string bad_pw(
+        "inside genius hold void transfer multiply truth market journey mention picnic");
+    const ww::types::ByteArray test_salt{
+        166, 250, 20, 67, 61, 195, 91, 192, 3, 209, 21, 225, 38, 212, 162, 70
+    };
+    const ww::types::ByteArray bad_salt{
+        0, 0, 0, 0, 61, 195, 91, 192, 3, 209, 21, 225, 38, 212, 162, 70
+    };
+
+    ww::types::ByteArray derived_key;
+    std::string encoded_key;
+
+    CONTRACT_SAFE_LOG(3, "pbkd[expected]: %s", expected_key.c_str());
+
+    if (! ww::crypto::crypto_pbkd(test_pw, test_salt, derived_key))
+        return rsp.error("failed to compute derived key");
+    if (! ww::crypto::b64_encode(derived_key, encoded_key))
+        return rsp.error("failed to encode hmac");
+    CONTRACT_SAFE_LOG(3, "pbkd[1]: %s", encoded_key.c_str());
+    if (encoded_key != expected_key)
+        return rsp.error("failed to derive the correct key");
+
+    if (! ww::crypto::crypto_pbkd(bad_pw, test_salt, derived_key))
+        return rsp.error("failed to compute derived key");
+    if (! ww::crypto::b64_encode(derived_key, encoded_key))
+        return rsp.error("failed to encode hmac");
+    CONTRACT_SAFE_LOG(3, "pbkd[2]: %s", encoded_key.c_str());
+    if (encoded_key == expected_key)
+        return rsp.error("failed to derive an alternate key with bad password");
+
+    if (! ww::crypto::crypto_pbkd(test_pw, bad_salt, derived_key))
+        return rsp.error("failed to compute derived key");
+    if (! ww::crypto::b64_encode(derived_key, encoded_key))
+        return rsp.error("failed to encode hmac");
+    CONTRACT_SAFE_LOG(3, "pbkd[3]: %s", encoded_key.c_str());
+    if (encoded_key == expected_key)
+        return rsp.error("failed to derive an alternate key with bad salt");
+
     // ---------- Create the return value ----------
     return rsp.success(true);
 }

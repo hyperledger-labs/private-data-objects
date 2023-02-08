@@ -166,6 +166,15 @@ extern "C" bool sha512_hmac_wrapper(
     int32 hmac_buffer_pointer_offset,
     int32 hmac_length_pointer_offset);
 
+extern "C" bool sha512_pbkd_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 pw_buffer_offset,
+    const int32 pw_buffer_length,
+    const int32 salt_buffer_offset,
+    const int32 salt_buffer_length,
+    int32 key_buffer_pointer_offset,
+    int32 key_length_pointer_offset);
+
 extern "C" bool random_identifier_wrapper(
     wasm_exec_env_t exec_env,
     const int32 length,

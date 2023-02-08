@@ -43,6 +43,11 @@ namespace crypto
         const ww::types::ByteArray& key,
         ww::types::ByteArray& hmac);
 
+    bool crypto_pbkd(
+        const std::string& password,
+        const ww::types::ByteArray& salt,
+        ww::types::ByteArray& key);
+
     namespace hash
     {
         bool sha256_hash(

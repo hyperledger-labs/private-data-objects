@@ -189,6 +189,7 @@ static NativeSymbol native_symbols[] =
     EXPORT_WASM_API_WITH_SIG2(sha256_hmac,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(sha384_hmac,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(sha512_hmac,"(iiiiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(sha512_pbkd,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(random_identifier,"(ii)i"),
     EXPORT_WASM_API_WITH_SIG2(verify_sgx_report,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(parse_sgx_report,"(iiii)i"),
