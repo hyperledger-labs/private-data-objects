@@ -237,6 +237,29 @@ bool ww::crypto::hash::sha512_hmac(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: ww::crypto::hash::sha512_hmac
+ * ----------------------------------------------------------------- */
+bool ww::crypto::crypto_pbkd(
+    const std::string& password,
+    const ww::types::ByteArray& salt,
+    ww::types::ByteArray& key)
+{
+    uint8_t* key_pointer = NULL;
+    size_t key_size = 0;
+
+    if (! ::sha512_pbkd(password.c_str(), password.size(), salt.data(), salt.size(), &key_pointer, &key_size))
+        return false;
+
+    if (key_pointer == NULL)
+    {
+        CONTRACT_SAFE_LOG(3, "invalid pointer from extension function sha512_pbkd");
+        return false;
+    }
+
+    return copy_internal_pointer(key, key_pointer, key_size);
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: ww::crypto::aes::generate_key
  * ----------------------------------------------------------------- */
 bool ww::crypto::crypto_hmac(

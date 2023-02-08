@@ -193,6 +193,14 @@ bool sha512_hmac(
     uint8_t** hmac_buffer_pointer,
     size_t* hmac_length_pointer);
 
+bool sha512_pbkd(
+    const char* pw_buffer,
+    const size_t pw_length,
+    const uint8_t* salt_buffer,
+    const size_t salt_length,
+    uint8_t** key_buffer_pointer,
+    size_t* key_length_pointer);
+
 bool random_identifier(
     const size_t length,
     uint8_t* buffer_pointer);

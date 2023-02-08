@@ -820,6 +820,50 @@ extern "C" bool sha512_hmac_wrapper(
 }
 
 /* ----------------------------------------------------------------- *
+ * NAME: ComputePasswordBasedKeyDerivation
+ * ----------------------------------------------------------------- */
+extern "C" bool sha512_pbkd_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 pw_buffer_offset, // char*
+    const int32 pw_length,        // size_t
+    const int32 salt_buffer_offset, // uint8_t*
+    const int32 salt_length,        // size_t
+    int32 key_buffer_pointer_offset, // uint8_t**
+    int32 key_length_pointer_offset  // size_t*
+    )
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        const char* pw_buffer = (const char*)get_buffer(module_inst, pw_buffer_offset, pw_length);
+        if (pw_buffer == NULL)
+            return false;
+
+        const uint8_t* salt_buffer = (uint8_t*)get_buffer(module_inst, salt_buffer_offset, salt_length);
+        if (salt_buffer == NULL)
+            return false;
+
+        std::string password(pw_buffer, pw_length);
+        ByteArray salt(salt_buffer, salt_buffer + salt_length);
+
+        ByteArray key;
+        pcrypto::SHA512PasswordBasedKeyDerivation(password, salt, key);
+
+        if (! save_buffer(module_inst, key, key_buffer_pointer_offset, key_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
+}
+
+/* ----------------------------------------------------------------- *
  * NAME: verify_sgx_report_wrapper(
  * ----------------------------------------------------------------- */
 extern "C" bool verify_sgx_report_wrapper(
