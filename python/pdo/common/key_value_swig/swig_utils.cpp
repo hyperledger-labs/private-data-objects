@@ -51,7 +51,7 @@ static void PyLog(
 
     if (!glogger)
     {
-        printf("PyLog called before logger set, msg %s \n", msg);
+        fprintf(stderr, "PyLog called before logger set, msg %s \n", msg);
         return;
     }
 
@@ -61,30 +61,37 @@ static void PyLog(
     // build msg-string
     PyObject *string = NULL;
     string = Py_BuildValue("s", msg);
+    if (string == NULL)
+    {
+        fprintf(stderr,"failed to allocate python message in key_value swig\n");
+        PyGILState_Release(gstate);
+        return;
+    }
 
     // call function depending on log level
     switch (type) {
-        case PDO_LOG_INFO:
-            PyObject_CallMethod(glogger, "info", "O", string);
-            break;
+    case PDO_LOG_INFO:
+        PyObject_CallMethod(glogger, "info", "O", string);
+        break;
 
-        case PDO_LOG_WARNING:
-            PyObject_CallMethod(glogger, "warn", "O", string);
-            break;
+    case PDO_LOG_WARNING:
+        PyObject_CallMethod(glogger, "warn", "O", string);
+        break;
 
-        case PDO_LOG_ERROR:
-            PyObject_CallMethod(glogger, "error", "O", string);
-            break;
+    case PDO_LOG_ERROR:
+        PyObject_CallMethod(glogger, "error", "O", string);
+        break;
 
-        case PDO_LOG_DEBUG:
-            PyObject_CallMethod(glogger, "debug", "O", string);
-            break;
+    case PDO_LOG_DEBUG:
+        PyObject_CallMethod(glogger, "debug", "O", string);
+        break;
 
-        case PDO_LOG_CRITICAL:
-            PyObject_CallMethod(glogger, "critical", "O", string);
-            break;
+    case PDO_LOG_CRITICAL:
+        PyObject_CallMethod(glogger, "critical", "O", string);
+        break;
     }
     Py_DECREF(string);
+
     PyGILState_Release(gstate);
     //Releases GIL for other threads
 

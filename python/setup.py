@@ -125,15 +125,21 @@ crypto_library_dirs = [
 ] + openssl_lib_dirs
 
 crypto_module = Extension(
-    'pdo.common._crypto',
-    crypto_module_files,
-    swig_opts=['-c++'] + openssl_cflags + ['-I%s' % i for i in crypto_include_dirs],
+    name = 'pdo.common._crypto',
+    sources = crypto_module_files,
+    swig_opts = swig_flags + openssl_cflags + ['-I%s' % i for i in crypto_include_dirs],
     extra_compile_args = compile_args,
     include_dirs = crypto_include_dirs,
     library_dirs = crypto_library_dirs,
     libraries = crypto_libraries,
     define_macros = compile_defs,
+    language = 'c++',
     )
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+version = subprocess.check_output(
+    os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
 
 # -----------------------------------------------------------------
 # set up the key value module
@@ -162,21 +168,19 @@ key_value_library_dirs = [
 ]
 
 key_value_module = Extension(
-    'pdo.common.key_value_swig._key_value_swig',
-    key_value_module_files,
+    name = 'pdo.common.key_value_swig._key_value_swig',
+    sources = key_value_module_files,
     swig_opts = swig_flags,
     extra_compile_args = compile_args,
     include_dirs = key_value_include_dirs,
     library_dirs = key_value_library_dirs,
     libraries = key_value_libraries,
     define_macros = compile_defs,
+    language = 'c++',
     )
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-version = subprocess.check_output(
-    os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
-
 setup(name='pdo_common_library',
       version=version,
       description='Common library for private objects',

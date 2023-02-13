@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+logger = logging.getLogger(__name__)
+
+import faulthandler
+faulthandler.enable()
+
 from array import array
 import hashlib
 import json
@@ -21,9 +27,6 @@ import pdo.common.crypto as pcrypto
 import pdo.common.utility as putils
 import pdo.common.key_value_swig.key_value_swig as kvs
 import pdo.common.config as pconfig
-
-import logging
-logger = logging.getLogger(__name__)
 
 __block_store_initialized__ = False
 

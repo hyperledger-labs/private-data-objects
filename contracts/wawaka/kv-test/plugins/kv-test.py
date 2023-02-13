@@ -15,7 +15,6 @@
 import argparse
 import json
 import logging
-
 logger = logging.getLogger(__name__)
 
 from pdo.service_client.enclave import EnclaveServiceClient
@@ -108,11 +107,9 @@ def __command_kv__(state, bindings, pargs) :
 
         # sync the server blocks get to the local block manager
         count = kv.sync_from_block_store(result, eservice_client)
-        logger.debug("sync complete with %d blocks", count)
 
         with kv :
             value = kv.get(options.key)
-            logger.debug("value: %s", value)
 
         if options.symbol :
             bindings.bind(options.symbol, value)

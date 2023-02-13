@@ -95,11 +95,17 @@ attestation-test:
 		scripts/attestation-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
 			-m test_data $(SCRIPTDIR)/attestation-test/scripts
 
+# kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
+# 	@echo ================================================== KV TEST START ========================================
+# 	@echo run test: $@
+# 	@ . $(abspath $(DSTDIR)/bin/activate) && \
+# 		cd kv-test && \
+# 			scripts/kv-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
+# 	@echo ================================================== KV TEST END   ========================================
+
 kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
 	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		cd kv-test && \
-		scripts/kv-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
+	@ . $(abspath $(DSTDIR)/bin/activate) &&  cd kv-test && ./run-test.sh $(TEST_LOG_LEVEL) $(TEST_LOG_FILE)
 
 install : build $(PLUGIN_SOURCE) $(SCRIPT_SOURCE)
 	@echo install contracts

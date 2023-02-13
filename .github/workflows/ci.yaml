@@ -22,6 +22,10 @@ jobs:
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
               run: |
+                  # We need to setup support for retrieving core dumps
+                  # for backtrace analysis; must be done here
+                  ulimit -c unlimited
+                  sudo sysctl -w kernel.core_pattern=/tmp/core.%%e
                   # The creation of a dummy branch is necessary for the CI tests
                   # to work on PRs. Based on empirical results, in the absence of
                   # this command, CI tests work on the main branch and on local

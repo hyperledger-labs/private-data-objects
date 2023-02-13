@@ -83,6 +83,7 @@ RUN apt-get update \
     cmake \
     curl \
     dh-autoreconf \
+    gdb \
     git \
     gnupg \
     libcurl4-openssl-dev \
