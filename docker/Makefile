@@ -61,9 +61,11 @@ all:
 
 pdo-dev-image:
 	# unconditionally build, count on docker caching to not rebuild if not necessary
+	@echo "Building pdo-dev docker image"
 	docker build $(DOCKER_BUILD_OPTS) -f Dockerfile.pdo-dev -t pdo-dev .
 
 pdo-composition: pdo-dev-image
+	@echo "Running PDO docker composition for Sawtooth"
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) build
 	# Note:
 	# - using `sawtooth-pdo.local-code.yaml` in above will cause the docker context to be `../`.
@@ -80,6 +82,7 @@ pdo-composition: pdo-dev-image
 	#     running out of disk space during the build...
 
 pdo-composition-ccf: pdo-dev-image
+	@echo "Running PDO docker composition for CCF"
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) build
 
 ccf-only:
@@ -88,13 +91,21 @@ ccf-only:
 
 test-stl: pdo-composition test-with-no-build
 test-ccf: pdo-composition-ccf test-with-no-build-ccf
-test: test-stl test-ccf
+
+ifeq ($(PDO_LEDGER_TYPE),sawtooth)
+test: test-stl
+endif
+
+ifeq ($(PDO_LEDGER_TYPE),ccf)
+test: test-ccf
+endif
 
 test-env-setup: pdo-composition test-env-setup-with-no-build
 test-env-setup-ccf: pdo-composition-ccf test-env-setup-with-no-build-ccf
 test-env-setup-ccf-only: ccf-only test-env-setup-with-no-build-ccf-only
 
 test-env-setup-with-no-build:
+	@echo "Bringing up environment for tests with Sawtooth"
 	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
 	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) down
 	# - start services
@@ -115,12 +126,15 @@ test-env-setup-with-no-build-ccf-only:
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF_ONLY) up -d
 
 test-env-setup-with-no-build-ccf:
+	@echo "Bringing up environment for tests with CCF"
 	# just to be on safe side, make sure environment is not still up (e.g.,from previous failed attempt)
 	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) down
 	# - start services
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF) up -d
 
 test-with-no-build: test-env-setup-with-no-build
+	# - run automated tests
+	@echo "Running PDO tests with Sawtooth"
 	# 'sawtooth-pdo.debugging.yaml' doesn't start pdo-tp, so we will have to manually start it
 	if [ ! -z "$(PDO_DEBUG_BUILD)" ]; then  \
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
@@ -135,6 +149,7 @@ test-with-no-build: test-env-setup-with-no-build
 
 test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 	# - run automated tests
+	@echo "Running PDO tests with CCF"
 	# the pdo container must add the ip address of the pdo-tp-ccf container to its no proxy list (if behind a proxy)
 	if [ ! -z "$(no_proxy)" ]; then \
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \

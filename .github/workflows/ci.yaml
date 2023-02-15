@@ -13,6 +13,7 @@ jobs:
         strategy:
             matrix:
                 interpreter: [gipsy, wawaka, wawaka-opt]
+                pdo_ledger_type: [sawtooth, ccf]
 
         steps:
             - name: Check out repo
@@ -21,6 +22,7 @@ jobs:
             - name: Build and run tests
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
+                  PDO_LEDGER_TYPE: ${{ matrix.pdo_ledger_type }}
               run: |
                   # The creation of a dummy branch is necessary for the CI tests
                   # to work on PRs. Based on empirical results, in the absence of
