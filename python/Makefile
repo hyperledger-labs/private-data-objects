@@ -69,9 +69,16 @@ $(EGG_FILE) : $(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) $(addprefix $(PROTOBUF_DPA
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py bdist_egg
 
-$(CRYPTO_SWIG_TARGET) $(KV_SWIG_TARGET) : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB) $(CRYPTO_LIB) $(KEYVAL_LIB)
+# In the following, we use the pattern rule with multiple targets
+# so that make knows that they are created through a single invocation of the target-body
+# Without that, when make runs with multiple threads, the target-body is executed
+# multiple times, possibly inducing build corruptions
+# This pattern rule can be avoided by using grouped targets starting in make 4.3
+pdo/common/crypto%py pdo/common/key_value_swig/key_value_swig%py : $(CRYPTO_SWIG_SOURCE) $(KV_SWIG_SOURCE) $(COMMON_LIB) $(CRYPTO_LIB) $(KEYVAL_LIB)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		BUILD_CLIENT=$(BUILD_CLIENT) python3 setup.py build_ext --force
+	test -e pdo/common/crypto$*py
+	test -e pdo/common/key_value_swig/key_value_swig$*py
 
 install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
