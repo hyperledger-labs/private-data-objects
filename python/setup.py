@@ -86,7 +86,7 @@ compile_defs = [
 ]
 
 if client_only_flag :
-    compile_defs += ('_CLIENT_ONLY_', 1)
+    compile_defs += [ ('_CLIENT_ONLY_', 1) ]
 
 
 # -----------------------------------------------------------------
@@ -194,27 +194,3 @@ setup(name='pdo_common_library',
           ]
       }
 )
-
-if "clean" in sys.argv and "--all" in sys.argv:
-    directory = os.path.dirname(os.path.realpath(__file__))
-    for root, directories, files in os.walk(directory):
-        if root.endswith('__pycache__'):
-            shutil.rmtree(os.path.join(directory, root), ignore_errors=True)
-
-    extrafiles = [
-        os.path.join(directory, "pdo", "common", "crypto.py"),
-        os.path.join(directory, "pdo", "common", "crypto_wrap.cpp"),
-        os.path.join(directory, "pdo", "common", "key_value_swig", "key_value_swig.py"),
-        os.path.join(directory, "pdo", "common", "key_value_swig", "key_value_swig_wrap.cpp")
-    ]
-
-    for filename in extrafiles:
-        if os.path.exists(os.path.join(directory, filename)):
-            os.remove(os.path.join(directory, filename))
-
-    shutil.rmtree(os.path.join(directory, "pdo_common_library.egg-info"), ignore_errors=True)
-    shutil.rmtree(os.path.join(directory, "deps"), ignore_errors=True)
-    shutil.rmtree(os.path.join(directory, "dist"), ignore_errors=True)
-    shutil.rmtree(os.path.join(directory, "build"), ignore_errors=True)
-    shutil.rmtree(os.path.join(directory, "htmlcov"), ignore_errors=True)
-    shutil.rmtree(os.path.join(directory, "deb_dist"), ignore_errors=True)

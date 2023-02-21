@@ -89,8 +89,11 @@ test: install
 
 clean:
 	rm -f $(addprefix $(PROTOBUF_DPATH),$(PROTOBUF_PYTHON))
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python3 setup.py clean --all
+	rm -f $(addprefix pdo/common/, crypto.py crypto_wrap.cpp)
+	rm -f $(addprefix pdo/common/key_value_swig/, key_value_swig.py key_value_swig_wrap.cpp)
+	rm -rf build dist pdo_common_library.egg-info
+	find . -iname '*.pyc' -delete
+	find . -iname '__pycache__' -delete
 
 .phony : all
 .phony : clean
