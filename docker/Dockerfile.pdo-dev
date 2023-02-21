@@ -199,16 +199,6 @@ RUN git clone 'https://github.com/intel/intel-sgx-ssl.git' \
 
 # Install contract interpreter related stuff
 
-# - tinyscheme
-#   Install Tinyscheme
-RUN mkdir -p /opt/tinyscheme
-WORKDIR /opt/tinyscheme
-RUN wget -q https://downloads.sourceforge.net/project/tinyscheme/tinyscheme/tinyscheme-1.41/tinyscheme-1.41.zip \
- && unzip tinyscheme-1.41.zip \
- && rm tinyscheme-1.41.zip  \
- && cd tinyscheme-1.41  \
- && make FEATURES='-DUSE_DL=1 -DUSE_PLIST=1'
-
 #   - get wasi sdk
 RUN wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk_12.0_amd64.deb \
  && dpkg --install /tmp/wasi-sdk_12.0_amd64.deb
