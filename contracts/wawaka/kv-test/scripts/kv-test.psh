@@ -33,11 +33,15 @@ set -s ERROR  -v "\033[91m"
 set -s WARN   -v "\033[93m"
 set -s INFO   -v "\033[92m"
 
+## =================================================================
+echo ${HEADER} start kv test ${ENDC}
+## =================================================================
+
 ## load the command plugin for attestation test
 load_plugin -f ${_plugins_}/kv-test.py
 
 ## =================================================================
-echo ${INFO} create kv contract ${ENDC}
+echo ${INFO} create kv test contract ${ENDC}
 ## =================================================================
 identity -n user1
 create -c kv-type -s _kv-test -f ${save}/kv_contract.pdo
@@ -54,66 +58,139 @@ if --not -e ${_result_} ${_value_}
    exit -v 1
 fi
 
-echo test 1
+echo kv test 1
+set -s _value_ -v "${_value_} 1"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 2
+echo kv test 2
+set -s _value_ -v "${_value_} 2"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 3
+echo kv test 3
+set -s _value_ -v "${_value_} 3"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 4
+echo kv test 4
+set -s _value_ -v "${_value_} 4"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 5
+echo kv test 5
+set -s _value_ -v "${_value_} 5"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 6
+echo kv test 6
+set -s _value_ -v "${_value_} 6"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 7
+echo kv test 7
+set -s _value_ -v "${_value_} 7"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 8
+echo kv test 8
+set -s _value_ -v "${_value_} 8"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 9
+echo kv test 9
+set -s _value_ -v "${_value_} 9"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 10
+echo kv test 10
+set -s _value_ -v "${_value_} 10"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 11
+echo kv test 11
+set -s _value_ -v "${_value_} 11"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 12
+echo kv test 12
+set -s _value_ -v "${_value_} 12"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 13
+echo kv test 13
+set -s _value_ -v "${_value_} 13"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 14
+echo kv test 14
+set -s _value_ -v "${_value_} 14"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-echo test 15
+echo kv test 15
+set -s _value_ -v "${_value_} 15"
 kv -f ${save}/kv_contract.pdo -w set -v ${_value_}
 kv -f ${save}/kv_contract.pdo -w get -s _result_
+if --not -e ${_result_} ${_value_}
+   echo {ERROR} Set and get do not match ${ENDC}
+   exit -v 1
+fi
 
-
-
-echo ${INFO} test succeeded ${ENDC}
+echo ${INFO} kv test succeeded ${ENDC}

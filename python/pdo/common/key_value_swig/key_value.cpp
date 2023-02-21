@@ -35,6 +35,7 @@ namespace pe = pdo::error;
 namespace pstate = pdo::state;
 
 // this allocates a static array
+#define KV_STORE_POOL_MAX_SIZE 8
 static pstate::Basic_KV_Plus* kv_store_pool[KV_STORE_POOL_MAX_SIZE] = {};
 
 /* ----------------------------------------------------------------- *
