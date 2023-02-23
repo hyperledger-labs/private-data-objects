@@ -95,6 +95,18 @@ attestation-test:
 		scripts/attestation-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
 			-m test_data $(SCRIPTDIR)/attestation-test/scripts
 
+interp-test: interpreter-test/scripts/interpreter-test.psh
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		cd interpreter-test && \
+		scripts/interpreter-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
+
+interf-test: interface-test/scripts/interface-test.psh
+	@echo run test: $@
+	@ . $(abspath $(DSTDIR)/bin/activate) && \
+		cd interface-test && \
+		scripts/interface-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
+
 kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
 	@echo run test: $@
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
