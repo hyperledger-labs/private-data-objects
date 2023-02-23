@@ -55,7 +55,7 @@ class IasClient(object):
 
     def get_signature_revocation_lists(self,
                                        gid='',
-                                       path='/attestation/v3/sigrl/'):
+                                       path='/attestation/v4/sigrl/'):
         """
         @param gid: Hex, base16 encoded
         @param path: URL path for sigrl request
@@ -80,7 +80,7 @@ class IasClient(object):
         @return: dictionary of the response from ias.
         """
 
-        path = '/attestation/v3/report'
+        path = '/attestation/v4/report'
 
         url = self._ias_url + path
         json = {"isvEnclaveQuote": quote}
