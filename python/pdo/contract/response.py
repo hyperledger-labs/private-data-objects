@@ -47,6 +47,7 @@ class ContractResponse(object) :
     def __exit_commit_workers__():
         """Set the global variable stop_commit_service to True. This will be picked by the workers"""
 
+        logger.debug('exit commit workers')
         if ContractResponse.__start_commit_service__ is False: #if True no service has yet been started
             stop_replication_service()
             stop_transacion_processing_service()
@@ -107,8 +108,8 @@ class ContractResponse(object) :
             atexit.register(ContractResponse.__exit_commit_workers__)
 
             # start replication service
-            start_replication_service()
-            start_transaction_processing_service()
+            start_replication_service(ledger_config)
+            start_transaction_processing_service(ledger_config)
             ContractResponse.__start_commit_service__ = False
 
         #create the replication request

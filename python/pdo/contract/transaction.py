@@ -17,18 +17,23 @@ import queue
 import threading
 
 import pdo.common.crypto as crypto
+import pdo.common.config as pconfig
 from pdo.submitter.create import create_submitter
 
 import logging
 logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------
-__transaction_executor__ = concurrent.futures.ThreadPoolExecutor(max_workers=1) # executor that submit transactions
-__pending_transactions_queue__ = queue.Queue()
+transaction_threads = []
+transaction_thread_lock = threading.Lock()
+
+transaction_task_queue = None
+registry_helper = None
+
 __condition_variable_for_completed_transactions__ = threading.Condition() # used to notify the parent thread about a new task
                                                                           # that got completed (if the parent is waiting)
 __stop_service__ = False
-__set_of_failed_transactions__ = set()
+__dependencies__ = None
 
 # -----------------------------------------------------------------
 class Dependencies(object) :
@@ -39,8 +44,10 @@ class Dependencies(object) :
     """
 
     ## -------------------------------------------------------
-    def __init__(self) :
+    def __init__(self, registry_helper) :
         self.__depcache = {}
+        self.__lock__ = threading.RLock()
+        self.__submitter__ = registry_helper
 
     ## -------------------------------------------------------
     def __key(self, contractid, statehash) :
@@ -56,42 +63,56 @@ class Dependencies(object) :
         return self.__depcache.get(k)
 
     ## -------------------------------------------------------
-    def FindDependency(self, ledger_config, contractid, statehash) :
+    def FindDependency(self, contractid, statehash) :
         logger.debug('find dependency for %s, %s', contractid, statehash)
 
-        txnid = self.__get(contractid, statehash)
-        if txnid :
-            return txnid
+        with self.__lock__ :
+            txnid = self.__get(contractid, statehash)
+            if txnid :
+                return txnid
 
-        # no information about this update locally, so go to the
-        # ledger to retrieve it
-        registry_helper = create_submitter(ledger_config)
-
-        try :
-            # this is not very efficient since it pulls all of the state
-            # down with the txnid
-            contract_state_info = registry_helper.get_state_details(contractid, statehash)
-            txnid = contract_state_info['transaction_id']
-            self.__set(contractid, statehash, txnid)
-            return txnid
-        except Exception as e :
-            logger.info('failed to retrieve the transaction: %s', str(e))
-
-        logger.info('unable to find dependency for %s:%s', contractid, statehash)
-        return None
+            try :
+                # this is not very efficient since it pulls all of the state
+                # down with the txnid
+                contract_state_info = self.__submitter__.get_state_details(contractid, statehash)
+                txnid = contract_state_info['transaction_id']
+                self.__set(contractid, statehash, txnid)
+                return txnid
+            except Exception as e :
+                logger.info('unable to find dependency for %s:%s; failed to retrieve the transaction', contractid, statehash)
+                return None
 
     ## -------------------------------------------------------
     def SaveDependency(self, contractid, statehash, txnid) :
-        self.__set(contractid, statehash, txnid)
+        with self.__lock__ :
+            self.__set(contractid, statehash, txnid)
 
 # -----------------------------------------------------------------
-__dependencies__ = Dependencies()
-__lock_for_dependencies__ = threading.RLock()
+def start_transaction_processing_service(ledger_config = None):
+    global transaction_task_queue
+    with transaction_thread_lock :
+        if transaction_task_queue :
+            return
+        else :
+            transaction_task_queue = queue.Queue()
 
-# -----------------------------------------------------------------
-def start_transaction_processing_service():
+    if ledger_config is None :
+        ledger_config = pconfig.shared_configuration(['Ledger'])
 
-    __transaction_executor__.submit(__transaction_worker__)
+    global registry_helper
+    registry_helper = create_submitter(ledger_config)
+
+    global __dependencies__
+    __dependencies__ = Dependencies(registry_helper)
+
+    logger.debug('start transaction service threads')
+    for i in range(ledger_config.get("transaction_service_threads", 1)) :
+        thread = threading.Thread(target=__transaction_worker__)
+        thread.daemon = True
+        thread.start()
+
+        with transaction_thread_lock :
+            transaction_threads.append(thread)
 
 # -----------------------------------------------------------------
 def stop_transacion_processing_service():
@@ -99,13 +120,12 @@ def stop_transacion_processing_service():
     global __stop_service__
     __stop_service__ = True
 
-    #shutdown executor
-    __transaction_executor__.shutdown(wait=True)
+    for thread in transaction_threads[:] :
+        thread.join(timeout=5.0)
 
 # -----------------------------------------------------------------
 def add_transaction_task(task):
-
-    __pending_transactions_queue__.put(task)
+    transaction_task_queue.put(task)
 
 # -----------------------------------------------------------------
 def __transaction_worker__():
@@ -124,14 +144,13 @@ def __transaction_worker__():
 
             response = rep_completed_but_txn_not_submitted_updates[contract_id][request_number]
             transaction_request = response.transaction_request
-            ledger_config = transaction_request.ledger_config
 
             # Check for depedencies:
             if response.operation != 'initialize' :
                 txn_dependencies = []
 
                 #First check if transaction for old state is successful
-                txnid = __dependencies__.FindDependency(ledger_config, contract_id, crypto.byte_array_to_base64(response.old_state_hash))
+                txnid = __dependencies__.FindDependency(contract_id, crypto.byte_array_to_base64(response.old_state_hash))
                 if txnid == 'pending': # yet to complete the transaction (commit attempted by the same client)
                     break
                 elif txnid is None: # either dependency failed or not found (even in ledger)
@@ -147,7 +166,7 @@ def __transaction_worker__():
                 for dependency in response.dependencies :
                     contract_id_dep = dependency['contract_id']
                     state_hash_dep = dependency['state_hash']
-                    txnid = __dependencies__.FindDependency(ledger_config, contract_id_dep, state_hash_dep)
+                    txnid = __dependencies__.FindDependency(contract_id_dep, state_hash_dep)
                     if txnid == 'pending': # yet to complete the transaction (commit attempted by the same client)
                         fail_dependencies = True
                         break
@@ -193,22 +212,27 @@ def __transaction_worker__():
         return submitted_any
 
     # -------------------------------------------------------
-    rep_completed_but_txn_not_submitted_updates = dict() # key is contract_id, value is dict(k:v). k = request_number from the commit _id
+    # key is contract_id, value is dict(k:v). k = request_number from the commit _id
     # and v is everything else needed to submit transaction
+    rep_completed_but_txn_not_submitted_updates = dict()
 
     while True:
 
-        try:# wait for a new task. Task is the reponse object for the update
-            try:
-                response = __pending_transactions_queue__.get(timeout=1.0)
-            except:
-                # check for termination signal
-                if __stop_service__:
-                    logger.debug("Exiting transaction submission thread")
-                    break
-                else:
-                    continue
+        # wait for a new task. Task is the reponse object for the update
+        try:
+            response = transaction_task_queue.get(timeout=1.0)
+        except queue.Empty :
+            logger.debug('empty work queue')
+            if __stop_service__:
+                logger.debug("Exiting transaction submission thread")
+                return True
+            else:
+                continue
+        except:
+            logger.exception("shutdown exception %s", str(e))
+            return False
 
+        try:
             contract_id = response.commit_id[0]
             request_number = response.commit_id[2]
             logger.debug('received transaction request for request %d', request_number)
@@ -230,6 +254,9 @@ def __transaction_worker__():
                         loop_again = loop_again or submit_doable_transactions_for_contract(contract_id)
         except Exception as e:
             logger.info("transaction submission failed %s", str(e))
+            return False
+        finally :
+            transaction_task_queue.task_done()
 
 # -------------------------------------------------------
 def __submit_initialize_transaction__(response, ledger_config, **extra_params):
@@ -239,6 +266,8 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
     if response.status is False :
         raise Exception('attempt to submit failed initialization transactions')
 
+    # can't use the global here because we need the pdo_signer set in the submitter
+    # this should be fixed later
     initialize_submitter = create_submitter(ledger_config, pdo_signer = response.originator_keys)
 
     txnid = initialize_submitter.ccl_initialize(
@@ -253,10 +282,8 @@ def __submit_initialize_transaction__(response, ledger_config, **extra_params):
         **extra_params)
 
     if txnid :
-        __lock_for_dependencies__.acquire()
-        __dependencies__.SaveDependency(response.contract_id, \
-            crypto.byte_array_to_base64(response.new_state_hash), txnid)
-        __lock_for_dependencies__.release()
+        __dependencies__.SaveDependency(response.contract_id,
+                crypto.byte_array_to_base64(response.new_state_hash), txnid)
 
     return txnid
 
@@ -272,10 +299,8 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
     # an update
     assert response.old_state_hash
 
-    update_submitter = create_submitter(ledger_config)
-
     # now send off the transaction to the ledgerchannel_keys.txn_public,
-    txnid = update_submitter.ccl_update(
+    txnid = registry_helper.ccl_update(
         response.channel_keys,
         response.enclave_service.enclave_id,
         response.signature,
@@ -287,10 +312,8 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
         **extra_params)
 
     if txnid :
-        __lock_for_dependencies__.acquire()
         __dependencies__.SaveDependency(response.contract_id, \
             crypto.byte_array_to_base64(response.new_state_hash), txnid)
-        __lock_for_dependencies__.release()
 
     return txnid
 
@@ -311,9 +334,7 @@ class TransactionRequest(object):
         self.txn_id = None
 
         # add a pending status corresponding to the transaction in the dependency cache
-        __lock_for_dependencies__.acquire()
         __dependencies__.SaveDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]), 'pending')
-        __lock_for_dependencies__.release()
 
     # -----------------------------------------------------------------
     def mark_as_completed(self):
@@ -322,7 +343,7 @@ class TransactionRequest(object):
 
         # add a transaction id field that the application may query for
         if not self.is_failed:
-            self.txn_id = __dependencies__.FindDependency(self.ledger_config, self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
+            self.txn_id = __dependencies__.FindDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
         else:
             self.txn_id = None
 
@@ -333,9 +354,7 @@ class TransactionRequest(object):
     # -----------------------------------------------------------------
     def mark_as_failed(self):
         # mark txn_id as None in the dependency cache
-        __lock_for_dependencies__.acquire()
         __dependencies__.SaveDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]), None)
-        __lock_for_dependencies__.release()
 
         # mark as failed in the request itself so that the application may query the status. Also, mark the task as completed
         self.is_failed = True
@@ -354,5 +373,5 @@ class TransactionRequest(object):
         if self.is_failed:
             raise Exception("Transaction submission failed for request number %d", self.commit_id[2])
 
-        txn_id = __dependencies__.FindDependency(self.ledger_config, self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
+        txn_id = __dependencies__.FindDependency(self.commit_id[0], crypto.byte_array_to_base64(self.commit_id[1]))
         return txn_id
