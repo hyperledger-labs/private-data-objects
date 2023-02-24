@@ -549,6 +549,9 @@ def verify_enclave_registration_info(connect,
             LOGGER.warning('Peer has out of date (but not revoked)'
                            ' hardware, isvEnclaveQuoteStatus: %s',
                            str(enclave_quote_status))
+        elif enclave_quote_status.upper() == 'SW_HARDENING_NEEDED':
+             LOGGER.warning('Peer needs sw hardening, isvEnclaveQuoteStatus: %s',
+                           str(enclave_quote_status))
         else:
             raise \
                 ValueError(

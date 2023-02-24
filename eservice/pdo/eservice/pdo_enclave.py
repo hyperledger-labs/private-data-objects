@@ -300,10 +300,13 @@ def create_signup_info(originator_public_key_hash, nonce):
         if not _ias.verify_report_fields(signup_data['enclave_quote'], response['verification_report']):
             logger.debug("last error: " + _ias.last_verification_error())
             if _ias.last_verification_error() == "GROUP_OUT_OF_DATE":
-                logger.warning("failure GROUP_OUT_OF_DATE (update your BIOS/microcode!!!) keep going")
+                logger.warning("Quote has GROUP_OUT_OF_DATE status (update your BIOS/microcode!!!) keep going")
+            elif _ias.last_verification_error() == "SW_HARDENING_NEEDED":
+                logger.warning("Quote has SW_HARDENING_NEEDED status (update your platform!!!) keep going")
             else:
                 logger.error("invalid report fields")
                 return None
+
         #ALL checks have passed
         logger.info("report fields verified")
 
