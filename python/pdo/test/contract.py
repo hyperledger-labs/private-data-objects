@@ -315,17 +315,19 @@ def CreateAndRegisterContract(config, enclaves, contract_creator_keys) :
 
     # submit the commit task: (a commit task replicates change-set and submits the corresponding transaction)
     try:
-        initialize_response.commit_asynchronously(ledger_config)
+        if use_ledger :
+            initialize_response.commit_asynchronously(ledger_config)
     except Exception as e:
         logger.exception('failed to asynchronously start replication and transaction submission:' + str(e))
         ErrorShutdown()
 
     # wait for the commit to finish.
     try:
-        txn_id = initialize_response.wait_for_commit()
-        if use_ledger and txn_id is None:
-            logger.error("Did not receive txn id for the initial commit")
-            ErrorShutdown()
+        if use_ledger :
+            txn_id = initialize_response.wait_for_commit()
+            if txn_id is None:
+                logger.error("Did not receive txn id for the initial commit")
+                ErrorShutdown()
     except Exception as e:
         logger.error(str(e))
         ErrorShutdown()
@@ -440,7 +442,8 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
             # change-set and submits the corresponding transaction)
             try:
                 logger.debug("asynchronously replicate change set and submit transaction in the background")
-                update_response.commit_asynchronously(ledger_config)
+                if use_ledger :
+                    update_response.commit_asynchronously(ledger_config)
                 last_response_committed = update_response
             except Exception as e:
                 logger.error('failed to submit commit: %s', str(e))
@@ -456,10 +459,11 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
     # wait for the last commit to finish.
     if last_response_committed is not None:
         try:
-            txn_id = last_response_committed.wait_for_commit()
-            if use_ledger and txn_id is None:
-                logger.error("Did not receive txn id for the final commit")
-                ErrorShutdown()
+            if use_ledger :
+                txn_id = last_response_committed.wait_for_commit()
+                if txn_id is None:
+                    logger.error("Did not receive txn id for the final commit")
+                    ErrorShutdown()
         except Exception as e:
             logger.error("Error while waiting for final commit: %s", str(e))
             ErrorShutdown()

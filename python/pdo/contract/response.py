@@ -103,6 +103,10 @@ class ContractResponse(object) :
         is automatically invoked to add a task for the second step
         """
 
+        # if the ledger is not set up then there is nothing to do here
+        if ledger_config == None :
+            return
+
         #start threads for commiting response if not done before
         if ContractResponse.__start_commit_service__:
             atexit.register(ContractResponse.__exit_commit_workers__)
@@ -120,10 +124,7 @@ class ContractResponse(object) :
             self.commit_id)
 
         #create the transaction request if ledger is enabled
-        if ledger_config:
-            self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait_parameter_for_ledger)
-        else:
-            self.transaction_request = None
+        self.transaction_request = TransactionRequest(ledger_config, self.commit_id, wait_parameter_for_ledger)
 
         #submit the replication task
         add_replication_task(self)
