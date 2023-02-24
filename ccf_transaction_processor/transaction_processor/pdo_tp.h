@@ -18,13 +18,19 @@
 #include "ccl_registry.h"
 
 #include "crypto/key_pair.h"
+#include "crypto/rsa_key_pair.h"
+#include "crypto/hash_provider.h"
+#include "crypto/hash.h"
+
 #include "ds/buffer.h"
+#include "ds/hex.h"
 
 #include "ccf/app_interface.h"
 #include "ccf/user_frontend.h"
 #include "apps/utils/metrics_tracker.h"
 
 #include <map>
+#include <sgx_quote.h>
 
 using namespace std;
 using namespace ccf;
@@ -42,11 +48,20 @@ namespace ccfapp
     DECLARE_JSON_TYPE(Get_Ledger_Key::Out);
     DECLARE_JSON_REQUIRED_FIELDS(Get_Ledger_Key::Out, verifying_key);
 
+    // utility constants
+    const string PDO_ENCLAVE_ATTESTATION_POLICY{"pdo_enclave_attestation_policy"};
+    const string OK_QUOTE_STATUS{"OK"};
+    const string GROUP_OUT_OF_DATE_QUOTE_STATUS{"GROUP_OUT_OF_DATE"};
+    const string SW_HARDENING_NEEDED_QUOTE_STATUS{"SW_HARDENING_NEEDED"};
+    const int BASENAME_SIZE{32};
+    const int ORIGINATOR_KEY_HASH_SIZE{64};
+
     // test method
     static constexpr auto PingMe = "ping";
 
     //methods that write
     static constexpr auto REGISTER_ENCLAVE = "register_enclave";
+    static constexpr auto SET_CONTRACT_ENCLAVE_ATTESTATION_VERIFICATION_POLICY = "set_contract_enclave_attestatation_verification_policy";
     static constexpr auto REGISTER_CONTRACT = "register_contract";
     static constexpr auto ADD_ENCLAVE_TO_CONTRACT ="add_enclave_to_contract";
     static constexpr auto INITIALIZE_CONTRACT_STATE ="ccl_initialize";
@@ -67,11 +82,15 @@ namespace ccfapp
     {
         private:
 
+            kv::Map<string, ContractEnclaveAttestationVerificationPolicy> attestation_policy_table;
+                        // There is a single entry with key PDO_ENCLAVE_ATTESTATION_POLICY.
+                        // Only the CCF Governing body can update this entry.
+                        // Can be generalized if multiple enclave "types" need to be verified.
             kv::Map<string, EnclaveInfo> enclavetable; // key is encalve_id
             kv::Map<string, ContractInfo> contracttable; // key is contract_id
             kv::Map<string, ContractStateInfo> ccltable; // key is contract_id + state_hash (string addition)
             kv::Map<string, map<string, string>> signer; //There is at most one entry in this map. if there is an
-                                                            //entry key="signer".  value is pubk:privk
+                                                         //entry key="signer".  value is pubk:privk
 
             // functions to verify signatures, only wite methods sign transactions, read methods do not.
             bool verify_pdo_transaction_signature_register_enclave(
@@ -79,6 +98,13 @@ namespace ccfapp
                 const string & verifying_key,
                 const EnclaveInfo & enclave_info);
 
+            /* RSA sig verification */
+            bool verify_rsa_sig(
+                vector<uint8_t> signature,
+                const string & verifying_key,
+                const vector<uint8_t> & contents);
+
+            /* ECDSA sig verification */
             bool verify_sig(
                 vector<uint8_t> signature,
                 const string & verifying_key,
@@ -88,6 +114,11 @@ namespace ccfapp
                 vector<uint8_t> signature,
                 const PublicKeyPtr & pubk_verifier,
                 const vector<uint8_t>& contents);
+
+            bool verify_ias_signature(
+                const string& signature,
+                const string& ias_public_key,
+                const string& verification_report_string);
 
             bool verify_pdo_transaction_signature_register_contract(
                 const vector<uint8_t>& signature,

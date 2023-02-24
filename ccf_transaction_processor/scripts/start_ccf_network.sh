@@ -48,6 +48,12 @@ sleep 5
 echo generate the ledger authority
 try ${F_SERVICEHOME}/bin/generate_ledger_authority.py --logfile __screen__ --loglevel WARNING
 
+#Set the enclave attestation policy while operating under SGX SIM mode. When operating in the HW mode, the rpc gets invoked after the enclave is built.
+if [ "${SGX_MODE}" == "SIM" ]; then
+    echo set check_attestation to false in SGX SIM mode
+    try ${F_SERVICEHOME}/bin/register_enclave_attestation_verification_policy.py --logfile __screen__ --loglevel WARNING
+fi
+
 sleep 5
 
 echo save the ledger authority key

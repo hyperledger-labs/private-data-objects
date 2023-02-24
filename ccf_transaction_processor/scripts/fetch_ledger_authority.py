@@ -20,9 +20,11 @@ import os
 import sys
 import time
 import toml
+from urllib.parse import urlparse
 
 from ccf.clients import CCFClient
 
+from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
@@ -86,7 +88,7 @@ def Main() :
         sys.exit(-1)
 
     network_cert = config["start"]["network-cert-file"]
-    (host, port) = config["rpc-address"].split(':')
+    host, port = parse_ledger_url(config)
 
     try :
         user_client = CCFClient(

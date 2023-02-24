@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.11)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.11)
 
-include(${CCF_DIR}/cmake/preproject.cmake)
-project(pdoenc LANGUAGES C CXX)
-include(${CCF_DIR}/cmake/ccf_app.cmake)
+INCLUDE(${CCF_DIR}/cmake/preproject.cmake)
+PROJECT(pdoenc LANGUAGES C CXX)
+INCLUDE(${CCF_DIR}/cmake/ccf_app.cmake)
 
-find_package(ccf REQUIRED)
+FIND_PACKAGE(ccf REQUIRED)
 
 # Add the PDO transaction processor target
 add_ccf_app(pdoenc
@@ -26,5 +26,4 @@ add_ccf_app(pdoenc
   INCLUDE_DIRS ${CCF_DIR}/include/ccf ${CCF_DIR}/include/3rdparty ${CCF_DIR}/include}
 )
 
-install(TARGETS pdoenc.virtual DESTINATION lib)
-
+INSTALL(TARGETS pdoenc.virtual DESTINATION lib)

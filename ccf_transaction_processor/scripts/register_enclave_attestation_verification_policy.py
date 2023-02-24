@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2020 Intel Corporation
+# Copyright 2023 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import argparse
 import http
 import os
 import sys
-import time
 import toml
 from urllib.parse import urlparse
 
@@ -35,17 +34,28 @@ CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
-def generate_ledger_authority(client, options, config):
+def register_enclave_attestation_policy(client, options):
     try :
-        r = client.post("/app/generate_signing_key_for_read_payloads", dict())
+        params = {}
+        params['check_attestation'] = options.check_attestation
+        if options.check_attestation:
+            params['mrenclave'] = options.mrenclave
+            params['basename'] = options.basename
+            params['ias_public_key'] = options.ias_public_key
+        else:
+            params['mrenclave'] = ""
+            params['basename'] = ""
+            params['ias_public_key'] = ""
+
+        r = client.post("/app/set_contract_enclave_attestatation_verification_policy", params)
         if r.status_code != http.HTTPStatus.OK.value:
-            LOG.error('failed to generate ledger authority the member: {}, code: {}'.format(
+            LOG.error('failed to register enclave expected measurements: {}, code: {}'.format(
                 r.body, r.status_code))
             sys.exit(-1)
     except Exception as e:
-        LOG.error('failed to generate ledger authority the member: {}'.format(str(e)))
+        LOG.error('failed to register enclave expected measurements: {}'.format(str(e)))
         sys.exit(-1)
-    
+
 # -----------------------------------------------------------------
 def Main() :
     default_config = os.path.join(CCF_Etc, 'cchost.toml')
@@ -54,10 +64,15 @@ def Main() :
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
 
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', default='__screen__', type=str)
-    parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
+    parser.add_argument('--loglevel', help='Logging level', default='INFO', type=str)
 
     parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
     parser.add_argument('--member-name', help="Name of the user being added", default = "memberccf", type=str)
+
+    parser.add_argument('--check_attestation', default = False, help="enable attestation verification", action='store_true')
+    parser.add_argument('--mrenclave', help="Expected MRENCLAVE of pdo enclaves", type=str)
+    parser.add_argument('--basename', help="Pdo enclave basename", type=str)
+    parser.add_argument('--ias-public-key', help="IAS public derived from IAS cert used to verify singature on IAS reports", type=str)
 
     options = parser.parse_args()
 
@@ -70,14 +85,18 @@ def Main() :
 
     # -----------------------------------------------------------------
     try :
-        config = toml.load(options.ccf_config)
+        config = toml.load(options.ccf_config) #If config exists, it is used to set ledger host, port.
+                                               #else we read from env PDO_LEDGER_URL
+                                               #both cases are used. for end-to-end docker testing, we rely on config
+                                               #for tp in docker, and pdo in bare-metal, we do not rely on config
+                                               #(since tp config is not created unless during tp installation)
     except :
-        LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
-        sys.exit(-1)
+        config = None
 
-    network_cert = config["start"]["network-cert-file"]
     host, port = parse_ledger_url(config)
+    LOG.info(host)
 
+    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
 
@@ -93,9 +112,15 @@ def Main() :
         LOG.error('failed to connect to CCF service : {}'.format(str(e)))
         sys.exit(-1)
 
-    generate_ledger_authority(member_client, options, config)
+    if options.check_attestation:
+        if (options.mrenclave is None) or (options.basename is None) or (options.ias_public_key is None):
+            raise Exception("Please provide all of the exepected params to set attestation policy")
+    try:
+        register_enclave_attestation_policy(member_client, options)
+    except Exception as e:
+        raise
 
-    LOG.info('successfully generated ledger authority')
+    LOG.info('successfully registered enclave expected measurements')
     sys.exit(0)
 
 # -----------------------------------------------------------------

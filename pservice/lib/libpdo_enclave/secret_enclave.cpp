@@ -609,9 +609,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     pdo::error::ThrowIfNull(svalue, "Invalid epid_pseudonym");
     const std::string epid_pseudonym(svalue);
 
-
     //Verify verification report signature
-
     int r;
     // verify quote (group-of-date is considered ok)
     r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(),
@@ -680,6 +678,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
 
 
     return result;
+
 }// VerifyEnclaveInfo
 
 
