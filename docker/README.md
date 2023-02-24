@@ -79,7 +79,8 @@ background.
 
 The easiest way to get started is to run
 ```bash
-	make test
+	make test-with-sawtooth
+  make test-with-ccf
 ```
 which will build your current locally committed branch and run the
 end-to-end tests based on a completely freshly setup sawtooth ledger

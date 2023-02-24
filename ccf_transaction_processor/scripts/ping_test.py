@@ -24,6 +24,7 @@ from urllib.parse import urlparse
 
 from ccf.clients import CCFClient
 
+from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
@@ -66,11 +67,7 @@ def Main() :
     # -----------------------------------------------------------------
     network_cert = os.path.join(CCF_Keys, "networkcert.pem")
 
-    if os.environ.get("PDO_LEDGER_URL") is not None:
-        url =  os.environ.get("PDO_LEDGER_URL")
-        (host, port) = urlparse(url).netloc.split(':')
-    else :
-        (host, port) = config["rpc-address"].split(':')
+    host, port = parse_ledger_url()
 
     try :
         user_client = CCFClient(

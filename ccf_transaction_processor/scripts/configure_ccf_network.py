@@ -24,12 +24,14 @@ import os
 import sys
 import toml
 import time
+from urllib.parse import urlparse
 
 from ccf.proposal_generator import transition_node_to_trusted
 from ccf.proposal_generator import transition_service_to_open
 from ccf.clients import Identity
 from ccf.clients import CCFClient
 
+from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
@@ -106,7 +108,8 @@ def Main() :
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
     network_cert = config["start"]["network-cert-file"]
-    (host, port) = config["rpc-address"].split(':')
+
+    host, port = parse_ledger_url(config)
 
     try:
         member_client = CCFClient(

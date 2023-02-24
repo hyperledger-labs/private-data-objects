@@ -255,7 +255,7 @@ class ServiceKeys(object) :
     # -------------------------------------------------------
     @property
     def hashed_identity(self) :
-        return hashlib.sha256(self.identity.encode('utf8')).hexdigest()[:16]
+        return hashlib.sha256(self.identity.encode('utf8')).hexdigest()[:64]
 
     # -------------------------------------------------------
     def verify(self, message, encoded_signature, encoding = 'hex') :

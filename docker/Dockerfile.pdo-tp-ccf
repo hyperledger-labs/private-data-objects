@@ -37,6 +37,7 @@ FROM ccfciteam/ccf-app-ci:1.0.19
 
 #install a few extra utilities
 RUN apt-get update && apt-get install -y python3-pip vim net-tools
+RUN apt-get update && apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 RUN pip3 install virtualenv
 
 ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
@@ -60,7 +61,8 @@ ENV PDO_INSTALL_ROOT=/pdo/dev/
 ENV PDO_SOURCE_ROOT=/pdo/private-data-objects/
 ENV PDO_ENCLAVE_CODE_SIGN_PEM=/pdo/private-data-objects/ccf_transaction_processor/enclave.pem
 ENV PDO_LEDGER_KEY_ROOT=/pdo/dev/opt/pdo/ccf/keys/
-ENV SGX_MODE=SIM
+ARG SGX_MODE=SIM
+ENV SGX_MODE=${SGX_MODE}
 ENV PDO_HOME=/pdo/dev/opt/pdo/
 #note that currently we have only tested for SIM SGX mode for pdo/ccf combo
 
@@ -86,6 +88,10 @@ ENTRYPOINT `/pdo/private-data-objects/build/common-config.sh -e` \
 	&& . dev/opt/pdo/ccf/bin/activate \
 	&& . /pdo/set_no_proxy.sh \
 	&& dev/opt/pdo/ccf/bin/start_ccf_network.sh \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_privk.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_privk.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_cert.pem /ccf_keys/ \
+	&& cp ${PDO_LEDGER_KEY_ROOT}/memberccf_enc_pubk.pem /ccf_keys/ \
 	&& cp ${PDO_LEDGER_KEY_ROOT}/networkcert.pem /ccf_keys/ \
 	&& chmod a+rw /ccf_keys/* \
 	&& tail -f /dev/null
