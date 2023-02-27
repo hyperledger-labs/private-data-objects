@@ -184,8 +184,12 @@ def __replication_worker__(service_id, *args) :
         try:
             #check if the task is already complete. If so go to the next one
             replication_request = response.replication_request
-            if replication_request.is_completed :
-                continue
+
+            # for the purpose of "correctness", if the replication request is complete
+            # then we don't need to finish all of the replication services. however,
+            # we WANT state replicated in each location... so if complete we can let the
+            # replication manager commit this to the ledger. we should only stop processing
+            # if the request fails for some reason.
 
             # replicate now!
             block_data_list = pblocks.local_block_manager().get_blocks(replication_request.blocks_to_replicate)
