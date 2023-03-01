@@ -34,7 +34,7 @@ F_ITERATIONS=1000
 F_LEDGERURL=--no-ledger
 F_LOGLEVEL=info
 F_SERVICES=1
-F_SERVICEURL=http://localhost:7101
+F_SERVICEURL=http://intsim-t4.jf.intel.com:7101
 F_USAGE='[-c|--count client] [-i|--iterations count] [--ledger url]'
 
 TEMP=`getopt -o c:i:l: --long count:,iterations:,help,ledger:,loglevel: \

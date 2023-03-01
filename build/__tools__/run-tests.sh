@@ -41,12 +41,11 @@ SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 ESDB_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
-declare -i NUM_SERVICES=5 # must be at least 3 for pconntract update test to work
 function cleanup {
     yell "shutdown services"
-    ${PDO_HOME}/bin/ps-stop.sh --count ${NUM_SERVICES} > /dev/null
-    ${PDO_HOME}/bin/es-stop.sh --count ${NUM_SERVICES} > /dev/null
-    ${PDO_HOME}/bin/ss-stop.sh --count ${NUM_SERVICES} > /dev/null
+    ${PDO_HOME}/bin/ps-stop.sh > /dev/null
+    ${PDO_HOME}/bin/es-stop.sh > /dev/null
+    ${PDO_HOME}/bin/ss-stop.sh > /dev/null
     rm -f ${SAVE_FILE} ${ESDB_FILE}
 }
 
@@ -83,9 +82,9 @@ try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
 # -----------------------------------------------------------------
 yell start enclave and provisioning services
 # -----------------------------------------------------------------
-try ${PDO_HOME}/bin/ss-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} > /dev/null
-try ${PDO_HOME}/bin/ps-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
-try ${PDO_HOME}/bin/es-start.sh --loglevel ${PDO_LOG_LEVEL} --count ${NUM_SERVICES} --ledger ${PDO_LEDGER_URL} --clean > /dev/null
+try ${PDO_HOME}/bin/ss-start.sh --loglevel ${PDO_LOG_LEVEL}
+try ${PDO_HOME}/bin/ps-start.sh --loglevel ${PDO_LOG_LEVEL} --ledger ${PDO_LEDGER_URL} --clean
+try ${PDO_HOME}/bin/es-start.sh --loglevel ${PDO_LOG_LEVEL} --ledger ${PDO_LEDGER_URL} --clean
 
 cd ${SRCDIR}/build
 
@@ -132,9 +131,9 @@ yell start tests with provisioning and enclave services
 ## -----------------------------------------------------------------
 say run unit tests for eservice database
 cd ${SRCDIR}/python/pdo/test
-try python servicedb.py --logfile $PDO_HOME/logs/client.log --loglevel ${PDO_LOG_LEVEL} \
+try python servicedb.py --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
     --eservice-db ${ESDB_FILE} \
-    --url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
+    --url http://${PDO_HOSTNAME}:7101/ http://${PDO_HOSTNAME}:7102/ http://${PDO_HOSTNAME}:7103/ \
     --ledger ${PDO_LEDGER_URL}
 try rm -f ${ESDB_FILE}
 
@@ -142,19 +141,19 @@ cd ${SRCDIR}/build
 
 say create the eservice database using database CLI
 try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} reset --create
-try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7101 -n es7101
-try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7102 -n es7102
-try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7103 -n es7103
-try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7104 -n es7104
-try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://localhost:7105 -n es7105
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://${PDO_HOSTNAME}:7101 -n es7101
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://${PDO_HOSTNAME}:7102 -n es7102
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://${PDO_HOSTNAME}:7103 -n es7103
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://${PDO_HOSTNAME}:7104 -n es7104
+try pdo-eservicedb --loglevel ${PDO_LOG_LEVEL} add -u http://${PDO_HOSTNAME}:7105 -n es7105
 
 say start storage service test
-try pdo-test-storage --url http://localhost:7201 --loglevel ${PDO_LOG_LEVEL} --logfile __screen__
+try pdo-test-storage --url http://${PDO_HOSTNAME}:7201 --loglevel ${PDO_LOG_LEVEL} --logfile __screen__
 
 say start request test
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ \
+    --pservice http://${PDO_HOSTNAME}:7001/ http://${PDO_HOSTNAME}:7002 http://${PDO_HOSTNAME}:7003 \
+    --eservice-url http://${PDO_HOSTNAME}:7101/ \
     --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 
 # execute the common tests
@@ -163,8 +162,8 @@ for test_file in ${SRCDIR}/build/tests/common/*.json ; do
     say start test ${test_contract} with services
     try pdo-test-contract --contract ${test_contract} \
         --expressions ${test_file} \
-        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-        --eservice-url http://localhost:7101/ \
+        --pservice http://${PDO_HOSTNAME}:7001/ http://${PDO_HOSTNAME}:7002 http://${PDO_HOSTNAME}:7003 \
+        --eservice-url http://${PDO_HOSTNAME}:7101/ \
         --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
@@ -179,8 +178,8 @@ for test_file in ${SRCDIR}/build/tests/${INTERPRETER_NAME}/*.json ; do
     say start interpreter-specific test ${test_contract} with services
     try pdo-test-contract --contract ${test_contract} \
         --expressions ${test_file} \
-        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-        --eservice-url http://localhost:7101/ \
+        --pservice http://${PDO_HOSTNAME}:7001/ http://${PDO_HOSTNAME}:7002 http://${PDO_HOSTNAME}:7003 \
+        --eservice-url http://${PDO_HOSTNAME}:7101/ \
         --logfile __screen__ --loglevel ${PDO_LOG_LEVEL}
 done
 
@@ -211,7 +210,7 @@ fi
 # -----------------------------------------------------------------
 yell test pdo-shell
 # -----------------------------------------------------------------
-try ${SRCDIR}/build/tests/shell-test.psh --loglevel ${PDO_LOG_LEVEL}
+try ${SRCDIR}/build/tests/shell-test.psh -m host ${PDO_HOSTNAME} --loglevel ${PDO_LOG_LEVEL}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -231,8 +230,8 @@ yell run tests for state replication
 say start mock-contract test with replication 3 eservices 2 replicas needed before txn.
 
 try pdo-test-request --ledger ${PDO_LEDGER_URL} \
-    --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-    --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
+    --pservice http://${PDO_HOSTNAME}:7001/ http://${PDO_HOSTNAME}:7002 http://${PDO_HOSTNAME}:7003 \
+    --eservice-url http://${PDO_HOSTNAME}:7101/ http://${PDO_HOSTNAME}:7102/ http://${PDO_HOSTNAME}:7103/ \
     --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
@@ -240,8 +239,8 @@ if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
     say start memory test test with replication 3 eservices 2 replicas needed before txn
     try pdo-test-contract --ledger ${PDO_LEDGER_URL} --contract memory-test \
         --expressions ${SRCDIR}/build/tests/${PDO_INTERPRETER}/memory-test.json \
-        --pservice http://localhost:7001/ http://localhost:7002 http://localhost:7003 \
-        --eservice-url http://localhost:7101/ http://localhost:7102/ http://localhost:7103/ \
+        --pservice http://${PDO_HOSTNAME}:7001/ http://${PDO_HOSTNAME}:7002 http://${PDO_HOSTNAME}:7003 \
+        --eservice-url http://${PDO_HOSTNAME}:7101/ http://${PDO_HOSTNAME}:7102/ http://${PDO_HOSTNAME}:7103/ \
         --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
         --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 fi

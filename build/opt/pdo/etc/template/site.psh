@@ -26,11 +26,11 @@ fi
 ## will be used by the local client to create & interact with
 ## contracts.
 ## -----------------------------------------------------------------
-set -s eservice1 -v http://localhost:7101
-set -s eservice2 -v http://localhost:7102
-set -s eservice3 -v http://localhost:7103
-set -s eservice4 -v http://localhost:7104
-set -s eservice5 -v http://localhost:7105
+set -s eservice1 -v http://SERVICE_HOST:7101
+set -s eservice2 -v http://SERVICE_HOST:7102
+set -s eservice3 -v http://SERVICE_HOST:7103
+set -s eservice4 -v http://SERVICE_HOST:7104
+set -s eservice5 -v http://SERVICE_HOST:7105
 
 ## load the local database if it exists
 set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
@@ -59,11 +59,11 @@ fi
 ## into the contract enclaves.
 ## -----------------------------------------------------------------
 
-set -s pservice1 -v http://localhost:7001
-set -s pservice2 -v http://localhost:7002
-set -s pservice3 -v http://localhost:7003
-set -s pservice4 -v http://localhost:7004
-set -s pservice5 -v http://localhost:7005
+set -s pservice1 -v http://SERVICE_HOST:7001
+set -s pservice2 -v http://SERVICE_HOST:7002
+set -s pservice3 -v http://SERVICE_HOST:7003
+set -s pservice4 -v http://SERVICE_HOST:7004
+set -s pservice5 -v http://SERVICE_HOST:7005
 
 ## default pservice group
 pservice add --url ${pservice1}
@@ -146,11 +146,11 @@ eservice --group all use --url ${eservice1}
 ## persistent storage service
 ## -----------------------------------------------------------------
 
-set -s sservice1 -v http://localhost:7201
-set -s sservice2 -v http://localhost:7202
-set -s sservice3 -v http://localhost:7203
-set -s sservice4 -v http://localhost:7204
-set -s sservice5 -v http://localhost:7205
+set -s sservice1 -v http://SERVICE_HOST:7201
+set -s sservice2 -v http://SERVICE_HOST:7202
+set -s sservice3 -v http://SERVICE_HOST:7203
+set -s sservice4 -v http://SERVICE_HOST:7204
+set -s sservice5 -v http://SERVICE_HOST:7205
 
 set -s persistent_storage_service -v ${sservice1}
 

@@ -41,8 +41,21 @@ SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
-KEYDIR := $(DSTDIR)/opt/pdo/keys/
-ETCDIR := $(DSTDIR)/opt/pdo/etc/
+# this is an optional configuration variable to control the
+# hostname used in configuration files; we use it here to
+# customize the site.psh file
+ifndef PDO_HOSTNAME
+SERVICE_HOST := localhost
+else
+SERVICE_HOST := $(PDO_HOSTNAME)
+endif
+
+# splitting out the configuration root in order to make it easier
+# to build a separate configuration that can be used with the startup
+# scripts; by default the configuration is put into the regular tree
+CONFDIR := $(DSTDIR)
+KEYDIR := $(CONFDIR)/opt/pdo/keys/
+ETCDIR := $(CONFDIR)/opt/pdo/etc/
 
 KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
 CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
@@ -104,7 +117,24 @@ $(PYTHON_DIR) :
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
-	mkdir -p $(DSTDIR)
+	@mkdir -p $(DSTDIR)
+	@mkdir -p $(DSTDIR)/opt/pdo/bin
+	@mkdir -p $(DSTDIR)/opt/pdo/contracts
+	@mkdir -p $(DSTDIR)/opt/pdo/data
+	@mkdir -p $(DSTDIR)/opt/pdo/logs
+
+# these are kept separate so that we can build a service
+# configuration from the templates that is different from
+# the test configuration
+$(KEYDIR) :
+	@echo Create the key directory $(KEYDIR)
+	@mkdir -p $(KEYDIR)
+
+$(ETCDIR) :
+	@echo Create the etc directory $(ETCDIR)
+	@mkdir -p $(ETCDIR)
+	@mkdir -p $(ETCDIR)/keys/sgx
+	@mkdir -p $(ETCDIR)/keys/ledger
 
 verify-pre-build :
 	$(VERIFY_PRE_BUILD)
@@ -128,18 +158,18 @@ ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 service_indexes := 1 2 3 4 5
 
 ifeq ($(PDO_LEDGER_TYPE),sawtooth)
-	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+	ESERVICE_KEYS := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.skf))
 	ecdsa_curve := secp256k1
 else
-	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.pem))
+	ESERVICE_KEYS := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.pem))
 	ecdsa_curve := secp384r1
 endif
 
-SSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),sservice$(i)_private.pem))
-PSERVICE_PEM := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),pservice$(i)_private.pem))
+SSERVICE_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),sservice$(i)_private.pem))
+PSERVICE_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),pservice$(i)_private.pem))
 
 user_indexes := 1 2 3 4 5 6 7 8 9 10
-USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.pem))
+USER_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(user_indexes),user$(i)_private.pem))
 
 %.skf :
 	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
@@ -147,7 +177,11 @@ USER_PEM := $(addprefix $(KEYDIR),$(foreach i,$(user_indexes),user$(i)_private.p
 %.pem :
 	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem --curve $(ecdsa_curve)
 
-keys : $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM) $(USER_PEM)
+service-keys : $(KEYDIR) $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM)
+
+user-keys : $(KEYDIR) $(USER_PEM)
+
+keys : service-keys user-keys
 
 ESERVICE_CONF := $(ETCDIR)/eservice1.toml
 SSERVICE_CONF := $(ETCDIR)/sservice1.toml
@@ -162,15 +196,17 @@ ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 verified-conf : verify-pre-conf
 	${MAKE} conf
 
-conf : $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
+conf : $(ETCDIR) $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
 
 force-conf : verify-pre-conf
-	- rm $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
+	- rm -f $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF)
+	- rm -f  $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
+	- rm -f $(ETCDIR)/site.psh
 	${MAKE} conf
 
 $(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
-	@ echo copy site.psh
-	@ cp $(SCRIPTDIR)/opt/pdo/etc/template/site.psh $(ETCDIR)/site.psh
+	@ echo create site.psh
+	@ sed "s/SERVICE_HOST/$(SERVICE_HOST)/" $(SCRIPTDIR)/opt/pdo/etc/template/site.psh > $(ETCDIR)/site.psh
 
 $(ESERVICE_CONF) : $(ESERVICE_CONF_TEMPLATE)
 	@ echo create configuration files for eservice
@@ -207,13 +243,7 @@ $(CONTRACT_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
 			--output-directory $(dir $@) \
 			single --file $(notdir $@)
 
-template : $(PYTHON_DIR)
-	mkdir -p $(DSTDIR)/opt/pdo/data
-	mkdir -p $(DSTDIR)/opt/pdo/etc
-	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sgx
-	mkdir -p $(DSTDIR)/opt/pdo/etc/keys/ledger
-	mkdir -p $(DSTDIR)/opt/pdo/keys
-	mkdir -p $(DSTDIR)/opt/pdo/logs
+template : $(DSTDIR) $(ETCDIR) $(KEYDIR)
 
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
@@ -235,4 +265,5 @@ benchmark : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)
 
 .PHONY : all build verified-build clean clean-build clean-install conf verified-conf environment
-.PHONY : install keys rebuild system-keys template test verify-pre-build verify-pre-conf
+.PHONY : install rebuild template test verify-pre-build verify-pre-conf
+.PHONY : keys service-keys system-keys user-keys

@@ -86,12 +86,13 @@ declare -i u p v value
 
 say increment the value with a simple expression ${iterations} times, querying enclaves in round robin
 for v in $(seq 1 ${iterations}) ; do
+    echo pass $v
     u=$((v % user_count + base_user))
     p=$((v % port_count + base_port))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
                        --wait yes \
                        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
-                       --enclave "http://localhost:${p}" --identity user${u} \
+                       --enclave "http://${PDO_HOSTNAME}:${p}" --identity user${u} \
                        --pdo_file ${SAVE_FILE} --method anonymous_inc_value)
     if [ $value != $v ]; then
         die "contract has the wrong value ($value instead of $v) for enclave $e"
@@ -103,7 +104,7 @@ for v in $(seq 1 ${port_count}) ; do
     p=$((v % port_count + base_port))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
                        --logfile __screen__ --loglevel ${PDO_LOG_LEVEL} \
-                       --enclave "http://localhost:${p}" --identity user1 \
+                       --enclave "http://${PDO_HOSTNAME}:${p}" --identity user1 \
                        --pdo_file ${SAVE_FILE} --method get_value)
     if [ $value != $iterations ]; then
         die "contract has the wrong value ($value instead of $iterations for enclave $e"
