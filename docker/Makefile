@@ -140,19 +140,18 @@ test-with-no-build: test-env-setup-with-no-build
 	fi
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
-	   exec -T pdo-build bash -i -c /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh
+	   exec -T pdo-build bash -i -c "unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"
 	# - teardown
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) down
-
 
 test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 	# - run automated tests
 	@echo "Running PDO tests with CCF"
 	# the pdo container must add the ip address of the pdo-tp-ccf container to its no proxy list (if behind a proxy)
 	if [ ! -z "$(no_proxy)" ]; then \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	else \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	fi
 
 	# remove ccf keys from local folder

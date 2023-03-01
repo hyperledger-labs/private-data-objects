@@ -35,7 +35,7 @@ services:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
 
   # PDO Transaction processor
   pdo-tp:
@@ -47,28 +47,28 @@ services:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
 
   settings-tp:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
 
   validator:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
 
   rest-api:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
 
   shell:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build"
+      no_proxy: "${no_proxy},shell,rest-api,validator,settings-tp,pdo-tp,pdo-build,sawtooth-pdo-build,pdo-sgx-build"
