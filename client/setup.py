@@ -38,7 +38,7 @@ key_dir = os.path.join(install_root_dir, "keys")
 
 data_files = [
     (bin_dir, [ 'bin/pdo-create.psh', 'bin/pdo-invoke.psh' ]),
-    (etc_dir, [ 'etc/auction-test.toml', 'etc/sample_client.toml' ])
+    (etc_dir, [ 'etc/sample_client.toml' ])
 ]
 
 ## -----------------------------------------------------------------
