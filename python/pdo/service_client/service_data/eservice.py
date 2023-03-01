@@ -293,7 +293,8 @@ def add_by_url(ledger_config, url, name='', update=False) :
         return einfo
 
     except Exception as e :
-        logger.exception('add_by_url')
+        logger.error('failed to add enclave at %s; %s', url, str(e))
+        return None
 
     return None
 
