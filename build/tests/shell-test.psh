@@ -19,72 +19,72 @@ set --conditional -s save -v .
 
 ## create an eservice db with the known enclave services
 eservice_db clear
-eservice_db add --url http://localhost:7101 --name es7101
-eservice_db add --url http://localhost:7102 --name es7102
-eservice_db add --url http://localhost:7103 --name es7103
-eservice_db add --url http://localhost:7104 --name es7104
-eservice_db add --url http://localhost:7105 --name es7105
+eservice_db add --url http://${host}:7101 --name es7101
+eservice_db add --url http://${host}:7102 --name es7102
+eservice_db add --url http://${host}:7103 --name es7103
+eservice_db add --url http://${host}:7104 --name es7104
+eservice_db add --url http://${host}:7105 --name es7105
 eservice_db save --database ${data}/test-db.json
 
 eservice_db clear
 eservice_db load --database ${data}/test-db.json
 
 ## default pservice group
-pservice add --url http://localhost:7001
-pservice add --url http://localhost:7002
-pservice add --url http://localhost:7003
+pservice add --url http://${host}:7001
+pservice add --url http://${host}:7002
+pservice add --url http://${host}:7003
 
 ## pservice group p1
-pservice --group p1 add --url http://localhost:7003
-pservice --group p1 add --url http://localhost:7004
-pservice --group p1 add --url http://localhost:7005
+pservice --group p1 add --url http://${host}:7003
+pservice --group p1 add --url http://${host}:7004
+pservice --group p1 add --url http://${host}:7005
 
 ## pservice group all
-pservice --group all add --url http://localhost:7001
-pservice --group all add --url http://localhost:7002
-pservice --group all add --url http://localhost:7003
-pservice --group all add --url http://localhost:7004
-pservice --group all add --url http://localhost:7005
+pservice --group all add --url http://${host}:7001
+pservice --group all add --url http://${host}:7002
+pservice --group all add --url http://${host}:7003
+pservice --group all add --url http://${host}:7004
+pservice --group all add --url http://${host}:7005
 
 ## default eservice group
-eservice add --url http://localhost:7101
-eservice add --url http://localhost:7102
-eservice add --url http://localhost:7103
+eservice add --url http://${host}:7101
+eservice add --url http://${host}:7102
+eservice add --url http://${host}:7103
 
 ## eservice group e1
 eservice --group e1 add --name es7103 es7104 es7105
-eservice --group e1 use --url http://localhost:7105
+eservice --group e1 use --url http://${host}:7105
 
 ## eservice group all
-eservice --group all add --url http://localhost:7101
-eservice --group all add --url http://localhost:7102 http://localhost:7103 --name es7104 es7105
+eservice --group all add --url http://${host}:7101
+eservice --group all add --url http://${host}:7102 http://${host}:7103 --name es7104 es7105
 eservice --group all use --name es7104
 
 ## default sservice group
-set -s persistent_storage_service -v http://localhost:7201
+set -s persistent_storage_service -v http://${host}:7201
 
-sservice add --url http://localhost:7201
-sservice add --url http://localhost:7202
-sservice add --url http://localhost:7203
+sservice add --url http://${host}:7201
+sservice add --url http://${host}:7202
+sservice add --url http://${host}:7203
 sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s1
-sservice --group s1 add --url http://localhost:7203
-sservice --group s1 add --url http://localhost:7204
-sservice --group s1 add --url http://localhost:7205
+sservice --group s1 add --url http://${host}:7203
+sservice --group s1 add --url http://${host}:7204
+sservice --group s1 add --url http://${host}:7205
 sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s2
-sservice --group s2 add --url http://localhost:7201
-sservice --group s2 add --url http://localhost:7202
+sservice --group s2 add --url http://${host}:7201
+sservice --group s2 add --url http://${host}:7202
 sservice --group s2 set --duration 120 --replicas 1 --persistent ${persistent_storage_service}
 
 ## all sservices
-sservice --group all add --url http://localhost:7201
-sservice --group all add --url http://localhost:7202
-sservice --group all add --url http://localhost:7203
-sservice --group all add --url http://localhost:7204
-sservice --group all add --url http://localhost:7205
+sservice --group all add --url http://${host}:7201
+sservice --group all add --url http://${host}:7202
+sservice --group all add --url http://${host}:7203
+sservice --group all add --url http://${host}:7204
+sservice --group all add --url http://${host}:7205
 sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
 
 ## create some contracts
@@ -107,8 +107,8 @@ fi
 
 identity -n user2
 create -c mock-contract -s _mock-contract -r all -p all -e all -f ${save}/${contract2}.pdo
-send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7101
-send -f ${save}/${contract2}.pdo --wait inc_value -e http://localhost:7102
+send -f ${save}/${contract2}.pdo --wait inc_value -e http://${host}:7101
+send -f ${save}/${contract2}.pdo --wait inc_value -e http://${host}:7102
 send -f ${save}/${contract2}.pdo --wait inc_value -e random
 send -f ${save}/${contract2}.pdo --wait inc_value -e random
 send -f ${save}/${contract2}.pdo get_value -s value

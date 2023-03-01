@@ -19,7 +19,7 @@
 # Identity is a string used to identify the service in log files
 Identity = "${identity}"
 HttpPort = ${{7100+_count_}}
-Host = "localhost"
+Host = "${host}"
 
 # Max number of threads for processing WSGI requests
 WorkerThreads = 8
@@ -31,7 +31,7 @@ ReactorThreads = 8
 # StorageService -- information about KV block stores
 # --------------------------------------------------
 [StorageService]
-URL = "http://localhost:${{7200+_count_}}"
+URL = "http://${host}:${{7200+_count_}}"
 BlockStore = "${data}/${{identity.replace('eservice','sservice')}}.mdb"
 
 # --------------------------------------------------

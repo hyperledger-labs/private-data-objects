@@ -18,7 +18,7 @@
 [ProvisioningService]
 Identity = "${identity}"
 HttpPort = ${{7000+_count_}}
-Host = "localhost"
+Host = "${host}"
 
 # --------------------------------------------------
 # Ledger -- ledger configuration
