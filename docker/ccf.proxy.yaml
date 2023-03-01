@@ -35,4 +35,4 @@ services:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,10.0.0.0/8,192.168.0.0/16,172.0.0.0/8"
+      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,ccf-pdo-build,10.0.0.0/8,192.168.0.0/16,172.0.0.0/8"
