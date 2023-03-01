@@ -28,7 +28,6 @@ pgrepf() { PLIST=$(ps -ef | egrep -v '<defunct>|egrep|awk' | egrep "$1"); rc=$?;
 # get url base from config
 get_url_base() {
     IDENTITY=$1
-
     config_file="${F_CONFDIR}/${IDENTITY}.toml"
     host=$(perl -n -e'/^\s*Host\s*=\s*"([a-zA-Z0-9-.]+)"/ && print $1' ${config_file})
     [ ! -z "${host}" ] || { echo "no valide host found for service $IDENTITY"; exit 1; }
@@ -52,23 +51,22 @@ CURL_CMD='curl --ipv4 --retry-connrefuse --retry 10 --retry-max-time 50 --connec
 # - requires setting F_BASENAME, F_SERVICE_CMD and F_SERVICE_NAME to be set
 # - cmd-line params have to be passed as arguments of function
 service_start() {
-    F_COUNT=1
     F_LEDGERURL=''
     F_OUTPUTDIR=''
     F_CLEAN='no'
-    F_LOGLEVEL='info'
+    F_LOGLEVEL=''
 
     # -----------------------------------------------------------------
     # Process command line arguments
     # -----------------------------------------------------------------
     if [ "${F_SERVICE_CMD}" = "sservice" ]; then
-	F_USAGE='-c|--count services -b|--base name -o|--output dir -l|--loglevel [debug|info|warn]'
-	SHORT_OPTS='c:b:o:l:'
-	LONG_OPTS='base:,count:,help,loglevel:,output:'
+	F_USAGE='-b|--base name --clean -c|--config directory -o|--output dir -l|--loglevel [debug|info|warn]'
+	SHORT_OPTS='b:c:o:l:'
+	LONG_OPTS='base:,config:,clean,help,loglevel:,output:'
     else
-	F_USAGE='-c|--count services -b|--base name --ledger url -o|--output dir --clean -l|--loglevel [debug|info|warn]'
-	SHORT_OPTS='c:b:o:l:'
-	LONG_OPTS='base:,clean,count:,help,loglevel:,output:,ledger:'
+	F_USAGE='-b|--base name --clean -c|--config directory --ledger url -o|--output dir --clean -l|--loglevel [debug|info|warn]'
+	SHORT_OPTS='b:c:o:l:'
+	LONG_OPTS='base:,config:,clean,help,loglevel:,output:,ledger:'
     fi
 
     TEMP=$(getopt -o ${SHORT_OPTS} --long ${LONG_OPTS} -n "${SCRIPT_NAME}" -- "$@")
@@ -79,9 +77,9 @@ service_start() {
         case "$1" in
             -b|--base) F_BASENAME="$2" ; shift 2 ;;
             --clean) F_CLEAN="yes" ; shift 1 ;;
-            -c|--count) F_COUNT="$2" ; shift 2 ;;
+            -c|--config) F_CONFDIR="$2" ; shift 2 ;;
             --ledger) F_LEDGERURL="--ledger $2" ; shift 2 ;;
-            -l|--loglevel) F_LOGLEVEL="$2" ; shift 2 ;;
+            -l|--loglevel) F_LOGLEVEL="--loglevel $2" ; shift 2 ;;
             -o|--output) F_OUTPUTDIR="$2" ; shift 2 ;;
             --help) echo "Usage: ${SCRIPT_NAME} ${F_USAGE}"; exit 0 ;;
     	--) shift ; break ;;
@@ -90,7 +88,6 @@ service_start() {
     done
 
     # (1) do not start if service already running
-    ## pgrepf  "\b${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b"
     PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
     if [ -n "$PLIST" ] ; then
         echo existing ${F_SERVICE_NANME} services detected, please shutdown first
@@ -98,8 +95,8 @@ service_start() {
     fi
 
     # (2) start services asynchronously
-    for index in `seq 1 $F_COUNT` ; do
-        IDENTITY="${F_BASENAME}$index"
+    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}[0-9].toml)
+    for IDENTITY in ${ILIST[@]} ; do
         echo start ${F_SERVICE_NAME} service $IDENTITY
 
         if [ "${F_CLEAN}" == "yes" ]; then
@@ -121,26 +118,36 @@ service_start() {
         fi
 
 	if [ "${F_SERVICE_CMD}" = "sservice" ]; then
+            echo ${F_SERVICE_CMD} --identity ${IDENTITY} \
+                 --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
+		 ${F_LOGLEVEL}
             ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
-			     --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
+			     ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	else
-            ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} ${F_LEDGERURL} \
-			     --loglevel ${F_LOGLEVEL} --logfile ${F_LOGDIR}/${IDENTITY}.log 2> $EFILE > $OFILE &
+            echo ${F_SERVICE_CMD} --identity ${IDENTITY} \
+                 --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} \
+                 ${F_LEDGERURL} ${F_LOGLEVEL}
+            ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} \
+                             ${F_LEDGERURL} ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	fi
     done
 
+    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
+    if [ -n "$PLIST" ] ; then
+        ps -h --format pid,start,cmd -p $PLIST
+    fi
+
     # (3) wait for successfull start of the services
-    for index in `seq 1 $F_COUNT` ; do
-        IDENTITY="${F_BASENAME}$index"
+    for IDENTITY in ${ILIST[@]} ; do
         echo waiting for startup completion of ${F_SERVICE_NAME} service $IDENTITY
 
-        url="$(get_url_base $IDENTITY)/info" || { echo "no url found for ${F_SERVICE_NAME} service"; exit 1; }
+        url="$(get_url_base ${IDENTITY})/info" || { echo "no url found for ${F_SERVICE_NAME} service"; exit 1; }
         resp=$(${CURL_CMD} ${url})
         if [ $? != 0 ] || [ $resp != "200" ]; then
-    	echo "${F_SERVICE_NAME} service $IDENTITY not properly running"
-    	exit 1
+    	    echo "${F_SERVICE_NAME} service $IDENTITY not properly running"
+    	    exit 1
         fi
     done
 }
@@ -185,13 +192,12 @@ service_status() {
 # - requires setting F_BASENAME and F_SERVICE_NAME to be set
 # - cmd-line params have to be passed as arguments of function
 service_stop() {
-    F_USAGE='-c|--count services -b|--base name'
-    F_COUNT=1
+    F_USAGE='-c|--config path -b|--base name'
 
     # -----------------------------------------------------------------
     # Process command line arguments
     # -----------------------------------------------------------------
-    TEMP=$(getopt -o b:c:h --long base:,count:,help \
+    TEMP=$(getopt -o "b:c:h" --long "base:,config:,help" \
 		  -n "${SCRIPT_NAME}" -- "$@")
 
     if [ $? != 0 ] ; then echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" >&2 ; exit 1 ; fi
@@ -200,7 +206,7 @@ service_stop() {
     while true ; do
         case "$1" in
             -b|--base) F_BASENAME="$2" ; shift 2 ;;
-            -c|--count) F_COUNT="$2" ; shift 2 ;;
+            -c|--config) F_CONFDIR="$2" ; shift 2 ;;
             --help) echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" ; exit 0 ;;
     	--) shift ; break ;;
     	*) echo "Internal error!" ; exit 1 ;;
@@ -208,16 +214,15 @@ service_stop() {
     done
 
     rc=0
-    for index in `seq 1 $F_COUNT` ; do
-        IDENTITY="${F_BASENAME}$index"
+    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}[0-9].toml)
+    for IDENTITY in ${ILIST[@]} ; do
         echo "stopping ${F_SERVICE_NAME} service ${IDENTITY}"
-
         if [ -f ${F_LOGDIR}/${IDENTITY}.pid ]; then
             kill -SIGTERM $(cat ${F_LOGDIR}/${IDENTITY}.pid)
             rm -f ${F_LOGDIR}/${IDENTITY}.pid
         else
-    	echo "${F_SERVICE_NAME} service ${IDENTITY} not running or not properly shut down"
-    	rc=1
+    	    echo "${F_SERVICE_NAME} service ${IDENTITY} not running or not properly shut down"
+    	    rc=1
         fi
     done
     exit $rc
