@@ -82,6 +82,9 @@ for url in options.url :
 # -----------------------------------------------------------------
 for e in names:
     einfo_by_name = eservice_db.get_by_name(e)
+    if einfo_by_name is None :
+        logger.warning("Failed to find enclave by name {}".format(e))
+        sys.exit(-1)
     einfo_by_enclave_id = eservice_db.get_by_enclave_id(einfo_by_name.client.enclave_id)
 
     # this can probably be simplified to just a comparison of
