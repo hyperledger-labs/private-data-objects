@@ -76,9 +76,7 @@ make clean
 make
 ```
 
-Please note that while installing CCF, a pip depenency related ERROR regarding  cryptography package may showup. However, we believe currently that this
-does not affect either the installation or PDO/CCF execution. Please report if your experience is different. Further, we beleive the ERROR is realted to the
-issue discussed at https://github.com/pyca/cryptography/issues/6548.
+Please note that while installing CCF, a pip dependency  related ERROR regarding  cryptography package may show up. However, we believe currently that this does not affect either the installation or PDO/CCF execution. Please report if your experience is different. Further, we beleive the ERROR is realted to the issue discussed at https://github.com/pyca/cryptography/issues/6548.
 
 ## Configure
 

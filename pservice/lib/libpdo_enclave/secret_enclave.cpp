@@ -678,7 +678,6 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
 
 
     return result;
-
 }// VerifyEnclaveInfo
 
 

@@ -42,10 +42,11 @@ namespace ccf
     string signature;
   };
   DECLARE_JSON_TYPE(ProofData);
-  DECLARE_JSON_REQUIRED_FIELDS(ProofData,
-  certificates,
-  verification_report,
-  signature);
+  DECLARE_JSON_REQUIRED_FIELDS(
+    ProofData,
+    certificates,
+    verification_report,
+    signature);
 
   struct VerificationReport{
     string epidPseudonym;
@@ -57,7 +58,8 @@ namespace ccf
     string timestamp;
   };
   DECLARE_JSON_TYPE(VerificationReport);
-  DECLARE_JSON_REQUIRED_FIELDS(VerificationReport,
+  DECLARE_JSON_REQUIRED_FIELDS(
+    VerificationReport,
     epidPseudonym,
     id,
     isvEnclaveQuoteStatus,
