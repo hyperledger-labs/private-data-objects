@@ -51,7 +51,7 @@ COMPILE_TARGET=virtual
 
 all: environment keys config install
 
-build: build-ccf build-pdo-tp
+build: build-pdo-tp
 
 build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
@@ -103,7 +103,7 @@ $(PYTHON_DIR) :
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade -r $(CCF_BASE)/bin/requirements.txt
 	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19 toml
 
-install : install-ccf install-pdo-tp
+install : install-pdo-tp
 
 PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
 PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py utils.py
@@ -117,7 +117,7 @@ install-pdo-tp : build-pdo-tp
 keys :
 	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name memberccf --gen-enc-key
 
-.PHONY : all build build-ccf build-pdo-tp
+.PHONY : all build build-pdo-tp
 .PHONY : clean clean-build clean-install
 .PHONY : config environment
-.PHONY : install install-ccf install-pdo-tp keys
+.PHONY : install install-pdo-tp keys
