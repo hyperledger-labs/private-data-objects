@@ -69,6 +69,8 @@ ARG SGXSSL=2.10_1.1.1g
 
 ARG ADD_APT_PKGS=
 
+ENV TERM=screen-256color
+
 # Add necessary packages
 # TODO(xenial): we need to manually install protobuf 3 as xenial has v2
 # Note: ocamlbuild is required by PREREQ but does not exist for xenial. However, the relevant componets are part of 'ocaml' package, later ubuntu split up that package ...

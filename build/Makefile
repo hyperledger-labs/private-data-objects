@@ -45,38 +45,38 @@ SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 # hostname used in configuration files; we use it here to
 # customize the site.psh file
 ifndef PDO_HOSTNAME
-SERVICE_HOST := localhost
+SERVICE_HOST = localhost
 else
-SERVICE_HOST := $(PDO_HOSTNAME)
+SERVICE_HOST = $(PDO_HOSTNAME)
 endif
 
 # splitting out the configuration root in order to make it easier
 # to build a separate configuration that can be used with the startup
 # scripts; by default the configuration is put into the regular tree
-CONFDIR := $(DSTDIR)
-KEYDIR := $(CONFDIR)/opt/pdo/keys/
-ETCDIR := $(CONFDIR)/opt/pdo/etc/
+CONFDIR ?= $(DSTDIR)
+KEYDIR = $(CONFDIR)/opt/pdo/keys/
+ETCDIR = $(CONFDIR)/opt/pdo/etc/
 
-KEYGEN=$(abspath $(SCRIPTDIR)/__tools__/make-keys)
-CNFGEN=$(abspath $(SCRIPTDIR)/__tools__/expand-config)
-BUILD=$(abspath $(SCRIPTDIR)/__tools__/build.sh)
-VERIFY_PRE_BUILD=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
-VERIFY_PRE_CONF=$(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
-CLEAN=$(abspath $(SCRIPTDIR)/__tools__/clean.sh)
-TESTSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
-BENCHMARKSCRIPT=$(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
+KEYGEN = $(abspath $(SCRIPTDIR)/__tools__/make-keys)
+CNFGEN = $(abspath $(SCRIPTDIR)/__tools__/expand-config)
+BUILD = $(abspath $(SCRIPTDIR)/__tools__/build.sh)
+VERIFY_PRE_BUILD = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
+VERIFY_PRE_CONF = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
+CLEAN = $(abspath $(SCRIPTDIR)/__tools__/clean.sh)
+TESTSCRIPT = $(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
+BENCHMARKSCRIPT = $(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
 
-PY_VERSION=${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
-PYTHON_DIR=$(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
+PY_VERSION = ${shell python3 --version | sed 's/Python \(3\.[0-9]*\)\.[0-9]*/\1/'}
+PYTHON_DIR = $(DSTDIR)/lib/python$(PY_VERSION)/site-packages/
 
 ifndef NO_SGX_RUN_DURING_BUILD
-  CONDITIONAL_CONF_TARGET=verified-conf
+  CONDITIONAL_CONF_TARGET = verified-config
   ifeq ($(SGX_MODE),HW)
-    CONDITIONAL_REGISTER_TARGET=register
+    CONDITIONAL_REGISTER_TARGET = register
   endif
 else
   ifneq ($(SGX_MODE),HW)
-    CONDITIONAL_CONF_TARGET=verified-conf
+    CONDITIONAL_CONF_TARGET = verified-config
   endif
 endif
 
@@ -139,7 +139,7 @@ $(ETCDIR) :
 verify-pre-build :
 	$(VERIFY_PRE_BUILD)
 
-verify-pre-conf :
+verify-pre-config :
 	$(VERIFY_PRE_CONF)
 
 build : $(PYTHON_DIR)
@@ -155,21 +155,21 @@ system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
 ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
-service_indexes := 1 2 3 4 5
+service_indexes = 1 2 3 4 5
 
 ifeq ($(PDO_LEDGER_TYPE),sawtooth)
-	ESERVICE_KEYS := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.skf))
-	ecdsa_curve := secp256k1
+	ESERVICE_KEYS = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.skf))
+	ecdsa_curve = secp256k1
 else
-	ESERVICE_KEYS := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.pem))
-	ecdsa_curve := secp384r1
+	ESERVICE_KEYS = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.pem))
+	ecdsa_curve = secp384r1
 endif
 
-SSERVICE_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),sservice$(i)_private.pem))
-PSERVICE_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),pservice$(i)_private.pem))
+SSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),sservice$(i)_private.pem))
+PSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),pservice$(i)_private.pem))
 
-user_indexes := 1 2 3 4 5 6 7 8 9 10
-USER_PEM := $(addprefix $(KEYDIR)/,$(foreach i,$(user_indexes),user$(i)_private.pem))
+user_indexes = 1 2 3 4 5 6 7 8 9 10
+USER_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(user_indexes),user$(i)_private.pem))
 
 %.skf :
 	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
@@ -183,26 +183,26 @@ user-keys : $(KEYDIR) $(USER_PEM)
 
 keys : service-keys user-keys
 
-ESERVICE_CONF := $(ETCDIR)/eservice1.toml
-SSERVICE_CONF := $(ETCDIR)/sservice1.toml
-PSERVICE_CONF := $(ETCDIR)/pservice1.toml
-ENCLAVE_CONF := $(ETCDIR)/enclave.toml
-CONTRACT_CONF := $(ETCDIR)/pcontract.toml
+ESERVICE_CONF = $(ETCDIR)/eservice1.toml
+SSERVICE_CONF = $(ETCDIR)/sservice1.toml
+PSERVICE_CONF = $(ETCDIR)/pservice1.toml
+ENCLAVE_CONF = $(ETCDIR)/enclave.toml
+CONTRACT_CONF = $(ETCDIR)/pcontract.toml
 
-GENERATED_CONF_FILES := $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
+GENERATED_CONF_FILES = $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
 
-ESERVICE_CONF_TEMPLATE := $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
+ESERVICE_CONF_TEMPLATE = $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
 
-verified-conf : verify-pre-conf
-	${MAKE} conf
+verified-config : verify-pre-config
+	${MAKE} config
 
-conf : $(ETCDIR) $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
+config : $(ETCDIR) $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
 
-force-conf : verify-pre-conf
+force-config : verify-pre-config
 	- rm -f $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF)
 	- rm -f  $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
 	- rm -f $(ETCDIR)/site.psh
-	${MAKE} conf
+	${MAKE} config
 
 $(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
 	@ echo create site.psh
@@ -253,10 +253,12 @@ register : $(PYTHON_DIR)
 .PHONY : register
 endif
 
-client: environment template build-client $(CONTRACT_CONF) $(USER_PEM) $(ETCDIR)/site.psh
+client: environment template build-client config-client
 
 build-client : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BUILD) --client
+
+config-client : $(CONTRACT_CONF) $(USER_PEM) $(ETCDIR)/site.psh
 
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
@@ -264,6 +266,7 @@ test : $(PYTHON_DIR)
 benchmark : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)
 
-.PHONY : all build verified-build clean clean-build clean-install conf verified-conf environment
-.PHONY : install rebuild template test verify-pre-build verify-pre-conf
+.PHONY : all build verified-build clean clean-build clean-install config verified-config environment
+.PHONY : install rebuild template test verify-pre-build verify-pre-config
+.PHONY : client build-client config-client
 .PHONY : keys service-keys system-keys user-keys

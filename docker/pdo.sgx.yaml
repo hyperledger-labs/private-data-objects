@@ -30,7 +30,7 @@
 #    export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/
 #    unset PDO_SPID PDO_SPID_API_KEY
 #    source /project/pdo/src/private-data-objects/build/common-config.sh
-#    make -C /project/pdo/src/private-data-objects/build conf register
+#    make -C /project/pdo/src/private-data-objects/build config register
 
 version: "2.1"
 
@@ -48,4 +48,3 @@ services:
       - /var/run/aesmd:/var/run/aesmd
     devices:
       - ${SGX_DEVICE_PATH:-/dev/isgx}:${SGX_DEVICE_PATH:-/dev/isgx}
-
