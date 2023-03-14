@@ -19,7 +19,6 @@ import http
 import os
 import sys
 import toml
-from urllib.parse import urlparse
 
 from ccf.clients import Identity
 from ccf.clients import CCFClient
@@ -94,7 +93,6 @@ def Main() :
         config = None
 
     host, port = parse_ledger_url(config)
-    LOG.info(host)
 
     network_cert = os.path.join(CCF_Keys, "networkcert.pem")
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
@@ -113,12 +111,10 @@ def Main() :
         sys.exit(-1)
 
     if options.check_attestation:
-        if (options.mrenclave is None) or (options.basename is None) or (options.ias_public_key is None):
+        if (not options.mrenclave) or (not options.basename) or (not options.ias_public_key):
             raise Exception("Please provide all of the exepected params to set attestation policy")
-    try:
-        register_enclave_attestation_policy(member_client, options)
-    except Exception as e:
-        raise
+
+    register_enclave_attestation_policy(member_client, options)
 
     LOG.info('successfully registered enclave expected measurements')
     sys.exit(0)

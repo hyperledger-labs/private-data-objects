@@ -18,9 +18,7 @@ import argparse
 import http
 import os
 import sys
-import time
 import toml
-from urllib.parse import urlparse
 
 from ccf.clients import Identity
 from ccf.clients import CCFClient

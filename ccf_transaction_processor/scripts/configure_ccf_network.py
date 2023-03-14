@@ -23,8 +23,6 @@ import http
 import os
 import sys
 import toml
-import time
-from urllib.parse import urlparse
 
 from ccf.proposal_generator import transition_node_to_trusted
 from ccf.proposal_generator import transition_service_to_open
