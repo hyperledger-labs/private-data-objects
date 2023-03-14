@@ -110,7 +110,7 @@ test-env-setup-with-no-build:
 	   exec -T validator sawset proposal create --url http://rest-api:8008 --key /root/.sawtooth/keys/my_key.priv sawtooth.validator.transaction_families='[{"family": "intkey", "version": "1.0"}, {"family":"sawtooth_settings", "version":"1.0"}, {"family": "pdo_contract_enclave_registry", "version": "1.0"}, {"family":  "pdo_contract_instance_registry", "version": "1.0"}, {"family": "ccl_contract", "version": "1.0"}]'
 	if [ "$(SGX_MODE)" = "HW" ]; then \
 	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
-	      exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf register'; \
+	      exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-config register'; \
 	fi
 
 test-env-setup-with-no-build-ccf-only:
@@ -140,7 +140,7 @@ test-with-no-build: test-env-setup-with-no-build
 	fi
 	# - run automated tests
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) \
-	   exec -T pdo-build bash -i -c "unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"
+	   exec -T pdo-build bash -i -c "unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-config && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"
 	# - teardown
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_STL) down
 
@@ -149,9 +149,9 @@ test-with-no-build-ccf: test-env-setup-with-no-build-ccf
 	@echo "Running PDO tests with CCF"
 	# the pdo container must add the ip address of the pdo-tp-ccf container to its no proxy list (if behind a proxy)
 	if [ ! -z "$(no_proxy)" ]; then \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "source /set_no_proxy.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-config && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	else \
-	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-conf && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
+	   $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF)  exec -T pdo-build bash -i -c "/project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && unset PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && make -C /project/pdo/src/private-data-objects/build force-config && /project/pdo/src/private-data-objects/build/__tools__/run-tests.sh"; \
 	fi
 
 	# remove ccf keys from local folder
