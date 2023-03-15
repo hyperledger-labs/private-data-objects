@@ -118,26 +118,15 @@ service_start() {
         fi
 
 	if [ "${F_SERVICE_CMD}" = "sservice" ]; then
-            echo ${F_SERVICE_CMD} --identity ${IDENTITY} \
-                 --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
-		 ${F_LOGLEVEL}
             ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
 			     ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	else
-            echo ${F_SERVICE_CMD} --identity ${IDENTITY} \
-                 --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} \
-                 ${F_LEDGERURL} ${F_LOGLEVEL}
             ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} \
                              ${F_LEDGERURL} ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	fi
     done
-
-    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
-    if [ -n "$PLIST" ] ; then
-        ps -h --format pid,start,cmd -p $PLIST
-    fi
 
     # (3) wait for successfull start of the services
     for IDENTITY in ${ILIST[@]} ; do
