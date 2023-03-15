@@ -32,7 +32,9 @@
 
 set --conditional -s data -v .
 set --conditional -s save -v .
-script -f ${home}/etc/site.psh
+
+set --conditional -s site_configuration -v "${home}/etc/site.psh"
+script -f ${site_configuration}
 
 ## create a random string that uniquely identifies the contract
 ## that we are going to create
