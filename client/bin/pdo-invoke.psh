@@ -27,12 +27,14 @@
 ##    identity -- the identity of the contract creator
 ## $ ./pdo-invoke.psh -m contract <contract> -expr <expression> -m identity <identity>
 
+set --conditional -s enclave -v preferred
 set --conditional -s data -v .
 set --conditional -s params -v ""
 set --conditional -s method -v ""
 set --conditional -s wait -v "no"
 
-script -f ${home}/etc/site.psh
+set --conditional -s site_configuration -v "${home}/etc/site.psh"
+script -f ${site_configuration}
 
 if -e ${_identity_} '__unknown__'
    echo missing required parameter, identity
@@ -55,15 +57,15 @@ trap_error
 
 if -n ${params}
    if -e ${wait} "yes"
-      send --wait -s _result_ -f ${pdo_file} ${method}
+      send -e ${enclave} --wait -s _result_ -f ${pdo_file} ${method}
    else
-      send -s _result_ -f ${pdo_file} ${method}
+      send -e ${enclave} -s _result_ -f ${pdo_file} ${method}
    fi
 else
    if -e ${wait} "yes"
-      send --wait -s _result_ -f ${pdo_file} -p ${params} ${method}
+      send -e ${enclave} --wait -s _result_ -f ${pdo_file} -p ${params} ${method}
    else
-      send -s _result_ -f ${pdo_file} -p ${params} ${method}
+      send -e ${enclave} -s _result_ -f ${pdo_file} -p ${params} ${method}
    fi
 fi
 
