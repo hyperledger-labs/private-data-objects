@@ -65,3 +65,14 @@ function check_python_version() {
         die unsupported version of python
     fi
 }
+
+# -----------------------------------------
+# Check the environment for completeness
+# -----------------------------------------
+: "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
+: "${PDO_HOSTNAME:-$(die Missing environment variable PDO_HOSTNAME)}"
+: "${PDO_INTERPRETER:-$(die Missing environment variable PDO_INTERPRETER)}"
+: "${PDO_LEDGER_KEY_ROOT:-$(die Missing environment variable PDO_LEDGER_KEY_ROOT)}"
+: "${PDO_LEDGER_TYPE:-$(die Missing environment variable PDO_LEDGER_TYPE)}"
+: "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
+: "${PDO_SOURCE_ROOT:-$(die Missing environment variable PDO_SOURCE_ROOT)}"
