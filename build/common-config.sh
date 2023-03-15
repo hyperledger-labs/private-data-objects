@@ -166,6 +166,7 @@ var_set() {
 	}
 
 do_export() {
+        export PDO_SOURCE_ROOT
 	for i in "${!env_key_sort[@]}"
 	do
 		ki="${env_key_sort[$i]}"
@@ -174,6 +175,7 @@ do_export() {
 }
 
 print_export() {
+        echo "export PDO_SOURCE_ROOT=${PDO_SOURCE_ROOT}"
 	for i in "${!env_key_sort[@]}"
 	do
 		ki="${env_key_sort[$i]}"
