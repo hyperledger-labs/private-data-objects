@@ -56,6 +56,9 @@ service_start() {
     F_CLEAN='no'
     F_LOGLEVEL=''
 
+    # this is needed for extended pattern matching of configuration file names
+    shopt -s extglob
+
     # -----------------------------------------------------------------
     # Process command line arguments
     # -----------------------------------------------------------------
@@ -88,14 +91,14 @@ service_start() {
     done
 
     # (1) do not start if service already running
-    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
+    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9]+.toml\b")
     if [ -n "$PLIST" ] ; then
         echo existing ${F_SERVICE_NANME} services detected, please shutdown first
         exit 1
     fi
 
     # (2) start services asynchronously
-    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}[0-9].toml)
+    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}+([0-9]).toml)
     for IDENTITY in ${ILIST[@]} ; do
         echo start ${F_SERVICE_NAME} service $IDENTITY
 
@@ -169,7 +172,7 @@ service_status() {
 
     echo "running processes of ${F_SERVICE_NAME} service"
 
-    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9].toml\b")
+    PLIST=$(pgrepf  "${F_BINDIR}/${F_SERVICE_CMD} .* --config ${F_BASENAME}[0-9]+.toml\b")
     if [ -n "$PLIST" ] ; then
         ps -h --format pid,start,cmd -p $PLIST
     fi
@@ -182,6 +185,9 @@ service_status() {
 # - cmd-line params have to be passed as arguments of function
 service_stop() {
     F_USAGE='-c|--config path -b|--base name'
+
+    # this is needed for extended pattern matching of configuration file names
+    shopt -s extglob
 
     # -----------------------------------------------------------------
     # Process command line arguments
@@ -203,7 +209,7 @@ service_stop() {
     done
 
     rc=0
-    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}[0-9].toml)
+    ILIST=$(basename --suffix=.toml ${F_CONFDIR}/${F_BASENAME}+([0-9]).toml)
     for IDENTITY in ${ILIST[@]} ; do
         echo "stopping ${F_SERVICE_NAME} service ${IDENTITY}"
         if [ -f ${F_LOGDIR}/${IDENTITY}.pid ]; then
