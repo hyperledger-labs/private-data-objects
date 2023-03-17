@@ -43,12 +43,10 @@ SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
 # this is an optional configuration variable to control the
 # hostname used in configuration files; we use it here to
-# customize the site.psh file
-ifndef PDO_HOSTNAME
-SERVICE_HOST = localhost
-else
-SERVICE_HOST = $(PDO_HOSTNAME)
-endif
+# customize the site.psh file; this may be most useful when
+# building a client that will connect to services on a
+# different/remote host
+SERVICE_HOST ?= $(PDO_HOSTNAME)
 
 # splitting out the configuration root in order to make it easier
 # to build a separate configuration that can be used with the startup
