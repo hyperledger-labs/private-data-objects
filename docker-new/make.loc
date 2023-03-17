@@ -1,0 +1,2 @@
+PDO_REPO_URL = https://github.com/cmickeyb/private-data-objects.git
+PDO_REPO_BRANCH = mic.mar17.test_docker
