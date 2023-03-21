@@ -64,6 +64,7 @@ services:
         echo "export no_proxy=\$${no_proxy},\`getent hosts pdo-tp-ccf | awk '{ print \$$1 }'\`" > /set_no_proxy.sh
         tail -f /dev/null
     volumes:
+      - ${PDO_SGX_KEY_ROOT:-./sgx/}:/project/pdo/build/opt/pdo/etc/keys/sgx/
       - ./ccf_keys/:/project/pdo/build/opt/pdo/etc/keys/ledger/
 
 
