@@ -16,7 +16,7 @@
 # This docker-compose file starts a complete end-to-end environment for PDO with sawtooth in default mode
 # and sgx in simulator mode. The code used are the main branches for pdo and sawtooth.  If you want to
 # build against non-standard gitrepos/braches, you can define the environment variables PDO_REPO_URL and
-# PDO_REPO_BRANCH to overwrite the defaults for PDO url/branch. 
+# PDO_REPO_BRANCH to overwrite the defaults for PDO url/branch.
 # This will not work if the repo requires authentication, e.g., git
 # with ssh, -- broader adoption of docker version 18.09+ (look for --secret/--ssh parameters) might change
 # this. However, to handle the common case of building and running run against your local workspace,
@@ -66,6 +66,7 @@ services:
         tail -f /dev/null \
         \""
     volumes:
+      - ${PDO_SGX_KEY_ROOT:-./sgx/}:/project/pdo/build/opt/pdo/etc/keys/sgx/
       - ./validator-keys/:/project/pdo/build/opt/pdo/etc/keys/ledger
 
   # PDO Transaction processor
@@ -141,4 +142,3 @@ services:
         \""
     volumes:
        - ./:/mnt/pdo
-

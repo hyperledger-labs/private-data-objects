@@ -248,7 +248,9 @@ register : $(PYTHON_DIR)
 	@ echo registering enclave and IAS public key on the ledger
 	. $(abspath $(DSTDIR)/bin/activate) && $(SRCDIR)/eservice/bin/register-with-ledger.sh
 
-.PHONY : register
+else
+register :
+
 endif
 
 client: environment template build-client config-client
@@ -268,3 +270,4 @@ benchmark : $(PYTHON_DIR)
 .PHONY : install rebuild template test verify-pre-build verify-pre-config
 .PHONY : client build-client config-client
 .PHONY : keys service-keys system-keys user-keys
+.PHONY : register
