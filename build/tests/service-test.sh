@@ -118,17 +118,20 @@ try pdo-test-storage --url http://${F_SERVICE_HOST}:7201 --loglevel ${F_LOGLEVEL
 # -----------------------------------------------------------------
 say start request test
 # -----------------------------------------------------------------
-try pdo-test-request --ledger ${F_LEDGER_URL} \
+try pdo-test-request \
+    --config pcontract.toml \
     --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
     --eservice-url http://${F_SERVICE_HOST}:7101/ \
+    --ledger ${F_LEDGER_URL} \
     --logfile __screen__ --loglevel ${F_LOGLEVEL}
 
 # execute the common tests
 for test_file in ${PDO_SOURCE_ROOT}/build/tests/common/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start test ${test_contract} with services
-    try pdo-test-contract --contract ${test_contract} \
-        --expressions ${test_file} \
+    try pdo-test-contract \
+        --config pcontract.toml \
+        --contract ${test_contract} --expressions ${test_file} \
         --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
         --eservice-url http://${F_SERVICE_HOST}:7101/ \
         --logfile __screen__ --loglevel ${F_LOGLEVEL}
@@ -143,8 +146,9 @@ fi
 for test_file in ${PDO_SOURCE_ROOT}/build/tests/${INTERPRETER_NAME}/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start interpreter-specific test ${test_contract} with services
-    try pdo-test-contract --contract ${test_contract} \
-        --expressions ${test_file} \
+    try pdo-test-contract \
+        --config pcontract.toml \
+        --contract ${test_contract} --expressions ${test_file} \
         --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
         --eservice-url http://${F_SERVICE_HOST}:7101/ \
         --logfile __screen__ --loglevel ${F_LOGLEVEL}
@@ -198,18 +202,22 @@ cd ${PDO_SOURCE_ROOT}/build
 yell run tests for state replication
 say start mock-contract test with replication 3 eservices 2 replicas needed before txn.
 
-try pdo-test-request --ledger ${F_LEDGER_URL} \
+try pdo-test-request \
+    --config pcontract.toml \
     --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
     --eservice-url http://${F_SERVICE_HOST}:7101/ http://${F_SERVICE_HOST}:7102/ http://${F_SERVICE_HOST}:7103/ \
+    --ledger ${F_LEDGER_URL} \
     --logfile __screen__ --loglevel ${F_LOGLEVEL} --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
 if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
     say start memory test test with replication 3 eservices 2 replicas needed before txn
-    try pdo-test-contract --ledger ${F_LEDGER_URL} --contract memory-test \
-        --expressions ${PDO_SOURCE_ROOT}/build/tests/${PDO_INTERPRETER}/memory-test.json \
+    try pdo-test-contract \
+        --config pcontract.toml \
+        --contract memory-test --expressions ${PDO_SOURCE_ROOT}/build/tests/${PDO_INTERPRETER}/memory-test.json \
         --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
         --eservice-url http://${F_SERVICE_HOST}:7101/ http://${F_SERVICE_HOST}:7102/ http://${F_SERVICE_HOST}:7103/ \
+        --ledger ${F_LEDGER_URL} \
         --logfile __screen__ --loglevel ${F_LOGLEVEL} \
         --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 fi
