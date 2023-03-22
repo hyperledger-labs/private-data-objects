@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 import pdo.common.crypto as crypto
 from pdo.common.keys import ServiceKeys
+from pdo.common.utility import valid_service_url
 from pdo.service_client.enclave import EnclaveServiceClient
 
 from pdo.client.controller.commands.contract import get_contract
@@ -56,7 +57,7 @@ def send_to_contract(state, message, save_file, eservice_url=None, wait=False, c
     if eservice_url is None :
         eservice_url = 'preferred'
 
-    if eservice_url not in ['random', 'preferred'] :
+    if valid_service_url(eservice_url) :
         try :
             eservice_client = EnclaveServiceClient(eservice_url)
         except Exception as e :
@@ -67,10 +68,13 @@ def send_to_contract(state, message, save_file, eservice_url=None, wait=False, c
     else :
         if eservice_url == 'preferred' :
             enclave_id = contract.extra_data.get('preferred-enclave', random.choice(contract.provisioned_enclaves))
-        else :
+            eservice_info = eservice_db.get_by_enclave_id(enclave_id)
+        elif eservice_url == 'random' :
             enclave_id = random.choice(contract.provisioned_enclaves)
+            eservice_info = eservice_db.get_by_enclave_id(enclave_id)
+        else :
+            eservice_info = eservice_db.get_by_name(eservice_url)
 
-        eservice_info = eservice_db.get_by_enclave_id(enclave_id)
         if eservice_info is None :
             raise Exception('attempt to use an unknown enclave; %s', enclave_id)
 

@@ -31,7 +31,8 @@ __all__ = [
     'build_file_name',
     'find_file_in_path',
     'from_transaction_signature_to_id',
-    'normalize_service_url'
+    'valid_service_url',
+    'normalize_service_url',
     'are_the_urls_same'
     ]
 
@@ -140,6 +141,16 @@ def from_transaction_signature_to_id(transaction_signature) :
 #--------------------------------------------------------------------
 import socket
 from urllib.parse import urlparse
+
+def valid_service_url(url) :
+    """Predicate to determine if the string argument
+    is a valid URL
+    """
+    try :
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except :
+        return False
 
 def normalize_service_url(url) :
     """Normalize a service URL for consistency, normalized URL

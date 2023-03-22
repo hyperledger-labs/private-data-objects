@@ -94,24 +94,7 @@ $(PYTHON_DIR) :
 	virtualenv -p python3 --no-download $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pip
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade setuptools
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade toml
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_toolbelt
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade colorlog
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade twisted
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyyaml
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade google
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade protobuf==3.19.0
-	. $(abspath $(DSTDIR)/bin/activate) && pip install secp256k1==0.13.2
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade cryptography
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pyparsing
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade lmdb
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade loguru
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade requests_http_signature
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade websocket-client
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade msgpack
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19
-	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade mergedeep
+	. $(abspath $(DSTDIR)/bin/activate) && pip install -r python_packages.txt
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
