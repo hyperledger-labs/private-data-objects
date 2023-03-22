@@ -27,7 +27,15 @@ import pdo.test.helpers.secrets as secret_helper
 
 from pdo.common.block_store_manager import BlockStoreManager
 
-import pdo.eservice.pdo_helper as enclave_helper
+# this can fail if, for example, this is running on a
+# client with no eservice implementation; the tool is
+# still valuable if the library isn't available for interacting
+# with "real" eservices
+try :
+    import pdo.eservice.pdo_helper as enclave_helper
+except :
+    enclave_helper = None
+
 import pdo.service_client.enclave as eservice_helper
 import pdo.service_client.provisioning as pservice_helper
 import pdo.service_client.service_data.eservice as db
@@ -66,7 +74,8 @@ def ErrorShutdown() :
         logger.exception('failed to close block_store')
 
     try :
-        enclave_helper.shutdown_enclave()
+        if enclave_helper :
+            enclave_helper.shutdown_enclave()
     except Exception as e :
         logger.exception('shutdown failed')
 
@@ -510,7 +519,8 @@ def LocalMain(config) :
         logger.error('contract execution failed; %s', str(e))
         ErrorShutdown()
 
-    enclave_helper.shutdown_enclave()
+    if enclave_helper :
+        enclave_helper.shutdown_enclave()
     sys.exit(0)
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -666,6 +676,10 @@ def Main() :
     if options.pservice_url :
         use_pservice = True
         config['Service']['ProvisioningServiceURLs'] = options.pservice_url
+
+    if not enclave_helper and not use_eservice :
+        logger.error("unable to find local enclave handler")
+        sys.exit(-1)
 
     # replication parameters
     if options.num_provable_replicas :
