@@ -501,12 +501,15 @@ def Main() :
     sys.stderr = plogger.stream_to_logger(logging.getLogger('STDERR'), logging.WARN)
 
     # set up the ledger configuration
-    if config.get('Ledger') is None :
-        config['Ledger'] = {
-            'LedgerURL' : 'http://localhost:6600',
-        }
     if options.ledger :
         config['Ledger']['LedgerURL'] = options.ledger
+    elif config.get('Ledger') is None:
+        # Ledger url not provided as option or config parameter.
+        # We do not set a default url here because, in CCF for example,
+        # the hostname in the url is checked against the CCF node certificate,
+        # which may likely be different than the default one set here.
+        logger.error('Ledger url not provided as option or config parameter')
+        sys.exit(-1)
 
     # set up the provisioning service configuration
     if config.get('ProvisioningService') is None :
