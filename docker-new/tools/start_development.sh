@@ -14,4 +14,4 @@ export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 yell copy ledger keys
 # -----------------------------------------------------------------
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
-cp ${XFER_DIR}/ccf_keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
+cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/

@@ -13,6 +13,7 @@ export NO_PROXY=$POD_HOSTNAME,$NO_PROXY
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
 rm -f ${PDO_HOME}/ccf/etc/cchost.toml ${PDO_HOME}/ccf/etc/constitution.js
+make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor keys
 make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor config
 
 # -----------------------------------------------------------------
@@ -29,8 +30,8 @@ fi
 # -----------------------------------------------------------------
 yell copy the ledger keys
 # -----------------------------------------------------------------
-cp ${PDO_LEDGER_KEY_ROOT}/* ${XFER_DIR}/ccf_keys
-chmod a+rw ${XFER_DIR}/ccf_keys/*
+cp ${PDO_LEDGER_KEY_ROOT}/* ${XFER_DIR}/ccf/keys
+chmod a+rw ${XFER_DIR}/ccf/keys/*
 
 # -----------------------------------------------------------------
 while [ ! -f ${XFER_DIR}/status ]; do

@@ -23,11 +23,11 @@ make -C ${PDO_SOURCE_ROOT}/build keys
 yell copy ledger keys
 # -----------------------------------------------------------------
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
-while [ ! -f ${XFER_DIR}/ccf_keys/networkcert.pem ]; do
+while [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; do
     say "waiting for ledger keys"
     sleep 5
 done
-cp ${XFER_DIR}/ccf_keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
+cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 
 # -----------------------------------------------------------------
 yell check for registration

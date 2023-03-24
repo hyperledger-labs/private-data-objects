@@ -1,4 +1,4 @@
-FROM pdo-services-base
+FROM pdo_services_base
 
 # -----------------------------------------------------------------
 # set up the PDO sources
@@ -41,4 +41,4 @@ ENV PDO_HOSTNAME=$PDO_HOSTNAME
 ARG PDO_LEDGER_URL
 ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
 
-ENTRYPOINT /project/pdo/tools/start_services.sh
+ENTRYPOINT ["/project/pdo/tools/start_services.sh"]

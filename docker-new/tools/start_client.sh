@@ -13,7 +13,7 @@ export NO_PROXY=10.54.66.43,$POD_HOSTNAME,$NO_PROXY
 yell copy ledger keys
 # -----------------------------------------------------------------
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
-cp ${XFER_DIR}/ccf_keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
+cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 
 # -----------------------------------------------------------------
 yell create client configuration files

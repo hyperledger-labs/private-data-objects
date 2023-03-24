@@ -1,4 +1,4 @@
-FROM pdo-base
+FROM pdo_base
 
 # -----------------------------------------------------------------
 # set up the PDO sources

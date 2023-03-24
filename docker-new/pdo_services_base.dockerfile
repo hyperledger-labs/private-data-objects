@@ -1,4 +1,4 @@
-FROM pdo-base
+FROM pdo_base
 
 ARG UBUNTU_VERSION=20.04
 ARG UBUNTU_NAME=focal

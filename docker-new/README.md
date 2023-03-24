@@ -29,7 +29,7 @@ files interactively on the host platform and compile/test inside the
 container without installing any dependencies on the host.
 
 Note: to use the ledger, you need to copy the CCF network certificate
-into the directory `${SCRIPTDIR}/xfer`.
+into the directory `${SCRIPT_DIR}/xfer`.
 
 ```bash
 	docker run \
@@ -68,17 +68,41 @@ with reproducible builds.**
 ### CCF Deployment ###
 
 ```bash
-    rm -f xfer/ccf_keys/networkcert.pem
-    docker run -v $(SCRIPTDIR)/xfer/:/project/pdo/xfer --network host \
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
         --name ccf-container pdo-ccf
 ```
 
 ### PDO Services Deployment ###
 
+Before starting the services container, be sure to copy the CCF ledger
+keys into `$(SCRIPT_DIR)/ccf/keys`. Those keys should be available from
+that directory on the host where the CCF ledger is running.
+
 ```bash
-    rm -f $(SCRIPT_DIR)/xfer/sites.psh
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
         --name services-container pdo-services
+```
+
+This will configure and create the standar set of five `eservices`,
+five `pservices` and five `sservices`. It will take `PDO_HOSTNAME` and
+`PDO_LEDGER_URL` that existed when the `pdo-services` image was built.
+These can be overridden by adding parameters to the `docker-run`
+command:
+
+```bash
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
+        --name services-container pdo-services --ledger <URL> --interface <HOST>
+```
+
+You may also run the services with a pre-built configuration. Create
+the directores `$(SCRIPT_DIR)/xfer/services/etc` and
+`$(SCRIPT_DIR)/xfer/services/keys`. Copy the service configuration
+files in to the `etc` directory and the service keys into the `keys`
+directory.
+
+```bash
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
+        --name services-container pdo-services --mode copy
 ```
 
 ### PDO Client Deployment ###
