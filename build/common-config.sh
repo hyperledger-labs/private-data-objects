@@ -74,7 +74,7 @@ var_set() {
 	"
 	env_key_sort[$i]="PDO_LEDGER_URL"; i=$i+1; export PDO_LEDGER_URL=${env_val[PDO_LEDGER_URL]}
 
-	env_val[PDO_LEDGER_TYPE]="${PDO_LEDGER_TYPE:-sawtooth}"
+	env_val[PDO_LEDGER_TYPE]="${PDO_LEDGER_TYPE:-ccf}"
 	env_desc[PDO_LEDGER_TYPE]="
 		PDO_LEDGER_TYPE is the ledger used by PDO. Choose either sawtooth or ccf
 	"

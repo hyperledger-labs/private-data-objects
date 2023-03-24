@@ -100,7 +100,7 @@ ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 ARG PDO_LEDGER_URL=http://rest-api:8008
 ENV PDO_LEDGER_URL=${PDO_LEDGER_URL}
 
-ARG PDO_LEDGER_TYPE=sawtooth
+ARG PDO_LEDGER_TYPE=ccf
 ENV PDO_LEDGER_TYPE=${PDO_LEDGER_TYPE}
 
 ARG PDO_LEDGER_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/ledger
@@ -127,12 +127,12 @@ RUN \
 # - build script install in virtualenv. For docker this seems a bit overkill but easier than to
 #   duplicate all build instructions.
  && cd /project/pdo/src/private-data-objects \
- && sawtooth/bin/build_sawtooth_proto \
+# && sawtooth/bin/build_sawtooth_proto \
  && cd python \
  && python3 setup.py build_ext \
  && python3 setup.py install \
- && cd ../sawtooth \
- && python3 setup.py install \
+# && cd ../sawtooth \
+# && python3 setup.py install \
 #
 # Build sawtooth interface.
  && cd /project/pdo/src/private-data-objects/eservice/ \
@@ -141,7 +141,7 @@ RUN \
  && make install \
  && python3 setup.py install \
  && cd .. \
- && sawtooth/bin/build_sawtooth_proto \
+# && sawtooth/bin/build_sawtooth_proto \
  && cd python/ \
  && python3 setup.py install
 
