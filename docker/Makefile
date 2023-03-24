@@ -90,9 +90,8 @@ pdo-composition-ccf: pdo-dev-image
 ccf-only:
 	env PDO_REPO_BRANCH=$$(git rev-parse --abbrev-ref HEAD) $(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS_CCF_ONLY) build
 
-
-test-with-sawtooth: pdo-composition test-with-no-build
 test-with-ccf: pdo-composition-ccf test-with-no-build-ccf
+test: test-with-ccf
 
 test-env-setup: pdo-composition test-env-setup-with-no-build
 test-env-setup-ccf: pdo-composition-ccf test-env-setup-with-no-build-ccf
