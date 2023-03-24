@@ -21,18 +21,17 @@ parser.add_argument('--format', help='format of the key to generate', choices=['
 parser.add_argument('--curve', help='ecdsa curve to use for pem keys', default = 'secp256k1', choices=['secp256k1', 'secp384r1'])
 options = parser.parse_args()
 
-if options.format == 'pem' :
-    import pdo.common.crypto as crypto
+import pdo.common.crypto as crypto
 
-    if options.curve == 'secp384r1':
-        pem_private_key = crypto.SIG_PrivateKey(crypto.SigCurve_SECP384R1)
-    else:
-        pem_private_key = crypto.SIG_PrivateKey()
-    pem_private_key.Generate()
-    private_file_name = "{0}_private.pem".format(options.keyfile)
-    with open(private_file_name, "w") as pf :
-        pf.write(pem_private_key.Serialize())
+if options.curve == 'secp384r1':
+    pem_private_key = crypto.SIG_PrivateKey(crypto.SigCurve_SECP384R1)
+else:
+    pem_private_key = crypto.SIG_PrivateKey()
+pem_private_key.Generate()
+private_file_name = "{0}_private.pem".format(options.keyfile)
+with open(private_file_name, "w") as pf :
+    pf.write(pem_private_key.Serialize())
 
-    public_file_name = "{0}_public.pem".format(options.keyfile)
-    with open(public_file_name, "w") as pf :
-        pf.write(pem_private_key.GetPublicKey().Serialize())
+public_file_name = "{0}_public.pem".format(options.keyfile)
+with open(public_file_name, "w") as pf :
+    pf.write(pem_private_key.GetPublicKey().Serialize())

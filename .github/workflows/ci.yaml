@@ -13,7 +13,7 @@ jobs:
         strategy:
             matrix:
                 interpreter: [gipsy, wawaka, wawaka-opt]
-                pdo_ledger_type: [sawtooth, ccf]
+                pdo_ledger_type: [ccf]
 
         steps:
             - name: Check out repo
@@ -22,7 +22,6 @@ jobs:
             - name: Build and run tests
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
-                  PDO_LEDGER_TYPE: ${{ matrix.pdo_ledger_type }}
               run: |
                   # The creation of a dummy branch is necessary for the CI tests
                   # to work on PRs. Based on empirical results, in the absence of
@@ -30,4 +29,4 @@ jobs:
                   # branches. However, they fail as a PR is created.
                   git checkout -b we-need-a-branch-for-below-to-work
                   . build/common-config.sh
-                  make -C docker test-with-${PDO_LEDGER_TYPE}
+                  make -C docker test
