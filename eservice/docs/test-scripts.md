@@ -176,17 +176,17 @@ extension.
 $ python test-request.py --no-ledger
 
 # Run the test with a ledger receiving transactions
-$ python test-request.py --ledger http://localhost:6600 --loglevel warn
+$ python test-request.py --ledger ${PDO_LEDGER_URL} --loglevel warn
 
 # Run the test with the integer key contract, a ledger
 # and two provisioningservices
-$ python test-contract.py --ledger http://localhost:6600 \
+$ python test-contract.py --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7101 http://localhost:7102 \
     --contract integer-key
 
 # Run the test with the mock-contract, a ledger, two provisioning
 # services, and an enclave service, 500 increment operations
-$ python test-request.py --ledger http://localhost:6600 \
+$ python test-request.py --ledger ${PDO_LEDGER_URL} \
     --pservice http://localhost:7101 http://localhost:7102 \
     --eservice http://localhost:7001 \
     --iterations 500

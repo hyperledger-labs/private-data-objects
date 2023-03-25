@@ -43,8 +43,7 @@ PDO in SGX HW mode, the PDO component has to run in an SGX-enabled
 environment. Below installation and configuration instructions will make
 sure that the host and the docker components fullfill this requirement.
 
-If Microsoft CCF ledger is used, both CCF and the PDO transaction processor
-should be run on Ubuntu 18.04.
+Both CCF and the PDO transaction processor should be run on Ubuntu 20.04.
 We provide Docker images to run the ledger in the supported environment.
 
 The ledger and PDO may run on other Linux distributions, but the installation

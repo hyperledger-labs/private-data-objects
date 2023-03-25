@@ -34,7 +34,7 @@ def generate_txn_keys(ledger_type=os.environ.get('PDO_LEDGER_TYPE')):
     if ledger_type == 'ccf':
         return ServiceKeys.create_service_keys()
     else:
-        raise Exception("Invalid ledger_type. Must be either 'ccf'")
+        raise Exception("Invalid ledger_type. Must be 'ccf'")
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
