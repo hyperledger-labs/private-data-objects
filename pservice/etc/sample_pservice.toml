@@ -21,9 +21,9 @@ HttpPort = 7800
 Host = "localhost"
 
 # --------------------------------------------------
-# Sawtooth -- sawtooth ledger configuration
+# Ledger configuration
 # --------------------------------------------------
-[Sawtooth]
+[Ledger]
 LedgerURL = "${ledger}"
 
 # --------------------------------------------------

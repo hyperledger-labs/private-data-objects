@@ -17,23 +17,11 @@
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--keyfile', help='name of the file to write', default='keyfile')
-parser.add_argument('--format', help='format of the key to generate', choices=['skf', 'pem'])
+parser.add_argument('--format', help='format of the key to generate', choices=['pem'])
 parser.add_argument('--curve', help='ecdsa curve to use for pem keys', default = 'secp256k1', choices=['secp256k1', 'secp384r1'])
 options = parser.parse_args()
 
-if options.format == 'skf' :
-    import secp256k1
-    stl_private_key = secp256k1.PrivateKey()
-
-    private_file_name = "{0}_private.skf".format(options.keyfile)
-    with open(private_file_name, "w") as pf :
-        pf.write(stl_private_key.serialize())
-
-    public_file_name = "{0}_public.skf".format(options.keyfile)
-    with open(public_file_name, "w") as pf :
-        pf.write(stl_private_key.pubkey.serialize().hex())
-
-elif options.format == 'pem' :
+if options.format == 'pem' :
     import pdo.common.crypto as crypto
 
     if options.curve == 'secp384r1':

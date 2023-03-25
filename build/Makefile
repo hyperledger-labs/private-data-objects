@@ -155,12 +155,9 @@ ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 
 service_indexes = 1 2 3 4 5
 
-ifeq ($(PDO_LEDGER_TYPE),sawtooth)
-	ESERVICE_KEYS = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.skf))
-	ecdsa_curve = secp256k1
-else
-	ESERVICE_KEYS = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),eservice$(i)_private.pem))
-	ecdsa_curve = secp384r1
+ifeq ($(PDO_LEDGER_TYPE),ccf)
+	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.pem))
+	ecdsa_curve := secp384r1
 endif
 
 SSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),sservice$(i)_private.pem))
@@ -168,9 +165,6 @@ PSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),pservice$(i
 
 user_indexes = 1 2 3 4 5 6 7 8 9 10
 USER_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(user_indexes),user$(i)_private.pem))
-
-%.skf :
-	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format skf
 
 %.pem :
 	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem --curve $(ecdsa_curve)

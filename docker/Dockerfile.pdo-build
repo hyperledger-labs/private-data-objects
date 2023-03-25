@@ -43,7 +43,7 @@
 #     Note: your host SGX PSW runtime should be at a similar level than the one in the container
 #     or the PSW/aesmd might cause enclave launch problems
 #   - Regardless of SGX_MODE, we build with the default fake SGX values and some
-#     default PDO_LEDGER_URL (http://rest-api:8008). If these are different at runtime, e.g.,
+#     default PDO_LEDGER_URL (http://127.0.0.1:6600). If these are different at runtime, e.g.,
 #     because the ledger changes and/or you run in SGX HW mode and your sgx keys are at a
 #     different place and not mapped via docker volumes to the default location
 #     '/project/pdo/src/private-data-objects/build/keys/sgx_mode_${SGX_MODE,,}'
@@ -62,7 +62,7 @@
 
 ARG PDO_DEV_IMAGE=pdo-dev
 
-# Get source of PDO and Sawtooth for the corresponding protobufs
+# Get source of PDO
 # to allow using local development branch we copy whatever docker directory is passed
 # (and so would contain .git if we call it as docker build . -f docker/.... which then
 # can be used via PDO_REPO_BRANCH build-arg) but also do that via multi-stage so we don't load
@@ -97,7 +97,7 @@ ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 ARG PDO_INTERPRETER=gipsy
 ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 
-ARG PDO_LEDGER_URL=http://rest-api:8008
+ARG PDO_LEDGER_URL=http://pdo-tp-ccf:6600
 ENV PDO_LEDGER_URL=${PDO_LEDGER_URL}
 
 ARG PDO_LEDGER_TYPE=ccf
@@ -127,22 +127,15 @@ RUN \
 # - build script install in virtualenv. For docker this seems a bit overkill but easier than to
 #   duplicate all build instructions.
  && cd /project/pdo/src/private-data-objects \
-# && sawtooth/bin/build_sawtooth_proto \
  && cd python \
  && python3 setup.py build_ext \
  && python3 setup.py install \
-# && cd ../sawtooth \
-# && python3 setup.py install \
 #
-# Build sawtooth interface.
+# Build ledger interface.
  && cd /project/pdo/src/private-data-objects/eservice/ \
  && sed -i 's/python /python3 /g' Makefile \
  && make \
  && make install \
  && python3 setup.py install \
- && cd .. \
-# && sawtooth/bin/build_sawtooth_proto \
- && cd python/ \
- && python3 setup.py install
 
 # TODO (eventually): clean-up /project/pdo/src (but for now keep it as some tests are still there ...)

@@ -34,7 +34,7 @@ class ProvisioningServiceClient(GenericServiceClient) :
 
     # -----------------------------------------------------------------
     # enclave_id -- string containing PEM-encoded enclave public key
-    # contract_id -- 256-character hex-encoded string containing sawtooth transaction ID for contract registration
+    # contract_id -- 256-character hex-encoded string containing the transaction ID for contract registration
     # creator_id -- string containing PEM-encoded contract owner's public key - used to verify signature
     # signature -- hex-encoded string signature of (enclave_id + contract_id) signed with owner's private key
     # -----------------------------------------------------------------
