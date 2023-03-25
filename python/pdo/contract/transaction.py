@@ -324,7 +324,7 @@ class TransactionRequest(object):
 
         self.ledger_config = ledger_config
         # add the wait parameter to the ledger config, if there is one.
-        # Used only with Sawtooth. Defaults to 30s in Sawtooth submitter
+        # Question: does CCF (or the submitter) use this parameter?
         if wait_parameter_for_ledger:
             self.ledger_config['wait'] = wait_parameter_for_ledger
         self.commit_id = commit_id

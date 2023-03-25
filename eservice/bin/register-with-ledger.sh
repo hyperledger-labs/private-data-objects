@@ -90,13 +90,7 @@ function Register {
             try ${SRCDIR}/ccf_transaction_processor/scripts/register_enclave_attestation_verification_policy.py --logfile __screen__ --loglevel INFO \
                 --check_attestation --mrenclave ${VAR_MRENCLAVE} --basename  ${VAR_BASENAME} --ias-public-key "$(cat $PDO_IAS_KEY_PEM)"
         else
-            : "${PDO_LEDGER_KEY_SKF:?Registration failed! PDO_LEDGER_KEY_SKF environment variable not set}"
-            try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-                pdo.test.registry.measurements ${VAR_MRENCLAVE}
-            try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-                pdo.test.registry.basenames ${VAR_BASENAME}
-            try ${SRCDIR}/sawtooth/bin/pdo-cli set-setting --keyfile $PDO_LEDGER_KEY_SKF --url $PDO_LEDGER_URL \
-                pdo.test.registry.public_key "$(cat $PDO_IAS_KEY_PEM)"
+            die unsupported ledger ${PDO_LEDGER_TYPE}
         fi
     fi
 }

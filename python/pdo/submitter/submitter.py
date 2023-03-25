@@ -24,12 +24,12 @@ class Submitter(object):
 
     def __init__(self, ledger_config, *args, **kwargs):
 
-        self.url = ledger_config.get('LedgerURL','http://localhost:8008')
+        self.url = ledger_config.get('LedgerURL','http://localhost:6600')
         self.pdo_signer = kwargs.get('pdo_signer', None) #PDO payload signer
 
 # -----------------------------------------------------------------
 # Following APIs are provided by the ledger submitter. These must be overridden by child class
-# (SawtoothSubmitter or CCFSubmitter). The purpose of having these as abstractmethods
+# (CCFSubmitter). The purpose of having these as abstract methods
 # is to fix the APIs. Future plans include unifying some aspects of implementation under
 # the parent method (like unifying JSON payload schema)
 

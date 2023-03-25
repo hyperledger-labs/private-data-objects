@@ -182,7 +182,7 @@
                 },
                 "nonce":{
                     "description":[
-                        "Equivalent of channel id used for Sawtooth CCL transactions. Hash of nonce get signed by enclave"
+                        "Hash of nonce get signed by enclave"
                     ],
                     "type":"string",
                     "required":true,

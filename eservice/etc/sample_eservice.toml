@@ -57,7 +57,7 @@ LogFile  = "${logs}/${identity}.log"
 # Keys are used to sign the registration transaction
 # should it be required
 SearchPath = [ ".", "./keys", "${keys}" ]
-FileName = "${identity}_private.skf"
+FileName = "${identity}_private.pem"
 
 # --------------------------------------------------
 # EnclaveData -- configuration of sealed storage for the enclave

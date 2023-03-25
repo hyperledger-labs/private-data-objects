@@ -527,7 +527,7 @@ ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
 ContractInterpreter = os.environ.get("PDO_INTERPRETER", "gipsy")
-LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
+LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:6600/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
@@ -564,7 +564,7 @@ def Main() :
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
     parser.add_argument('--loglevel', help='Logging level', type=str)
 
-    parser.add_argument('--ledger', help='URL for the Sawtooth ledger', type=str)
+    parser.add_argument('--ledger', help='URL for the ledger', type=str)
     parser.add_argument('--no-ledger', help='Do not attempt ledger registration', action="store_true")
 
     parser.add_argument('--data-dir', help='Directory for storing generated files', type=str)
@@ -630,7 +630,7 @@ def Main() :
     # set up the ledger configuration
     if config.get('Ledger') is None :
         config['Ledger'] = {
-            'LedgerURL' : 'http://localhost:8008',
+            'LedgerURL' : 'http://localhost:6600',
         }
     if options.ledger :
         config['Ledger']['LedgerURL'] = options.ledger

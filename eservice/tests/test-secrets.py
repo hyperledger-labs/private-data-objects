@@ -64,7 +64,7 @@ ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
-LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:8008/")
+LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:6600/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 config_map = {
