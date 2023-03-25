@@ -19,7 +19,7 @@ installation is described below.
 - Install SGX SSL
 - Install required build dependencies
 - Set up environment variables to configure the build
-- Build and install CCF
+- Build and install the ledger
 - Build the PDO package
 
 ## <a name="environment">Setup Build Environment</a>

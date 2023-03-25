@@ -8,7 +8,7 @@ https://creativecommons.org/licenses/by/4.0/
 This directory contains configurations to run PDO with docker and docker-compose.
 This allows you to develop easily on non-ubuntu 18.04/20.04 machines
 without "polluting" your install.  Additionally, it also enables easy
-end-to-end setups with a local CCF ledger and automated end-to-end tests.
+end-to-end setups with a local ledger and automated end-to-end tests.
 
 
 # Preparation
@@ -78,7 +78,6 @@ background.
 
 The easiest way to get started is to run
 ```bash
-make test-with-sawtooth
 make test-with-ccf
 ```
 which will build your current locally committed branch and run the

@@ -100,7 +100,7 @@ class Enclave(object) :
 
         :param file_name:  string, name of the file
         :param search_path: list of strings, directories to search for the data file
-        :param txn_keys: Used to sign the register_enclave transaction. For CCF, this is of type ServiceKeys
+        :param txn_keys: Used to sign the register_enclave transaction. This is of type ServiceKeys
         """
         if txn_keys is None :
             txn_keys = keys.generate_txn_keys()
@@ -141,7 +141,7 @@ class Enclave(object) :
     def create_new_enclave(cls, txn_keys = None, block_store = None) :
         """create_new_enclave -- create a new enclave
 
-        :param txn_keys: Used to sign the register_enclave transaction. For CCF, this is of type ServiceKeys
+        :param txn_keys: Used to sign the register_enclave transaction. This is of type ServiceKeys
         """
         if txn_keys is None :
             txn_keys = keys.generate_txn_keys()

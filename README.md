@@ -18,7 +18,7 @@ distributed ledger, to ensure that there is a single, authoritative
 instance of the object, and to provide a means of guaranteeing atomicity of
 updates across interacting objects. PDO performs contract execution and storage off the blockchain, with only a hash of
 blockchain state stored on the distributed ledger.
-Currently, the PDO/CCF combo is restricted to virtual enclaves.
+Currently, the PDO/CCF combo is restricted to simulated enclaves.
 
 PDO provides benefits for both application developers seeking to define and
 implement privacy-preserving distributed ledgers, and for service providers
