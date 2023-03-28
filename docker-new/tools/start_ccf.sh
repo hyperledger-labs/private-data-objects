@@ -2,26 +2,16 @@
 
 SCRIPT_NAME=$(basename ${BASH_SOURCE[-1]} )
 
-# note that we are ignoring the incoming PDO_LEDGER_URL. the
-# endpoint built by this container defines what the URL should
-# be so just specify it as is
-export PDO_HOSTNAME=${PDO_HOSTNAME:-$HOSTNAME}
-export PDO_LEDGER_URL=http://${PDO_HOSTNAME}:6600
-
-source /project/pdo/tools/environment.sh
-source ${PDO_HOME}/ccf/bin/lib/pdo_common.sh
-
-export no_proxy=$PDO_HOSTNAME,$no_proxy
-export NO_PROXY=$POD_HOSTNAME,$NO_PROXY
-
 # -----------------------------------------------------------------
 # Process command line arguments
 # -----------------------------------------------------------------
 F_MODE=build
+F_INTERFACE=
+F_NETWORK_MODE=start
 
-F_USAGE='-i|--interface [hostname] -1|--ledger [url] -m|--mode [build|copy|skip]'
-SHORT_OPTS='i:l:m:'
-LONG_OPTS='interface:,ledger:,mode:'
+F_USAGE='-i|--interface [hostname] --join -m|--mode [build|copy|skip] --start'
+SHORT_OPTS='i:m:'
+LONG_OPTS='interface:,join,mode:,start'
 
 TEMP=$(getopt -o ${SHORT_OPTS} --long ${LONG_OPTS} -n "${SCRIPT_NAME}" -- "$@")
 if [ $? != 0 ] ; then echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" >&2 ; exit 1 ; fi
@@ -29,14 +19,32 @@ if [ $? != 0 ] ; then echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
 while true ; do
     case "$1" in
-        -i|--interface) PDO_HOSTNAME="$2" ; shift 2 ;;
-        -l|--ledger) PDO_LEDGER_URL="$2" ; shift 2 ;;
+        -i|--interface) F_INTERFACE="$2" ; shift 2 ;;
+        --join) F_NETWORK_MODE=join ; shift 1 ;;
         -m|--mode) F_MODE="$2" ; shift 2 ;;
+        --start) F_NETWORK_MODE=start ; shift 1 ;;
         --help) echo "Usage: ${SCRIPT_NAME} ${F_USAGE}"; exit 0 ;;
     	--) shift ; break ;;
     	*) echo "Internal error!" ; exit 1 ;;
     esac
 done
+
+# -----------------------------------------------------------------
+# Set up the ledger url and proxy configuration
+# -----------------------------------------------------------------
+export PDO_HOSTNAME=${PDO_HOSTNAME:-${HOSTNAME}}
+if [ ! -z "${F_INTERFACE}" ] ; then
+    export PDO_HOSTNAME=$F_INTERFACE
+fi
+
+export PDO_LEDGER_ADDRESS=$(dig +short ${PDO_HOSTNAME})
+export PDO_LEDGER_URL="http://${PDO_LEDGER_ADDRESS}:6600"
+
+export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
+export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
+
+source /project/pdo/tools/environment.sh
+source ${PDO_HOME}/ccf/bin/lib/pdo_common.sh
 
 # -----------------------------------------------------------------
 # Handle the configuration of the services
@@ -62,7 +70,13 @@ fi
 say start the ccf network
 # -----------------------------------------------------------------
 . ${PDO_HOME}/ccf/bin/activate
-try ${PDO_HOME}/ccf/bin/start_ccf_network.sh
+if [ ${F_NETWORK_MODE} == "start" ] ; then
+    try ${PDO_HOME}/ccf/bin/start_ccf_network.sh
+elif [ ${F_NETWORK_MODE} == "join" ] ; then
+    die "joining a network is not yet supported"
+else
+    die "unknown network mode"
+fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

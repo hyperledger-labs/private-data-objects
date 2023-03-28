@@ -117,3 +117,19 @@ perform other client operations.
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host -p \
         --name pdo-client pdo-client
 ```
+
+The script `/project/tools/start_client.sh` is intended to simplify
+initialization of a functioning client environment. The script takes
+the following parameters:
+    * `--interface` : the default hostname for accessing services
+    * `--ledger` : the URL for the ledger
+    * `--mode <build|copy|skip>` : the mode for handling
+      configuration; `build` creates a new set of configuration files
+      using the hostname in the interface parameter, `copy` copies the
+      configuration files from the transfer directory, and `skip` does
+      nothing
+
+For example:
+```bash
+    root@has:/project/pdo# source /project/pdo/tools/start_client.sh --ledger http://127.0.0.1:6600/
+```

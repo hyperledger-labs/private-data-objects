@@ -45,11 +45,11 @@ run_ccf : build_ccf
 
 run_services : build_base build_services_base build_services
 	- docker rm -f services_container
-	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host --name services_container -P pdo_services
+	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host --name services_container -P -d pdo_services
 
 run_client : build_base build_client
 	- docker rm -f client_container
-	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host --name client_container pdo_client
+	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer -it --network host --name client_container pdo_client
 
 build_test :
 	PDO_REPO_URL=$(PDO_REPO_URL) PDO_REPO_BRANCH=$(PDO_REPO_BRANCH) \

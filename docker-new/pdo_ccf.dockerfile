@@ -61,4 +61,8 @@ ENV PDO_HOSTNAME=$PDO_HOSTNAME
 ARG PDO_LEDGER_URL
 ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
 
-ENTRYPOINT /project/pdo/tools/start_ccf.sh
+# Note that the entry point when specified with exec syntax
+# can be extended through the docker run interface far more
+# easily than if you use the other specification format of
+# a single string
+ENTRYPOINT ["/project/pdo/tools/start_ccf.sh"]

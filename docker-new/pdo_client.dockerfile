@@ -36,4 +36,7 @@ ENV PDO_HOSTNAME=$PDO_HOSTNAME
 ARG PDO_LEDGER_URL
 ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
 
-ENTRYPOINT /project/pdo/tools/start_client.sh
+# the client is set up for interactive access; the environment can be
+# set up by source /project/pdo/tools/start_client.sh with the arguments
+# to build a new client environment or copy one from the xfer directory
+ENTRYPOINT [ "/bin/bash" ]
