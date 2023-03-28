@@ -94,7 +94,7 @@ $(PYTHON_DIR) :
 	virtualenv -p python3 --no-download $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pip
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade setuptools
-	. $(abspath $(DSTDIR)/bin/activate) && pip install -r python_packages.txt
+	. $(abspath $(DSTDIR)/bin/activate) && pip install -r python_requirements.txt
 
 $(DSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(DSTDIR)
