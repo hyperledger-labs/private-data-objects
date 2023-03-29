@@ -26,12 +26,6 @@ endif
 EGG_FILE = dist/pdo_common_library-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
 PYTHON_SOURCE = $(shell cat MANIFEST)
 
-CRYPTO_SWIG_SOURCE = pdo/common/crypto.i
-CRYPTO_SWIG_TARGET = pdo/common/crypto.py
-CRYPTO_SWIG_FILES =				\
-	pdo/common/crypto.py			\
-	pdo/common/crypto_wrap.cpp
-
 KV_SWIG_SOURCE =					\
 	pdo/common/key_value_swig/key_value_swig.i	\
 	pdo/common/key_value_swig/block_store.h		\

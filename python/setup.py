@@ -88,54 +88,6 @@ compile_defs = [
 if client_only_flag :
     compile_defs += [ ('_CLIENT_ONLY_', 1) ]
 
-
-# -----------------------------------------------------------------
-# set up the crypto module
-# -----------------------------------------------------------------
-
-# openssl related stuff
-# make sure we have recent enough version
-subprocess.run(['pkg-config', 'openssl', '--atleast-version=1.1.0g']).check_returncode()
-openssl_cflags = subprocess.check_output(['pkg-config', 'openssl', '--cflags']).decode('ascii').strip().split()
-openssl_include_dirs = list(
-    filter(None, re.split('\s*-I', subprocess.check_output(['pkg-config', 'openssl', '--cflags-only-I']).decode('ascii').strip())))
-openssl_libs = list(
-    filter(None, re.split('\s*-l', subprocess.check_output(['pkg-config', 'openssl', '--libs-only-l']).decode('ascii').strip())))
-openssl_lib_dirs = list(
-    filter(None, re.split('\s*-L', subprocess.check_output(['pkg-config', 'openssl', '--libs-only-L']).decode('ascii').strip())))
-
-crypto_module_files = [
-    "pdo/common/crypto.i"
-]
-
-crypto_include_dirs = [
-    os.path.join(pdo_root_dir, 'common'),
-    os.path.join(pdo_root_dir, 'common/crypto'),
-    os.path.join(pdo_root_dir, 'common/state'),
-    os.path.join(pdo_root_dir, 'common/packages/base64'),
-] + openssl_include_dirs
-
-if not client_only_flag :
-    crypto_include_dirs += [ os.path.join(os.environ['SGX_SDK'], "include") ]
-
-crypto_libraries = common_libs + openssl_libs
-
-crypto_library_dirs = [
-    os.path.join(pdo_root_dir, "common", "build"),
-] + openssl_lib_dirs
-
-crypto_module = Extension(
-    name = 'pdo.common._crypto',
-    sources = crypto_module_files,
-    swig_opts = swig_flags + openssl_cflags + ['-I%s' % i for i in crypto_include_dirs],
-    extra_compile_args = compile_args,
-    include_dirs = crypto_include_dirs,
-    library_dirs = crypto_library_dirs,
-    libraries = crypto_libraries,
-    define_macros = compile_defs,
-    language = 'c++',
-    )
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 version = subprocess.check_output(
@@ -189,7 +141,8 @@ setup(name='pdo_common_library',
       install_requires=[],
       data_files=data_files,
       namespace_packages=['pdo'],
-      ext_modules=[crypto_module, key_value_module],
+      ext_modules=[key_value_module],
+      package_data={'': ['_crypto.so']},
       entry_points = {
           'console_scripts': [
               'pdo-configure-services = pdo.scripts.ConfigureCLI:configure_services',
