@@ -157,61 +157,6 @@ make benchmark
 
 Go to [contracts/wawaka/benchmarks](../../../contracts/wawaka/benchmarks/README.md), for more details.
 
-## AoT-Compiled WASM
-
-Running ahead-of-time compiled WASM modules
-can significantly improve the performance of PDO contracts
-to near-native speeds. In internal benchmarks, we measured
-up to a 29x execution time speedup over interpreted WASM
-for some compute-intensive workloads when compiled ahead of
-time.
-
-By default, wawaka will be built for interpreted wasm contracts.
-To enable ahead-of-time (AoT) compiled WASM contracts, set the
-environment variable `PDO_INTERPRETER`:
-
-```bash
-export PDO_INTERPRETER=wawaka-aot
-```
-
-### AoT compiler setup
-
-To download the LLVM dependencies, run:
-
-```bash
-LLVM_VERSION=10.0.0
-LLVM_REPO=https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VERSION)
-LLVM_TAR=clang+llvm-$(LLVM_VERSION)-x86_64-linux-gnu-ubuntu-18.04
-LLVM_BIN=$(WASM_SRC)/core/deps/llvm/build/llvm/bin/llvm-lto # proxy for llvm dependency
-
-cd $(WASM_SRC)/core/deps && mkdir -p llvm/build/
-wget -q $(LLVM_REPO)/$(LLVM_TAR).tar.xz
-tar -xf $(LLVM_TAR).tar.xz -C llvm/build/
-cd llvm/build/ && mv $(LLVM_TAR) llvm
-```
-
-The following steps then build the `wamrc` AoT compiler that
-is shipped with WAMR:
-
-```bash
-cd $(WASM_SRC)/wamr-compiler
-mkdir -p build
-cd build
-cmake .. && make
-```
-
-### Building AoT Contracts
-
-To build an AoT contract for wawaka, run:
-
-```bash
-cd ${WASM_SRC}/wamr-compiler/build/
-./wamrc -sgx --format=aot -o <contract code file> <contract bytecode file>
-```
-
-For more options to run `wamrc`, see the
-[documentation](https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wasm_app.md#compile-wasm-to-aot-module).
-
 ## Basics of a Contract ##
 
 Note that compilation into WASM that will run in the contract enclave can be somewhat tricky. Specifically, all symbols whether used or not must be bound. The wawaka interpreter will fail if it attempts to load WASM code with unbound symbols.
