@@ -1,5 +1,19 @@
 #!/bin/bash
+# Copyright 2023 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+# Tests are run EXCLUSIVELY with all services running on localhost
 export PDO_HOSTNAME=localhost
 export PDO_LEDGER_URL=http://localhost:6600
 
@@ -13,7 +27,9 @@ export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 # -----------------------------------------------------------------
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
-# the sleep here just gives CCF a chance to get started
+# the sleep here just gives CCF a chance to get started, its probably
+# longer than is strictly necessary but there is no real reason to
+# go too soon
 sleep 20
 
 make -C ${PDO_SOURCE_ROOT}/build force-config
@@ -22,6 +38,8 @@ make -C ${PDO_SOURCE_ROOT}/build keys
 # -----------------------------------------------------------------
 yell copy ledger keys
 # -----------------------------------------------------------------
+# need to wait for the ledger to get going so we can grab the
+# keys and copy them into the correct location
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
 while [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; do
     say "waiting for ledger keys"
@@ -87,6 +105,8 @@ cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}
 # -----------------------------------------------------------------
 yell wait for client completion
 # -----------------------------------------------------------------
+# the services need to continue to run until the client
+# is finished
 while [ ! -f ${XFER_DIR}/status ]; do
     say "waiting for client completion"
     sleep 5
