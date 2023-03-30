@@ -160,7 +160,7 @@ The following commands will download and install the SDK driver version
 ```bash
 UBUNTU_VERS=20.04
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server
-DRIVER_FILE=ssgx_linux_x64_driver_2.11.0_2d2b795.bin
+DRIVER_FILE=sgx_linux_x64_driver_2.11.0_2d2b795.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
