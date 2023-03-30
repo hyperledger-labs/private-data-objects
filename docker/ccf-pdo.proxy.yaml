@@ -13,7 +13,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-# Use this docker-compose file together with sawtoth-pdo.yaml (and other extensions)
+# Use this docker-compose file together with the CCF yaml file
 # if you run behind a proxy and have the corresponding environment variables http_proxy
 # https_proxy and no_proxy defined
 # Note: for vanilla docker >=17.07 you can define proxy in ~/.docker/config.json

@@ -17,8 +17,8 @@
 #   Builds the environment with all prerequistes needed to build Private Data Objects.
 #
 #  Configuration (build) paramaters
-#  - ubuntu version to use: 	  UBUNTU_VERSION (default: 18.04)
-#  - ubuntu name to use: 	  UBUNTU_NAME (default: bionic)
+#  - ubuntu version to use: 	  UBUNTU_VERSION (default: 20.04)
+#  - ubuntu name to use: 	  UBUNTU_NAME (default: focal)
 #  - sgx sdk/psw version: 	  SGX (default: 2.15.1)
 #  - openssl version: 		  OPENSSL (default: 1.1.1g)
 #  - sgxssl version: 		  SGXSSL  (default: 2.10_1.1.1g)
@@ -26,8 +26,8 @@
 
 # Build:
 #   $ docker build docker -f docker/Dockerfile.pdo-dev -t pdo-dev
-#   - if you want to build with different version than 18.04/bionic, say 20.04/focal,
-#     add --build-arg UBUNTU_VERSION=18.04  --build-arg UBUNTU_NAME=focal
+#   - if you want to build with a different version,
+#     add --build-arg UBUNTU_VERSION=<version>  --build-arg UBUNTU_NAME=<name>
 #   - if behind a proxy, make sure you've configured ~/.docker/config.json with your proxy setting
 #     and the docker daemon itself also has the proxy properly configured, for systemd based hosts
 #     like ubuntu see https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
@@ -51,11 +51,7 @@
 ARG UBUNTU_VERSION=20.04
 ARG UBUNTU_NAME=focal
 # NOTE:
-# - unfortunately, we do need both name (for repo) and version (for sgx directories), only docker image supports both ..
-#   18.04 <-> bionic, 20.04 <-> focal
-# - right now, full sgx support exists only for bionic;
-#   xenial (16.04) has support only PSW but not SDK;
-#   support for focal is still in the making but hopefully will exist soon...
+# - we do need both name (for repo) and version (for sgx directories), only docker image supports both ..
 
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -75,7 +71,7 @@ ENV TERM=screen-256color
 # Note: ocamlbuild is required by PREREQ but does not exist for xenial. However, the relevant componets are part of 'ocaml' package, later ubuntu split up that package ...
 RUN apt-get update \
  && DEBIAN_FRONTEND="noninteractive" \
-  # above makes sure any install of 'tzdata' or alike (as e.g., pulled in via ubuntu 20.04) does not hang ...
+  # above makes sure any install of 'tzdata' or alike does not hang ...
   apt-get install -y -q\
     autoconf \
     automake \
@@ -167,8 +163,7 @@ RUN SGX_SDK_BIN_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX}/distro/u
   && echo ". /opt/intel/sgxsdk/environment" >> /etc/profile.d/pdo.sh
 
 # LVI mitigations, needed to compile sgxssl, requires a
-#   recent version of binutils (>= 2.32). Ubuntu 18.04 only
-#   has 2.30 but Intel ships binary distro for 2.32.51.20190719
+#   recent version of binutils (>= 2.32).
 RUN [ "$UBUNTU_VERSION" = "20.04" ] \
   && SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
   && SGX_SDK_BINUTILS_FILE=$(cd /tmp; wget --spider --recursive --level=1 --no-parent ${SGX_SDK_BINUTILS_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BINUTILS_REPO}'/(as.ld.objdump.*)|) { print "$1\n"; }') \
