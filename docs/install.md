@@ -30,12 +30,7 @@ The required host-system configuration for Private Data Objects is to
 separate the Private Data Objects components from the ledger components.
 
 Private Data Objects services (specifically the enclave service, provisioning
-service, and the client) can be run on Ubuntu 18.04 and Ubuntu 20.04
-(server or client).
-PDO also has been tested on Ubuntu 16.04 and 17.10. However, for these
-configuration not all standard libraries match the required versions and
-you will have to, e.g., install by hand an openssl version >= 1.1.0g
-(the default libssl-dev on these platforms is still based on 1.0.2).
+service, and the client) can be run on Ubuntu 20.04 (server or client).
 
 If you want to run PDO on a single physical host, either PDO or the
 ledger will have to run in a separate VM or container. In particular, to run
@@ -138,10 +133,10 @@ different drivers.
 ##### HW with support for DCAP / Flexible Launch Control (FLC)
 <!-- DCAP kernel driver installation -->
 The following commands will download and install the driver version 1.41 of
-the DCAP SGX kernel driver (for Ubuntu 18.04 server):
+the DCAP SGX kernel driver:
 
 ```bash
-UBUNTU_VERS=18.04 or 20.04
+UBUNTU_VERS=20.04
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server/
 DRIVER_FILE=sgx_linux_x64_driver_1.41.bin
 
@@ -153,6 +148,8 @@ Note:
 - the DCAP driver will _not_ work if your hardware does not supports FLC (Flexible Launch Control).
 - the DCAP driver supports DKMS, so contrary to the sdk driver, you will _not_ have to re-install
   the kernel driver after each kernel update.
+- starting with the 5.11 version, the linux kernel comes with DCAP support; however, this is limited
+  to FLC-capable platforms and does not support EPID attestations.
 
 
 ##### HW which does not support Flexible Launch Control (FLC)
@@ -161,7 +158,7 @@ Note:
 The following commands will download and install the SDK driver version
 2.11 of the SGX kernel driver:
 ```bash
-UBUNTU_VERS=18.04 or 20.04
+UBUNTU_VERS=20.04
 DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server
 DRIVER_FILE=ssgx_linux_x64_driver_2.11.0_2d2b795.bin
 

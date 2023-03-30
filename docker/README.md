@@ -6,7 +6,7 @@ https://creativecommons.org/licenses/by/4.0/
 # Overview
 
 This directory contains configurations to run PDO with docker and docker-compose.
-This allows you to develop easily on non-ubuntu 18.04/20.04 machines
+This allows you to develop easily on other machines
 without "polluting" your install.  Additionally, it also enables easy
 end-to-end setups with a local ledger and automated end-to-end tests.
 
@@ -16,7 +16,7 @@ end-to-end setups with a local ledger and automated end-to-end tests.
 ## Installation of dependencies
 
 As prerequisite, you will need docker and docker-compose installed.
-On Ubuntu 18.04/20.04, this simply means running:
+This simply means running:
 ```bash
 	sudo apt install docker-compose
 ```
@@ -25,7 +25,7 @@ On Ubuntu 18.04/20.04, this simply means running:
 
 If you are behind a proxy, there are a few more things to do to configure docker.
 See [docker docu](https://docs.docker.com/config/daemon/systemd/#httphttps-proxy)
-for more info. Assumming you run Ubuntu 18.04 or 20.04 and have the `http_proxy`, `https_proxy`
+for more info. Assumming you run Ubuntu 20.04 and have the `http_proxy`, `https_proxy`
 and `no_proxy` environment variables defined, it essentially means:
 ```bash
   mkdir /etc/systemd/system/docker.service.d
@@ -59,8 +59,7 @@ EOM
 
 If your system runs systemd-resolved (which is now default for
 ubuntu), make sure you are running a version 18.09 of docker or
-greater. Recently refreshed versions of ubuntu 18.04 should meet this
-condition. If you have to use an older version of docker, you also
+greater. If you have to use an older version of docker, you also
 might have to run
 ```bash
   ln -sf ../run/systemd/resolve/resolv.conf /etc/resolv.conf # originally was ../run/systemd/resolve/stub-resolv.conf
