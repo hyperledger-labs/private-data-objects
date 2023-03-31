@@ -35,7 +35,7 @@ services:
     environment: #used during run time
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,ccf-pdo-build"
+      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,ccf-pdo-build,172.0.0.0/8,192.0.0.0/8"
 
   # PDO Transaction processor
   pdo-tp-ccf:
@@ -47,4 +47,4 @@ services:
     environment:
       http_proxy: "${http_proxy}"
       https_proxy: "${https_proxy}"
-      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,ccf-pdo-build"
+      no_proxy: "${no_proxy},pdo-tp-ccf,pdo-build,ccf-pdo-build,172.0.0.0/8,192.0.0.0/8"

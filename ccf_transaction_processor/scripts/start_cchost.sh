@@ -23,5 +23,10 @@ EFILE="${F_SERVICEHOME}/logs/error.log"
 OFILE="${F_SERVICEHOME}/logs/output.log"
 
 cd ${F_SERVICEHOME}/run
-${CCHOST} --config ${F_SERVICEHOME}/etc/cchost.toml --node-pid-file ${F_SERVICEHOME}/run/cchost.pid > $OFILE 2> $EFILE &
+# Notes:
+# - The dnsname for CCF is necessary for adding an alternative subject name to the node certificate.
+#   This allows clients to connect to, and authenticate correctly, the CCF node
+# - The dnsname is assumed to be the same as the one used in the ledger url (or PDO_LEDGER_URL),
+#   e.g., http://<dnsname>:6600
+${CCHOST} --san dNSName:${PDO_HOSTNAME:-${HOSTNAME}} --config ${F_SERVICEHOME}/etc/cchost.toml --node-pid-file ${F_SERVICEHOME}/run/cchost.pid > $OFILE 2> $EFILE &
 echo $! > ${F_SERVICEHOME}/run/cchost.pid

@@ -94,6 +94,13 @@ test-env-setup-with-no-build:
 	-$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) down
 	# - start services
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) up -d
+	# Before registration, it must be ensured that CCF is up and configured.
+	# Otherwise, the registration can encounter two possible scenarios:
+	# 1) CCF is not up, so the registration times out
+	# 2) CCF is up but not configured, so the registration fails with "not a known member"
+	# A wait of a few seconds appears to be enough.
+	@echo "Waiting a few seconds for CCF to be up and configured..."
+	sleep 20
 	$(DOCKER_COMPOSE_COMMAND) $(DOCKER_COMPOSE_OPTS) \
 		exec -T pdo-build bash -c 'source /etc/bash.bashrc && export PDO_SGX_KEY_ROOT=/project/pdo/build/opt/pdo/etc/keys/sgx/ && unset PDO_SPID PDO_SPID_API_KEY PDO_HOSTNAME && source /project/pdo/src/private-data-objects/build/common-config.sh && /project/pdo/build/opt/pdo/etc/keys/ledger/check-for-ccf-keys.sh && make -C /project/pdo/src/private-data-objects/build force-config register'
 
