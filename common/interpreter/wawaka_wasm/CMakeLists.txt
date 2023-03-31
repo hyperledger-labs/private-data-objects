@@ -55,27 +55,17 @@ IF (NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
-IF (PDO_INTERPRETER STREQUAL "wawaka-aot")
-  # Enable AOT.
-  SET (WAMR_BUILD_AOT 1)
-  # Disable Interpreter for AoT mode
-  SET (WAMR_BUILD_INTERP 0)
+# Disable AoT by default
+SET (WAMR_BUILD_AOT 0)
+SET (WAMR_BUILD_INTERP 1)
+IF (PDO_INTERPRETER STREQUAL "wawaka-opt")
+  SET (WAMR_BUILD_FAST_INTERP 1)
+  ADD_DEFINITIONS (-DUSE_WAWAKA_OPT=1)
+  MESSAGE(STATUS "Building wawaka in optimized INTERP mode")
+ELSE()
+  # Disable optimized interpreter by default
   SET (WAMR_BUILD_FAST_INTERP 0)
-  ADD_DEFINITIONS (-DUSE_WAWAKA_AOT=1)
-  MESSAGE(WARNING "!!Building wawaka in experimental AoT mode. Not ready for production use!!")
-ELSE ()
-  # Disable AoT by default
-  SET (WAMR_BUILD_AOT 0)
-  SET (WAMR_BUILD_INTERP 1)
-  IF (PDO_INTERPRETER STREQUAL "wawaka-opt")
-    SET (WAMR_BUILD_FAST_INTERP 1)
-    ADD_DEFINITIONS (-DUSE_WAWAKA_OPT=1)
-    MESSAGE(STATUS "Building wawaka in optimized INTERP mode")
-  ELSE()
-    # Disable optimized interpreter by default
-    SET (WAMR_BUILD_FAST_INTERP 0)
-    MESSAGE(STATUS "Building wawaka in INTERP mode")
-  ENDIF()
+  MESSAGE(STATUS "Building wawaka in INTERP mode")
 ENDIF()
 
 # Disable JIT by default for all runtime modes.
@@ -134,13 +124,6 @@ IF (WAMR_BUILD_INTERP EQUAL 1 OR WAMR_BUILD_JIT EQUAL 1)
   INCLUDE (${IWASM_DIR}/interpreter/iwasm_interp.cmake)
 ENDIF ()
 
-IF (WAMR_BUILD_AOT EQUAL 1)
-  INCLUDE (${IWASM_DIR}/aot/iwasm_aot.cmake)
-  IF (WAMR_BUILD_JIT EQUAL 1)
-    INCLUDE (${IWASM_DIR}/compilation/iwasm_compl.cmake)
-  ENDIF ()
-ENDIF ()
-
 ADD_LIBRARY (${IWASM_STATIC_NAME}
              ${PLATFORM_SHARED_SOURCE}
              ${MEM_ALLOC_SHARED_SOURCE}
@@ -149,7 +132,6 @@ ADD_LIBRARY (${IWASM_STATIC_NAME}
              ${LIBC_WASI_SOURCE}
              ${IWASM_COMMON_SOURCE}
              ${IWASM_INTERP_SOURCE}
-             ${IWASM_AOT_SOURCE}
              ${IWASM_COMPL_SOURCE})
 
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)

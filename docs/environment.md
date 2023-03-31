@@ -73,8 +73,7 @@ enviroment will be built; generally `PDO_HOME` will point to
 processing contracts. `gipsy` is the default and is the Scheme-based,
 functional language. `wawaka` is an experimental interpreter that
 executes WASM-based contracts. `wawaka-opt` enables optimizations
-in Wawaka's WASM interpreter. `wawaka-aot` is a version of Wawaka that
-executes ahead-of-time compiled WASM contracts.
+in Wawaka's WASM interpreter.
 For more information on the configuration
 and use of `wawaka`, see the interpreter
 [README](../common/interpreter/wawaka/README.md).
