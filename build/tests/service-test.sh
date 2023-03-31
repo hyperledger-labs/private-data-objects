@@ -21,10 +21,6 @@ check_python_version
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-if [ "${PDO_INTERPRETER}" == "wawaka-aot" ]; then
-    die Automated tests for the wawaka-aot interpreter are currently not supported.
-fi
-
 if [ "${PDO_LEDGER_TYPE}" == "ccf" ]; then
     if [ ! -f "${PDO_LEDGER_KEY_ROOT}/networkcert.pem" ]; then
         die "CCF ledger keys are missing, please copy and try again"
