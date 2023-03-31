@@ -17,7 +17,6 @@ utils.py -- common utility routines useful for deploying CCF based pdo ledger
 """
 
 import os
-import socket
 from urllib.parse import urlparse
 
 __all__ = [
@@ -28,14 +27,12 @@ def parse_ledger_url(config = None):
     """Parse Ledger URL into host & port"""
 
     if config:
-        (hostname, port) = config["rpc-address"].split(':')
-        host = socket.gethostbyname(hostname)
+        (host, port) = config["rpc-address"].split(':')
         return host, port
 
     if os.environ.get("PDO_LEDGER_URL") is not None:
        url =  os.environ.get("PDO_LEDGER_URL")
-       (hostname, port) = urlparse(url).netloc.split(':')
-       host = socket.gethostbyname(hostname)
+       (host, port) = urlparse(url).netloc.split(':')
        return host, port
 
     raise Exception("Insufficient info to parse ledger url")

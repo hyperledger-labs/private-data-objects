@@ -18,7 +18,6 @@ import logging
 import time
 import os
 import sys
-import socket
 
 from ccf.clients import CCFClient
 from urllib.parse import urlparse
@@ -114,8 +113,7 @@ class CCFSubmitter(sub.Submitter):
 
         try:
             parsed_url = urlparse(self.url)
-            host, port = parsed_url.netloc.split(':')
-            self.host = socket.gethostbyname(host) # convert host name to IP address
+            self.host, port = parsed_url.netloc.split(':')
             self.port = int(port)
             self.endpoint = "{0}:{1}".format(self.host, self.port)
         except Exception as e:
