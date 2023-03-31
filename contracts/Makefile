@@ -27,11 +27,7 @@ else
 ifeq ($(PDO_INTERPRETER),wawaka-opt)
     CONTRACTS := wawaka
 else
-ifeq ($(PDO_INTERPRETER),wawaka-aot)
-    CONTRACTS := wawaka
-else
 $(error Incomplete configuration, PDO_INTERPRETER is not defined)
-endif
 endif
 endif
 endif

@@ -29,7 +29,6 @@ class ContractCode(object) :
         'gipsy' : '.scm',
         'wawaka' : '.b64',
         'wawaka-opt' : '.b64',
-        'wawaka-aot' : '.b64',
     }
 
     # -------------------------------------------------------
