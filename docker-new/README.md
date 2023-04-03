@@ -6,19 +6,12 @@ information for running the various containers.
 
 ## Automated Test ##
 
-The automated tests pre-configure all network services to run on localhost interface.
-
-```bash
-    rm -f ./xfer/networkcert.pem ./xfer/site.psh ./xfer/status
-	docker-compose -f test-configuration.yaml build \
-        --build-arg PDO_REPO_URL=$(PDO_REPO_URL) \
-        --build-arg PDO_REPO_BRANCH=$(PDO_REPO_BRANCH)
-	docker-compose --no-recreate -f test-configuration.yaml up
-```
-
 The `Makefile` in the directory is set up so that `make test` should
 build and execute the automated tests with the CCF ledger, PDO
 services, and PDO client all executing in separate containers.
+
+The automated tests pre-configure all network services to run on
+localhost interface.
 
 ## Local Development ##
 

@@ -20,11 +20,11 @@ ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 ARG WASM_MEM_CONFIG=MEDIUM
 ENV WASM_MEM_CONFIG=${WASM_MEM_CONFIG}
 
+# copy the tools because we want to be able to
+# use them even without a mount point after the
+# container is created
 WORKDIR /project/pdo/tools
-COPY tools/environment.sh ./
-COPY tools/build_services.sh ./
-COPY tools/start_services.sh ./
-COPY tools/run_services_tests.sh ./
+COPY tools/*.sh ./
 
 WORKDIR /project/pdo
 RUN git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} src \

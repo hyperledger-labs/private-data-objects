@@ -42,11 +42,11 @@ ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 ARG XFER_DIR=/project/pdo/xfer
 ENV XFER_DIR=${XFER_DIR}
 
+# copy the tools because we want to be able to
+# use them even without a mount point after the
+# container is created
 WORKDIR /project/pdo/tools
-COPY tools/environment.sh ./
-COPY tools/build_ccf.sh ./
-COPY tools/start_ccf.sh ./
-COPY tools/run_ccf_tests.sh ./
+COPY tools/*.sh ./
 
 WORKDIR /project/pdo
 RUN git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} src \

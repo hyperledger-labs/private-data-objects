@@ -56,7 +56,7 @@ build_test :
 		docker-compose $(TEST_FILES) build
 
 test : clean_config build_test
-	docker-compose $(TEST_FILES) up --no-recreate
+	docker-compose $(TEST_FILES) up
 
 _IMAGES_=$(shell docker images -a --filter=dangling=true -q)
 _CONTAINERS_=$(shell docker ps --filter=status=exited --filter=status=created -q)
@@ -65,8 +65,8 @@ clean_images : $(addprefix clean_,$(IMAGES))
 	@ if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
 
 clean_config :
-	@ rm -f $(SCRIPT_DIR)/xfer/ccf/keys/* $(SCRIPT_DIR)/xfer/ccf/etc/*
-	@ rm -f $(SCRIPT_DIR)/xfer/services/keys/* $(SCRIPT_DIR)/xfer/services/etc/*
+	@ rm -f $(SCRIPT_DIR)/xfer/ccf/keys/*.pem $(SCRIPT_DIR)/xfer/ccf/etc/*.toml
+	@ rm -f $(SCRIPT_DIR)/xfer/services/keys/*.pem $(SCRIPT_DIR)/xfer/services/etc/*.toml
 	@ rm -f $(SCRIPT_DIR)/xfer/site.psh $(SCRIPT_DIR)/xfer/status
 
 clean : clean_images clean_config
