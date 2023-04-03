@@ -16,7 +16,7 @@ DOCKER_BUILDARGS += --build-arg PDO_HOSTNAME=$(PDO_HOSTNAME)
 DOCKER_BUILDARGS += --build-arg PDO_LEDGER_URL=$(PDO_LEDGER_URL)
 DOCKER_ARGS = --progress=plain ${DOCKER_BUILDARGS}
 
-IMAGES=base client services-base services ccf
+IMAGES=base client services_base services ccf_base ccf
 
 TEST_FILES =  -f base.yaml
 TEST_FILES += -f client_base.yaml

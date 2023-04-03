@@ -22,16 +22,16 @@ files interactively on the host platform and compile/test inside the
 container without installing any dependencies on the host.
 
 Note: to use the ledger, you need to copy the CCF network certificate
-into the directory `${SCRIPT_DIR}/xfer`.
+into the directory `${PDO_SOURCE_ROOT}/xfer/ccf/keys`.
 
 ```bash
 	docker run \
-        -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer \
-        -v $(SCRIPT_DIR)/tools/:/project/pdo/tools \
-        -v $(PDO_SOURCE_ROOT)/:/project/pdo/src \
-        --network host -p -it \
-        --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL}
-        --name ${USERNAME}/services-container pdo-services-base
+        -v ${PDO_SOURCE_ROOT}/docker-new/xfer/:/project/pdo/xfer \
+        -v ${PDO_SOURCE_ROOT}/docker-new/tools/:/project/pdo/tools \
+        -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
+        --network host -P -it \
+        --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
+        --name ${USERNAME}/services_container pdo_services_base
 ```
 
 The `start_development.sh` script contains all of the necessary
@@ -43,6 +43,24 @@ network certificates into `$PDO_LEDGER_KEY_ROOT`.
 ```bash
     source /project/pdo/tools/start_development.sh
 ```
+
+To develop CCF (which is built on a different base image) use
+the following:
+```bash
+	docker run \
+        -v ${PDO_SOURCE_ROOT}/docker-new/xfer/:/project/pdo/xfer \
+        -v ${PDO_SOURCE_ROOT}/docker-new/tools/:/project/pdo/tools \
+        -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
+        --network host -P -it \
+        --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
+        --name ${USERNAME}/ccf_container pdo_ccf_base
+```
+
+The `start_development.sh` script can be used in the `ccf_container`
+in the same way it is used in the `services_container` above.
+
+Note: be sure to run `make clean` in the original (out of container) build
+tree.
 
 ## Service Deployment ##
 

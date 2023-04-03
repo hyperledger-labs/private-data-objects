@@ -3,9 +3,15 @@
 export PDO_HOSTNAME=${PDO_HOSTNAME:-$HOSTNAME}
 export PDO_LEDGER_URL=${PDO_LEDGER_URL:-http://${PDO_HOSTNAME}:6600}
 
-source /opt/intel/sgxsdk/environment
+# when we are developing CCF we won't have the sgx environment
+if [ -f /opt/intel/sgxsdk/environment ]; then
+    source /opt/intel/sgxsdk/environment
+else
+    echo SGXSDK not installed, skipping initialization
+fi
+
 source /project/pdo/tools/environment.sh
-source ${PDO_HOME}/bin/lib/common.sh
+source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
 
 export no_proxy=$PDO_HOSTNAME,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
