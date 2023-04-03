@@ -15,6 +15,14 @@
 version: "2.1"
 
 services:
+  ccf_base_container:
+    image: pdo_ccf_base
+    build:
+      context: .
+      dockerfile: pdo_ccf_base.dockerfile
+      args:
+        SGX_MODE: ${SGX_MODE:-SIM}
+
   ccf_container:
     image: pdo_ccf
     build:
@@ -29,6 +37,7 @@ services:
         PDO_LEDGER_URL: ${PDO_LEDGER_URL}
         SGX_MODE: ${SGX_MODE:-SIM}
     depends_on:
+      - ccf_base_container
       - base_container
     container_name: ccf_container
     network_mode: "host"
