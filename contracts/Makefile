@@ -18,18 +18,12 @@ EXTENSIONPATH := $(ROOTDIR)/common/build
 
 TARGETS := all clean debug install test
 
-ifeq ($(PDO_INTERPRETER),gipsy)
-    CONTRACTS := auction exchange integer-key test-contracts
-else
 ifeq ($(PDO_INTERPRETER),wawaka)
     CONTRACTS := wawaka
-else
-ifeq ($(PDO_INTERPRETER),wawaka-opt)
+else ifeq ($(PDO_INTERPRETER),wawaka-opt)
     CONTRACTS := wawaka
 else
 $(error Incomplete configuration, PDO_INTERPRETER is not defined)
-endif
-endif
 endif
 
 $(TARGETS): $(CONTRACTS)

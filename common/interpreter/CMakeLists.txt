@@ -34,9 +34,7 @@ SGX_PREPARE_TRUSTED(${PROJECT_NAME})
 # Interpreter subdirectories
 ################################################################################
 
-IF (PDO_INTERPRETER STREQUAL "gipsy")
-  ADD_SUBDIRECTORY(gipsy_scheme)
-ELSEIF (PDO_INTERPRETER MATCHES "^wawaka")
+IF (PDO_INTERPRETER MATCHES "^wawaka")
   ADD_SUBDIRECTORY(wawaka_wasm)
 ELSE()
   MESSAGE(FATAL_ERROR "Unknown PDO_INTERPRETER, $ENV{PDO_INTERPRETER}!")

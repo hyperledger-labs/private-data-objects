@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 class ContractCode(object) :
     __extension__ = {
-        'gipsy' : '.scm',
         'wawaka' : '.b64',
         'wawaka-opt' : '.b64',
     }
@@ -34,9 +33,9 @@ class ContractCode(object) :
     # -------------------------------------------------------
     @classmethod
     def create_from_file(cls, name, source_name = None, search_path = ['.', '..', './contracts'], interpreter=None) :
-        """Create a code object from a Gipsy source file
+        """Create a code object from a contract source file
 
-        :param name str: the name of the scheme contract class
+        :param name str: the name of the contract class
         :param source_name str: the name of the source file
         :param search_path list of str: directories to search for the source file
         """

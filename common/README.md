@@ -27,7 +27,7 @@ Directories
 |  .                         |  .cpp/.h error handling and common types |
 |  packages/base64/          |  .cpp/.h of Renee Nyffinger base64 encoding/decoding |
 |  packages/parson/          |  .cpp/.h of Parson JSON  encoding/decoding |
-|  interpreter/              |  The contract interpreter implementation (currently based on TinyScheme) |
+|  interpreter/              |  The contract interpreter implementation (currently based on Wasm) |
 |  tests/                    |  unit tests for crypto library |
 |  tests/untrusted           |  test untrusted Crypto library |
 |  tests/trusted             |  test trusted Crypto library |

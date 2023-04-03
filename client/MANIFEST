@@ -9,7 +9,6 @@
 ./pdo/client/controller/contract_controller.py
 ./pdo/client/controller/util.py
 ./pdo/client/controller/__init__.py
-./pdo/client/SchemeExpression.py
 ./pdo/client/scripts/EServiceDatabaseCLI.py
 ./pdo/client/scripts/ShellCLI.py
 ./pdo/client/scripts/__init__.py

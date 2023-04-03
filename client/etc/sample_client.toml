@@ -78,11 +78,10 @@ Duration=120 #seconds
 # --------------------------------------------------
 [Contract]
 
-# Name is the name of the contract class in the
-# Gipsy Scheme contract
+# Name is the name of the contract class
 Name = "${contract}"
 
-# SourceFile is the name of the Gipsy Scheme
+# SourceFile is the name of the
 # source file that defines the contract class
 SourceFile = "${contract}.scm"
 

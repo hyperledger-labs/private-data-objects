@@ -14,8 +14,6 @@
 import json
 import os
 
-from pdo.client.SchemeExpression import SchemeExpression
-
 import logging
 logger = logging.getLogger(__name__)
 

@@ -56,7 +56,7 @@ The following configuration variables can be specified:
 
 * ``PDO``
   * ``DataPath`` -- directory for writing data files
-  * ``SchemeSearchPath`` -- list of directories to search for contract
+  * ``SourceSearchPath`` -- list of directories to search for contract
   source
 
 * ``Logging``
@@ -72,7 +72,7 @@ The following configuration variables can be specified:
   * ``spid_api_key`` -- the api key corresponding to spid (ignored)
 
 * ``contract`` -- the base name of the contract to use, this is
-  expected to reference a file found in ``SchemeSearchPath``
+  expected to reference a file found in ``SourceSearchPath``
 
 * ``eservice-url`` -- the URL of an enclave service, if no enclave
   service is specified, a local enclave will be created
@@ -101,7 +101,7 @@ the configuration file
 * ``--eservice-url <string>`` -- URL for the enclave service
 * ``--pservice <string> <string> ...`` -- list of URLs for provisioning
   ``--eservice-db`` -- json file for eservice database
-  ``--eservice-name`` -- the name of an enclave service as in the client's eservice database 
+  ``--eservice-name`` -- the name of an enclave service as in the client's eservice database
 
   services
 * ``--logfile <string>`` -- name of the log file to use, ``__screen__``
@@ -120,31 +120,6 @@ adds the following options:
 The ``mock-contract`` is a simple contract that defines operations on a
 single counter.
 
-```scheme
-(define-macro (assert pred . message)
-  `(if (not ,pred) (throw ,@message)))
-
-(define-class mock-contract
-  (instance-vars
-   (creator (get ':message 'originator))
-   (value 0)))
-
-(define-method mock-contract (get_value)
-  (let* ((requestor (get ':message 'originator)))
-    (assert (string=? requestor creator) "only the creator can get the value"))
-  value)
-
-(define-method mock-contract (inc_value)
-  (let* ((requestor (get ':message 'originator)))
-    (assert (string=? requestor creator) "only the creator can inc the value"))
-  (instance-set! self 'value (+ value 1))
-  value)
-
-(define-method mock-contract (depends dependencies)
-  (put ':ledger 'dependencies dependencies)
-  value)
-```
-
 ## test-contract.py ##
 
 The ``test-contract.py`` script takes a contract and a file of messages
@@ -156,18 +131,12 @@ parameters, this script adds the following options:
 * ``--expressions <string>`` -- the name of a file that contains
   messages to send to the contract, one message per line
 
-The expression file contains Gipsy Scheme expressions that will be sent
+The expression file contains expressions that will be sent
 as messages to an instance of the contract. For example, the following
 expression file would increment the value of the counter in a
 ``mock-contract`` twice and then retrieve the value. By default, the
 expression file used will match the contract name with a '.exp'
 extension.
-
-```scheme
-'(inc_value)
-'(inc_value)
-'(get_value)
-```
 
 ## Examples ##
 

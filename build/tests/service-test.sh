@@ -206,18 +206,6 @@ try pdo-test-request \
     --logfile __screen__ --loglevel ${F_LOGLEVEL} --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
 
-if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
-    say start memory test test with replication 3 eservices 2 replicas needed before txn
-    try pdo-test-contract \
-        --config pcontract.toml \
-        --contract memory-test --expressions ${PDO_SOURCE_ROOT}/build/tests/${PDO_INTERPRETER}/memory-test.json \
-        --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
-        --eservice-url http://${F_SERVICE_HOST}:7101/ http://${F_SERVICE_HOST}:7102/ http://${F_SERVICE_HOST}:7103/ \
-        --ledger ${F_LEDGER_URL} \
-        --logfile __screen__ --loglevel ${F_LOGLEVEL} \
-        --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
-fi
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 yell completed all service tests

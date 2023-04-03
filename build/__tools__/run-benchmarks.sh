@@ -24,12 +24,6 @@ check_python_version
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-if [ "${PDO_INTERPRETER}" == "gipsy" ]; then
-    die automated benchmarks not enabled for the gipsy interpreter
-fi
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
 : "${PDO_SOURCE_ROOT:-$(die Missing environment variable PDO_SOURCE_ROOT)}"
 : "${PDO_INTERPRETER:-$(die Missing environment variable PDO_INTERPRETER)}"
 

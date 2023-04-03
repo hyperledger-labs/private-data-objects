@@ -23,7 +23,7 @@ namespace pdo
 {
 namespace crypto
 {
-    // Public Key encryption functions are mostly used within the scheme interpreter itself
+    // Public Key encryption functions are mostly used within the contract interpreter itself
     namespace pkenc
     {
         class PrivateKey;
