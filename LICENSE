@@ -210,40 +210,6 @@ licenses.
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-tinyscheme
-
-Copyright (c) 2000, Dimitrios Souflis
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-Neither the name of Dimitrios Souflis nor the names of the
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
 parson
 
 For project details see: https://github.com/kgabis/parson
@@ -301,48 +267,3 @@ freely, subject to the following restrictions:
     The original source code has been modified to be used with Private Data
     Objects (PDOs).
 */
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-ELK
-
-Copyright 1990, 1991, 1992, 1993, 1994, 1995, Oliver Laumann, Berlin(except for
-the contents of the directory `doc / usenix'). This software was derived from
-Elk 1.2, which was Copyright 1987, 1988, 1989, Nixdorf Computer AG and TELES
-GmbH, Berlin (Elk 1.2 has been written by Oliver Laumann (me) for TELES
-Telematic Services, Berlin, in a joint project between TELES and Nixdorf
-Microprocessor Engineering, Berlin). Oliver Laumann, TELES GmbH, and Nixdorf
-Computer AG, as co-owners or individual owners of copyright in this software,
-grant to any person or company a worldwide, royalty free, license to i) copy
-this software, ii) prepare derivative works based on this software, iii)
-distribute copies of this software or derivative works, iv) perform this
-software, or v) display this software, provided that this notice is not removed
-and that neither Oliver Laumann nor Teles nor Nixdorf are deemed to have made
-any representations as to the suitability of this software for any purpose nor
-are held responsible for any defects of this software. THERE IS ABSOLUTELY NO
-WARRANTY FOR THIS SOFTWARE. Berlin, June 20, 1995 Oliver Laumann
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-SLIB
-
-SLIB LICENSE Each file in SLIB (over a dozen lines in length) is either in the
-public domain, or comes with a statement of terms permitting users to copy,
-modify, and redistribute it. The comments at the beginning each file (containing
-over a dozen lines) must specify its terms. For instance, the comments at the
-beginning of "Template.scm" declare that it is in the public domain: ;;;
-"Template.scm" configuration template of *features* for Scheme ;;; Author:
-Aubrey Jaffer ;;; ;;; This code is in the public domain. Each copyrighted file
-lists the names of the copyright holders and gives permissions to copy, modify,
-and redistribute the file. For instance, the beginning of "require.scm" states:
-;;;; Implementation of VICINITY and MODULES for Scheme ;Copyright (C) 1991,
-1992, 1993, 1994, 1997 Aubrey Jaffer ; ;Permission to copy this software, to
-modify it, to redistribute it, ;to distribute modified versions, and to use it
-for any purpose is ;granted, subject to the following restrictions and
-understandings. ; ;1. Any copy made of this software must include this copyright
-notice ;in full. ; ;2. I have made no warranty or representation that the
-operation of ;this software will be error-free, and I am under no obligation to
-;provide any services, by way of maintenance, update, or otherwise. ; ;3. In
-conjunction with products arising from the use of this ;material, there shall be
-no use of my name in any advertising, ;promotional, or sales literature without
-prior written consent in ;each case.

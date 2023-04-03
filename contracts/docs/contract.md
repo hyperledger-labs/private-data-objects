@@ -10,5 +10,4 @@ inside the contract enclave where it is protected from eavesdropping
 what they can and can not do - they are just code that runs on data.
 
 This distribution includes two contract interpreters:
-- [Gipsy](gipsy.md) -- A Scheme-based interpreter
 - [Wawaka](wawaka.md) -- A WASM-based interpreter

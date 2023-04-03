@@ -13,7 +13,6 @@ installation is described below.
 ## Process Overview
 
 - Setup the basic development environment
-- Download TinyScheme source
 - Install SGX SDK and untrusted platform libraries/services
 - Install LVI-aware binutils
 - Install SGX SSL
@@ -36,18 +35,6 @@ sudo apt install -y liblmdb-dev libsecp256k1-dev libncurses5-dev
 <!--
     virtualenv will cause python3 and python3-virtualenv to be installed
 -->
-
-## <a name="tinyscheme">Build Tinyscheme</a>
-
-This project contains a modified version of the Tinyscheme interpreter
-for use within a secure enclave.  You **also** need a separate, plain
-copy of Tinyscheme to use outside the enclave for contract development. Use the following
-command to install tinyscheme.
-
-
-```bash
-sudo apt install tinyscheme
-```
 
 ## Install SGX Platform Libraries and Services
 

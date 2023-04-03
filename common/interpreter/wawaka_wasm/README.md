@@ -39,7 +39,7 @@ sudo dpkg --install /tmp/wasi-sdk_12.0_amd64.deb
 ```
 
 These directions assume that the SDK will be installed in the PDO source tree. Typically, the WASI
-SDK would be installed in the directory `/opt/wasi-sdk`. 
+SDK would be installed in the directory `/opt/wasi-sdk`.
 
 ### Set Up WAMR ###
 
@@ -108,9 +108,8 @@ the stack and heap.
 
 ### Set Environment Variables ###
 
-By default, PDO will be built with the Gipsy Scheme contract interpreter. To use the experimental
-wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule directory
-with the WAMR source), `PDO_INTERPRETER` (the name of the contract interpreter to use).
+To use the wawaka interpreter, set the environment variables `WASM_SRC` (default is the submodule
+directory with the WAMR source) and `PDO_INTERPRETER` (the name of the contract interpreter to use).
 
 ```bash
 export WASM_SRC=${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime

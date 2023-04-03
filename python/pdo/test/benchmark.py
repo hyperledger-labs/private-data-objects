@@ -23,8 +23,8 @@ Run the given test as a benchmark.
 def RunBenchmark(interpreter_name, num_iterations, bench_name, update_request):
     if interpreter_name.startswith('wawaka'):
         bench_dir = os.environ.get("PDO_SOURCE_ROOT")+'/contracts/wawaka/benchmarks/data'
-    else:
-        bench_dir = os.environ.get("PDO_SOURCE_ROOT")+'/contracts/gipsy/benchmarks/data'
+    else :
+        raise Exception('unknown interpreter')
 
     bench_results_file = open(bench_dir+'/'+bench_name+'-'+interpreter_name+'-bench.txt', "w+")
 

@@ -48,11 +48,10 @@ var_set() {
 	"
 	env_key_sort[$i]="WASM_MEM_CONFIG"; i=$i+1; export WASM_MEM_CONFIG=${env_val[WASM_MEM_CONFIG]};
 
-	env_val[PDO_INTERPRETER]="${PDO_INTERPRETER:-gipsy}"
+	env_val[PDO_INTERPRETER]="${PDO_INTERPRETER:-wawaka}"
 	env_desc[PDO_INTERPRETER]="
 		PDO_INTERPRETER contains the name of the interpreter to use
-                for processing contracts. 'gipsy' is the default and is the Scheme-based,
-                functional language. 'wawaka' is an experimental interpreter that executes
+                for processing contracts. 'wawaka' is the default interpreter that executes
                 WASM-based contracts. 'wawaka-opt' is a version of wawaka with optimizations
                 enabled.
 	"

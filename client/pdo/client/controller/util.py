@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import json
-from pdo.client.SchemeExpression import SchemeExpression
 
 import logging
 logger = logging.getLogger(__name__)
 
-__all__ = ['invocation_parameter', 'scheme_parameter']
+__all__ = ['invocation_parameter']
 
 # -----------------------------------------------------------------
 def invocation_parameter(s) :
@@ -29,15 +28,4 @@ def invocation_parameter(s) :
         expr = json.loads(s)
         return expr
     except :
-        return str(s)
-
-# -----------------------------------------------------------------
-def scheme_parameter(s) :
-    """argparse parameter conversion function for scheme objects
-    that need to be parsed before being re-used
-    """
-    try :
-        sexpr = SchemeExpression.ParseExpression(str(s))
-        return sexpr.value
-    except Exception as e:
         return str(s)

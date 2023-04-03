@@ -38,7 +38,7 @@
 // contract KV predefined keys
 //
 // {
-//     "IntrinsicState"     : "<string of scheme state>",
+//     "IntrinsicState"     : "<string of contract state>",
 //     "IdHash"             : "<ByteArray>",
 //     "ContractCode.Code"  : "<string>"
 //     "ContractCode.Name"  : "<string>"

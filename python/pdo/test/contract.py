@@ -536,7 +536,7 @@ ContractEtc = os.path.join(ContractHome, "etc")
 ContractKeys = os.path.join(ContractHome, "keys")
 ContractLogs = os.path.join(ContractHome, "logs")
 ContractData = os.path.join(ContractHome, "data")
-ContractInterpreter = os.environ.get("PDO_INTERPRETER", "gipsy")
+ContractInterpreter = os.environ.get("PDO_INTERPRETER", "wawaka")
 LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:6600/")
 ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 

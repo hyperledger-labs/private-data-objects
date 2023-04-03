@@ -48,7 +48,7 @@ services:
         PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
         PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-main}
         SGX_MODE: SIM
-        PDO_INTERPRETER: ${PDO_INTERPRETER:-gipsy}
+        PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
         PDO_LEDGER_URL: http://pdo-tp-ccf:6600
         PDO_LEDGER_TYPE: ccf
         PDO_LEDGER_KEY_ROOT: /project/pdo/build/opt/pdo/etc/keys/ledger/

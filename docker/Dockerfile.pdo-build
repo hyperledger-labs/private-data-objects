@@ -23,7 +23,7 @@
 #  - pdo repo to use:				PDO_REPO_URL  (default: https://github.com/hyperledger-labs/private-data-objects.git)
 #  - pdo repo branch to use:			PDO_REPO_BRANCH (default: main)
 #  - build in debug mode:			PDO_DEBUG_BUILD (default: 0)
-#  - contract interpreter (gipsy or wawaka):	PDO_INTERPRETER (default: gipsy)
+#  - contract interpreter (wawaka):	PDO_INTERPRETER (default: wawaka)
 
 # Build:
 #   $ docker build -f docker/Dockerfile.pdo-build -t pdo-build docker
@@ -94,7 +94,7 @@ ENV SGX_MODE=${SGX_MODE}
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
-ARG PDO_INTERPRETER=gipsy
+ARG PDO_INTERPRETER=wawaka
 ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 
 ARG PDO_LEDGER_URL=http://pdo-tp-ccf:6600
