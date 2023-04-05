@@ -1,4 +1,18 @@
-# syntax=docker/dockerfile:1
+# ------------------------------------------------------------------------------
+# Copyright 2023 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
 
 FROM pdo_ccf_base
 
@@ -10,9 +24,6 @@ ARG REBUILD 0
 ARG SGX_MODE SIM
 ENV SGX_MODE=$SGX_MODE
 
-ARG PDO_REPO_URL=https://github.com/hyperledger-labs/private-data-objects.git
-ARG PDO_REPO_BRANCH=main
-
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
@@ -21,15 +32,18 @@ ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 ARG XFER_DIR=/project/pdo/xfer
 ENV XFER_DIR=${XFER_DIR}
 
+# copy the source files into the image
+WORKDIR /project/pdo
+COPY --chown=${UNAME}:${UNAME} repository /project/pdo/src
+
 # copy the tools because we want to be able to
 # use them even without a mount point after the
 # container is created
 WORKDIR /project/pdo/tools
-COPY tools/*.sh ./
+COPY --chown=${UNAME}:${UNAME} tools/*.sh ./
 
-WORKDIR /project/pdo
-RUN git clone --single-branch --branch ${PDO_REPO_BRANCH} --recurse-submodules ${PDO_REPO_URL} src \
-    && tools/build_ccf.sh
+# build it!!!
+RUN /project/pdo/tools/build_ccf.sh
 
 # Network ports for running services
 EXPOSE 6600

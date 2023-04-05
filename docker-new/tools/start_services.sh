@@ -80,13 +80,13 @@ source ${PDO_HOME}/bin/lib/common.sh
 # -----------------------------------------------------------------
 if [ "${F_MODE,,}" == "build" ]; then
     yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-    make -C ${PDO_SOURCE_ROOT}/build config
-    make -C ${PDO_SOURCE_ROOT}/build keys
+    try make -C ${PDO_SOURCE_ROOT}/build config
+    try make -C ${PDO_SOURCE_ROOT}/build keys
 elif [ "${F_MODE,,}" == "copy" ]; then
     yell copy the configuration from xfer/services/etc and xfer/services/keys
-    mkdir -p ${PDO_HOME}/etc ${PDO_HOME}/keys
-    cp ${XFER_DIR}/services/etc/* ${PDO_HOME}/etc/
-    cp ${XFER_DIR}/services/keys/* ${PDO_HOME}/keys/
+    try mkdir -p ${PDO_HOME}/etc ${PDO_HOME}/keys
+    try cp ${XFER_DIR}/services/etc/* ${PDO_HOME}/etc/
+    try cp ${XFER_DIR}/services/keys/* ${PDO_HOME}/keys/
 elif [ "${F_MODE,,}" == "skip" ]; then
     yell restart with existing configuration
     F_CLEAN=""
@@ -102,13 +102,13 @@ while [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; do
     say "waiting for ledger keys"
     sleep 5
 done
-cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
+try cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 
 # -----------------------------------------------------------------
 yell register the enclave if necessary
 # -----------------------------------------------------------------
 if [ "${F_REGISTER,,}" == 'yes' ]; then
-    make -C ${PDO_SOURCE_ROOT}/build register
+    try make -C ${PDO_SOURCE_ROOT}/build register
 fi
 
 # -----------------------------------------------------------------
@@ -116,13 +116,13 @@ yell start the services
 # -----------------------------------------------------------------
 . ${PDO_INSTALL_ROOT}/bin/activate
 
-try ${PDO_HOME}/bin/ss-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${CLEAN}
-try ${PDO_HOME}/bin/ps-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${CLEAN}
-try ${PDO_HOME}/bin/es-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${CLEAN}
+try ${PDO_HOME}/bin/ss-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLEAN}
+try ${PDO_HOME}/bin/ps-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLEAN}
+try ${PDO_HOME}/bin/es-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLEAN}
 
 # save the site.psh file if the configuration files were generated here
 if [ "${F_MODE,,}" == "build" ]; then
-    cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}
+    try cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}
     chmod a+rw ${XFER_DIR}/site.psh
 fi
 

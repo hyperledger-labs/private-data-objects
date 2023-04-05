@@ -3,20 +3,79 @@ Licensed under Creative Commons Attribution 4.0 International License
 https://creativecommons.org/licenses/by/4.0/
 --->
 
-# Docker Usages #
+# Docker Tools and Usages #
+
+This directory contains scripts useful for building and running
+containers with various PDO services and components. For the most
+part, this directory could be copied to any host (even without PDO
+otherwise installed) to build, configure, and execute PDO code.
+
+## Basic Layout ##
+
+There are three subdirectories that are employed in building, configuring and running a  container.
+
+* `xfer` -- this directory is used to pass configuration information
+  and keys between the container and the host; for example, to push a
+  previously built configuration into the container, put the files in
+  the appropriate subdirectory in xfer.
+* `tools` -- this directory contains a number of scripts that will be
+  installed in the container to simplfy building, configuring and
+  running the services in the container.
+* `repository` -- this directory is created during the build process
+  and contains the PDO source code that will be copied into the
+  container; the build variables `PDO_REPO` and `PDO_BRANCH` control
+  what is put into the directory.
+
+## Makefile Targets ##
 
 The `Makefile` contains several targets that should simplify building
-images and running containers. This file contains some additional
-information for running the various containers.
+images and running containers.
 
-## Automated Test ##
+Four configuration variables should be set as necessary:
+
+* `PDO_REPO` -- the URL or file path of the PDO source git repository;
+  this defaults to the repository stored on the local file system at
+  `${PDO_SOURCE_ROOT}`.
+* `PDO_BRANCH` -- the branch to use in from the source repository;
+  this defaults to the branch where the source is currently stored.
+* `PDO_USER_UID` -- the UID for the user that is created in the
+  container to run the services; this defaults to the current users
+  UID. Note that the `xfer` directory must be writable by the account
+  associated with the UID.
+* `PDO_GROUP_UID` -- the GID for the group assigned to the user
+  created in the container; the default is the GID for the current
+  user.
+
+### Automated Test ###
 
 The `Makefile` in the directory is set up so that `make test` should
 build and execute the automated tests with the CCF ledger, PDO
-services, and PDO client all executing in separate containers.
+services, and PDO client all executing in separate containers. This
+action is performed using the `docker-compose` configuration files in
+the source directory and the `run_client_tests.sh`,
+`run_services_test.sh` and `run_ccf_tests.sh` scripts in the `tools`
+directory.
 
 The automated tests pre-configure all network services to run on
 `localhost` interface.
+
+### Build and Rebuild Targets ###
+
+There are targets for the initial build of each image. In addition, if
+changes are made to artifacts that are not part of the docker build
+specification, a rebuild target can be used to force recompilation of
+the PDO artifacts.
+
+```bash
+    make build_services_base
+    make rebuild_ccf
+```
+
+Similar targets will start the three primary containers: `run_ccf`,
+`run_services` and `run_client`. The first two will run the containers
+as services in detached mode. The last for the client will run an
+interactive shell in the client container. See below for information
+on how to use the client container.
 
 ## Local Development in a Container ##
 

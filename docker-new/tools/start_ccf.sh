@@ -81,8 +81,8 @@ if [ "${F_MODE,,}" == "build" ]; then
     try make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor config
 elif [ "${F_MODE,,}" == "copy" ]; then
     yell copy the configuration from xfer/ccf/etc and xfer/ccf/keys
-    cp ${XFER_DIR}/ccf/etc/* ${PDO_HOME}/ccf/etc/
-    cp ${XFER_DIR}/ccf/keys/* ${PDO_LEDGER_KEY_ROOT}/
+    try cp ${XFER_DIR}/ccf/etc/* ${PDO_HOME}/ccf/etc/
+    try cp ${XFER_DIR}/ccf/keys/* ${PDO_LEDGER_KEY_ROOT}/
 elif [ "${F_MODE,,}" == "skip" ]; then
     yell restart with existing configuration
 else
@@ -105,8 +105,8 @@ fi
 # -----------------------------------------------------------------
 if [ "${F_MODE}" == "build" ]; then
     yell copy the network keys
-    cp ${PDO_LEDGER_KEY_ROOT}/* ${XFER_DIR}/ccf/keys
-    chmod a+rw ${XFER_DIR}/ccf/keys/*
+    try cp ${PDO_LEDGER_KEY_ROOT}/* ${XFER_DIR}/ccf/keys
+    try chmod a+rw ${XFER_DIR}/ccf/keys/*
 fi
 
 # -----------------------------------------------------------------

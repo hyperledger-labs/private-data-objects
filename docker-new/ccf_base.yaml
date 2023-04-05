@@ -12,37 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-version: "2.1"
+version: "3.4"
 
 services:
-  ccf_base_container:
-    image: pdo_ccf_base
-    build:
-      context: .
-      dockerfile: pdo_ccf_base.dockerfile
-      args:
-        UID: ${PDO_USER_UID:-1000}
-        GID: ${PDO_GROUP_UID:-1000}
-        SGX_MODE: ${SGX_MODE:-SIM}
-
   ccf_container:
     image: pdo_ccf
     build:
       context: .
       dockerfile: pdo_ccf.dockerfile
       args:
-        PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
-        PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-main}
         PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
         PDO_LEDGER_TYPE: ccf
         PDO_HOSTNAME: ${PDO_HOSTNAME}
         PDO_LEDGER_URL: ${PDO_LEDGER_URL}
         SGX_MODE: ${SGX_MODE:-SIM}
-    depends_on:
-      - ccf_base_container
-      - base_container
     container_name: ccf_container
     network_mode: "host"
     volumes:
       - ./xfer/:/project/pdo/xfer/
     entrypoint: /project/pdo/tools/start_ccf.sh
+    healthcheck:
+      test: ["CMD", "test", "-r", "/project/pdo/xfer/ccf/keys/networkcert.pem"]
+      start_period: 10s
+      interval: 10s
+      retries: 5

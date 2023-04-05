@@ -27,69 +27,43 @@ export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 # -----------------------------------------------------------------
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
-# the sleep here just gives CCF a chance to get started, its probably
-# longer than is strictly necessary but there is no real reason to
-# go too soon
-sleep 20
-
-make -C ${PDO_SOURCE_ROOT}/build force-config
-make -C ${PDO_SOURCE_ROOT}/build keys
+try make -C ${PDO_SOURCE_ROOT}/build force-config
+try make -C ${PDO_SOURCE_ROOT}/build keys
 
 # -----------------------------------------------------------------
 yell copy ledger keys
 # -----------------------------------------------------------------
 # need to wait for the ledger to get going so we can grab the
-# keys and copy them into the correct location
+# keys and copy them into the correct location, in theory the
+# healthcheck in the docker-compose configuration file should
+# ensure that the keys are already present
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
 while [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; do
     say "waiting for ledger keys"
     sleep 5
 done
-cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
+try cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 
 # -----------------------------------------------------------------
 yell check for registration
 # -----------------------------------------------------------------
 # this probably requires additional CCF keys, need to test this
 if [ "$SGX_MODE" == "HW" ]; then
-    make -C ${PDO_SOURCE_ROOT}/build register
+    try make -C ${PDO_SOURCE_ROOT}/build register
 fi
 
 # -----------------------------------------------------------------
 yell run the unit test suite
 # -----------------------------------------------------------------
 . ${PDO_INSTALL_ROOT}/bin/activate
-
-${PDO_SOURCE_ROOT}/build/tests/unit-test.sh
-STATUS=$?
-if [ $STATUS != 0 ] ; then
-    echo $STATUS > ${XFER_DIR}/status
-    exit $STATUS
-fi
+try ${PDO_SOURCE_ROOT}/build/tests/unit-test.sh
 
 # -----------------------------------------------------------------
 yell start the services
 # -----------------------------------------------------------------
-${PDO_HOME}/bin/ss-start.sh --output ${PDO_HOME}/logs --clean
-STATUS=$?
-if [ $STATUS != 0 ] ; then
-    echo $STATUS > ${XFER_DIR}/status
-    exit $STATUS
-fi
-
-${PDO_HOME}/bin/ps-start.sh --output ${PDO_HOME}/logs --clean
-STATUS=$?
-if [ $STATUS != 0 ] ; then
-    echo $STATUS > ${XFER_DIR}/status
-    exit $STATUS
-fi
-
-${PDO_HOME}/bin/es-start.sh --output ${PDO_HOME}/logs --clean
-STATUS=$?
-if [ $STATUS != 0 ] ; then
-    echo $STATUS > ${XFER_DIR}/status
-    exit $STATUS
-fi
+try ${PDO_HOME}/bin/ss-start.sh --output ${PDO_HOME}/logs --clean
+try ${PDO_HOME}/bin/ps-start.sh --output ${PDO_HOME}/logs --clean
+try ${PDO_HOME}/bin/es-start.sh --output ${PDO_HOME}/logs --clean
 
 function cleanup {
     yell "shutdown services"
@@ -100,16 +74,9 @@ function cleanup {
 
 trap cleanup EXIT
 
-cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}
+try cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}/services/etc/site.psh
 
 # -----------------------------------------------------------------
 yell wait for client completion
 # -----------------------------------------------------------------
-# the services need to continue to run until the client
-# is finished
-while [ ! -f ${XFER_DIR}/status ]; do
-    say "waiting for client completion"
-    sleep 5
-done
-
-exit $(cat ${XFER_DIR}/status)
+sleep infinity

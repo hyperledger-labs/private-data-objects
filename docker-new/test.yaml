@@ -12,21 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-version: "2.1"
+version: "3.4"
 
 services:
   ccf_container:
+    build:
+      args:
+        PDO_HOSTNAME: localhost
+        PDO_LEDGER_URL: http://localhost:6600
     entrypoint: /project/pdo/tools/run_ccf_tests.sh
 
   services_container:
-    # depends_on:
-    #   - services_base_container
-    #   - ccf_container
+    build:
+      args:
+        PDO_HOSTNAME: localhost
+        PDO_LEDGER_URL: http://localhost:6600
     entrypoint: /project/pdo/tools/run_services_tests.sh
 
   client_container:
-    # depends_on:
-    #   - base_container
-    #   - services_container
-    #   - ccf_container
+    build:
+      args:
+        PDO_HOSTNAME: localhost
+        PDO_LEDGER_URL: http://localhost:6600
     entrypoint: /project/pdo/tools/run_client_tests.sh

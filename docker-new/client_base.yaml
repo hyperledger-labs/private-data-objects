@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-version: "2.1"
+version: "3.4"
 
 services:
   client_container:
@@ -21,14 +21,15 @@ services:
       context: .
       dockerfile: pdo_client.dockerfile
       args:
-        PDO_REPO_URL: ${PDO_REPO_URL:-https://github.com/hyperledger-labs/private-data-objects.git}
-        PDO_REPO_BRANCH: ${PDO_REPO_BRANCH:-main}
+        UID: ${PDO_USER_UID:-1000}
+        GID: ${PDO_GROUP_UID:-1000}
         PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
         PDO_LEDGER_TYPE: ccf
         PDO_HOSTNAME: ${PDO_HOSTNAME}
         PDO_LEDGER_URL: ${PDO_LEDGER_URL}
     depends_on:
-      - base_container
+      - ccf_container
+      - services_container
     container_name: client_container
     network_mode: "host"
     volumes:
