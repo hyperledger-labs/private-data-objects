@@ -1,3 +1,8 @@
+<!---
+Licensed under Creative Commons Attribution 4.0 International License
+https://creativecommons.org/licenses/by/4.0/
+--->
+
 # Docker Usages #
 
 The `Makefile` contains several targets that should simplify building
@@ -11,12 +16,12 @@ build and execute the automated tests with the CCF ledger, PDO
 services, and PDO client all executing in separate containers.
 
 The automated tests pre-configure all network services to run on
-localhost interface.
+`localhost` interface.
 
-## Local Development ##
+## Local Development in a Container ##
 
 To set up an environment where interactive development can take place
-on the local repository, use the `pdo-services-base` image and mount
+on the local repository, use the `pdo_services_base` image and mount
 the local source into the container. In this mode, you can edit source
 files interactively on the host platform and compile/test inside the
 container without installing any dependencies on the host.
@@ -31,20 +36,20 @@ into the directory `${PDO_SOURCE_ROOT}/xfer/ccf/keys`.
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
         --network host -P -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
-        --name ${USERNAME}/services_container pdo_services_base
+        --name ${USER}/services_container pdo_services_base
 ```
 
 The `start_development.sh` script contains all of the necessary
 commands to set up the environment for development and testing. This
 includes setting all of the necessary environment variables, adding
-`$PDO_HOSTNAME` to the no proxy configuration, and copying the CCF
-network certificates into `$PDO_LEDGER_KEY_ROOT`.
+`PDO_HOSTNAME` to the no proxy configuration, and copying the CCF
+network certificates into `PDO_LEDGER_KEY_ROOT`.
 
 ```bash
     source /project/pdo/tools/start_development.sh
 ```
 
-To develop CCF (which is built on a different base image) use
+To develop CCF (which is built using the `pdo_ccf_base` image) use
 the following:
 ```bash
 	docker run \
@@ -53,7 +58,7 @@ the following:
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
         --network host -P -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
-        --name ${USERNAME}/ccf_container pdo_ccf_base
+        --name ${USER}/ccf_container pdo_ccf_base
 ```
 
 The `start_development.sh` script can be used in the `ccf_container`
@@ -65,7 +70,7 @@ tree.
 ## Service Deployment ##
 
 The containers can be used to deploy network services from the
-`pdo-ccf` and `pdo-services` images. Set the environment variables
+`pdo_ccf` and `pdo_services` images. Set the environment variables
 `PDO_HOSTNAME` to the interface where the service will listen and
 `PDO_LEDGER_URL` as the endpoint for CCF.
 
@@ -80,29 +85,30 @@ with reproducible builds.**
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ccf-container pdo-ccf
+        --name ${USER}/ccf_container pdo_ccf
 ```
 
 ### PDO Services Deployment ###
 
 Before starting the services container, be sure to copy the CCF ledger
-keys into `$(SCRIPT_DIR)/ccf/keys`. Those keys should be available from
-that directory on the host where the CCF ledger is running.
+keys into `${PDO_SOURCE_ROOT}/docker-new/xfer/ccf/keys`. Those keys
+should be available from that directory on the host where the CCF
+ledger is running.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name services-container pdo-services
+        --name ${USER}/services_container pdo_services
 ```
 
 This will configure and create the standar set of five `eservices`,
 five `pservices` and five `sservices`. It will take `PDO_HOSTNAME` and
-`PDO_LEDGER_URL` that existed when the `pdo-services` image was built.
+`PDO_LEDGER_URL` that existed when the `pdo_services` image was built.
 These can be overridden by adding parameters to the `docker-run`
 command:
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name services-container pdo-services --ledger <URL> --interface <HOST>
+        --name ${USER}/services_container pdo_services --ledger <URL> --interface <HOST>
 ```
 
 You may also run the services with a pre-built configuration. Create
@@ -113,7 +119,7 @@ directory.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name services-container pdo-services --mode copy
+        --name ${USER}/services_container pdo_services --mode copy
 ```
 
 ### PDO Client Deployment ###
@@ -126,7 +132,7 @@ perform other client operations.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host -p \
-        --name pdo-client pdo-client
+        --name ${USER}/pdo_client pdo_client
 ```
 
 The script `/project/tools/start_client.sh` is intended to simplify

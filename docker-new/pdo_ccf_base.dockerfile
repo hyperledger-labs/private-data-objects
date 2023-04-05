@@ -22,3 +22,19 @@ RUN apt-get update \
         net-tools \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+WORKDIR /project/pdo
+
+ARG UNAME=pdo_ccf
+ARG UID=1000
+ARG GID=$UID
+
+RUN echo $UID $GID
+RUN groupadd -f -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
+RUN chown --recursive $UNAME:$UNAME /project/pdo
+USER $UNAME
+
+ENTRYPOINT ["/bin/bash"]

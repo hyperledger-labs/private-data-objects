@@ -22,6 +22,8 @@ services:
       context: .
       dockerfile: pdo_services_base.dockerfile
       args:
+        UID: ${PDO_USER_UID:-1000}
+        GID: ${PDO_GROUP_UID:-1000}
         SGX_MODE: ${SGX_MODE:-SIM}
     depends_on:
       - base_container

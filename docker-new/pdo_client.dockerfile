@@ -1,6 +1,19 @@
 FROM pdo_base
 
 # -----------------------------------------------------------------
+# -----------------------------------------------------------------
+WORKDIR /project/pdo
+
+ARG UNAME=pdo_client
+ARG UID=1000
+ARG GID=$UID
+
+RUN groupadd -f -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
+RUN chown --recursive $UNAME:$UNAME /project/pdo
+USER $UNAME
+
+# -----------------------------------------------------------------
 # set up the PDO sources
 # -----------------------------------------------------------------
 ARG REBUILD 0
@@ -19,6 +32,7 @@ ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 
 ARG WASM_MEM_CONFIG=MEDIUM
 ENV WASM_MEM_CONFIG=${WASM_MEM_CONFIG}
+
 
 # copy the tools because we want to be able to
 # use them even without a mount point after the

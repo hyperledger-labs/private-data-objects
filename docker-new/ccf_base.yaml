@@ -21,6 +21,8 @@ services:
       context: .
       dockerfile: pdo_ccf_base.dockerfile
       args:
+        UID: ${PDO_USER_UID:-1000}
+        GID: ${PDO_GROUP_UID:-1000}
         SGX_MODE: ${SGX_MODE:-SIM}
 
   ccf_container:

@@ -71,4 +71,17 @@ RUN . /opt/intel/sgxsdk/environment \
 
 ENV SGX_SSL="/opt/intel/sgxssl"
 
-ENTRYPOINT /bin/bash
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+WORKDIR /project/pdo
+
+ARG UNAME=pdo_services
+ARG UID=1000
+ARG GID=$UID
+
+RUN groupadd -f -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
+RUN chown --recursive $UNAME:$UNAME /project/pdo
+USER $UNAME
+
+ENTRYPOINT ["/bin/bash"]

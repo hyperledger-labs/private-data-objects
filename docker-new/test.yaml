@@ -19,14 +19,14 @@ services:
     entrypoint: /project/pdo/tools/run_ccf_tests.sh
 
   services_container:
-    depends_on:
-      - services_base_container
-      - ccf_container
+    # depends_on:
+    #   - services_base_container
+    #   - ccf_container
     entrypoint: /project/pdo/tools/run_services_tests.sh
 
   client_container:
-    depends_on:
-      - base_container
-      - services_container
-      - ccf_container
+    # depends_on:
+    #   - base_container
+    #   - services_container
+    #   - ccf_container
     entrypoint: /project/pdo/tools/run_client_tests.sh

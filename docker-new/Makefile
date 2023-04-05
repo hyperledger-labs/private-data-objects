@@ -1,6 +1,9 @@
 PDO_REPO_URL = https://github.com/hyperledger-labs/private-data-objects.git
 PDO_REPO_BRANCH =  main
 
+PDO_USER_UID ?= $(shell id -u)
+PDO_GROUP_UID ?= $(shell id -g)
+
 -include make.loc
 
 # Turns out that this does not work very well if the path
@@ -34,7 +37,9 @@ rebuild_% :
 	@ docker build ${DOCKER_ARGS} --build-arg REBUILD=$(TIMESTAMP) --tag pdo_$* --file $(SCRIPT_DIR)/pdo_$*.dockerfile .
 
 build_% :
-	@ docker build ${DOCKER_ARGS} --tag pdo_$* --file $(SCRIPT_DIR)/pdo_$*.dockerfile .
+	@ docker build ${DOCKER_ARGS} --tag pdo_$* \
+	--build-arg UID=${PDO_USER_UID} --build-arg GID=${PDO_GROUP_UID} \
+	--file $(SCRIPT_DIR)/pdo_$*.dockerfile .
 
 clean_% :
 	@ docker rmi -f pdo_$*
