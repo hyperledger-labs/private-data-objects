@@ -446,32 +446,6 @@ def LocalMain(config) :
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## DO NOT MODIFY BELOW THIS LINE
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-## -----------------------------------------------------------------
-ContractHost = os.environ.get("PDO_HOSTNAME", "localhost")
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-ContractEtc = os.path.join(ContractHome, "etc")
-ContractKeys = os.path.join(ContractHome, "keys")
-ContractLogs = os.path.join(ContractHome, "logs")
-ContractData = os.path.join(ContractHome, "data")
-ContractInterpreter = os.environ.get("PDO_INTERPRETER", "wawaka")
-LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:6600/")
-ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-
-config_map = {
-    'base' : ScriptBase,
-    'data' : ContractData,
-    'etc'  : ContractEtc,
-    'home' : ContractHome,
-    'host' : ContractHost,
-    'interpreter' : ContractInterpreter,
-    'keys' : ContractKeys,
-    'logs' : ContractLogs,
-    'ledger' : LedgerURL
-}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -481,9 +455,11 @@ def Main() :
     global use_pservice
     global tamper_block_order
 
+    config_map = pconfig.build_configuration_map()
+
     # parse out the configuration file first
     conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
-    confpaths = [ ".", "./etc", ContractEtc ]
+    confpaths = [ ".", "./etc", config_map['etc'] ]
 
     parser = argparse.ArgumentParser()
 
@@ -510,7 +486,7 @@ def Main() :
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
 
     parser.add_argument('--secret-count', help='Number of secrets to generate', type=int, default=3)
-    parser.add_argument('--interpreter', help='Name of the contract to to require', default=ContractInterpreter)
+    parser.add_argument('--interpreter', help='Name of the contract interpreter', default=config_map['interpreter'])
     parser.add_argument('--iterations', help='Number of operations to perform', type=int, default=10)
 
     parser.add_argument('--num-provable-replicas', help='Number of sservice signatures needed for proof of replication', type=int, default=1)
@@ -528,8 +504,6 @@ def Main() :
         confpaths = options.config_dir
 
     # customize the configuration file for the current request
-    global config_map
-
     config_map['identity'] = options.identity
 
     if options.data_dir :

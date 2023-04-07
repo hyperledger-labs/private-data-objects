@@ -27,6 +27,7 @@
 ./pdo/submitter/__init__.py
 ./pdo/submitter/submitter.py
 ./pdo/submitter/create.py
+./pdo/scripts/configure.py
 ./pdo/test/__init__.py
 ./pdo/test/contract.py
 ./pdo/test/helpers/__init__.py
