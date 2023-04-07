@@ -81,9 +81,8 @@ Duration=120 #seconds
 # Name is the name of the contract class
 Name = "${contract}"
 
-# SourceFile is the name of the
 # source file that defines the contract class
-SourceFile = "${contract}.scm"
+SourceFile = "${contract}.b64"
 
 # SourceSearchPath is a list of directories to search
 # for the contract source file
