@@ -41,22 +41,6 @@ SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DSTDIR ?= $(PDO_INSTALL_ROOT)
 SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
-# this is an optional configuration variable to control the
-# hostname used in configuration files; we use it here to
-# customize the site.psh file; this may be most useful when
-# building a client that will connect to services on a
-# different/remote host
-SERVICE_HOST ?= $(PDO_HOSTNAME)
-
-# splitting out the configuration root in order to make it easier
-# to build a separate configuration that can be used with the startup
-# scripts; by default the configuration is put into the regular tree
-CONFDIR ?= $(DSTDIR)
-KEYDIR = $(CONFDIR)/opt/pdo/keys/
-ETCDIR = $(CONFDIR)/opt/pdo/etc/
-
-KEYGEN = $(abspath $(SCRIPTDIR)/__tools__/make-keys)
-CNFGEN = $(abspath $(SCRIPTDIR)/__tools__/expand-config)
 BUILD = $(abspath $(SCRIPTDIR)/__tools__/build.sh)
 VERIFY_PRE_BUILD = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
 VERIFY_PRE_CONF = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
@@ -78,7 +62,7 @@ else
   endif
 endif
 
-all: environment template system-keys verified-build keys $(CONDITIONAL_CONF_TARGET) $(CONDITIONAL_REGISTER_TARGET)
+all: environment system-keys verified-build $(CONDITIONAL_CONF_TARGET) $(CONDITIONAL_REGISTER_TARGET)
 
 clean : clean-build clean-install
 
@@ -102,20 +86,11 @@ $(DSTDIR) :
 	@mkdir -p $(DSTDIR)/opt/pdo/bin
 	@mkdir -p $(DSTDIR)/opt/pdo/contracts
 	@mkdir -p $(DSTDIR)/opt/pdo/data
+	@mkdir -p $(DSTDIR)/opt/pdo/etc
+	@mkdir -p $(DSTDIR)/opt/pdo/etc/keys/sgx
+	@mkdir -p $(DSTDIR)/opt/pdo/etc/keys/ledger
+	@mkdir -p $(DSTDIR)/opt/pdo/keys
 	@mkdir -p $(DSTDIR)/opt/pdo/logs
-
-# these are kept separate so that we can build a service
-# configuration from the templates that is different from
-# the test configuration
-$(KEYDIR) :
-	@echo Create the key directory $(KEYDIR)
-	@mkdir -p $(KEYDIR)
-
-$(ETCDIR) :
-	@echo Create the etc directory $(ETCDIR)
-	@mkdir -p $(ETCDIR)
-	@mkdir -p $(ETCDIR)/keys/sgx
-	@mkdir -p $(ETCDIR)/keys/ledger
 
 verify-pre-build :
 	$(VERIFY_PRE_BUILD)
@@ -136,89 +111,28 @@ system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
 ${PDO_ENCLAVE_CODE_SIGN_PEM} :
 	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
 
-service_indexes = 1 2 3 4 5
+# SERVICES_COUNT is the number of services of each type to create
+# First value is the number of eservices, then pservices, then
+# sservices, 5 of each is the default
+SERVICES_COUNT ?= 5 5 5
+SERVICES_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, eservice.toml pservice.toml enclave.toml)
+SERVICES_CONF_TARGET = $(DSTDIR)/opt/pdo/.services_configured
 
-ifeq ($(PDO_LEDGER_TYPE),ccf)
-	ESERVICE_KEYS := $(addprefix $(KEYDIR),$(foreach i,$(service_indexes),eservice$(i)_private.pem))
-	ecdsa_curve := secp384r1
-endif
+$(SERVICES_CONF_TARGET) : $(PYTHON_DIR) $(SERVICE_CONF_TEMPLATES)
+	. $(abspath $(DSTDIR)/bin/activate) && \
+		pdo-configure-services -o $(DSTDIR)/opt/pdo -t $(SCRIPTDIR)/template -c $(SERVICES_COUNT)
+	touch $(SERVICES_CONF_TARGET)
 
-SSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),sservice$(i)_private.pem))
-PSERVICE_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(service_indexes),pservice$(i)_private.pem))
-
-user_indexes = 1 2 3 4 5 6 7 8 9 10
-USER_PEM = $(addprefix $(KEYDIR)/,$(foreach i,$(user_indexes),user$(i)_private.pem))
-
-%.pem :
-	. $(abspath $(DSTDIR)/bin/activate) && $(KEYGEN) --keyfile $(subst _private,,$*) --format pem --curve $(ecdsa_curve)
-
-service-keys : $(KEYDIR) $(ESERVICE_KEYS) $(SSERVICE_PEM) $(PSERVICE_PEM)
-
-user-keys : $(KEYDIR) $(USER_PEM)
-
-keys : service-keys user-keys
-
-ESERVICE_CONF = $(ETCDIR)/eservice1.toml
-SSERVICE_CONF = $(ETCDIR)/sservice1.toml
-PSERVICE_CONF = $(ETCDIR)/pservice1.toml
-ENCLAVE_CONF = $(ETCDIR)/enclave.toml
-CONTRACT_CONF = $(ETCDIR)/pcontract.toml
-
-GENERATED_CONF_FILES = $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF) $(ENCLAVE_CONF) $(CONTRACT_CONF)
-
-ESERVICE_CONF_TEMPLATE = $(SCRIPTDIR)/opt/pdo/etc/template/eservice.toml
+config-services : $(SERVICES_CONF_TARGET)
 
 verified-config : verify-pre-config
 	${MAKE} config
 
-config : $(ETCDIR) $(GENERATED_CONF_FILES) $(ETCDIR)/site.psh
+config : config-services config-client
 
 force-config : verify-pre-config
-	- rm -f $(ESERVICE_CONF) $(SSERVICE_CONF) $(PSERVICE_CONF)
-	- rm -f  $(ETCDIR)/enclave.toml $(ETCDIR)/pcontract.toml
-	- rm -f $(ETCDIR)/site.psh
+	- rm -f $(SERVICES_CONF_TARGET) $(CLIENT_CONF_TARGET)
 	${MAKE} config
-
-$(ETCDIR)/site.psh : $(SCRIPTDIR)/opt/pdo/etc/template/site.psh
-	@ echo create site.psh
-	@ sed "s/SERVICE_HOST/$(SERVICE_HOST)/" $(SCRIPTDIR)/opt/pdo/etc/template/site.psh > $(ETCDIR)/site.psh
-
-$(ESERVICE_CONF) : $(ESERVICE_CONF_TEMPLATE)
-	@ echo create configuration files for eservice
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			multiple --file-base eservice --count 5
-
-$(SSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/sservice.toml
-	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			multiple --file-base $(basename $(notdir $<)) --count 5
-
-$(PSERVICE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pservice.toml
-	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			multiple --file-base $(basename $(notdir $<)) --count 5
-
-$(ENCLAVE_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/enclave.toml
-	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			single --file $(notdir $@)
-
-$(CONTRACT_CONF) : $(SCRIPTDIR)/opt/pdo/etc/template/pcontract.toml
-	@ echo create configuration files for $(basename $(notdir $<))
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			single --file $(notdir $@)
-
-template : $(DSTDIR) $(ETCDIR) $(KEYDIR)
 
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
@@ -230,12 +144,23 @@ register :
 
 endif
 
-client: environment template build-client config-client
+client: environment build-client config-client
 
 build-client : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BUILD) --client
 
-config-client : $(CONTRACT_CONF) $(USER_PEM) $(ETCDIR)/site.psh
+# CLIENT_KEY_COUNT is the number of user keys to create
+# For the test environment we create 10 by default
+CLIENT_KEY_COUNT ?= 10
+CLIENT_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, pcontract.toml site.psh)
+CLIENT_CONF_TARGET = $(DSTDIR)/opt/pdo/.client_configured
+
+$(CLIENT_CONF_TARGET) : $(PYTHON_DIR) $(CLIENT_CONF_TEMPLATES)
+	. $(abspath $(DSTDIR)/bin/activate) && \
+		pdo-configure-users -o $(DSTDIR)/opt/pdo -t $(SCRIPTDIR)/template -c $(CLIENT_KEY_COUNT)
+	touch $(CLIENT_CONF_TARGET)
+
+config-client : $(CLIENT_CONF_TARGET)
 
 test : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(TESTSCRIPT)
@@ -243,8 +168,9 @@ test : $(PYTHON_DIR)
 benchmark : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BENCHMARKSCRIPT)
 
-.PHONY : all build verified-build clean clean-build clean-install config verified-config environment
-.PHONY : install rebuild template test verify-pre-build verify-pre-config
+.PHONY : all environment register system-keys
+.PHONY : build rebuild verified-build verify-pre-build
+.PHONY : clean clean-build clean-install
+.PHONY : config config-services force-config verified-config verify-pre-config
 .PHONY : client build-client config-client
-.PHONY : keys service-keys system-keys user-keys
-.PHONY : register
+.PHONY : benchmark test

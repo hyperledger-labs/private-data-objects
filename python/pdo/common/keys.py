@@ -313,3 +313,13 @@ class ServiceKeys(object) :
             raise ValueError('unknown encoding; {0}'.format(encoding))
 
         return encoded_signature
+
+    # -------------------------------------------------------
+    def save_to_file(self, basename) :
+        private_file_name = "{0}_private.pem".format(basename)
+        with open(private_file_name, "w") as pf :
+            pf.write(self.signing_key)
+
+        public_file_name = "{0}_public.pem".format(basename)
+        with open(public_file_name, "w") as pf :
+            pf.write(self.verifying_key)

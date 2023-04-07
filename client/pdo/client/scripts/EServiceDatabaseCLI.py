@@ -188,28 +188,6 @@ def do_verify_cmd(config, args) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-ContractHost = os.environ.get("PDO_HOSTNAME", "localhost")
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-ContractEtc = os.path.join(ContractHome, "etc")
-ContractKeys = os.path.join(ContractHome, "keys")
-ContractLogs = os.path.join(ContractHome, "logs")
-ContractData = os.path.join(ContractHome, "data")
-LedgerURL = os.environ.get("PDO_LEDGER_URL", "http://127.0.0.1:6600/")
-ScriptBase = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-
-config_map = {
-    'base' : ScriptBase,
-    'data' : ContractData,
-    'etc'  : ContractEtc,
-    'home' : ContractHome,
-    'host' : ContractHost,
-    'keys' : ContractKeys,
-    'logs' : ContractLogs,
-    'ledger' : LedgerURL
-}
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
 def Main() :
     dispatcher = {
         'add' :    do_add_cmd,
@@ -220,9 +198,11 @@ def Main() :
         'verify' : do_verify_cmd,
     }
 
+    config_map = pconfig.build_configuration_map()
+
     # parse out the configuration file first
     conffiles = [ 'pcontract.toml' ]
-    confpaths = [ ".", "./etc", ContractEtc ]
+    confpaths = [ ".", "./etc", config_map['etc'] ]
 
     parser = argparse.ArgumentParser()
 
@@ -245,8 +225,6 @@ def Main() :
 
     if options.config_dir :
         confpaths = options.config_dir
-
-    global config_map
 
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)

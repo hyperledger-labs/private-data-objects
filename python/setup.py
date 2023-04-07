@@ -192,6 +192,9 @@ setup(name='pdo_common_library',
       ext_modules=[crypto_module, key_value_module],
       entry_points = {
           'console_scripts': [
+              'pdo-configure-services = pdo.scripts.configure:configure_services',
+              'pdo-configure-users = pdo.scripts.configure:configure_users',
+              'pdo-configure-ccf = pdo.scripts.configure:configure_ccf',
               'pdo-test-contract = pdo.test.contract:Main',
               'pdo-test-request = pdo.test.request:Main',
               'pdo-test-storage = pdo.test.storage:Main',

@@ -20,18 +20,25 @@ NOTE: functions defined in this file are designed to be run
 before logging is enabled.
 """
 
+from functools import reduce
 import mergedeep
 import os
+import socket
 import sys
+from urllib.parse import urlparse
 import warnings
-from functools import reduce
 
 import re
 import toml
 from string import Template
 from pdo.common.utility import find_file_in_path
 
-__all__ = [ "ConfigurationException", "parse_configuration_files", "parse_configuration_file" ]
+__all__ = [
+    "ConfigurationException",
+    "parse_configuration_files",
+    "parse_configuration_file",
+    "build_configuration_map"
+    ]
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -148,3 +155,66 @@ def parse_configuration_file(filename, variable_map) :
         text = Template(text).safe_substitute(variable_map)
 
     return toml.loads(text)
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def build_configuration_map() :
+    try :
+        ContractHome = os.environ["PDO_HOME"]
+        LedgerURL = os.environ["PDO_LEDGER_URL"]
+        LedgerType = os.environ["PDO_LEDGER_TYPE"]
+    except KeyError as ke :
+        raise Exception("incomplete configuration, missing definition of {0}".format(str(ke)))
+
+    # extract the ledger host from the ledger URL
+    (LedgerHostName, _) = urlparse(LedgerURL).netloc.split(':')
+    try :
+        LedgerHostAddress = socket.gethostbyname(LedgerHostName)
+    except Exception as e :
+        # during CI builds the name may be meaningless and unresolvable
+        # so we'll just pick the default local address, this should be
+        # removed in the future when the build/install/config sequence
+        # is more appropriately implemented
+        LedgerHostAddress = "127.0.0.1"
+
+    # these are effectively required by common-config, but clients dont
+    # need them and we should be able to set reasonable defaults
+    SPID = os.environ.get("PDO_SPID", "DEADBEEF00000000DEADBEEF00000000")
+    SPID_API_KEY = os.environ.get("PDO_SPID_API_KEY", "deadbeef00000000deadbeef00000000")
+    SGX_MODE = os.environ.get("SGX_MODE", "SIM")
+
+    ContractHost = os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
+    ContractHostAddress = socket.gethostbyname(ContractHost)
+    ContractEtc = os.path.join(ContractHome, "etc")
+    ContractKeys = os.path.join(ContractHome, "keys")
+    ContractLogs = os.path.join(ContractHome, "logs")
+    ContractLogLevel = os.environ.get("PDO_LOG_LEVEL", "warn")
+    ContractData = os.path.join(ContractHome, "data")
+    Interpreter = os.environ.get("PDO_INTERPRETER", "wawaka")
+    LedgerKeyRoot = os.environ.get("PDO_LEDGER_KEY_ROOT", os.path.join(ContractEtc, "keys", "ledger"))
+    HttpsProxy = os.environ.get("https_proxy", "")
+    EserviceKeyFormat = 'pem'
+
+    config_map = {
+        'data' : ContractData,
+        'eservice_key_format': EserviceKeyFormat,
+        'etc'  : ContractEtc,
+        'home' : ContractHome,
+        'host' : ContractHost,
+        'host_address' : ContractHostAddress,
+        'interpreter' : Interpreter,
+        'keys' : ContractKeys,
+        'logs' : ContractLogs,
+        'log_level' : ContractLogLevel,
+        'ledger' : LedgerURL,
+        'ledger_host_address' : LedgerHostAddress,
+        'ledger_host_name' : LedgerHostName,
+        'ledger_type': LedgerType,
+        'ledger_key_root' : LedgerKeyRoot,
+        'proxy' : HttpsProxy,
+        'sgx_mode' : SGX_MODE,
+        'spid' : SPID,
+        'spid_api_key' : SPID_API_KEY
+    }
+
+    return config_map
