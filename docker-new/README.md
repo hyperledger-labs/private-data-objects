@@ -77,7 +77,12 @@ as services in detached mode. The last for the client will run an
 interactive shell in the client container. See below for information
 on how to use the client container.
 
-## Local Development in a Container ##
+## Pattern: Local Development in a Container ##
+
+** NOTE: The examples below are run in the foreground. To run these examples
+in the background add the `--detach` switch to the `docker run` commands.
+
+### PDO Services ###
 
 To set up an environment where interactive development can take place
 on the local repository, use the `pdo_services_base` image and mount
@@ -108,6 +113,8 @@ network certificates into `PDO_LEDGER_KEY_ROOT`.
     source /project/pdo/tools/start_development.sh
 ```
 
+### CCF ###
+
 To develop CCF (which is built using the `pdo_ccf_base` image) use
 the following:
 ```bash
@@ -126,7 +133,7 @@ in the same way it is used in the `services_container` above.
 Note: be sure to run `make clean` in the original (out of container) build
 tree.
 
-## Service Deployment ##
+## Pattern: Service Deployment ##
 
 The containers can be used to deploy network services from the
 `pdo_ccf` and `pdo_services` images. Set the environment variables
@@ -147,6 +154,26 @@ with reproducible builds.**
         --name ${USER}/ccf_container pdo_ccf
 ```
 
+This will configure the CCF service using the default configuration
+based on `PDO_HOSTNAME` and `PDO_LEDGER_URL` for defining the
+endpoint.
+
+You may also run the CCF with a pre-built configuration. Create the
+directores `$(SCRIPT_DIR)/xfer/ccf/etc` and
+`$(SCRIPT_DIR)/xfer/ccf/keys`. Copy the CCF configuration files
+(`cchost.toml` and `constitution.js`) into the `etc` directory.
+
+```bash
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
+        --name ${USER}/ccf_container pdo_ccf --mode copy
+```
+
+The CCF container will create the `networkcert.pem` key file and
+place it in the `$(SCRIPTDIR)/xfer/ccf/keys`.
+
+** NOTE: We do not support starting a CCF instance to join an
+existing CCF network. This is future work. **
+
 ### PDO Services Deployment ###
 
 Before starting the services container, be sure to copy the CCF ledger
@@ -159,7 +186,7 @@ ledger is running.
         --name ${USER}/services_container pdo_services
 ```
 
-This will configure and create the standar set of five `eservices`,
+This will configure and create the standard set of five `eservices`,
 five `pservices` and five `sservices`. It will take `PDO_HOSTNAME` and
 `PDO_LEDGER_URL` that existed when the `pdo_services` image was built.
 These can be overridden by adding parameters to the `docker-run`
