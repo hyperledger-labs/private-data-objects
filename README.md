@@ -41,14 +41,14 @@ than the entire blockchain, providing fewer potential targets for compromise.
 Documentation
 -------------
 
+For more information about how Private Data Objects work, see the
+[specification document](docs/README.md).
+
 Instructions for installing/building Hyperledger Private Data Objects can be
 found in the [build documentation](docs/install.md).
 
-The [usage document](docs/usage.md) describes what you can do with a functional PDO
-installation.
-
-For more information about how Private Data Objects work, see the
-[specification document](docs/specification.md).
+The [usage document](docs/usage.md) describes what you can do with a
+functional PDO installation.
 
 A paper with a more formal overview of Private Data Objects is available
 [HERE](https://arxiv.org/abs/1807.05686).
