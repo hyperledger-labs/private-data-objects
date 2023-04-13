@@ -159,7 +159,14 @@ def parse_configuration_file(filename, variable_map) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def build_configuration_map() :
+    """Build a standard representation for the environment configuration.
+    The map that is created is generally provided when the configuration
+    files are read by parse_configuration_file and parse_configuration_files.
+    """
+
     try :
+        # these are the minimum variables that must be defined in the
+        # environment; there are reasonable defaults for the others
         ContractHome = os.environ["PDO_HOME"]
         LedgerURL = os.environ["PDO_LEDGER_URL"]
         LedgerType = os.environ["PDO_LEDGER_TYPE"]
@@ -171,7 +178,7 @@ def build_configuration_map() :
     try :
         LedgerHostAddress = socket.gethostbyname(LedgerHostName)
     except Exception as e :
-        # during CI builds the name may be meaningless and unresolvable
+        # during docker builds the name may be meaningless and unresolvable
         # so we'll just pick the default local address, this should be
         # removed in the future when the build/install/config sequence
         # is more appropriately implemented
@@ -184,7 +191,15 @@ def build_configuration_map() :
     SGX_MODE = os.environ.get("SGX_MODE", "SIM")
 
     ContractHost = os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
-    ContractHostAddress = socket.gethostbyname(ContractHost)
+    try :
+        ContractHostAddress = socket.gethostbyname(ContractHost)
+    except Exception as e :
+        # during docker builds the name may be meaningless and unresolvable
+        # so we'll just pick the default local address, this should be
+        # removed in the future when the build/install/config sequence
+        # is more appropriately implemented
+        ContractHostAddress = "127.0.0.1"
+
     ContractEtc = os.path.join(ContractHome, "etc")
     ContractKeys = os.path.join(ContractHome, "keys")
     ContractLogs = os.path.join(ContractHome, "logs")
