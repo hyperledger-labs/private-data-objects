@@ -27,12 +27,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 import pdo.common.logger as plogger
+import pdo.common.config as pconfig
 import pdo.service_client.service_data.eservice as eservice_db
 from pdo.common.utility import are_the_urls_same
+
+config_map = pconfig.build_configuration_map()
+
+conffiles = [ 'pcontract.toml' ]
+confpaths = [ ".", "./etc", config_map['etc'] ]
 
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--config', help='configuration file', nargs = '+')
+parser.add_argument('--config-dir', help='directories to search for the configuration file', nargs = '+')
 parser.add_argument('--url', help='eservice urls', required=True,  nargs='+')
 parser.add_argument('--eservice-db', help='json file for database', required=True, type=str)
 parser.add_argument('--loglevel', help='Set the logging level', default='INFO')
@@ -40,6 +48,19 @@ parser.add_argument('--logfile', help='Name of the log file', default='__screen_
 parser.add_argument('--ledger', help='Ledger URLName of the log file', required=True, type=str)
 
 options = parser.parse_args()
+
+if options.config :
+    conffiles = options.config
+
+if options.config_dir :
+    confpaths = options.config_dir
+
+try :
+    config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
+except pconfig.ConfigurationException as e :
+    logger.error(str(e))
+    sys.exit(-1)
+
 plogger.setup_loggers({'LogLevel' : options.loglevel.upper(), 'LogFile' : options.logfile})
 
 if len(options.url) < 3 :
@@ -65,7 +86,11 @@ def compute_database_hash() :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-ledger_config = {'LedgerURL':options.ledger}
+try :
+    ledger_config = config['Ledger']
+except KeyError as ke :
+    logger.error("invalid configuration; missing Ledger")
+    sys.exit(-1)
 
 # -----------------------------------------------------------------
 # logger.info('create and load the database from the provided URLs')

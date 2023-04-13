@@ -29,6 +29,7 @@ Host = "${host}"
 LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
 Organization = "Widgets R Us"
+CertificateFile = "${ledger_key_root}/networkcert.pem"
 
 # --------------------------------------------------
 # Logging -- configuration of service logging
