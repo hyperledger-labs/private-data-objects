@@ -32,7 +32,6 @@ import time
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-
 def GetBasename(spid, save_path, config) :
     attempts = 0
     while True :
@@ -74,25 +73,36 @@ def GetIasCertificates(config) :
     try :
         enclave_config = config['EnclaveModule']
         pdo_enclave.initialize_with_configuration(enclave_config)
-        nonce = '{0:016X}'.format(123456789)
-        enclave_data = pdo_enclave.create_signup_info(nonce, nonce)
     except Exception as e :
         logger.error("unable to initialize a new enclave; %s", str(e))
         sys.exit(-1)
 
-    # extract the IAS certificates from proof_data
-    pd_dict =  json.loads(enclave_data.proof_data)
-    ias_certificates = pd_dict['certificates']
+    try :
+        nonce = '{0:016X}'.format(123456789)
+        enclave_data = pdo_enclave.create_signup_info(nonce, nonce)
 
-    # dump the IAS certificates in the respective files
-    with open(IasRootCACertificate_FilePath, "w+") as file :
-        file.write("{0}".format(ias_certificates[1]))
-    with open(IasAttestationVerificationCertificate_FilePathname, "w+") as file :
-        file.write("{0}".format(ias_certificates[0]))
+        # extract the IAS certificates from proof_data
+        pd_dict =  json.loads(enclave_data.proof_data)
+        ias_certificates = pd_dict['certificates']
 
-    # do a clean shutdown of enclave
-    pdo_enclave.shutdown()
-    return
+        # dump the IAS certificates in the respective files
+        IasKeysPath = os.environ.get("PDO_SGX_KEY_ROOT")
+
+        IasRootCACertificate_FilePath = os.path.join(IasKeysPath, "ias_root_ca.cert")
+        with open(IasRootCACertificate_FilePath, "w+") as file :
+            file.write("{0}".format(ias_certificates[1]))
+
+        IasAttestationVerificationCertificate_FilePathname = os.path.join(IasKeysPath, "ias_signing.cert")
+        with open(IasAttestationVerificationCertificate_FilePathname, "w+") as file :
+            file.write("{0}".format(ias_certificates[0]))
+
+    except Exception as e :
+        logger.error("unable to retrieve IAS certficates; %s", str(e))
+        sys.exit(-1)
+
+    finally :
+        # do a clean shutdown of enclave
+        pdo_enclave.shutdown()
 
 def LocalMain(config, spid, save_path) :
     GetBasename(spid, save_path, config)
