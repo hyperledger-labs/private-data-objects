@@ -27,6 +27,7 @@ Identity = "${identity}"
 LedgerType = "${ledger_type}"
 LedgerURL = "${ledger}"
 Organization = "Widgets R Us"
+CertificateFile = "${ledger_key_root}/networkcert.pem"
 
 # --------------------------------------------------
 # Service -- Information about enclave/provisioning services

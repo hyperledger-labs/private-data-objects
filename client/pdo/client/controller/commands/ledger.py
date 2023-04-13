@@ -31,7 +31,7 @@ def command_ledger(state, bindings, pargs) :
     default_ledger_url = state.get(['Ledger', 'LedgerURL'])
 
     parser = argparse.ArgumentParser(prog='ledger')
-    parser.add_argument('--url', help='URL for the ledger', default=default_ledger_url)
+    parser.add_argument('--url', help='URL for the ledger', type=str)
     parser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
 
     subparsers = parser.add_subparsers(dest='command')
@@ -57,7 +57,9 @@ def command_ledger(state, bindings, pargs) :
 
     options = parser.parse_args(pargs)
 
-    ledger_config = { 'LedgerURL' : options.url }
+    ledger_config = state.get(['Ledger'])
+    if options.url :
+        ledger_config['LedgerURL'] = option.url
     submitter = create_submitter(ledger_config)
 
     if options.command == 'ledger-key' :

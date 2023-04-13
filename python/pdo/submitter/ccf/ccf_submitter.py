@@ -39,14 +39,9 @@ class CCFClientWrapper(CCFClient) :
     read_backoff_duration = [0.25, 0.5, 1, 2, 3]
 
     # -----------------------------------------------------------------
-    def __init__(self, host, port) :
-
-        #ensure that ccf keys are present
-        ccf_key_dir = os.environ.get("PDO_LEDGER_KEY_ROOT")
-        ca_file = os.path.join(ccf_key_dir, "networkcert.pem")
+    def __init__(self, host, port, ca_file) :
 
         if os.path.exists(ca_file) is False :
-            logger.error("Cannot locate CCF network certificate. Aborting transaction")
             raise Exception("Cannot locate CCF network certificate. Aborting transaction")
 
         # create the request client
@@ -122,7 +117,11 @@ class CCFSubmitter(sub.Submitter):
         if self.endpoint in CCFSubmitter.ccf_client_cache :
             self.ccf_client = CCFSubmitter.ccf_client_cache[self.endpoint]
         else :
-            self.ccf_client = CCFClientWrapper(self.host, self.port)
+            try :
+                self.ccf_client = CCFClientWrapper(self.host, self.port, ledger_config['CertificateFile'])
+            except KeyError as ke :
+                logger.exception("ledger configuration missing {}; {}", str(ke), ledger_config)
+                raise ke
             CCFSubmitter.ccf_client_cache[self.endpoint] = self.ccf_client
 
     # -----------------------------------------------------------------
