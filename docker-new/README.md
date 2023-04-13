@@ -98,7 +98,7 @@ into the directory `${PDO_SOURCE_ROOT}/xfer/ccf/keys`.
         -v ${PDO_SOURCE_ROOT}/docker-new/xfer/:/project/pdo/xfer \
         -v ${PDO_SOURCE_ROOT}/docker-new/tools/:/project/pdo/tools \
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
-        --network host -P -it \
+        --network host -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
         --name ${USER}/services_container pdo_services_base
 ```
@@ -122,7 +122,7 @@ the following:
         -v ${PDO_SOURCE_ROOT}/docker-new/xfer/:/project/pdo/xfer \
         -v ${PDO_SOURCE_ROOT}/docker-new/tools/:/project/pdo/tools \
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
-        --network host -P -it \
+        --network host -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
         --name ${USER}/ccf_container pdo_ccf_base
 ```
