@@ -10,7 +10,7 @@ components.
 # CCF & Transaction Processors
 
 General information about how the ccf transaction processors work
-can be found [here](../ccf_transaction_processor/README.md).
+can be found [here](../ledgers/ccf/README.md).
 
 # Common library
 

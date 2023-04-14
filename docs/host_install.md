@@ -208,14 +208,14 @@ For details on how to configure PDO for a given ledger, see [environment.md](./e
 
 It is also possible to run the ledger natively on the host.
 
-See [HERE](../ccf_transaction_processor/Readme.md) to learn more about the
+See [HERE](../ledgers/ccf/Readme.md) to learn more about the
 ccf based transaction processor. Currently PDO supports CCF ledger under
 the SIMULATE mode for PDO enclaves, and virtual mode for CCF enclaves.
 
 When using CCF based ledger, every pdo client must install CCF base using
 tarball from CCF release page.
 This enables use of CCF client modules from the CCF base package. Please
-see instructions in (../ccf_transaction_processor/Readme.md) for host
+see instructions in (../ledgers/ccf/Readme.md) for host
 installation details.
 
 ## Testing the Installation
