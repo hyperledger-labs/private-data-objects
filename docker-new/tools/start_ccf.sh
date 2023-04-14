@@ -77,8 +77,8 @@ source ${PDO_HOME}/ccf/bin/lib/pdo_common.sh
 # -----------------------------------------------------------------
 if [ "${F_MODE,,}" == "build" ]; then
     yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-    try make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor keys
-    try make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor config
+    try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf keys
+    try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf config
 elif [ "${F_MODE,,}" == "copy" ]; then
     yell copy the configuration from xfer/ccf/etc and xfer/ccf/keys
     try cp ${XFER_DIR}/ccf/etc/* ${PDO_HOME}/ccf/etc/

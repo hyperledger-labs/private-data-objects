@@ -27,8 +27,8 @@ export NO_PROXY=$POD_HOSTNAME,$NO_PROXY
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
 rm -f ${PDO_HOME}/ccf/etc/cchost.toml ${PDO_HOME}/ccf/etc/constitution.js
-try make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor keys
-try make -C ${PDO_SOURCE_ROOT}/ccf_transaction_processor config
+try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf keys
+try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf config
 
 # -----------------------------------------------------------------
 yell start the ccf service
