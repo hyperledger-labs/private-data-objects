@@ -59,7 +59,7 @@ def command_ledger(state, bindings, pargs) :
 
     ledger_config = state.get(['Ledger'])
     if options.url :
-        ledger_config['LedgerURL'] = option.url
+        ledger_config['LedgerURL'] = options.url
     submitter = create_submitter(ledger_config)
 
     if options.command == 'ledger-key' :
