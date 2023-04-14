@@ -59,7 +59,7 @@ different service instances plus the `pdo-shell` client configuration.
 # <a name="ledger">Start the Ledger
 
 Using PDO requires a running instance of a ledger. Documentation for
-building, installing and running [Microsoft CCF](../ccf_transaction_processor/README.md)
+building, installing and running [Microsoft CCF](../ledgers/ccf/README.md)
 is available.
 
 # <a name="validating">Validate the Installation

@@ -36,7 +36,7 @@ NINJA ?= ninja $(NINJA_OPTIONS)
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
-SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
+SRCDIR ?= $(PDO_SOURCE_ROOT)
 KEYDIR := $(PDO_LEDGER_KEY_ROOT)
 ETCDIR := $(CCFDSTDIR)/etc/
 BINDIR := $(CCFDSTDIR)/bin/

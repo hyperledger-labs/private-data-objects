@@ -7,7 +7,7 @@ https://creativecommons.org/licenses/by/4.0/
 
 This folder contains software for PDO transaction processor (TP) based
 on Microsoft's CCF blockchain.  The software is located under
-`${PDO_SOURCE_ROOT}/ccf_transaction_processor/`. The TP software is
+`${PDO_SOURCE_ROOT}/ledgers/ccf/`. The TP software is
 written and tested for CCF tag 1.0.19. Compatibility with other CCF
 versions is not guaranteed. We support PDO enclaves working in both SIM and HW SGX mode.
 For HW mode, we assume EPID attestation. CCF TP enclave will work in SIM (virtual) enclave
@@ -16,7 +16,7 @@ mode in both cases.
 The instructions below can be used to build and deploy the CCF-based PDO
 TP. The PDO TP uses many of environment variables defined in the PDO
 configuration script `common-config.sh`. We recommend that you read the
-[PDO environment variables documentation](../docs/environment.md) first.
+[PDO environment variables documentation](../../docs/environment.md) first.
 
 In some circumstances you may wish to override the default values of the
 variables for the PDO TP.
@@ -34,7 +34,7 @@ In addition, the PDO TP assumes that the environment variable `CCF_BASE`
 points to the directory where CCF is installed.
 
 IMPORTANT: When installing CCF and PDO on the same VM for local testing,
-please install PDO first and then CCF. See [PDO docs](../docs) for
+please install PDO first and then CCF. See [PDO docs](../../docs) for
 detailed instructions on installing PDO.
 
 ## Install CCF
@@ -63,7 +63,7 @@ following command:
 sudo apt-get install -y sgx-aesm-service libsgx-urts libsgx-uae-service
 ```
 
-To build the PDO TP the [PDO environment variables](../docs/environment.md)
+To build the PDO TP the [PDO environment variables](../../docs/environment.md)
 must be set. See the PDO configuration script `common-config.sh` for
 more information. Specifically, if operating PDO in `HW` mode, ensure that `SGX_MODE`
 env variable is set to `HW` before building PDO TP, so that PDO TP will enforce
@@ -72,7 +72,7 @@ submission of valid attestation reports while processing enclave registration rp
 To build and install the PDO TP,
 ```bash
 source ${PDO_SOURCE_ROOT}/build/common-config.sh
-cd ${PDO_SOURCE_ROOT}/ccf_transaction_processor
+cd ${PDO_SOURCE_ROOT}/ledgers/ccf
 make clean
 make
 ```
@@ -126,7 +126,7 @@ at the end of the test.
 
 ```bash
 source $PDO_HOME/ccf/bin/activate
-${PDO_SOURCE_ROOT}/ccf_transaction_processor/scripts/ping_test.py
+${PDO_SOURCE_ROOT}/ledgers/ccf/scripts/ping_test.py
 ```
 
 While invoking the test from a remote machine, be sure to 1) copy the
@@ -169,7 +169,7 @@ from the CCF service using the `get_ledger_verifying_key` rpc.
 
 We highlight some quick details about how PDO clients can use a CCF
 based PDO TP deployment. The information below can be found at
-[PDO docs](../docs) as well.
+[PDO docs](../../docs) as well.
 
 1. Set the following environment variables:
 
