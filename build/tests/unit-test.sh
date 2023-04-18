@@ -25,8 +25,8 @@ PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
 yell run unit tests for python, common, contracts and eservice
 # -----------------------------------------------------------------
 say run unit tests for python package
-cd ${PDO_SOURCE_ROOT}/python
-try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
+cd ${PDO_SOURCE_ROOT}/common/tests/crypto
+try python3 test_cryptoWrapper.py > /dev/null
 
 say run unit tests for common library
 cd ${PDO_SOURCE_ROOT}/common/build

@@ -25,7 +25,6 @@ ENDIF()
 SET(PDO_SOURCE_ROOT $ENV{PDO_SOURCE_ROOT})
 
 LIST(APPEND CMAKE_MODULE_PATH "${PDO_SOURCE_ROOT}/common/cmake")
-LIST(APPEND CMAKE_MODULE_PATH "${PDO_SOURCE_ROOT}/build/cmake")
 
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -33,10 +32,6 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 INCLUDE(ProjectVariables)
 INCLUDE(CommonVariables)
-
-IF(BUILD_CLIENT)
-  MESSAGE(STATUS "Compiling in client-only mode")
-ENDIF()
 
 ################################################################################
 # SWIG setup
@@ -65,12 +60,6 @@ IF(NOT SWIG_FOUND)
   ENDIF()
 ENDIF()
 INCLUDE(UseSWIG)
-
-# Make sure we get the right python library version
-FIND_PACKAGE(Python3 REQUIRED COMPONENTS Interpreter Development)
-IF(NOT Python3_FOUND)
-  MESSAGE(FATAL_ERROR "Python not found")
-ENDIF()
 
 ############################################################################
 # Set up common flags

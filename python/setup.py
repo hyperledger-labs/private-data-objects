@@ -30,7 +30,8 @@ from setuptools import setup, find_packages, Extension
 script_dir = os.path.dirname(os.path.realpath(__file__))
 pdo_root_dir = os.path.abspath(os.path.join(script_dir, '..'))
 
-install_root_dir = os.environ.get('PDO_HOME', '/opt/pdo')
+# bdist_wheel will interpret this as a relative path
+install_root_dir = '../../../opt/pdo'
 bin_dir = os.path.join(install_root_dir, "bin")
 dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
@@ -43,106 +44,22 @@ data_files = [
 ]
 
 # -----------------------------------------------------------------
-# set up common flags
-#
-# note that setuptools does not make it easy to pass custom command
-# line parameters so we have to use environment variables
-# -----------------------------------------------------------------
-debug_flag = int(os.environ.get('PDO_DEBUG_BUILD', 0))
-if debug_flag :
-    print("Build debug")
-
-client_only_flag = int(os.environ.get('BUILD_CLIENT', 0))
-if client_only_flag :
-    print("Build client")
-
-compile_args = [
-    '-std=c++11',
-    '-Wno-switch',
-    '-Wno-unused-function',
-    '-Wno-unused-variable',
-    '-D_UNTRUSTED_=1',
-]
-
-if debug_flag :
-    compile_args += ['-g']
-
-swig_flags = ['-c++', '-threads']
-
-if client_only_flag :
-    common_libs = [
-        'cpdo-common',
-        'cpdo-crypto'
-    ]
-else :
-    common_libs = [
-        'updo-common',
-        'updo-crypto',
-    ]
-
-compile_defs = [
-    ('_UNTRUSTED_', 1),
-    ('PDO_DEBUG_BUILD', debug_flag),
-]
-
-if client_only_flag :
-    compile_defs += [ ('_CLIENT_ONLY_', 1) ]
-
-# -----------------------------------------------------------------
 # -----------------------------------------------------------------
 version = subprocess.check_output(
     os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
 
 # -----------------------------------------------------------------
-# set up the key value module
 # -----------------------------------------------------------------
-key_value_module_files = [
-    os.path.join('pdo/common/key_value_swig', 'key_value_swig.i'),
-    os.path.join('pdo/common/key_value_swig', 'block_store.cpp'),
-    os.path.join('pdo/common/key_value_swig', 'key_value.cpp'),
-    os.path.join('pdo/common/key_value_swig', 'swig_utils.cpp'),
-    os.path.join(pdo_root_dir, 'common','c11_support.cpp'),
-]
-
-key_value_include_dirs = [
-    os.path.join(pdo_root_dir, 'common'),
-    os.path.join(pdo_root_dir, 'common/crypto'),
-    os.path.join(pdo_root_dir, 'common/state'),
-]
-
-if not client_only_flag :
-    key_value_include_dirs += [ os.path.join(os.environ['SGX_SDK'], "include") ]
-
-key_value_libraries = common_libs + [ 'pdo-lmdb-block-store', 'lmdb' ] + openssl_libs
-
-key_value_library_dirs = [
-    os.path.join(pdo_root_dir, "common", "build"),
-]
-
-key_value_module = Extension(
-    name = 'pdo.common.key_value_swig._key_value_swig',
-    sources = key_value_module_files,
-    swig_opts = swig_flags,
-    extra_compile_args = compile_args,
-    include_dirs = key_value_include_dirs,
-    library_dirs = key_value_library_dirs,
-    libraries = key_value_libraries,
-    define_macros = compile_defs,
-    language = 'c++',
-    )
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-setup(name='pdo_common_library',
+setup(name='pdo-common',
       version=version,
-      description='Common library for private objects',
-      author='Intel Labs',
+      description='Common and client library for private objects',
+      author='Hyperledger Labs PDO maintainers',
+      url='https://github.com/hyperledger-labs/private-data-objects',
       packages=find_packages(),
       install_requires=[],
+      python_requires='>3.5',
       data_files=data_files,
-      namespace_packages=['pdo'],
-      ext_modules=[key_value_module],
-      package_data={'': ['_crypto.so']},
+      package_data={'pdo.common': ['_crypto.so', '_key_value_swig.so']},
       entry_points = {
           'console_scripts': [
               'pdo-configure-services = pdo.scripts.ConfigureCLI:configure_services',

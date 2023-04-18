@@ -1,2 +1,4 @@
+*PYTHON_wrap.cxx
+*_swig.py
 crypto.py
-crypto_wrap.cpp
+*.so

@@ -36,7 +36,11 @@ make clean
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-make clean
+rm -rf build dist pdo-common.egg-info pdo/common/crypto_swig.py pdo/common/key_value_swig.py *.cxx
+
+yell --------------- SSERVICE ---------------
+cd $SRCDIR/sservice
+rm -rf build dist pdo-sservice.egg-info
 
 yell --------------- ESERVICE ---------------
 cd $SRCDIR/eservice

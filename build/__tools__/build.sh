@@ -82,13 +82,36 @@ try make ${MAKE_ARGS} install
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
 
-try make ${MAKE_ARGS}
-try make ${MAKE_ARGS} install
+if [ ! -d build ]; then
+    yell create the build directory
+    mkdir -p build
+    pushd build
+    try cmake ${CMAKE_ARGS} ..
+    popd
+fi
+
+cd build
+try cmake --build . -- ${MAKE_ARGS}
+
+yell temporarily installing pdo as part of build
+pip install dist/pdo-0.2.0-py3-none-any.whl
 
 yell --------------- SSERVICE ---------------
 cd $SRCDIR/sservice
-try make "-j$NUM_CORES" BUILD_CLIENT=${BUILD_CLIENT}
-try make install BUILD_CLIENT=${BUILD_CLIENT}
+
+if [ ! -d build ]; then
+    yell create the build directory
+    mkdir -p build
+    pushd build
+    try cmake ${CMAKE_ARGS} ..
+    popd
+fi
+
+cd build
+try cmake --build . -- ${MAKE_ARGS}
+
+yell temporarily installing pdo_sservice as part of build
+pip install dist/pdo_sservice-0.2.0-py3-none-any.whl
 
 yell --------------- ESERVICE ---------------
 if [ ${F_CLIENT} == "no" ]; then

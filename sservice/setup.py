@@ -18,18 +18,13 @@ import os
 import sys
 import subprocess
 
-# this should only be run with python3
-import sys
-if sys.version_info[0] < 3:
-    print('ERROR: must run with python3')
-    sys.exit(1)
-
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 pdo_root_dir = os.path.realpath(os.path.join(script_dir, '..'))
 
-install_root_dir = os.environ.get('PDO_HOME', '/opt/pdo')
+# bdist_wheel will interpret this as a relative path
+install_root_dir = '../../../opt/pdo'
 bin_dir = os.path.join(install_root_dir, "bin")
 dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
@@ -51,21 +46,20 @@ data_files = [
 version = subprocess.check_output(
     os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
 
-setup(name='pdo_sservice',
+setup(name='pdo-sservice',
       version = version,
       description = 'Private Data Objects Storage Service',
-      author = 'Hyperledger',
-      url = 'http://www.intel.com',
+      author = 'Hyperledger Labs PDO maintainers',
+      url = 'https://github.com/hyperledger-labs/private-data-objects',
       packages = find_packages(),
-      namespace_packages=['pdo'],
       install_requires = [
           'colorlog',
           'lmdb',
           'requests',
           'toml',
-          'twisted'
+          'twisted',
+          'pdo-common'
           ],
-      ext_modules = [],
       data_files = data_files,
       entry_points = {
           'console_scripts': [
