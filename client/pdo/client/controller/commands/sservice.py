@@ -32,7 +32,7 @@ __all__ = [
 def command_sservice(state, bindings, pargs) :
     """controller command to manage the list of enclave services
     """
-    subcommands = ['add', 'remove', 'set', 'list', 'create-group', 'use' ]
+    subcommands = ['add', 'remove', 'set', 'list' ]
 
     parser = argparse.ArgumentParser(prog='sservice')
     parser.add_argument('--group', help='Name of the sservice group', type=str, default="default")

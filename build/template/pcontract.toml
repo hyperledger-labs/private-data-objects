@@ -17,6 +17,7 @@
 # --------------------------------------------------
 [Client]
 Identity = "${identity}"
+SearchPath = [ ".", "./etc", "${home}/etc" ]
 
 # --------------------------------------------------
 # Ledger -- ledger configuration

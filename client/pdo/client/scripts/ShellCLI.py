@@ -102,6 +102,15 @@ def Main() :
         logger.error(str(e))
         sys.exit(-1)
 
+    # set up the client config
+    if config.get('Client') is None :
+        config['Client'] = {
+            'Identity' : config_map['identity'],
+            'SearchPath' : confpaths,
+        }
+    if options.config_dir :
+        config['Client']['SearchPath'] = confpaths
+
     # set up the logging configuration
     if config.get('Logging') is None :
         config['Logging'] = {
