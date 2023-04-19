@@ -26,7 +26,7 @@ __all__ = ['command_pservice', 'get_pservice_list']
 def command_pservice(state, bindings, pargs) :
     """controller command to manage the list of enclave services
     """
-    subcommands = ['add', 'remove', 'set', 'list', 'use' ]
+    subcommands = [ 'add', 'remove', 'set', 'list' ]
 
     parser = argparse.ArgumentParser(prog='pservice')
     parser.add_argument('--group', help='Name of the pservice group', type=str, default="default")

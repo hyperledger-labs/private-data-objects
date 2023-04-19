@@ -770,6 +770,23 @@ class ContractController(cmd.Cmd) :
         return False
 
     # -----------------------------------------------------------------
+    def do_service_groups(self, args) :
+        """service_groups -- manage service group configuration
+        """
+        if self.deferred > 0 : return False
+
+        try :
+            pargs = self.__arg_parse__(args)
+            service_groups(self.state, self.bindings, pargs)
+
+        except SystemExit as se :
+            return self.__arg_error__('send', args, se.code)
+        except Exception as e :
+            return self.__error__('send', args, str(e))
+
+        return False
+
+    # -----------------------------------------------------------------
     def do_eservice_db(self, args) :
         """eservice_db -- manage enclave service list
         """
