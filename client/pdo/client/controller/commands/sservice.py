@@ -17,8 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.service_client.storage import StorageServiceClient
-
 __all__ = [
     'command_sservice',
     'get_replica_list',
