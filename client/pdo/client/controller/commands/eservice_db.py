@@ -15,10 +15,11 @@
 import argparse
 import hashlib
 import json
-import logging
 
+import logging
 logger = logging.getLogger(__name__)
 
+import pdo.common.utility as putils
 import pdo.service_client.service_data.eservice as eservice_db
 
 __all__ = ['command_eservice_db']
@@ -116,7 +117,8 @@ def command_eservice_db(state, bindings, pargs) :
         return
 
     if options.command == 'load' :
-        result = eservice_db.load_database(options.database, options.merge)
+        data_file = putils.find_file_in_path(options.database, state.get(['Client', 'SearchPath'], ['.', './etc/']))
+        result = eservice_db.load_database(data_file, options.merge)
         if options.symbol :
             bindings.bind(options.symbol, result)
 
