@@ -780,9 +780,9 @@ class ContractController(cmd.Cmd) :
             service_groups(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            return self.__arg_error__('send', args, se.code)
+            return self.__arg_error__('service_groups', args, se.code)
         except Exception as e :
-            return self.__error__('send', args, str(e))
+            return self.__error__('service_groups', args, str(e))
 
         return False
 
