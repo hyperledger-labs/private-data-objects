@@ -158,18 +158,21 @@ def parse_configuration_file(filename, variable_map) :
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-def build_configuration_map() :
+def build_configuration_map(**kwargs) :
     """Build a standard representation for the environment configuration.
     The map that is created is generally provided when the configuration
     files are read by parse_configuration_file and parse_configuration_files.
+
+    The following can be overridden through input parameters: 'home', 'ledger',
+    'ledger_type', 'log_level', 'interpreter'.
     """
 
     try :
         # these are the minimum variables that must be defined in the
         # environment; there are reasonable defaults for the others
-        ContractHome = os.environ["PDO_HOME"]
-        LedgerURL = os.environ["PDO_LEDGER_URL"]
-        LedgerType = os.environ["PDO_LEDGER_TYPE"]
+        ContractHome = kwargs.get('home') or os.environ["PDO_HOME"]
+        LedgerURL = kwargs.get('ledger') or os.environ["PDO_LEDGER_URL"]
+        LedgerType = kwargs.get('ledger_type') or os.environ["PDO_LEDGER_TYPE"]
     except KeyError as ke :
         raise Exception("incomplete configuration, missing definition of {0}".format(str(ke)))
 
@@ -190,7 +193,7 @@ def build_configuration_map() :
     SPID_API_KEY = os.environ.get("PDO_SPID_API_KEY", "deadbeef00000000deadbeef00000000")
     SGX_MODE = os.environ.get("SGX_MODE", "SIM")
 
-    ContractHost = os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
+    ContractHost = kwargs.get('host') or os.environ.get("PDO_HOSTNAME", os.environ.get("HOSTNAME", "localhost"))
     try :
         ContractHostAddress = socket.gethostbyname(ContractHost)
     except Exception as e :
@@ -203,10 +206,10 @@ def build_configuration_map() :
     ContractEtc = os.path.join(ContractHome, "etc")
     ContractKeys = os.path.join(ContractHome, "keys")
     ContractLogs = os.path.join(ContractHome, "logs")
-    ContractLogLevel = os.environ.get("PDO_LOG_LEVEL", "warn")
+    ContractLogLevel = kwargs.get('log_level') or os.environ.get("PDO_LOG_LEVEL", "warn")
     ContractData = os.path.join(ContractHome, "data")
-    Interpreter = os.environ.get("PDO_INTERPRETER", "wawaka")
-    LedgerKeyRoot = os.environ.get("PDO_LEDGER_KEY_ROOT", os.path.join(ContractEtc, "keys", "ledger"))
+    Interpreter = kwargs.get('interpreter') or os.environ.get("PDO_INTERPRETER", "wawaka")
+    LedgerKeyRoot = kwargs.get('ledger_key_root') or os.environ.get("PDO_LEDGER_KEY_ROOT", os.path.join(ContractKeys, "ledger"))
     HttpsProxy = os.environ.get("https_proxy", "")
     EserviceKeyFormat = 'pem'
 
