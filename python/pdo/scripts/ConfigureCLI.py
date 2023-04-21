@@ -102,12 +102,12 @@ def configure_services() :
     parser.add_argument(
         '--set',
         help='Specify arbitrary configuration options',
-        nargs=2, action='append')
+        nargs=2, action='append', default=[])
 
     options = parser.parse_args()
 
     global config_map
-    config_map = build_configuration_map()
+    config_map = build_configuration_map(**dict(options.set))
 
     if options.set :
         for (k, v) in options.set : config_map[k] = v
@@ -177,12 +177,12 @@ def configure_users() :
     parser.add_argument(
         '--set',
         help='Specify arbitrary configuration options',
-        nargs=2, action='append')
+        nargs=2, action='append', default=[])
 
     options = parser.parse_args()
 
     global config_map
-    config_map = build_configuration_map()
+    config_map = build_configuration_map(**dict(options.set))
 
     if options.set :
         for (k, v) in options.set : config_map[k] = v
@@ -241,12 +241,12 @@ def configure_ccf() :
     parser.add_argument(
         '--set',
         help='Specify arbitrary configuration options',
-        nargs=2, action='append')
+        nargs=2, action='append', default=[])
 
     options = parser.parse_args()
 
     global config_map
-    config_map = build_configuration_map()
+    config_map = build_configuration_map(**dict(options.set))
 
     if options.set :
         for (k, v) in options.set : config_map[k] = v
