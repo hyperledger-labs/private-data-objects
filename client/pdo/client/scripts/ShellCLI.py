@@ -55,6 +55,7 @@ def Main() :
     import pdo.common.logger as plogger
 
     config_map = pconfig.build_configuration_map()
+    config_map['base'] = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
     # parse out the configuration file first
     conffiles = [ 'pcontract.toml' ]
