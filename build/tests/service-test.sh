@@ -190,7 +190,7 @@ if [[ "$PDO_INTERPRETER" =~ ^"wawaka" ]]; then
     yell run system tests for contracts
 
     cd ${PDO_SOURCE_ROOT}/contracts/wawaka
-    try make system-test TEST_LOG_LEVEL=${F_LOGLEVEL}
+    try make system-test TEST_LOG_LEVEL=${F_LOGLEVEL} TEST_SERVICE_HOST=${F_SERVICE_HOST}
 else
     yell no system tests for "${PDO_INTERPRETER}"
 fi
