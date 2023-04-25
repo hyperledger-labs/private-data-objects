@@ -32,12 +32,18 @@ logger = logging.getLogger(__name__)
 class InfoApp(object) :
     def __init__(self, config, service_keys) :
         self.service_keys = service_keys
+        self.gc_interval = config['StorageService'].get('GarbageCollectionInterval', 0)
+        self.max_duration = config['StorageService'].get('MaxDuration', 0)
 
     def __call__(self, environ, start_response) :
         """Return blockstore information
         """
         try :
-            response = {'verifying_key' : self.service_keys.verifying_key }
+            response = {}
+            response['verifying_key'] = self.service_keys.verifying_key
+            response['gc_interval'] = self.gc_interval
+            response['max_duration'] = self.max_duration
+
             result = json.dumps(response).encode()
 
         except Exception as e :

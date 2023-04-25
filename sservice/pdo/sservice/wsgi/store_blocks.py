@@ -37,6 +37,7 @@ class StoreBlocksApp(object) :
     def __init__(self, config, block_store, service_keys) :
         self.block_store = block_store
         self.service_keys = service_keys
+        self.max_duration = config['StorageService'].get('MaxDuration', 0)
 
     ## -----------------------------------------------------------------
     def block_data_iterator(self, request) :
@@ -70,6 +71,9 @@ class StoreBlocksApp(object) :
             logger.exception('StoreBlocksApp')
             return ErrorResponse(start_response, "unknown exception while unpacking block store request")
 
+        if self.max_duration > 0 :
+            duration = min(duration, self.max_duration)
+
         try :
             # block_list will be an iterator for blocks in the request, this prevents
             # the need to make a copy of the data blocks
@@ -95,6 +99,7 @@ class StoreBlocksApp(object) :
         result = dict()
         result['signature'] = signature
         result['block_ids'] = list(map(encoding_fn, block_hashes))
+        result['duration'] = duration
 
         try :
             result = json.dumps(result).encode('utf8')
