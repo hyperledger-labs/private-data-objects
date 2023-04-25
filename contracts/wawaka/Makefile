@@ -24,28 +24,18 @@ ifndef PDO_SOURCE_ROOT
 $(error Incomplete configuration, PDO_SOURCE_ROOT is not defined)
 endif
 
-SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-DSTDIR ?= $(PDO_INSTALL_ROOT)
-
 WAMR_ROOT=$(PDO_SOURCE_ROOT)/interpreters/wasm-micro-runtime
 WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
 
-PLUGIN_INSTALL_DIR ?= $(PDO_HOME)/contracts/plugins
-PLUGIN_SOURCE=$(wildcard $(SCRIPTDIR)/*/plugins/*.py)
-
-SCRIPT_INSTALL_DIR ?= $(PDO_HOME)/bin
-SCRIPT_SOURCE=$(wildcard $(SCRIPTDIR)/*/scripts/*.psh)
-
-DATA_DIR ?= $(PDO_HOME)/data
-
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= __screen__
+TEST_SERVICE_HOST ?= localhost
 
 ## This would point you to the WAMR version of the built in libraries
 ## WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wamr_toolchain.cmake
 
 all : build
-	@cd build && make all
+	@ make -C build
 
 clean :
 	@echo Remove build directory
@@ -54,77 +44,41 @@ clean :
 debug :
 	@echo No debug build defined
 
-# this is the unit test target, these tests can run without eservice running
-test : install interface-test interpreter-test memory-test mock-contract-test
+test : unit-test
 
-# this is the system test target, these tests require an eservice
-system-test : install attestation-test kv-test
+# unit-test does not require an eservice
+# we rebuild cmake in case the test configuration has changed
+unit-test : install
+	@ cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN) \
+		-DTEST_LOG_LEVEL=$(TEST_LOG_LEVEL) \
+		-DTEST_LOG_FILE=$(TEST_LOG_FILE) \
+		-DTEST_SERVICE_HOST=$(TEST_SERVICE_HOST)
+	@ make -C build test ARGS='-V -R ^unit'
 
-interface-test:
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
-		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-		--contract $@ \
-		--expressions ${SCRIPTDIR}/$@/test-short.json
+# system-test assumes an eservice is available
+# we rebuild cmake in case the test configuration has changed
+system-test : install
+	@ cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN) \
+		-DTEST_LOG_LEVEL=$(TEST_LOG_LEVEL) \
+		-DTEST_LOG_FILE=$(TEST_LOG_FILE) \
+		-DTEST_SERVICE_HOST=$(TEST_SERVICE_HOST)
+	@ make -C build test ARGS='-V -R ^system'
 
-interpreter-test:
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
-		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-		--contract $@ \
-		--expressions ${SCRIPTDIR}/$@/test-short.json
+install : build
+	@ make -C build install
 
-memory-test:
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
-		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-		--contract $@ \
-		--expressions ${SCRIPTDIR}/$@/test-short.json
-
-mock-contract-test :
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && pdo-test-contract --no-ledger \
-		--loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-		--contract mock-contract \
-		--expressions ${SCRIPTDIR}/mock-contract/test-short.json
-
-attestation-test:
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		cd attestation-test && \
-		scripts/attestation-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE) \
-			-m test_data $(SCRIPTDIR)/attestation-test/scripts
-
-interp-test: interpreter-test/scripts/interpreter-test.psh
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		cd interpreter-test && \
-		scripts/interpreter-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
-
-interf-test: interface-test/scripts/interface-test.psh
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		cd interface-test && \
-		scripts/interface-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
-
-kv-test: kv-test/plugins/kv-test.py kv-test/scripts/kv-test.psh
-	@echo run test: $@
-	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		cd kv-test && \
-		scripts/kv-test.psh --loglevel $(TEST_LOG_LEVEL) --logfile $(TEST_LOG_FILE)
-
-install : build $(PLUGIN_SOURCE) $(SCRIPT_SOURCE)
-	@echo install contracts
-	@cd build && make install
-	@mkdir -p $(PLUGIN_INSTALL_DIR); cp $(PLUGIN_SOURCE) $(PLUGIN_INSTALL_DIR)
-	@mkdir -p $(SCRIPT_INSTALL_DIR); cp $(SCRIPT_SOURCE) $(SCRIPT_INSTALL_DIR)
-
+# this is a bit weird because build doesn't actually build the
+# packages; build is a directory
 build :
-	mkdir -p $@
-	cd $@ && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN)
+	@ cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN) \
+		-DTEST_LOG_LEVEL=$(TEST_LOG_LEVEL) \
+		-DTEST_LOG_FILE=$(TEST_LOG_FILE) \
+		-DTEST_SERVICE_HOST=$(TEST_SERVICE_HOST)
 
-.PHONY: test interface-test mock-contract-test interpreter-test memory-test
-.PHONY: system-test eservice-db attestation-test kv-test
+.PHONY: test unit-test system-test
 .PHONY : all clean debug install test
 
 # Note: build is NOT a phony in this case; we make the directory and
