@@ -322,7 +322,7 @@ def decode_root_block(root_block) :
     """
 
     if root_block is None :
-        raise StorageExecption("invalid root block")
+        raise StorageException("invalid root block")
 
     # backward compatibility with json parser
     try :

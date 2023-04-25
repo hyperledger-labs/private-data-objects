@@ -62,8 +62,6 @@ def shared_configuration(keylist=[], default=None) :
     except TypeError :
         return None
 
-    return __shared_configuration__
-
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 class ConfigurationException(Exception) :
