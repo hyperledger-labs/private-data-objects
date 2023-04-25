@@ -22,6 +22,7 @@ HttpPort = ${{7200+_count_}}
 Host = "${host}"
 BlockStore = "${data}/${identity}.mdb"
 GarbageCollectionInterval = 10
+MaxDuration = 0
 
 # --------------------------------------------------
 # Logging -- configuration of service logging

@@ -30,6 +30,11 @@ BlockStore = "${data}/${identity}.mdb"
 # don't garbage collect at all
 GarbageCollectionInterval = 10
 
+# maximum duration that the storage service will
+# commit to for a specific block; 0 indicates that
+# there is no maximum
+MaxDuration = 0
+
 # --------------------------------------------------
 # Logging -- configuration of service logging
 # --------------------------------------------------

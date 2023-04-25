@@ -193,15 +193,24 @@ def __replication_worker__(service_id, *args) :
 
             # replicate now!
             block_data_list = pblocks.local_block_manager().get_blocks(replication_request.blocks_to_replicate)
-            expiration = replication_request.availability_duration
+            requested_duration = replication_request.availability_duration
             request_id = response.commit_id[2]
             try:
                 fail_task = False
-                response_from_replication = service_client.store_blocks(block_data_list, expiration)
+                response_from_replication = service_client.store_blocks(block_data_list, requested_duration)
                 if response_from_replication is None :
                     fail_task =  True
                     logger.info("No response from storage service %s for replication request %d",
                                 service_client.ServiceURL, request_id)
+
+                # when the replication policy is enforced this must be handled correctly
+                # for now we'll just push a debug message that the duration was changed
+                # (basically, the contract requested a duration that is greater than the
+                # storage service will allow)
+                actual_duration = response_from_replication.get('duration', requested_duration)
+                if actual_duration != requested_duration :
+                    logger.debug("block duration dropped from {} to {}".format(requested_duration, actual_duration))
+
             except Exception as e:
                 fail_task =  True
                 logger.info("Replication request %d got an exception from %s: %s",

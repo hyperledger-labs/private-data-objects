@@ -223,6 +223,7 @@ def Main() :
     parser.add_argument('--data-dir', help='Path for storing generated files', type=str)
 
     parser.add_argument('--gc-interval', help='Number of seconds between garbage collection', type=int)
+    parser.add_argument('--max-duration', help='Maximum number of seconds to store a block', type=int)
     parser.add_argument('--block-store', help='Name of the file where blocks are stored', type=str)
     parser.add_argument('--create', help='Create the blockstore if it does not exist', action='store_true')
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
@@ -293,6 +294,9 @@ def Main() :
 
     if options.gc_interval :
         config['StorageService']['GarbageCollectionInterval'] = options.gc_interval
+
+    if options.max_duration :
+        config['StorageService']['MaxDuration'] = options.max_duration
 
     # GO!
     LocalMain(config)
