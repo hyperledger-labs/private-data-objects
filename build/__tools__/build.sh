@@ -29,7 +29,7 @@ if [ "$NUM_CORES " == " " ]; then
     NUM_CORES=4
 fi
 
-F_CLIENT='no'
+CLIENT_ONLY='no'
 
 TEMP=$(getopt -o '' --long 'client,trusted,untrusted' -n "build.sh" -- "$@")
 if [ $? != 0 ] ; then echo "Usage: build.sh [--client]" >&2 ; exit 1 ; fi
@@ -37,19 +37,19 @@ if [ $? != 0 ] ; then echo "Usage: build.sh [--client]" >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
 while true ; do
     case "$1" in
-        --client) F_CLIENT="yes" ; shift 1 ;;
+        --client) CLIENT_ONLY="yes" ; shift 1 ;;
     	--) shift ; break ;;
     	*) echo "Internal error!" ; exit 1 ;;
     esac
 done
-TEMP
+TEMP=""
 
-if [ ${F_CLIENT} == "yes" ]; then
+if [ ${CLIENT_ONLY} == "yes" ]; then
     CMAKE_ARGS="-DBUILD_CLIENT=1 -DBUILD_TRUSTED=0 -DBUILD_UNTRUSTED=0"
     MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=1"
 else
-    CMAKE_ARGS="-DBUILD_CLIENT=0 -DBUILD_TRUSTED=1 -DBUILD_UNTRUSTED=1"
-    MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=0"
+    CMAKE_ARGS="-DBUILD_CLIENT=1 -DBUILD_TRUSTED=1 -DBUILD_UNTRUSTED=1"
+    MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=1"
 fi
 
 # -----------------------------------------------------------------
@@ -57,22 +57,9 @@ fi
 # -----------------------------------------------------------------
 
 yell --------------- COMMON ---------------
-
-# now build the rest of common
 cd $SRCDIR/common
-
-if [ ! -d build ]; then
-    yell create the build directory
-    mkdir -p build
-    pushd build
-    try cmake ${CMAKE_ARGS} ..
-    popd
-fi
-
-cd build
-#try cmake ${CMAKE_ARGS} ..
-#try make ${MAKE_ARGS}
-try cmake --build . -- ${MAKE_ARGS}
+try cmake -S . -B build ${CMAKE_ARGS}
+try cmake --build build -- ${MAKE_ARGS}
 
 yell --------------- BIN ---------------
 cd $SRCDIR/bin
@@ -81,56 +68,33 @@ try make ${MAKE_ARGS} install
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-
-if [ ! -d build ]; then
-    yell create the build directory
-    mkdir -p build
-    pushd build
-    try cmake ${CMAKE_ARGS} ..
-    popd
-fi
-
-cd build
-try cmake --build . -- ${MAKE_ARGS}
+try cmake -S . -B build ${CMAKE_ARGS}
+try cmake --build build -- ${MAKE_ARGS}
 
 yell temporarily installing pdo as part of build
 pip install dist/pdo-0.2.0-py3-none-any.whl
 
 yell --------------- SSERVICE ---------------
 cd $SRCDIR/sservice
-
-if [ ! -d build ]; then
-    yell create the build directory
-    mkdir -p build
-    pushd build
-    try cmake ${CMAKE_ARGS} ..
-    popd
-fi
-
-cd build
-try cmake --build . -- ${MAKE_ARGS}
+try cmake -S . -B build ${CMAKE_ARGS}
+try cmake --build build -- ${MAKE_ARGS}
 
 yell temporarily installing pdo_sservice as part of build
 pip install dist/pdo_sservice-0.2.0-py3-none-any.whl
 
 yell --------------- ESERVICE ---------------
-if [ ${F_CLIENT} == "no" ]; then
+if [ ${CLIENT_ONLY} == "no" ]; then
     cd $SRCDIR/eservice
     try make ${MAKE_ARGS}
     try make ${MAKE_ARGS} install
 fi
 
 yell --------------- PSERVICE ---------------
-if [ ${F_CLIENT} == "no" ]; then
+if [ ${CLIENT_ONLY} == "no" ]; then
     cd $SRCDIR/pservice
     try make ${MAKE_ARGS}
     try make ${MAKE_ARGS} install
 fi
-
-yell --------------- CLIENT ---------------
-cd $SRCDIR/client
-try make ${MAKE_ARGS}
-try make ${MAKE_ARGS} install
 
 yell --------------- CONTRACTS ---------------
 cd $SRCDIR/contracts

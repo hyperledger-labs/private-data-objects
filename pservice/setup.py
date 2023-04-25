@@ -83,7 +83,8 @@ library_dirs = [
 ]
 
 libraries = [
-    'updo-common'
+    'updo-common',
+    'updo-crypto'
 ]
 
 if sgx_mode_env == "HW":
@@ -141,7 +142,8 @@ setup(name='pdo_pservice',
           'colorlog',
           'requests',
           'toml',
-          'twisted'
+          'twisted',
+          'pdo'
           ],
       ext_modules = [
           enclave_module

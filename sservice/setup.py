@@ -26,19 +26,13 @@ pdo_root_dir = os.path.realpath(os.path.join(script_dir, '..'))
 # bdist_wheel will interpret this as a relative path
 install_root_dir = '../../../opt/pdo'
 bin_dir = os.path.join(install_root_dir, "bin")
-dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
-log_dir = os.path.join(install_root_dir, "logs")
-key_dir = os.path.join(install_root_dir, "keys")
 
 data_files = [
     (bin_dir, [
         'bin/ss-start.sh', 'bin/ss-stop.sh', 'bin/ss-status.sh',
         ]),
-    (dat_dir, []),
     (etc_dir, [ 'etc/sample_sservice.toml' ]),
-    (log_dir, []),
-    (key_dir, []),
 ]
 
 ## -----------------------------------------------------------------
@@ -58,7 +52,7 @@ setup(name='pdo-sservice',
           'requests',
           'toml',
           'twisted',
-          'pdo-common'
+          'pdo'
           ],
       data_files = data_files,
       entry_points = {

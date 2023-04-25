@@ -97,6 +97,7 @@ library_dirs = [
 
 libraries = [
     'updo-common',
+    'updo-crypto',
     'pdo-lmdb-block-store',
     'lmdb'
 ]
@@ -165,7 +166,8 @@ setup(name='pdo_eservice',
           'lmdb',
           'requests',
           'toml',
-          'twisted'
+          'twisted',
+          'pdo'
           ],
       ext_modules = [
           enclave_module

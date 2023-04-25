@@ -19,13 +19,7 @@ import os
 import shutil
 import subprocess
 
-# this should only be run with python3
-import sys
-if sys.version_info[0] < 3:
-    print('ERROR: must run with python3')
-    sys.exit(1)
-
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 pdo_root_dir = os.path.abspath(os.path.join(script_dir, '..'))
@@ -33,14 +27,11 @@ pdo_root_dir = os.path.abspath(os.path.join(script_dir, '..'))
 # bdist_wheel will interpret this as a relative path
 install_root_dir = '../../../opt/pdo'
 bin_dir = os.path.join(install_root_dir, "bin")
-dat_dir = os.path.join(install_root_dir, "data")
 etc_dir = os.path.join(install_root_dir, "etc")
-log_dir = os.path.join(install_root_dir, "logs")
-key_dir = os.path.join(install_root_dir, "keys")
 
 data_files = [
-    (bin_dir, []),
-    (etc_dir, [])
+    (bin_dir, [ 'bin/pdo-create.psh', 'bin/pdo-invoke.psh' ]),
+    (etc_dir, [ 'etc/sample_client.toml' ])
 ]
 
 # -----------------------------------------------------------------
@@ -50,13 +41,16 @@ version = subprocess.check_output(
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-setup(name='pdo-common',
+setup(name='pdo',
       version=version,
-      description='Common and client library for private objects',
+      description='Common and client library for private data objects',
       author='Hyperledger Labs PDO maintainers',
       url='https://github.com/hyperledger-labs/private-data-objects',
       packages=find_packages(),
-      install_requires=[],
+      install_requires=[
+          'pyparsing',
+          'toml'
+      ],
       python_requires='>3.5',
       data_files=data_files,
       package_data={'pdo.common': ['_crypto.so', '_key_value_swig.so']},
@@ -68,6 +62,8 @@ setup(name='pdo-common',
               'pdo-test-contract = pdo.test.contract:Main',
               'pdo-test-request = pdo.test.request:Main',
               'pdo-test-storage = pdo.test.storage:Main',
+              'pdo-shell = pdo.client.scripts.ShellCLI:Main',
+              'pdo-eservicedb = pdo.client.scripts.EServiceDatabaseCLI:Main'
           ]
       }
 )

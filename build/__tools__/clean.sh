@@ -36,7 +36,7 @@ make clean
 
 yell --------------- PYTHON ---------------
 cd $SRCDIR/python
-rm -rf build dist pdo-common.egg-info pdo/common/crypto_swig.py pdo/common/key_value_swig.py *.cxx
+rm -rf build dist pdo.egg-info pdo/common/crypto.py pdo/common/key_value_swig.py *.cxx *.so
 
 yell --------------- SSERVICE ---------------
 cd $SRCDIR/sservice
@@ -51,10 +51,6 @@ cd $SRCDIR/pservice/lib/libpdo_enclave
 rm -f contract_enclave_mrenclave.cpp
 
 cd $SRCDIR/pservice
-make clean
-
-yell --------------- CLIENT ---------------
-cd $SRCDIR/client
 make clean
 
 yell --------------- CONTRACTS ---------------
