@@ -465,7 +465,7 @@ class ContractController(cmd.Cmd) :
                 value = "{:X}".format(random.getrandbits(options.random))
 
             if options.state :
-                value = self.state.get(options.state)
+                value = self.state.get(options.state, '')
 
             self.bindings.bind(options.symbol,value)
 

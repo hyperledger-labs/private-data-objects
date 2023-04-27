@@ -17,6 +17,11 @@
 set --conditional -s data -v .
 set --conditional -s save -v .
 
+if --null "${tmpfile}"
+   echo must specify tmpfile for test
+   exit -v -1
+fi
+
 ## create an eservice db with the known enclave services
 eservice_db clear
 eservice_db add --url http://${host}:7101 --name es7101
@@ -151,5 +156,50 @@ else
     echo shell test 4 failed
     exit -v -1
 fi
+
+## test service group export and import
+service_groups save --file ${tmpfile}
+
+## create a new group that should be overwritten by a no-merge load
+sservice --group group_test add --url http://${host}:7201
+sservice --group group_test set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+service_groups load --file ${tmpfile} --no-merge
+
+## test that group_test was overwritten by the load
+set -s _group_test_sym_  --state Service StorageServiceGroups group_test persistent
+if --not --null "${_group_test_sym_}"
+   echo service group load failed to overwrite data; ${_group_test_sym_}
+   exit -v -1
+fi
+
+## test that the s1 group was actually loaded
+set -s _group_test_sym_  --state Service StorageServiceGroups s2 persistent
+if --null "${_group_test_sym_}"
+   echo service group load failed to fetch data
+   exit -v -1
+fi
+
+## create a new group that should be available after a merge load
+sservice --group group_test add --url http://${host}:7201
+sservice --group group_test set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+service_groups load --file ${tmpfile} --merge
+
+## test that the group_test was not overwriten
+set -s _group_test_sym_  --state Service StorageServiceGroups group_test persistent
+if --null "${_group_test_sym_}"
+   echo service group load failed preserve data during merge
+   exit -v -1
+fi
+
+## test that the s1 group was actually loaded
+set -s _group_test_sym_  --state Service StorageServiceGroups s2 persistent
+if --null "${_group_test_sym_}"
+   echo service group load failed to preserve data during merge
+   exit -v -1
+fi
+
+echo service group test succeeded
 
 exit
