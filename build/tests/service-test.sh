@@ -58,9 +58,10 @@ done
 # -----------------------------------------------------------------
 SAVE_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 ESDB_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
+GROUPS_FILE=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 function cleanup {
-    rm -f ${SAVE_FILE} ${ESDB_FILE}
+    rm -f ${SAVE_FILE} ${ESDB_FILE} ${GROUPS_FILE}
 }
 
 trap cleanup EXIT
@@ -179,7 +180,9 @@ fi
 # -----------------------------------------------------------------
 yell test pdo-shell
 # -----------------------------------------------------------------
-try ${PDO_SOURCE_ROOT}/build/tests/shell-test.psh -m host ${F_SERVICE_HOST} --loglevel ${F_LOGLEVEL}
+try ${PDO_SOURCE_ROOT}/build/tests/shell-test.psh --loglevel ${F_LOGLEVEL} \
+    -m host ${F_SERVICE_HOST} \
+    -m tmpfile ${GROUPS_FILE}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
