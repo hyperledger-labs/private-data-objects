@@ -159,7 +159,15 @@ class UpdateStateRequest(ContractRequest) :
 
         try :
             if response_parsed['Status'] and response_parsed['StateChanged'] :
-                contract_response = UpdateStateResponse(self, response_parsed)
+                # the contract reported that the state changed, lets check the state
+                # hashes to make sure that it really did change
+                if response_parsed['StateHash'] == self.contract_state.get_state_hash('b64') :
+                    # Note that changing the value of StateChanged should not impact the
+                    # verification of the enclave signature; still need to verify this
+                    response_parsed['StateChanged'] = False
+                    contract_response = ContractResponse(self, response_parsed)
+                else :
+                    contract_response = UpdateStateResponse(self, response_parsed)
             else :
                 contract_response = ContractResponse(self, response_parsed)
         except Exception as e:

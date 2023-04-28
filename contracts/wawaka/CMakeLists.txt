@@ -45,9 +45,7 @@ ADD_UNIT_TEST(memory-test)
 ADD_UNIT_TEST(mock-contract)
 
 ADD_UNIT_TEST_WITH_SERVICES(interface-test)
-# The interpreter-test appears to tickle a bug in the transaction handler
-# This should be enabled to test the
-# ADD_UNIT_TEST_WITH_SERVICES(interpreter-test)
+ADD_UNIT_TEST_WITH_SERVICES(interpreter-test)
 ADD_UNIT_TEST_WITH_SERVICES(memory-test)
 ADD_UNIT_TEST_WITH_SERVICES(mock-contract)
 

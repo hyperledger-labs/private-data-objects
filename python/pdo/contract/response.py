@@ -246,6 +246,10 @@ class UpdateStateResponse(ContractResponse) :
         self.new_state_hash = crypto.base64_to_byte_array(state_hash_b64)
         self.old_state_hash = ContractState.compute_state_hash(request.contract_state.raw_state)
 
+        # the contract claimed that the state changed, but old and new hashes
+        # are the same; for now we are raising an exception
+        assert self.new_state_hash != self.old_state_hash, 'update response reports the same state'
+
         message = self.serialize_for_signing()
         if not self.verify_enclave_signature(message, request.enclave_keys) :
             raise Exception('failed to verify enclave signature')
