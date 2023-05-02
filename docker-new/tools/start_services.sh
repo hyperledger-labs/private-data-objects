@@ -33,7 +33,9 @@ F_CLEAN="--clean"
 F_INTERFACE=
 F_LEDGER_URL=
 
-F_USAGE='-i|--interface [hostname] -1|--ledger [url] --loglevel [debug|info|warn] -m|--mode [build|copy|skip] -r|--register'
+F_USAGE='-c|--count -i|--interface [hostname] -1|--ledger [url] "
+F_USAGE+="--loglevel [debug|info|warn] -m|--mode [build|copy|skip] -r|--register'
+
 SHORT_OPTS='i:l:m:r'
 LONG_OPTS='interface:,ledger:,loglevel:,mode:,register'
 
@@ -43,6 +45,7 @@ if [ $? != 0 ] ; then echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
 while true ; do
     case "$1" in
+        -c|--count) F_COUNT="$2" ; shift 2 ;;
         -i|--interface) F_INTERFACE="$2" ; shift 2 ;;
         -l|--ledger) F_LEDGER_URL="$2" ; shift 2 ;;
         --loglevel) F_LOGLEVEL="--loglevel $2" ; shift 2 ;;
@@ -80,8 +83,8 @@ source ${PDO_HOME}/bin/lib/common.sh
 # -----------------------------------------------------------------
 if [ "${F_MODE,,}" == "build" ]; then
     yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-    try make -C ${PDO_SOURCE_ROOT}/build config
-    try make -C ${PDO_SOURCE_ROOT}/build keys
+    try ${PDO_INSTALL_ROOT}/bin/pdo-configure-services -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME}\
+        --count 5 5 5
 elif [ "${F_MODE,,}" == "copy" ]; then
     yell copy the configuration from xfer/services/etc and xfer/services/keys
     try mkdir -p ${PDO_HOME}/etc ${PDO_HOME}/keys

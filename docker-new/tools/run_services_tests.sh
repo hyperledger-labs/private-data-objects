@@ -27,8 +27,12 @@ export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 # -----------------------------------------------------------------
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
-try make -C ${PDO_SOURCE_ROOT}/build force-config
-try make -C ${PDO_SOURCE_ROOT}/build keys
+try ${PDO_INSTALL_ROOT}/bin/pdo-configure-services -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME}\
+    --count 5 5 5
+
+# we need some client stuff for the unit tests
+try ${PDO_INSTALL_ROOT}/bin/pdo-configure-users -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME} \
+    --key-count 1 --key-base user --host ${PDO_HOSTNAME}
 
 # -----------------------------------------------------------------
 yell copy ledger keys

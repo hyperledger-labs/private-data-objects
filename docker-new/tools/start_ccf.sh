@@ -110,6 +110,6 @@ if [ "${F_MODE}" == "build" ]; then
 fi
 
 # -----------------------------------------------------------------
-yell ccf service ready
+yell ccf service ready on $PDO_LEDGER_URL
 # -----------------------------------------------------------------
 sleep infinity

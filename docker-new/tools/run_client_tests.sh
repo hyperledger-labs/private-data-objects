@@ -44,7 +44,8 @@ try cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 # -----------------------------------------------------------------
 yell create client configuration files
 # -----------------------------------------------------------------
-try make -C ${PDO_SOURCE_ROOT}/build config-client
+try ${PDO_INSTALL_ROOT}/bin/pdo-configure-users -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME} \
+    --key-count 10 --key-base user --host ${PDO_HOSTNAME}
 
 # for now the site.psh is just a way to notify
 # that the services are running; in the future

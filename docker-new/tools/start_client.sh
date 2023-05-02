@@ -76,7 +76,8 @@ source ${PDO_HOME}/bin/lib/common.sh
 # -----------------------------------------------------------------
 if [ "${F_MODE,,}" == "build" ]; then
     yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-    make -C ${PDO_SOURCE_ROOT}/build config-client
+    try ${PDO_INSTALL_ROOT}/bin/pdo-configure-users -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME} \
+        --key-count 10 --key-base user --host ${PDO_HOSTNAME}
 elif [ "${F_MODE,,}" == "copy" ]; then
     yell copy the configuration from xfer/client/etc and xfer/client/keys
     mkdir -p ${PDO_HOME}/etc ${PDO_HOME}/keys
@@ -92,10 +93,10 @@ fi
 yell copy ledger keys
 # -----------------------------------------------------------------
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
-while [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; do
-    say "waiting for ledger keys"
-    sleep 5
-done
+if [ ! -f ${XFER_DIR}/ccf/keys/networkcert.pem ]; then
+    die "unlable to locate ledger keys in in the host directory ${XFER_DIR}/ccf/keys/networkcert.pem"
+fi
+
 cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 
 # -----------------------------------------------------------------
