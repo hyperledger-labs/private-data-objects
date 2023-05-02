@@ -10,6 +10,7 @@ containers with various PDO services and components. For the most
 part, this directory could be copied to any host (even without PDO
 otherwise installed) to build, configure, and execute PDO code.
 
+<!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Basic Layout ##
 
 There are three subdirectories that are employed in building, configuring and running a  container.
@@ -26,6 +27,7 @@ There are three subdirectories that are employed in building, configuring and ru
   container; the build variables `PDO_REPO` and `PDO_BRANCH` control
   what is put into the directory.
 
+<!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Makefile Targets ##
 
 The `Makefile` contains several targets that should simplify building
@@ -77,6 +79,7 @@ as services in detached mode. The last for the client will run an
 interactive shell in the client container. See below for information
 on how to use the client container.
 
+<!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Pattern: Local Development in a Container ##
 
 ** NOTE: The examples below are run in the foreground. To run these examples
@@ -100,7 +103,7 @@ into the directory `${PDO_SOURCE_ROOT}/xfer/ccf/keys`.
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
         --network host -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
-        --name ${USER}/services_container pdo_services_base
+        --name ${USER}_services_container pdo_services_base
 ```
 
 The `start_development.sh` script contains all of the necessary
@@ -124,21 +127,44 @@ the following:
         -v ${PDO_SOURCE_ROOT}/:/project/pdo/src \
         --network host -it \
         --env PDO_HOSTNAME=${PDO_HOSTNAME} --env PDO_LEDGER_URL=${PDO_LEDGER_URL} \
-        --name ${USER}/ccf_container pdo_ccf_base
+        --name ${USER}_ccf_container pdo_ccf_base
 ```
 
 The `start_development.sh` script can be used in the `ccf_container`
 in the same way it is used in the `services_container` above.
 
-Note: be sure to run `make clean` in the original (out of container) build
+Note: be sure to run `make clean` in the host (out of container) build
 tree.
 
+<!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Pattern: Service Deployment ##
 
 The containers can be used to deploy network services from the
 `pdo_ccf` and `pdo_services` images. Set the environment variables
 `PDO_HOSTNAME` to the interface where the service will listen and
 `PDO_LEDGER_URL` as the endpoint for CCF.
+
+The scripts used to start CCF, PDO services and clients take a number
+of options that can be passed after the docker image name. While each
+script may have unique parameters (try running with `--help`), there
+are several that are common to all of the start up scripts:
+
+* `--interface` : the default hostname for providing or accessing services
+* `--ledger` : the URL for the ledger
+* `--mode <build|copy|skip>` : the mode for handling
+  configuration; `build` creates a new set of configuration files
+  using the hostname in the interface parameter, `copy` copies the
+  configuration files from the transfer directory, and `skip` does
+  nothing
+
+For example, the following command will start the PDO services using
+`localhost` interface for exporting services:
+
+```bash
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
+        --name ${USER}_services_container pdo_services \
+        --interface localhost --ledger http://127.0.0.1:6600
+```
 
 ** NOTE: We need a better way to process registrations for SGX HW mode. In
 theory, the best way to do this may be to create a canonical base
@@ -151,21 +177,26 @@ with reproducible builds.**
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ${USER}/ccf_container pdo_ccf
+        --name ${USER}_ccf_container pdo_ccf
 ```
 
 This will configure the CCF service using the default configuration
-based on `PDO_HOSTNAME` and `PDO_LEDGER_URL` for defining the
-endpoint.
+based on `PDO_HOSTNAME` as the interface for exposing the ledger.
+
+** NOTE: The CCF container ignores the existing value of
+`PDO_LEDGER_URL`. Rather the container defines the service endpoint
+that is captured by the setting of PDO_LEDGER_URL. **
 
 You may also run the CCF with a pre-built configuration. Create the
-directores `$(SCRIPT_DIR)/xfer/ccf/etc` and
+directories `$(SCRIPT_DIR)/xfer/ccf/etc` and
 `$(SCRIPT_DIR)/xfer/ccf/keys`. Copy the CCF configuration files
-(`cchost.toml` and `constitution.js`) into the `etc` directory.
+(`cchost.toml` and `constitution.js`) into the `etc` directory. You
+can use the PDO tool `pdo-configure-ccf` to create an initial set of
+configuration files that can be customized.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ${USER}/ccf_container pdo_ccf --mode copy
+        --name ${USER}_ccf_container pdo_ccf --mode copy
 ```
 
 The CCF container will create the `networkcert.pem` key file and
@@ -183,7 +214,7 @@ ledger is running.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ${USER}/services_container pdo_services
+        --name ${USER}_services_container pdo_services
 ```
 
 This will configure and create the standard set of five `eservices`,
@@ -194,45 +225,42 @@ command:
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ${USER}/services_container pdo_services --ledger <URL> --interface <HOST>
+        --name ${USER}_services_container pdo_services --ledger <URL> --interface <HOST>
 ```
 
 You may also run the services with a pre-built configuration. Create
-the directores `$(SCRIPT_DIR)/xfer/services/etc` and
+the directories `$(SCRIPT_DIR)/xfer/services/etc` and
 `$(SCRIPT_DIR)/xfer/services/keys`. Copy the service configuration
 files in to the `etc` directory and the service keys into the `keys`
-directory.
+directory. An initial version of the configuration files can be built
+with the PDO tool `pdo-configure-services`.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
-        --name ${USER}/services_container pdo_services --mode copy
+        --name ${USER}_services_container pdo_services --mode copy
 ```
 
 ### PDO Client Deployment ###
 
-The client image is primarily intended for automated services
-tests. As such, starting it will run tests in
-`${PDO_SOURCE_ROOT}/build/tests/service-tests.sh`. You can, however,
-override the entrypoint and start a shell that would allow you to
-perform other client operations.
+The client image creates an interactive environment for connecting
+with PDO services. By default the entry point creates an interactive
+shell.
 
 ```bash
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host -p \
-        --name ${USER}/pdo_client pdo_client
+        --name ${USER}_pdo_client pdo_client
 ```
 
 The script `/project/tools/start_client.sh` is intended to simplify
-initialization of a functioning client environment. The script takes
-the following parameters:
-    * `--interface` : the default hostname for accessing services
-    * `--ledger` : the URL for the ledger
-    * `--mode <build|copy|skip>` : the mode for handling
-      configuration; `build` creates a new set of configuration files
-      using the hostname in the interface parameter, `copy` copies the
-      configuration files from the transfer directory, and `skip` does
-      nothing
+initialization of a functioning client environment. Among other things
+it will create the client configuration files and keys for users, and
+it will copy the ledger keys from the `xfer` directory tree. The
+script provides the standard options for interface (the default
+services host), the ledger, and the mode for building or copying
+client configuration files. An initial set of configuration files can
+be created with the PDO tool `pdo-configure-client`.
 
 For example:
 ```bash
-    root@has:/project/pdo# source /project/pdo/tools/start_client.sh --ledger http://127.0.0.1:6600/
+    user@has:/project/pdo# source /project/pdo/tools/start_client.sh --ledger http://127.0.0.1:6600/
 ```
