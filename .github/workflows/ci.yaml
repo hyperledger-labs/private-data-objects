@@ -27,6 +27,6 @@ jobs:
                   # to work on PRs. Based on empirical results, in the absence of
                   # this command, CI tests work on the main branch and on local
                   # branches. However, they fail as a PR is created.
-                  git checkout -b we-need-a-branch-for-below-to-work
+                  git checkout -b ci-test-branch
                   . build/common-config.sh
-                  make -C docker test
+                  make -C docker-new test
