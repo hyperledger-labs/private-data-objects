@@ -1,0 +1,41 @@
+# Copyright 2023 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+version: "3.4"
+
+services:
+  services_container:
+    image: pdo_services
+    build:
+      context: .
+      dockerfile: pdo_services.dockerfile
+      args:
+        PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
+        PDO_HOSTNAME: ${PDO_HOSTNAME}
+        PDO_LEDGER_TYPE: ccf
+        PDO_LEDGER_URL: ${PDO_LEDGER_URL}
+        SGX_MODE: ${SGX_MODE:-SIM}
+    container_name: services_container
+    network_mode: "host"
+    depends_on:
+      - ccf_container
+    volumes:
+      - ./xfer/:/project/pdo/xfer/
+    entrypoint: /project/pdo/tools/start_services.sh
+    healthcheck:
+      test: ["CMD", "test", "-r", "/project/pdo/xfer/site.psh"]
+      start_period: 20s
+      interval: 10s
+      retries: 5
