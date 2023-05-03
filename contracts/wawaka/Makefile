@@ -30,6 +30,7 @@ WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wasi_toolchain.cmake
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= __screen__
 TEST_SERVICE_HOST ?= localhost
+TEST_LEDGER ?= http://localhost:6600
 
 ## This would point you to the WAMR version of the built in libraries
 ## WAMR_TOOLCHAIN=$(WAMR_ROOT)/wamr-sdk/app/wamr_toolchain.cmake
@@ -63,6 +64,7 @@ system-test : install
 		-DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN) \
 		-DTEST_LOG_LEVEL=$(TEST_LOG_LEVEL) \
 		-DTEST_LOG_FILE=$(TEST_LOG_FILE) \
+		-DTEST_LEDGER=$(TEST_LEDGER) \
 		-DTEST_SERVICE_HOST=$(TEST_SERVICE_HOST)
 	@ make -C build test ARGS='-V -R ^system'
 
@@ -76,6 +78,7 @@ build :
 		-DCMAKE_TOOLCHAIN_FILE=$(WAMR_TOOLCHAIN) \
 		-DTEST_LOG_LEVEL=$(TEST_LOG_LEVEL) \
 		-DTEST_LOG_FILE=$(TEST_LOG_FILE) \
+		-DTEST_LEDGER=$(TEST_LEDGER) \
 		-DTEST_SERVICE_HOST=$(TEST_SERVICE_HOST)
 
 .PHONY: test unit-test system-test
