@@ -23,7 +23,10 @@ ifneq ($(basename ${PY_VERSION}),3)
 $(error must be run with python3)
 endif
 
-EGG_FILE=dist/pdo_eservice-${MOD_VERSION}-py${PY_VERSION}-linux-x86_64.egg
+# wheels are now built with a PY_VERSION without the dot separation
+PY_VERSION_NODOT=$(shell echo ${PY_VERSION} | sed 's/\.//g')
+
+WHEEL_FILE=dist/pdo_eservice-${MOD_VERSION}-cp${PY_VERSION_NODOT}-cp${PY_VERSION_NODOT}-linux_x86_64.whl
 
 ENCLAVE_LIB=deps/bin/libpdo-enclave.signed.so
 
@@ -52,12 +55,12 @@ SCRIPTS = \
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= __screen__
 
-all : $(ENCLAVE_LIB) $(EGG_FILE)
+all : $(ENCLAVE_LIB) $(WHEEL_FILE)
 
-$(EGG_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
+$(WHEEL_FILE) : $(ENCLAVE_LIB) $(SWIG_TARGET) $(PYTHON_FILES) $(SCRIPTS)
 	@echo Build Distribution
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python3 setup.py bdist_egg
+		python3 -m build --wheel .
 
 $(ENCLAVE_LIB) : build
 	@echo Build Enclave
@@ -71,9 +74,9 @@ build :
 	mkdir $@
 	cd $@ && cmake .. -G "Unix Makefiles"
 
-install: $(EGG_FILE)
+install: $(WHEEL_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
-		python3 setup.py install
+		pip install $(WHEEL_FILE)
 
 # these cannot be run in the current directory because python tries to
 # pick up the local versions of the library which do not have the same

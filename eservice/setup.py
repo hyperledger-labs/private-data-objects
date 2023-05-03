@@ -153,13 +153,12 @@ enclave_module = Extension(
 version = subprocess.check_output(
     os.path.join(pdo_root_dir, 'bin/get_version')).decode('ascii').strip()
 
-setup(name='pdo_eservice',
+setup(name='pdo-eservice',
       version = version,
       description = 'Private Data Objects SGX Contract Enclave',
-      author = 'Hyperledger',
-      url = 'http://www.intel.com',
+      author = 'Hyperledger Labs PDO maintainers',
+      url = 'https://github.com/hyperledger-labs/private-data-objects',
       packages = find_packages(exclude='./eservice'),
-      namespace_packages=['pdo'],
       install_requires = [
           'colorlog',
           'lmdb',
