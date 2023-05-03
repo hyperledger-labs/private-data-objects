@@ -29,4 +29,4 @@ jobs:
                   # branches. However, they fail as a PR is created.
                   git checkout -b ci-test-branch
                   . build/common-config.sh
-                  make -C docker-new test
+                  make -C docker test
