@@ -78,7 +78,7 @@ function cleanup {
 
 trap cleanup EXIT
 
-try cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}/services/etc/site.psh
+try cp ${PDO_HOME}/etc/site.toml ${XFER_DIR}/services/etc/site.toml
 
 # -----------------------------------------------------------------
 yell wait for client completion

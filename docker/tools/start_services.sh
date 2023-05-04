@@ -123,10 +123,10 @@ try ${PDO_HOME}/bin/ss-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLE
 try ${PDO_HOME}/bin/ps-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLEAN}
 try ${PDO_HOME}/bin/es-start.sh --output ${PDO_HOME}/logs ${F_LOG_LEVEL} ${F_CLEAN}
 
-# save the site.psh file if the configuration files were generated here
+# save the site.toml file if the configuration files were generated here
 if [ "${F_MODE,,}" == "build" ]; then
-    try cp ${PDO_HOME}/etc/site.psh ${XFER_DIR}
-    chmod a+rw ${XFER_DIR}/site.psh
+    try cp ${PDO_HOME}/etc/site.toml ${XFER_DIR}/services/etc/site.toml
+    chmod a+rw ${XFER_DIR}/services/etc/site.toml
 fi
 
 # -----------------------------------------------------------------
