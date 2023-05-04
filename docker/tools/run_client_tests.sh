@@ -47,18 +47,18 @@ yell create client configuration files
 try ${PDO_INSTALL_ROOT}/bin/pdo-configure-users -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME} \
     --key-count 10 --key-base user --host ${PDO_HOSTNAME}
 
-# for now the site.psh is just a way to notify
+# for now the site.toml is just a way to notify
 # that the services are running; in the future
 # the client should be able to incorporate this
 # file and begin to use the information, again
 # in theory this should be taken care of by the
 # health checks in the docker compose configuration
-while [ ! -f ${XFER_DIR}/services/etc/site.psh ]; do
+while [ ! -f ${XFER_DIR}/services/etc/site.toml ]; do
     say "waiting for site configuration"
     sleep 5
 done
 
-try cp ${XFER_DIR}/services/etc/site.psh ${PDO_HOME}/etc/site.psh
+try cp ${XFER_DIR}/services/etc/site.toml ${PDO_HOME}/etc/site.toml
 
 # -----------------------------------------------------------------
 yell run the service test suite
