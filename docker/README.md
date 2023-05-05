@@ -20,7 +20,7 @@ There are three subdirectories that are employed in building, configuring and ru
   previously built configuration into the container, put the files in
   the appropriate subdirectory in xfer.
 * `tools` -- this directory contains a number of scripts that will be
-  installed in the container to simplfy building, configuring and
+  installed in the container to simplify building, configuring and
   running the services in the container.
 * `repository` -- this directory is created during the build process
   and contains the PDO source code that will be copied into the
