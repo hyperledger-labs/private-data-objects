@@ -21,7 +21,6 @@
 
 #include "c11_support.h"
 #include "crypto.h"
-#include "crypto/verify_ias_report/ias-certificates.h"
 #include "error.h"
 #include "log.h"
 #include "packages/parson/parson.h"
@@ -40,6 +39,8 @@ namespace constants = pdo::crypto::constants;
 
 // Error handling
 namespace Error = pdo::error;
+
+extern const char ias_report_signing_ca_cert_pem[];
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // test signature schemes
@@ -1266,28 +1267,16 @@ d4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==
     {  // verify IAS CA certificate against hard-coded one
         // TODO: Could check for identity but should probably also work in usual check?
         int r = verify_ias_certificate_chain(ias_report_signing_ca_cert_pem);
-#ifdef IAS_CA_CERT_REQUIRED
         // success expected
         COND2LOGERR(r != VERIFY_SUCCESS,
                     "verify good IAS CA certificate with IAS CA certificate required\n");
-#else
-        // failure expected
-        COND2LOGERR(r != VERIFY_FAILURE,
-                    "verify good IAS CA certificate with IAS CA certificate NOT required\n");
-#endif
     }
 
     {  // verify IAS report signing certificate
         int r = verify_ias_certificate_chain(ias_report_signing_cert_pem);
-#ifdef IAS_CA_CERT_REQUIRED
         // success expected
         COND2LOGERR(r != VERIFY_SUCCESS,
                     "verify IAS report signing certificate with IAS CA certificate required\n");
-#else
-        // failure expected
-        COND2LOGERR(r != VERIFY_FAILURE,
-                    "verify IAS report signing certificate with IAS CA certificate NOT required\n");
-#endif
     }
 
     {  // verify IAS report signing certificate with null certificate

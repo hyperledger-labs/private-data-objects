@@ -212,12 +212,6 @@ err:
 }
 
 verify_status_t verify_ias_certificate_chain(const char* cert_pem)
-#ifndef IAS_CA_CERT_REQUIRED
-{
-    return VERIFY_FAILURE;  // fail (conservative approach for simulator-mode and in absence of CA
-                            // certificate)
-}
-#else   // IAS_CA_CERT_REQUIRED is defined
 {
     /* Using the IAS CA certificate as a root of trust. */
     /* Checking that cert is signed by CA. */
@@ -266,7 +260,6 @@ verify_status_t verify_ias_certificate_chain(const char* cert_pem)
 err:
     return VERIFY_FAILURE;
 }
-#endif  // IAS_CA_CERT_REQUIRED
 
 /**
  * Check if isvEnclaveQuoteStatus is "OK"

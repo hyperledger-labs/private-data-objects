@@ -39,23 +39,23 @@ ENDIF()
 # by the client (ias verification requires sgx).
 ################################################################################
 IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
-  SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.cpp)
-  SET_SOURCE_FILES_PROPERTIES(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
+  SET(CRYPTO_BUILD_DIR ${CMAKE_BINARY_DIR}/crypto)
+  SET(INTEL_ROOT_CACERT_PATH ${CRYPTO_BUILD_DIR}/Intel_SGX_Attestation_RootCA.pem)
+  SET(IAS_CERTIFICATES_H_PATH ${CRYPTO_BUILD_DIR}/ias-certificates.h)
 
-  ADD_CUSTOM_COMMAND(
-    OUTPUT  ${PROJECT_GENERATED_IAS_SOURCES}
-    COMMAND ./build_ias_certificates_cpp.sh
-    DEPENDS verify_ias_report/ias-certificates.template verify_ias_report/build_ias_certificates_cpp.sh
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report
+  FILE(DOWNLOAD
+      https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem
+      ${INTEL_ROOT_CACERT_PATH}
+      TLS_VERIFY ON
   )
-
-  ADD_CUSTOM_TARGET(generate-ias-files DEPENDS ${PROJECT_GENERATED_IAS_SOURCES})
-
-  IF (${SGX_MODE} STREQUAL "HW")
-    SET(IAS_CA_CERT_REQUIRED "IAS_CA_CERT_REQUIRED=1")
-  ENDIF()
-
-  LIST(APPEND IAS_SOURCES ${PROJECT_GENERATED_IAS_SOURCES})
+  FILE(READ
+      ${INTEL_ROOT_CACERT_PATH}
+      INTEL_ROOT_CA_PEM
+  )
+  CONFIGURE_FILE(
+      ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.h.in
+      ${IAS_CERTIFICATES_H_PATH}
+  )
 ENDIF()
 
 ################################################################################
@@ -65,8 +65,10 @@ IF (BUILD_TRUSTED)
   ADD_LIBRARY(${T_CRYPTO_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${IAS_HEADERS} ${IAS_SOURCES})
   SGX_PREPARE_TRUSTED(${T_CRYPTO_LIB_NAME})
 
+  #include the crypto build dir to help find the cmake generated headers
+  TARGET_INCLUDE_DIRECTORIES(${T_CRYPTO_LIB_NAME} PRIVATE ${CRYPTO_BUILD_DIR})
+
   TARGET_COMPILE_DEFINITIONS(${T_CRYPTO_LIB_NAME} PRIVATE ${PDO_DEFAULT_SIGCURVE})
-  TARGET_COMPILE_DEFINITIONS(${T_CRYPTO_LIB_NAME} PRIVATE ${IAS_CA_CERT_REQUIRED})
 ENDIF()
 
 ################################################################################
@@ -76,8 +78,10 @@ IF (BUILD_UNTRUSTED)
   ADD_LIBRARY(${U_CRYPTO_LIB_NAME} STATIC ${PROJECT_HEADERS} ${PROJECT_SOURCES} ${IAS_HEADERS} ${IAS_SOURCES})
   SGX_PREPARE_UNTRUSTED(${U_CRYPTO_LIB_NAME})
 
+  #include the crypto build dir to help find the cmake generated headers
+  TARGET_INCLUDE_DIRECTORIES(${U_CRYPTO_LIB_NAME} PRIVATE ${CRYPTO_BUILD_DIR})
+
   TARGET_COMPILE_DEFINITIONS(${U_CRYPTO_LIB_NAME} PRIVATE ${PDO_DEFAULT_SIGCURVE})
-  TARGET_COMPILE_DEFINITIONS(${U_CRYPTO_LIB_NAME} PRIVATE ${IAS_CA_CERT_REQUIRED})
 
   # critical flag for conditional compile in source code
   TARGET_COMPILE_DEFINITIONS(${U_CRYPTO_LIB_NAME} PRIVATE "_UNTRUSTED_=1")
