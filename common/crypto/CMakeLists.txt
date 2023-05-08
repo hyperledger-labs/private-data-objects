@@ -38,6 +38,7 @@ ENDIF()
 # Builds the ias-certificates.cpp file using the script. This is not used
 # by the client (ias verification requires sgx).
 ################################################################################
+
 IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
   SET(CRYPTO_BUILD_DIR ${CMAKE_BINARY_DIR}/crypto)
   SET(INTEL_ROOT_CACERT_PATH ${CRYPTO_BUILD_DIR}/Intel_SGX_Attestation_RootCA.pem)
@@ -52,10 +53,27 @@ IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
       ${INTEL_ROOT_CACERT_PATH}
       INTEL_ROOT_CA_PEM
   )
-  CONFIGURE_FILE(
-      ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.h.in
-      ${IAS_CERTIFICATES_H_PATH}
-  )
+  # create the header file containing the root CA certificate stored as a global variable
+  FILE(WRITE ${IAS_CERTIFICATES_H_PATH}
+      "
+/*
+ * Copyright 2023 Intel Corporation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+#pragma once
+
+#ifdef __cplusplus
+extern \"C\" {
+#endif
+extern const char ias_report_signing_ca_cert_pem[] =
+R\"MLT(${INTEL_ROOT_CA_PEM}
+)MLT\"
+;
+#ifdef __cplusplus
+}
+#endif
+      ")
 ENDIF()
 
 ################################################################################
