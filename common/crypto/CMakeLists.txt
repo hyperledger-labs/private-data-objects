@@ -48,6 +48,7 @@ IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
       https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem
       ${INTEL_ROOT_CACERT_PATH}
       TLS_VERIFY ON
+      SHOW_PROGRESS
   )
   FILE(READ
       ${INTEL_ROOT_CACERT_PATH}
@@ -63,17 +64,11 @@ IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
  */
 #pragma once
 
-#ifdef __cplusplus
-extern \"C\" {
-#endif
 extern const char ias_report_signing_ca_cert_pem[] =
 R\"MLT(${INTEL_ROOT_CA_PEM}
 )MLT\"
 ;
-#ifdef __cplusplus
-}
-#endif
-      ")
+")
 ENDIF()
 
 ################################################################################
