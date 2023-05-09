@@ -82,9 +82,6 @@ on how to use the client container.
 <!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Pattern: Local Development in a Container ##
 
-** NOTE: The examples below are run in the foreground. To run these examples
-in the background add the `--detach` switch to the `docker run` commands.
-
 ### PDO Services ###
 
 To set up an environment where interactive development can take place
@@ -166,12 +163,21 @@ For example, the following command will start the PDO services using
         --interface localhost --ledger http://127.0.0.1:6600
 ```
 
-** NOTE: We need a better way to process registrations for SGX HW mode. In
+The examples below are run in the foreground. To run these examples
+in the background add the `--detach` switch to the `docker run` commands.
+
+As mentioned above, the docker images are built with a `UID:GID`
+dervied from account used to build the images. If you would prefer to
+use a different identity, the `--user` switch to the `docker run`
+command will override the builtin identities. This can be especially
+useful if the images are stored in a repository.
+
+** NOTE: ** We need a better way to process registrations for SGX HW mode. In
 theory, the best way to do this may be to create a canonical base
 services image; populate an instance of it with CCF private keys, run
 the registration. That way the canonical base service image would have
 a standard version of the enclave library that would not have to deal
-with reproducible builds.**
+with reproducible builds.
 
 ### CCF Deployment ###
 
@@ -183,9 +189,9 @@ with reproducible builds.**
 This will configure the CCF service using the default configuration
 based on `PDO_HOSTNAME` as the interface for exposing the ledger.
 
-** NOTE: The CCF container ignores the existing value of
+** NOTE: ** The CCF container ignores the existing value of
 `PDO_LEDGER_URL`. Rather the container defines the service endpoint
-that is captured by the setting of PDO_LEDGER_URL. **
+that is captured by the setting of PDO_LEDGER_URL.
 
 You may also run the CCF with a pre-built configuration. Create the
 directories `$(SCRIPT_DIR)/xfer/ccf/etc` and
@@ -202,8 +208,8 @@ configuration files that can be customized.
 The CCF container will create the `networkcert.pem` key file and
 place it in the `$(SCRIPTDIR)/xfer/ccf/keys`.
 
-** NOTE: We do not support starting a CCF instance to join an
-existing CCF network. This is future work. **
+** NOTE: ** We do not support starting a CCF instance to join an
+existing CCF network. This is future work.
 
 ### PDO Services Deployment ###
 
