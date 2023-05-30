@@ -18,8 +18,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.service_client.enclave import EnclaveServiceClient
-import pdo.service_client.service_data.eservice as eservice_db
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 from pdo.client.controller.commands.send import send_to_contract, get_contract
 
 from pdo.client.controller.util import *
@@ -38,7 +37,13 @@ def __get_eservice_client__(state, save_file, eservice_url) :
 
     if eservice_url not in ['random', 'preferred'] :
         try :
-            eservice_client = EnclaveServiceClient(eservice_url)
+            try :
+                eservice_info = service_data.local_service_manager.get_by_url(eservice_url, 'eservice')
+            except RuntimeError as e :
+                # if it wasn't in the database, add the enclave service using the URL
+                eservice_info = service_data.local_service_manager.store_by_url(eservice_url, 'eservice')
+
+            eservice_client = eservice_info.client()
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
@@ -50,12 +55,12 @@ def __get_eservice_client__(state, save_file, eservice_url) :
         else :
             enclave_id = random.choice(contract.provisioned_enclaves)
 
-        eservice_info = eservice_db.get_by_enclave_id(enclave_id)
+        eservice_info = service_data.local_service_manager.get_by_identity(enclave_id, 'eservice')
         if eservice_info is None :
             raise Exception('attempt to use an unknown enclave; %s', enclave_id)
 
         try :
-            eservice_client = EnclaveServiceClient(eservice_info.url)
+            eservice_client = eservice_info.client()
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 

@@ -94,22 +94,23 @@ done
 # -----------------------------------------------------------------
 say run unit tests for eservice database
 # -----------------------------------------------------------------
-try python ${PDO_SOURCE_ROOT}/python/pdo/test/servicedb.py --logfile __screen__ --loglevel ${F_LOGLEVEL} \
-    --eservice-db ${ESDB_FILE} \
-    --url http://${F_SERVICE_HOST}:7101/ http://${F_SERVICE_HOST}:7102/ http://${F_SERVICE_HOST}:7103/ \
-    --ledger ${F_LEDGER_URL}
+try ${PDO_SOURCE_ROOT}/build/tests/service-storage-test.psh \
+    --loglevel ${F_LOGLEVEL} \
+    --ledger ${F_LEDGER_URL} \
+    --service_host ${F_SERVICE_HOST} \
+    --tmpfile ${ESDB_FILE}
 
 say create the eservice database using database CLI
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} reset --create
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} add -u http://${F_SERVICE_HOST}:7101 -n es7101
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} add -u http://${F_SERVICE_HOST}:7102 -n es7102
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} add -u http://${F_SERVICE_HOST}:7103 -n es7103
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} add -u http://${F_SERVICE_HOST}:7104 -n es7104
-try pdo-eservicedb --loglevel ${F_LOGLEVEL} add -u http://${F_SERVICE_HOST}:7105 -n es7105
+try pdo-service-db --loglevel ${F_LOGLEVEL} clear
+try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7101 --name es7101 --type eservice
+try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7102 --name es7102 --type eservice
+try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7103 --name es7103 --type eservice
+try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7104 --name es7104 --type eservice
+try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7105 --name es7105 --type eservice
 
 # -----------------------------------------------------------------
 say start storage service test
-# -----------------------------------------------------------------
+#  ----------------------------------------------------------------
 try pdo-test-storage --url http://${F_SERVICE_HOST}:7201 --loglevel ${F_LOGLEVEL} --logfile __screen__
 
 # -----------------------------------------------------------------

@@ -16,10 +16,10 @@ __all__ = [
     'contract',
     'create',
     'eservice',
-    'eservice_db',
     'ledger',
     'pservice',
     'send',
+    'service_db',
     'service_groups',
     'sservice'
 ]
@@ -33,8 +33,8 @@ create = create.command_create
 import pdo.client.controller.commands.eservice
 eservice = eservice.command_eservice
 
-import pdo.client.controller.commands.eservice_db
-eservice_db = eservice_db.command_eservice_db
+import pdo.client.controller.commands.service_db
+service_db = service_db.command_service_db
 
 import pdo.client.controller.commands.ledger
 ledger = ledger.command_ledger

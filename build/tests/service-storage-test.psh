@@ -1,0 +1,262 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+set --conditional -s data -v .
+set --conditional -s save -v .
+set --conditional -s service_host -v localhost
+
+if --null "${tmpfile}"
+   echo must specify tmpfile for test
+   exit -v -1
+fi
+
+## some definitions to make it easier to display text
+set -s ENDC   -v "\033[0m"
+set -s BOLD   -v '\033[1m'
+set -s HEADER -v "\033[95m"
+set -s ERROR  -v "\033[91m"
+set -s WARN   -v "\033[93m"
+set -s INFO   -v "\033[92m"
+
+## -----------------------------------------------------------------
+echo ${HEADER}service database test on host ${service_host} ${ENDC}
+## -----------------------------------------------------------------
+
+## -----------------------------------------------------------------
+echo ${HEADER}create the initial database ${ENDC}
+## -----------------------------------------------------------------
+service_db clear
+
+service_db add --type eservice --url http://${service_host}:7101 --name eservice1
+service_db add --type eservice --url http://${service_host}:7102 --name eservice2
+service_db add --type eservice --url http://${service_host}:7103 --name eservice3
+service_db add --type eservice --url http://${service_host}:7104 --name eservice4
+service_db add --type eservice --url http://${service_host}:7105 --name eservice5
+
+service_db add --type pservice --url http://${service_host}:7001 --name pservice1
+service_db add --type pservice --url http://${service_host}:7002 --name pservice2
+service_db add --type pservice --url http://${service_host}:7003 --name pservice3
+service_db add --type pservice --url http://${service_host}:7004 --name pservice4
+service_db add --type pservice --url http://${service_host}:7005 --name pservice5
+
+service_db add --type sservice --url http://${service_host}:7201 --name sservice1
+service_db add --type sservice --url http://${service_host}:7202 --name sservice2
+service_db add --type sservice --url http://${service_host}:7203 --name sservice3
+service_db add --type sservice --url http://${service_host}:7204 --name sservice4
+service_db add --type sservice --url http://${service_host}:7205 --name sservice5
+
+## -----------------------------------------------------------------
+echo ${HEADER}test retrieval by url ${ENDC}
+## -----------------------------------------------------------------
+
+## note that the database normalizes the URL so we need to used the
+## correct format for the comparison to work
+
+service_db info --type eservice --name eservice1 --symbol _info_ --quiet
+parse -e "${_info_}" -p service_url -s _url_ --raw
+if --not -e ${_url_} "http://${service_host}:7101"
+    echo ${ERROR} eservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type pservice --name pservice1 --symbol _info_ --quiet
+parse -e "${_info_}" -p service_url -s _url_ --raw
+if --not -e ${_url_} "http://${service_host}:7001"
+    echo ${ERROR} pservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type sservice --name sservice1 --symbol _info_ --quiet
+parse -e "${_info_}" -p service_url -s _url_ --raw
+if --not -e ${_url_} "http://${service_host}:7201"
+    echo ${ERROR} sservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+## -----------------------------------------------------------------
+echo ${HEADER}test retrieval by name ${ENDC}
+## -----------------------------------------------------------------
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} eservice1
+    echo ${ERROR} eservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} pservice1
+    echo ${ERROR} pservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} sservice1
+    echo ${ERROR} sservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+## -----------------------------------------------------------------
+echo ${HEADER}test retrieval by identity ${ENDC}
+## -----------------------------------------------------------------
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+parse -e ${_info_} -p service_identity -s _identity_ --raw
+service_db info --type eservice --identity "${_identity_}" --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} eservice1
+    echo ${ERROR} eservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+parse -e ${_info_} -p service_identity -s _identity_ --raw
+service_db info --type pservice --identity "${_identity_}" --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} pservice1
+    echo ${ERROR} pservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+parse -e ${_info_} -p service_identity -s _identity_ --raw
+service_db info --type sservice --identity "${_identity_}" --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} sservice1
+    echo ${ERROR} sservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+## -----------------------------------------------------------------
+echo ${HEADER}save the database to the temporary file ${ENDC}
+## -----------------------------------------------------------------
+service_db export --file ${tmpfile}
+
+## -----------------------------------------------------------------
+echo ${HEADER}test removal of services ${ENDC}
+## -----------------------------------------------------------------
+service_db remove --type eservice --name eservice1
+service_db remove --type pservice --name pservice1
+service_db remove --type sservice --name sservice1
+
+trap_error
+
+service_db info --type eservice --name eservice1 --symbol _info_ --quiet
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch missing eservice ${ENDC}
+   exit -v -1
+fi
+
+service_db info --type pservice --name pservice1 --symbol _info_ --quiet
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch missing pservice ${ENDC}
+   exit -v -1
+fi
+
+service_db info --type sservice --name sservice1 --symbol _info_ --quiet
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch missing sservice ${ENDC}
+   exit -v -1
+fi
+
+untrap_error
+
+## -----------------------------------------------------------------
+echo ${HEADER}test duplicate add ${ENDC}
+## -----------------------------------------------------------------
+trap_error
+
+service_db add --type eservice --url http://${service_host}:7105 --name eservice5
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch duplicate add of eservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+
+service_db add --type pservice --url http://${service_host}:7005 --name pservice5
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch duplicate add of pservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+
+service_db add --type sservice --url http://${service_host}:7205 --name sservice5
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to catch duplicate add of sservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+untrap_error
+
+
+service_db add --type eservice --url http://${service_host}:7105 --name eservice5 --update
+if -o ${_error_code_} 0
+   echo ${ERROR} failed to update duplicate of eservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+
+service_db add --type pservice --url http://${service_host}:7005 --name pservice5 --update
+if -o ${_error_code_} 0
+   echo ${ERROR} failed to update duplicate of pservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+
+service_db add --type sservice --url http://${service_host}:7205 --name sservice5 --update
+if -o ${_error_code_} 0
+   echo ${ERROR} failed to update duplicate of sservice ${ENDC}
+   exit -v -1
+fi
+clear_error
+##untrap_error
+
+
+## -----------------------------------------------------------------
+echo ${HEADER}reload the database ${ENDC}
+## -----------------------------------------------------------------
+service_db clear
+service_db import --file ${tmpfile}
+
+## make sure we can import over the top of existing nodes
+service_db import --file ${tmpfile}
+
+## -----------------------------------------------------------------
+echo ${HEADER}test retrieval by url from the imported database ${ENDC}
+## -----------------------------------------------------------------
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} eservice1
+    echo ${ERROR} eservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} pservice1
+    echo ${ERROR} pservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+parse -e ${_info_} -p service_names[0] -s _name_ --raw
+if --not -e ${_name_} sservice1
+    echo ${ERROR} sservice info test failed ${ENDC}
+    exit -v -1
+fi
+
+echo ${BOLD} all tests succeeded ${ENDC}
+exit -v 0

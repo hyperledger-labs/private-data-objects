@@ -23,16 +23,12 @@ if --null "${tmpfile}"
 fi
 
 ## create an eservice db with the known enclave services
-eservice_db clear
-eservice_db add --url http://${host}:7101 --name es7101
-eservice_db add --url http://${host}:7102 --name es7102
-eservice_db add --url http://${host}:7103 --name es7103
-eservice_db add --url http://${host}:7104 --name es7104
-eservice_db add --url http://${host}:7105 --name es7105
-eservice_db save --database ${data}/test-db.json
-
-eservice_db clear
-eservice_db load --database ${data}/test-db.json
+service_db clear
+service_db add --url http://${host}:7101 --name es7101 --type eservice
+service_db add --url http://${host}:7102 --name es7102 --type eservice
+service_db add --url http://${host}:7103 --name es7103 --type eservice
+service_db add --url http://${host}:7104 --name es7104 --type eservice
+service_db add --url http://${host}:7105 --name es7105 --type eservice
 
 ## default pservice group
 pservice add --url http://${host}:7001

@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pdo.service_client.enclave import EnclaveServiceClient
-import pdo.service_client.service_data.eservice as eservice_db
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 
 __all__ = ['command_eservice', 'get_eservice', 'get_eservice_list']
 
@@ -29,10 +29,10 @@ def __expand_eservice_names__(names) :
     result = set()
     if names :
         for name in names :
-            eservice_info = eservice_db.get_by_name(name)
+            eservice_info = service_data.local_service_manager.get_by_name(name, 'eservice')
             if eservice_info is None :
                 raise Exception('unknown eservice name {0}'.format(name))
-            result.add(eservice_info.url)
+            result.add(eservice_info.service_url)
 
     return result
 
@@ -102,14 +102,14 @@ def command_eservice(state, bindings, pargs) :
             state.set(['Service', 'EnclaveServiceGroups', options.group, 'preferred'], 'random')
             return
 
-        service_url = None
         if options.url :
-            service_url = options.url
+            service_info = service_data.local_service_manager.get_by_url(options.url, 'eservice')
         if options.name :
-            service_info = eservice_db.get_by_name(options.name)
-            if service_info is None :
-                raise Exception('unknown eservice name; %s', options.name)
-            service_url = service_info.url
+            service_info = service_data.local_service_manager.get_by_name(options.name, 'eservice')
+
+        if service_info is None :
+            raise Exception('unknown eservice name; %s', options.name)
+        service_url = service_info.service_url
 
         services = state.get(['Service', 'EnclaveServiceGroups', options.group, 'urls'], [])
         if service_url in services :
