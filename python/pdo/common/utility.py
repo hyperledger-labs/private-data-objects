@@ -55,6 +55,13 @@ def deprecated(func):
 
     return new_func
 
+class classproperty(property) :
+    """decorator to mark a class method as a property, used for
+    simplified access to module initiated variables
+    """
+    def __get__(self, owner_self, owner_cls) :
+        return self.fget(owner_cls)
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def build_simple_file_name(basename, extension='') :

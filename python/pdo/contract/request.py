@@ -23,7 +23,7 @@ from pdo.contract.message import ContractMessage
 from pdo.contract.response import ContractResponse, UpdateStateResponse, InitializeStateResponse
 from pdo.contract.state import ContractState
 from pdo.submitter.create import create_submitter
-import pdo.service_client.service_data.eservice as eservice_db
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,8 +59,8 @@ class ContractRequest(object) :
         if self.enclave_service == 'random':
             enclave_id = random.choice(list(contract.enclave_map.keys()))
             try: #use the eservice database to get the client
-                einfo = eservice_db.get_by_enclave_id(enclave_id)
-                self.enclave_service = einfo.client
+                einfo = service_data.local_service_manager.get_by_identity(enclave_id, 'eservice')
+                self.enclave_service = einfo.client()
             except Exception as e:
                 raise Exception('failed to get enclave client using database: %s', str(e))
 

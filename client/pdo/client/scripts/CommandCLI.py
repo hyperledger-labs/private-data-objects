@@ -20,40 +20,46 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 
-from pdo.client.controller.contract_controller import ContractController
-import pdo.common.utility as putils
 import pdo.common.config as pconfig
-from pdo.contract.response import ContractResponse
-import pdo.common.block_store_manager as pblocks
+import pdo.common.logger as plogger
+import pdo.common.utility as putils
 
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def LocalMain(config) :
-    # if there is a script file, process it; the interactive
-    # shell will start unless there is an explicit exit in the script
-    script_file = config.get("ScriptFile")
-    if script_file :
-        shell = ContractController.CreateController(config, echo=False, interactive=False)
-
-        logger.debug("Processing script file %s", str(script_file))
-        exit_code = ContractController.ProcessScript(shell, script_file)
-        sys.exit(exit_code)
-
-    shell = ContractController.CreateController(config, echo=True, interactive=True)
-    shell.cmdloop()
-    print("")
-
-    sys.exit(shell.exit_code)
+from pdo.client.controller.contract_controller import State, Bindings
+from pdo.client.controller.commands import *
+import pdo.client.controller.commands
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+def LocalMain(config, params) :
+    try :
+        identity = config['Client']['Identity']
+        private_key_file = config['Key']['FileName']
+    except :
+        raise Exception('missing required configuration parameters')
+
+    state = State(config, identity=identity, private_key_file=private_key_file)
+    bindings = Bindings(config.get('Bindings', {}))
+
+    # we are going to retrieve the command family name from the
+    # name of the script; the standard mapping starts with 'pdo-'
+    # which will be removed. then all of the '-' (which make nice
+    # looking commands for bash) are replaced with '_' (which make
+    # nice looking python function names)
+    base_name = os.path.basename(sys.argv[0])
+    command_name = base_name[len('pdo-'):] if base_name.startswith('pdo-') else base_name
+    command_name = command_name.replace('-','_')
+
+    command = getattr(pdo.client.controller.commands, command_name)
+    command(state, bindings, params)
+
+    sys.exit(0)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def Main() :
-    import pdo.common.config as pconfig
-    import pdo.common.logger as plogger
-
     config_map = pconfig.build_configuration_map()
     config_map['base'] = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
@@ -79,9 +85,7 @@ def Main() :
 
     parser.add_argument('--service-db', help='json file for eservice database', type=str)
 
-    parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
-
-    options, script = parser.parse_known_args()
+    options, command_params = parser.parse_known_args()
 
     # first process the options necessary to load the default configuration
     if options.config :
@@ -170,30 +174,7 @@ def Main() :
     # make the configuration available to all of the PDO modules
     pconfig.initialize_shared_configuration(config)
 
-    if script :
-        config["ScriptFile"] = script.pop(0)
-
-        varmap = config.get("Bindings", {})
-        while script :
-            try :
-                key = script.pop(0)
-                val = script.pop(0)
-            except ValueError :
-                logger.error('unable to process script arguments')
-                sys.exit(1)
-
-            key = key.lstrip('-')
-            varmap[key] = val
-        config["Bindings"] = varmap
-
-    # this sets the initial bindings available in the script
-    if options.mapvar :
-        varmap = config.get("Bindings", {})
-        for (k, v) in options.mapvar : varmap[k] = v
-        config["Bindings"] = varmap
-
-    # GO!
-    LocalMain(config)
+    LocalMain(config, command_params)
 
 ## -----------------------------------------------------------------
 ## Entry points

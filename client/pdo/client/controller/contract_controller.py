@@ -294,6 +294,7 @@ class ContractController(cmd.Cmd) :
             parser.add_argument('-e', '--expression', help='json expression to parse', type=str, required=True)
             parser.add_argument('-p', '--path', help='path to retrieve within the expression', type=str, required=True)
             parser.add_argument('-s', '--symbol', help='symbol in which to store the result', required=True)
+            parser.add_argument('--raw', help='use raw format for binding instead of json', action='store_true')
 
             options = parser.parse_args(pargs)
 
@@ -307,7 +308,10 @@ class ContractController(cmd.Cmd) :
             except Exception as e :
                 return self.__error__('parse', args, 'invalid path')
 
-            value = json.dumps(python_value)
+            if options.raw :
+                value = python_value
+            else :
+                value = json.dumps(python_value)
 
             self.bindings.bind(options.symbol,value)
 
@@ -608,12 +612,12 @@ class ContractController(cmd.Cmd) :
 
         try :
             pargs = self.__arg_parse__(args)
-            eservice_db(self.state, self.bindings, pargs)
+            service_db(self.state, self.bindings, pargs)
 
         except SystemExit as se :
-            return self.__arg_error__('eservice_db', args, se.code)
+            return self.__arg_error__('service_db', args, se.code)
         except Exception as e :
-            return self.__error__('eservice_db', args, str(e))
+            return self.__error__('service_db', args, str(e))
 
         return False
 

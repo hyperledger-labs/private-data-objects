@@ -38,7 +38,7 @@ except :
 
 import pdo.service_client.enclave as eservice_helper
 import pdo.service_client.provisioning as pservice_helper
-import pdo.service_client.service_data.eservice as db
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 
 import pdo.contract as contract_helper
 from pdo.contract.response import ContractResponse
@@ -175,18 +175,23 @@ def CreateAndRegisterEnclave(config) :
         enclaveclients = []
         try :
             for url in config['Service']['EnclaveServiceURLs'] :
-                einfo = db.add_by_url(ledger_config, url)
+                try :
+                    einfo = service_data.local_service_manager.get_by_url(url, 'eservice')
+                except RuntimeError as r :
+                    logger.debug('eservice {} not in the database, adding it'.format(url))
+                    einfo = service_data.local_service_manager.store_by_url(url, 'eservice')
+
                 if einfo is None :
                     logger.error("unable to connect to enclave service; %s", url)
                     sys.exit(-1)
 
-                if einfo.client.interpreter != interpreter :
-                    logger.error('contract and enclave expect different interpreters; <%s> != <%s>', einfo.client.interpreter, interpreter)
+                if einfo.interpreter != interpreter :
+                    logger.error('missing required interpreter; <%s> != <%s>', einfo.interpreter, interpreter)
                     sys.exit(-1)
 
-                enclaveclients.append(einfo.client)
+                enclaveclients.append(einfo.client())
         except Exception as e :
-            logger.error('unable to setup enclave services; %s', str(e))
+            logger.exception('unable to setup enclave services; %s', str(e))
             sys.exit(-1)
 
         return enclaveclients
