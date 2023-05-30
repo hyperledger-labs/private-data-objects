@@ -34,7 +34,7 @@ CertificateFile = "${ledger_key_root}/networkcert.pem"
 # Service -- Information about enclave/provisioning services
 # --------------------------------------------------
 [Service]
-EnclaveServiceDatabaseFile = "${home}/data/eservice-db.json"
+ServiceDatabaseFile = "${data}/service_db.mdb"
 
 # --------------------------------------------------
 # StorageService -- information about KV block stores

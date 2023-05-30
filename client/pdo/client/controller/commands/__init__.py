@@ -13,8 +13,40 @@
 # limitations under the License.
 
 __all__ = [
-    'eservice_db',
+    'contract',
+    'create',
+    'eservice',
+    'ledger',
+    'pservice',
+    'send',
+    'service_db',
+    'service_groups',
+    'sservice'
 ]
 
-import pdo.client.controller.commands.eservice_db
-eservice_db = eservice_db.command_eservice_db
+import pdo.client.controller.commands.contract
+contract = contract.command_contract
+
+import pdo.client.controller.commands.create
+create = create.command_create
+
+import pdo.client.controller.commands.eservice
+eservice = eservice.command_eservice
+
+import pdo.client.controller.commands.service_db
+service_db = service_db.command_service_db
+
+import pdo.client.controller.commands.ledger
+ledger = ledger.command_ledger
+
+import pdo.client.controller.commands.pservice
+pservice = pservice.command_pservice
+
+import pdo.client.controller.commands.send
+send = send.command_send
+
+import pdo.client.controller.commands.service_groups
+service_groups = service_groups.command_service_groups
+
+import pdo.client.controller.commands.sservice
+sservice = sservice.command_sservice

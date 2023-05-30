@@ -22,7 +22,7 @@
 ./pdo/service_client/generic.py
 ./pdo/service_client/provisioning.py
 ./pdo/service_client/service_data/__init__.py
-./pdo/service_client/service_data/eservice.py
+./pdo/service_client/service_data/service_data.py
 ./pdo/service_client/storage.py
 ./pdo/submitter/__init__.py
 ./pdo/submitter/submitter.py
@@ -34,7 +34,6 @@
 ./pdo/test/helpers/secrets.py
 ./pdo/test/helpers/state.py
 ./pdo/test/request.py
-./pdo/test/servicedb.py
 ./pdo/test/storage.py
 ./pdo/submitter/ccf/__init__.py
 ./pdo/submitter/ccf/ccf_submitter.py
