@@ -26,9 +26,9 @@ from pdo.common.config import parse_configuration_file, build_configuration_map
 config_map = {}
 
 site_information = {
-    'EnclaveService' : {},
-    'StorageService' : {},
-    'ProvisioningService' : {}
+    'EnclaveService' : [],
+    'StorageService' : [],
+    'ProvisioningService' : []
 }
 
 # -----------------------------------------------------------------
@@ -42,13 +42,15 @@ def generate_service_keys(keyfile) :
 def add_service_to_site(service, node, config) :
     global site_information
 
-    site_information[service][node] = {}
-
-    for k in ['Identity', 'HttpPort', 'Host'] :
-        site_information[service][node][k] = config[service][k]
-
     service_url = "http://{}:{}".format(config[service]['Host'], config[service]['HttpPort'])
-    site_information[service][node]['URL'] = service_url
+    service_name = "{}/{}".format(config[service]['Host'], config[service]['Identity'])
+
+    site_information[service].append(
+        {
+            'URL' : service_url,
+            'Names' : [ service_name ]
+        }
+    )
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
