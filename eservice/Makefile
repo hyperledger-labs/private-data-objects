@@ -47,10 +47,7 @@ PYTHON_FILES = $(shell cat MANIFEST)
 SCRIPTS = \
 	bin/es-start.sh \
 	bin/es-stop.sh \
-	bin/es-status.sh \
-	bin/ss-start.sh \
-	bin/ss-stop.sh \
-	bin/ss-status.sh
+	bin/es-status.sh
 
 TEST_LOG_LEVEL ?= warn
 TEST_LOG_FILE ?= __screen__
