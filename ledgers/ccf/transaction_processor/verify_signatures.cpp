@@ -18,7 +18,6 @@
 using namespace std;
 using namespace ccf;
 using namespace crypto;
-using namespace tls;
 
 namespace ccfapp
 {
@@ -39,7 +38,7 @@ namespace ccfapp
         const vector<uint8_t>& contents)
     {
         // format the verifying key as needed by CCF to create the verifier
-        const auto public_key_pem = crypto::Pem(CBuffer(verifying_key));
+        const auto public_key_pem = crypto::Pem(verifying_key);
         auto pubk_verifier = crypto::make_public_key(public_key_pem);
         return pubk_verifier->verify(contents, signature);
     }
@@ -50,7 +49,7 @@ namespace ccfapp
         const vector<uint8_t>& contents)
     {
         // format the verifying key as needed by CCF to create the verifier
-        const auto public_key_pem = crypto::Pem(CBuffer(verifying_key));
+        const auto public_key_pem = crypto::Pem(verifying_key);
         auto pubk_verifier = crypto::make_rsa_public_key(public_key_pem);
         return pubk_verifier->verify(contents.data(), contents.size(), signature.data(), signature.size(), MDType::SHA256);
     }

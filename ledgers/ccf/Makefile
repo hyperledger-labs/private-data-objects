@@ -56,7 +56,7 @@ build: build-pdo-tp
 build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
 		-DCCF_DIR=$(CCF_BASE) \
-		-DCOMPILE_TARGETS=$(COMPILE_TARGET) \
+		-DCOMPILE_TARGET=$(COMPILE_TARGET) \
 		-DLVI_MITIGATIONS=OFF \
 		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
