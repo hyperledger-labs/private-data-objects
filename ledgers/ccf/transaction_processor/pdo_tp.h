@@ -13,22 +13,29 @@
  * limitations under the License.
  */
 
+// This app's includes
 #include "enclave_registry.h"
 #include "contract_registry.h"
 #include "ccl_registry.h"
 
+// CCF
 #include "crypto/key_pair.h"
 #include "crypto/rsa_key_pair.h"
 #include "crypto/hash_provider.h"
-#include "crypto/hash.h"
-
-#include "ds/buffer.h"
+#include "app_interface.h"
+#include "common_auth_policies.h"
+#include "crypto/verifier.h"
+#include "crypto/sha256.h"
+#include "ds/hash.h"
 #include "ds/hex.h"
+#include "historical_queries_adapter.h"
+#include "http_query.h"
+#include "indexing/strategies/seqnos_by_key_bucketed.h"
+#include "indexing/strategy.h"
+#include "json_handler.h"
+#include "version.h"
 
-#include "ccf/app_interface.h"
-#include "ccf/user_frontend.h"
-#include "apps/utils/metrics_tracker.h"
-
+// others
 #include <map>
 #include <sgx_quote.h>
 
@@ -173,18 +180,6 @@ namespace ccfapp
 
             TPHandlerRegistry (ccfapp::AbstractNodeContext& context);
             map<string, PublicKeyPtr> enclave_pubk_verifier; // the key is the enclave verifying key
-    };
-
-    class TransactionProcessor : public ccf::RpcFrontend
-    {
-    private:
-        TPHandlerRegistry  tp_handlers;
-
-    public:
-        TransactionProcessor(ccf::NetworkTables& network, ccfapp::AbstractNodeContext& context):
-            ccf::RpcFrontend(*network.tables, tp_handlers),
-            tp_handlers(context)
-        {}
     };
 
 }

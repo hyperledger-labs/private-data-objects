@@ -17,7 +17,6 @@
 
 using namespace std;
 using namespace ccf;
-using namespace tls;
 using namespace crypto;
 
 
@@ -128,7 +127,7 @@ namespace ccfapp
                     auto key_pair = signer_global.value();
                     if (ledger_signer_local == NULL){
                         auto privk_pem = crypto::Pem(key_pair["privk"]);
-                        ledger_signer_local = make_key_pair(privk_pem, nullb);
+                        ledger_signer_local = make_key_pair(privk_pem);
                     }
                     return ccf::make_success(Get_Ledger_Key::Out{key_pair["pubk"]});
                 }
@@ -281,7 +280,7 @@ namespace ccfapp
 
                 // Verify user report data
                 std::vector<uint8_t> originator_key(in.EHS_verifying_key.begin(), in.EHS_verifying_key.end());
-                std::vector<uint8_t> originator_key_hash = crypto::SHA256(originator_key);
+                std::vector<uint8_t> originator_key_hash = crypto::sha256(originator_key);
                 std::string originator_key_hash_hex = ds::to_hex(originator_key_hash);
                 originator_key_hash_hex.resize(ORIGINATOR_KEY_HASH_SIZE);
                     //To understand why we truncate, check implementation of pdo.common.keys.ServiceKeys.hashed_indentity
@@ -292,7 +291,7 @@ namespace ccfapp
                 user_data_hash_input += originator_key_hash_hex;
 
                 std::vector<uint8_t> user_data_hash_input_vector(user_data_hash_input.begin(), user_data_hash_input.end());
-                std::vector<uint8_t> user_data_hash = crypto::SHA256(user_data_hash_input_vector);
+                std::vector<uint8_t> user_data_hash = crypto::sha256(user_data_hash_input_vector);
                 //Pad the user data hash with zeros so that it becomes 64 bytes, instead of 32 bytes.
                 //We do this since the sgx report data field is 64 bytes
                 user_data_hash.resize(SGX_REPORT_DATA_SIZE, 0);
@@ -331,7 +330,7 @@ namespace ccfapp
             enclave_view->put(in.verifying_key, new_enclave);
 
             //create signature verifier for this enclave and cache it
-            const auto public_key_pem = crypto::Pem(CBuffer(in.verifying_key));
+            const auto public_key_pem = crypto::Pem(in.verifying_key);
             this->enclave_pubk_verifier[in.verifying_key] = crypto::make_public_key(public_key_pem);
 
             return ccf::make_success(true);
@@ -687,7 +686,7 @@ namespace ccfapp
                     if (signer_global.has_value()){
                         auto key_pair = signer_global.value();
                         auto privk_pem = crypto::Pem(key_pair["privk"]);
-                        ledger_signer_local = make_key_pair(privk_pem, nullb);
+                        ledger_signer_local = make_key_pair(privk_pem);
                     }
                     else {
                         return ccf::make_error(
@@ -727,7 +726,7 @@ namespace ccfapp
                     if (signer_global.has_value()){
                         auto key_pair = signer_global.value();
                         auto privk_pem = crypto::Pem(key_pair["privk"]);
-                        ledger_signer_local = make_key_pair(privk_pem, nullb);
+                        ledger_signer_local = make_key_pair(privk_pem);
                     }
                     else {
                         return ccf::make_error(
@@ -780,7 +779,7 @@ namespace ccfapp
                 if (signer_global.has_value()){
                     auto key_pair = signer_global.value();
                     auto privk_pem = crypto::Pem(key_pair["privk"]);
-                    ledger_signer_local = make_key_pair(privk_pem, nullb);
+                    ledger_signer_local = make_key_pair(privk_pem);
                 }
                 else {
                     return ccf::make_error(
@@ -823,7 +822,7 @@ namespace ccfapp
                 if (signer_global.has_value()){
                     auto key_pair = signer_global.value();
                     auto privk_pem = crypto::Pem(key_pair["privk"]);
-                    ledger_signer_local = make_key_pair(privk_pem, nullb);
+                    ledger_signer_local = make_key_pair(privk_pem);
                 }
                 else {
                     return ccf::make_error(
@@ -866,7 +865,7 @@ namespace ccfapp
                 if (signer_global.has_value()){
                     auto key_pair = signer_global.value();
                     auto privk_pem = crypto::Pem(key_pair["privk"]);
-                    ledger_signer_local = make_key_pair(privk_pem, nullb);
+                    ledger_signer_local = make_key_pair(privk_pem);
                 }
                 else {
                     return ccf::make_error(
@@ -902,7 +901,7 @@ namespace ccfapp
         const ccf::AuthnPolicies no_auth_policy = {ccf::no_auth_required};
 
         // policy used by consortium that deploys PDO TP
-        const ccf::AuthnPolicies member_cert_sign_required = {ccf::member_signature_auth_policy};
+        const ccf::AuthnPolicies member_cert_sign_required = {ccf::member_cert_auth_policy};
 
         // Not making any distinction between write and read-only end points while installing end points
         // We will revisit this in a later PR.
@@ -993,10 +992,12 @@ namespace ccfapp
     }
 
     // This the entry point to the application. Point to the app class
-    std::shared_ptr<ccf::RpcFrontend> get_rpc_handler(
-    NetworkTables& nwt, ccfapp::AbstractNodeContext& context)
+    std::unique_ptr<ccf::endpoints::EndpointRegistry> make_user_endpoints(
+    ccfapp::AbstractNodeContext& context)
     {
-        return make_shared<TransactionProcessor>(nwt, context);
+        return std::make_unique<TPHandlerRegistry>(context);
     }
 
 }
+
+

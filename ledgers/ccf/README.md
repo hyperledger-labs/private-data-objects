@@ -8,7 +8,7 @@ https://creativecommons.org/licenses/by/4.0/
 This folder contains software for PDO transaction processor (TP) based
 on Microsoft's CCF blockchain.  The software is located under
 `${PDO_SOURCE_ROOT}/ledgers/ccf/`. The TP software is
-written and tested for CCF tag 1.0.19. Compatibility with other CCF
+written and tested for CCF tag 4.0.1. Compatibility with other CCF
 versions is not guaranteed. We support PDO enclaves working in both SIM and HW SGX mode.
 For HW mode, we assume EPID attestation. CCF TP enclave will work in SIM (virtual) enclave
 mode in both cases.
@@ -39,17 +39,22 @@ detailed instructions on installing PDO.
 
 ## Install CCF
 
-Please follow instructions at https://microsoft.github.io/CCF/main/build_apps/install_bin.html to install CCF. Below, we provide a quick summary of the steps  to install CCF version 1.0.19 on bare metal with SGX simuation mode.
+Please follow instructions at https://microsoft.github.io/CCF/main/build_apps/install_bin.html to install CCF. Below, we provide a quick summary of the steps  to install CCF version 4.0.1 on bare metal with SGX simuation mode.
 
-Please set `CCF_BASE` to `/opt/ccf. For installing dependencies, download the CCF repo, change branch to ccf-1.0.19 and execute the following commands:
+Please set `CCF_BASE` to `/opt/ccf.
+
+```bash
+export CCF_BASE=/opt/ccf_virtual/
+```
+
+For installing dependencies, download the CCF repo, change branch to ccf-4.0.1 and execute the following commands:
 
 ```bash
 git clone https://github.com/microsoft/CCF.git
 cd CCF/
-git checkout ccf-1.0.19
+git checkout ccf-4.0.1
 cd getting_started/setup_vm/
-sed -i '2s/.*/ccf_ver: "1.0.19"/' roles/ccf_install/vars/common.yml
-./run.sh app-dev.yml
+./run.sh app-dev.yml --extra-vars "platform=virtual" --extra-vars "clang_version=15" --extra-vars "ccf_ver=4.0.1"
 ```
 Note that CCF needs to be installed only on the machine where PDO TP
 is being installed. CCF is not required by PDO clients to use a CCF based PDO TP.

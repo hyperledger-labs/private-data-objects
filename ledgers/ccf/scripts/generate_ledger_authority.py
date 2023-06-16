@@ -43,7 +43,7 @@ def generate_ledger_authority(client, options, config):
     except Exception as e:
         LOG.error('failed to generate ledger authority the member: {}'.format(str(e)))
         sys.exit(-1)
-    
+
 # -----------------------------------------------------------------
 def Main() :
     default_config = os.path.join(CCF_Etc, 'cchost.toml')
@@ -70,10 +70,13 @@ def Main() :
     try :
         config = toml.load(options.ccf_config)
     except :
-        LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
-        sys.exit(-1)
+        config = None
+        #LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
+        #sys.exit(-1)
 
-    network_cert = config["start"]["network-cert-file"]
+    #network_cert = config["start"]["network-cert-file"]
+    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
+
     host, port = parse_ledger_url(config)
 
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
