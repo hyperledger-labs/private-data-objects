@@ -15,8 +15,12 @@
 # ------------------------------------------------------------------------------
 # syntax=docker/dockerfile:1
 
-ARG CCF_VERSION=1.0.19
-FROM ccfciteam/ccf-app-ci:${CCF_VERSION}
+ARG CCF_VERSION=4.0.1-virtual
+FROM mcr.microsoft.com/ccf/app/dev:${CCF_VERSION}
+
+ARG REBUILD=0
+ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_NAME=focal
 
 ENV TERM=screen-256color
 
@@ -34,7 +38,20 @@ RUN apt-get update \
         python3-virtualenv \
         virtualenv \
         net-tools \
-    && apt-get clean \
+        wget
+
+RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list
+RUN curl https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
+
+RUN apt-get update \
+    && apt-get install -y \
+        sgx-aesm-service \
+        libsgx-dcap-ql \
+        libsgx-urts \
+        libsgx-uae-service \
+        libsgx-headers
+
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------

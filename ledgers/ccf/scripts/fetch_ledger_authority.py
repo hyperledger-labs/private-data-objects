@@ -18,24 +18,20 @@ import argparse
 import http
 import os
 import sys
-import toml
 
 from ccf.clients import CCFClient
 
-from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
-def fetch_ledger_authority(client, options, config):
+def fetch_ledger_authority(client, output_file) :
     try :
         r = client.post("/app/get_ledger_verifying_key", dict())
-
         if r.status_code != http.HTTPStatus.OK.value:
             LOG.error('failed to contact ledger: {0}'.format(r.body))
             sys.exit(-1)
@@ -49,25 +45,36 @@ def fetch_ledger_authority(client, options, config):
 
     result = r.body.json()
     ledger_authority = result['verifying_key']
-    if options.output_file == '__screen__' :
-        LOG.info(ledger_authority)
-    else :
-        with open(options.output_file, "w") as of :
-            of.write(ledger_authority)
+    LOG.info(ledger_authority)
+
+    with open(output_file, "w") as of :
+        of.write(ledger_authority)
 
 # -----------------------------------------------------------------
 def Main() :
-    default_config = os.path.join(CCF_Etc, 'cchost.toml')
     default_output = os.path.join(CCF_Keys, 'ledger_authority_pub.pem')
 
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
 
-    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', default='__screen__', type=str)
-    parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
+    parser.add_argument(
+        '--logfile',
+        help='Name of the log file, __screen__ for standard output',
+        default='__screen__',
+        type=str)
+    parser.add_argument(
+        '--loglevel',
+        help='Logging level',
+        default='WARNING',
+        type=str)
 
-    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
-    parser.add_argument("--output-file", help="Name of the file where the key will be saved", default = default_output, type=str)
+    parser.add_argument('--interface', help='Host interface where CCF is listening', required=True)
+    parser.add_argument('--port', help='Port where CCF is listening', type=int, default=6600)
+
+    parser.add_argument(
+        "--output-file",
+        help="Name of the file where the key will be saved",
+        default = default_output,
+        type=str)
 
     options = parser.parse_args()
 
@@ -79,28 +86,21 @@ def Main() :
         LOG.add(options.logfile)
 
     # -----------------------------------------------------------------
-    try :
-        config = toml.load(options.ccf_config)
-    except :
-        config = None
-        #LOG.error('unable to load ccf configuration file {0}'.format(options.ccf_config))
-        #sys.exit(-1)
-
-    #network_cert = config["start"]["network-cert-file"]
     network_cert = os.path.join(CCF_Keys, "networkcert.pem")
-
-    host, port = parse_ledger_url(config)
+    if not os.path.exists(network_cert) :
+        LOG.error('network certificate ({}) does not exist'.format(network_cert))
+        sys.exit(-1)
 
     try :
         user_client = CCFClient(
-            host,
-            port,
+            options.interface,
+            options.port,
             network_cert)
     except Exception as e:
         LOG.error('failed to connect to CCF service: {}'.format(str(e)))
         sys.exit(-1)
 
-    fetch_ledger_authority(user_client, options, config)
+    fetch_ledger_authority(user_client, options.output_file)
 
     LOG.info('successfully fetched ledger authority')
     sys.exit(0)

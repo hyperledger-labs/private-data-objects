@@ -42,7 +42,7 @@ else
     export PDO_DEFAULT_SIGCURVE=SECP256K1
 fi
 
-export CCF_BASE=/opt/ccf
+export CCF_BASE=/opt/ccf_virtual
 export XFER_DIR=${XFER_DIR:-/project/pdo/xfer}
 
 # if the container is running HW mode, then we will grab the

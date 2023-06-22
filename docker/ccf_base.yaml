@@ -30,7 +30,7 @@ services:
     network_mode: "host"
     volumes:
       - ./xfer/:/project/pdo/xfer/
-    entrypoint: /project/pdo/tools/start_ccf.sh
+    # entrypoint: /project/pdo/tools/start_ccf.sh
     healthcheck:
       test: ["CMD", "test", "-r", "/project/pdo/xfer/ccf/keys/networkcert.pem"]
       start_period: 10s

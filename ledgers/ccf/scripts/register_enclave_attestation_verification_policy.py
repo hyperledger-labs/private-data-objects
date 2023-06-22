@@ -23,13 +23,11 @@ import toml
 from ccf.clients import Identity
 from ccf.clients import CCFClient
 
-from utils import parse_ledger_url
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
@@ -57,23 +55,37 @@ def register_enclave_attestation_policy(client, options):
 
 # -----------------------------------------------------------------
 def Main() :
-    default_config = os.path.join(CCF_Etc, 'cchost.toml')
     default_output = os.path.join(CCF_Keys, 'ledger_authority.pem')
 
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
 
-    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', default='__screen__', type=str)
-    parser.add_argument('--loglevel', help='Logging level', default='INFO', type=str)
+    parser.add_argument(
+        '--logfile',
+        help='Name of the log file, __screen__ for standard output',
+        default='__screen__',
+        type=str)
+    parser.add_argument(
+        '--loglevel',
+        help='Logging level',
+        default='WARNING',
+        type=str)
 
-    parser.add_argument('--ccf-config', help='Name of the CCF configuration file', default = default_config, type=str)
+
+    parser.add_argument('--interface', help='Host interface where CCF is listening', required=True)
     parser.add_argument('--member-name', help="Name of the user being added", default = "memberccf", type=str)
+    parser.add_argument('--port', help='Port where CCF is listening', type=int, default=6600)
 
-    parser.add_argument('--check_attestation', default = False, help="enable attestation verification", action='store_true')
+    parser.add_argument('--check-attestation', default=False, help="enable attestation verification", action='store_true')
     parser.add_argument('--mrenclave', help="Expected MRENCLAVE of pdo enclaves", type=str)
-    parser.add_argument('--basename', help="Pdo enclave basename", type=str)
-    parser.add_argument('--ias-public-key', help="IAS public derived from IAS cert used to verify singature on IAS reports", type=str)
+    parser.add_argument('--basename', help="PDO enclave basename", type=str)
+    parser.add_argument('--ias-public-key', help="IAS public key derived from cert used to verify report signatures", type=str)
 
     options = parser.parse_args()
+
+    if options.check_attestation:
+        if (not options.mrenclave) or (not options.basename) or (not options.ias_public_key):
+            parser.print_help()
+            sys.exit(-1)
 
     # -----------------------------------------------------------------
     LOG.remove()
@@ -83,25 +95,25 @@ def Main() :
         LOG.add(options.logfile)
 
     # -----------------------------------------------------------------
-    try :
-        config = toml.load(options.ccf_config) #If config exists, it is used to set ledger host, port.
-                                               #else we read from env PDO_LEDGER_URL
-                                               #both cases are used. for end-to-end docker testing, we rely on config
-                                               #for tp in docker, and pdo in bare-metal, we do not rely on config
-                                               #(since tp config is not created unless during tp installation)
-    except :
-        config = None
-
-    host, port = parse_ledger_url(config)
-
     network_cert = os.path.join(CCF_Keys, "networkcert.pem")
+    if not os.path.exists(network_cert) :
+        LOG.error('network certificate ({}) does not exist'.format(network_cert))
+        sys.exit(-1)
+
     member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
+    if not os.path.exists(member_cert) :
+        LOG.error('member certificate ({}) does not exist'.format(member_cert))
+        sys.exit(-1)
+
     member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
+    if not os.path.exists(member_key) :
+        LOG.error('member key ({}) does not exist'.format(member_key))
+        sys.exit(-1)
 
     try:
         member_client = CCFClient(
-            host,
-            port,
+            options.interface,
+            options.port,
             network_cert,
             session_auth=Identity(member_key, member_cert, "member"),
             signing_auth=Identity(member_key, member_cert, "member"),
@@ -109,10 +121,6 @@ def Main() :
     except Exception as e:
         LOG.error('failed to connect to CCF service : {}'.format(str(e)))
         sys.exit(-1)
-
-    if options.check_attestation:
-        if (not options.mrenclave) or (not options.basename) or (not options.ias_public_key):
-            raise Exception("Please provide all of the exepected params to set attestation policy")
 
     register_enclave_attestation_policy(member_client, options)
 
