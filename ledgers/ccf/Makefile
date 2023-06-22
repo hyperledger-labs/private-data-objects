@@ -66,10 +66,13 @@ $(BLDDIR) :
 	@echo CREATE BUILD DIRECTORY $(BLDDIR)
 	mkdir -p $(BLDDIR)
 
+# build out the entire pdo directory tree since
+# we may use it for placement of the ledger keys
 $(CCFDSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(CCFDSTDIR)
-	mkdir -p $(CCFDSTDIR)
-	mkdir -p $(WORKSPACEDIR)
+	@make -C $(PDO_SOURCE_ROOT)/build $(PDO_INSTALL_ROOT)
+	@mkdir -p $(CCFDSTDIR)
+	@mkdir -p $(WORKSPACEDIR)
 
 $(PYTHON_DIR) :
 	echo ${PYTHON_DIR}
@@ -85,11 +88,10 @@ PDO_BASH_SCRIPTS=start_ccf_network.sh stop_cchost.sh
 PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py utils.py
 
 install-pdo-tp : build-pdo-tp
-	cd $(BLDDIR) && $(NINJA) install
-	mkdir -p $(BINDIR)/lib && cp $(SRCDIR)/bin/lib/common.sh $(BINDIR)/lib/pdo_common.sh
-	cp $(addprefix scripts/,$(PDO_BASH_SCRIPTS)) $(BINDIR)
-	cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
-
+	@ cd $(BLDDIR) && $(NINJA) install
+	@ cp $(addprefix scripts/,$(PDO_BASH_SCRIPTS)) $(BINDIR)
+	@ cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
+	@ make -C ${PDO_SOURCE_ROOT}/bin install
 
 .PHONY : all build build-pdo-tp
 .PHONY : clean clean-build clean-install

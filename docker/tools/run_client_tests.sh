@@ -15,13 +15,14 @@
 
 # Tests are run EXCLUSIVELY with all services running on localhost
 export PDO_HOSTNAME=localhost
-export PDO_LEDGER_URL=http://localhost:6600
+export PDO_LEDGER_ADDRESS=$(dig +short ${PDO_HOSTNAME})
+export PDO_LEDGER_URL="http://${PDO_LEDGER_ADDRESS}:6600"
 
 source /project/pdo/tools/environment.sh
 source ${PDO_HOME}/bin/lib/common.sh
 
-export no_proxy=$PDO_HOSTNAME,$no_proxy
-export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
+export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
+export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 
 # -----------------------------------------------------------------
 yell configure client for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL

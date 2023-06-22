@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source ${F_SERVICEHOME}/bin/lib/pdo_common.sh
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+source ${PDO_HOME}/bin/lib/common.sh
 
 if [ -f ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid ]; then
     kill $(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid)
-    #Kill the parent as well. Otherwise cchost continues to liger as a defunct process 
+    #Kill the parent as well. Otherwise cchost continues to liger as a defunct process
     CCHOST_PID=$(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid)
     kill $(cat /proc/${CCHOST_PID}/status | grep PPid | cut -f2) > /dev/null
 fi
