@@ -42,26 +42,26 @@ set -s _contract_ -v ${save}/interface_contract.pdo
 echo ${INFO} create interface test contract ${ENDC}
 ## =================================================================
 identity -n user1
-create -c interface-type -s _interface-test -f ${_contract_}
+contract create -c interface-type --source _interface-test -f ${_contract_}
 
 ## =================================================================
 echo ${INFO} test set and get for kv parameters ${ENDC}
 ## =================================================================
-send -s _result_ -f ${_contract_} -k "message" "hello there" echo_test
+contract send -s _result_ -f ${_contract_} -k "message" "hello there" echo_test
 echo echo_test ${_result_}
 
-send -s _result_ -f ${_contract_} environment_test
+contract send -s _result_ -f ${_contract_} environment_test
 echo environment_test ${_result_}
 
-send -s _result_ -f ${_contract_} -k "ContractID" 5 -k "StateHash" "StateHash" dependency_test
+contract send -s _result_ -f ${_contract_} -k "ContractID" 5 -k "StateHash" "StateHash" dependency_test
 echo dependency_test ${_result_}
 
-send -s _result_ -f ${_contract_} -k "ContractID" "ContractID" -k "StateHash" "StateHash" dependency_test
+contract send -s _result_ -f ${_contract_} -k "ContractID" "ContractID" -k "StateHash" "StateHash" dependency_test
 echo dependency_test ${_result_}
 
 trap_error
 
-send -s _result_ -f ${_contract_} fail_test
+contract send -s _result_ -f ${_contract_} fail_test
 if -e ${_error_code_} 0
    echo ${ERROR} failed to catch test failure ${ENDC}
    exit -v -1

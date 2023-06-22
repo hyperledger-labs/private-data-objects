@@ -12,138 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, sys
-import logging
+import os
 import argparse
 
-import copy
 import cmd
+import importlib
 import json
 import shlex
 import time
 import random
 import re
 
-from string import Template
-
+import logging
 logger = logging.getLogger(__name__)
 
 __all__ = ['ContractController']
 
+# this is only for the eservice_db which will be
+# changed to the new model in a future upgrade
 from pdo.client.controller.commands import *
+
 from pdo.common.utility import find_file_in_path
-
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class State(object) :
-    """A class to capture the execution state for interacting
-    with PDO services (enclave, provisioning, ledger)
-    """
-
-    # --------------------------------------------------
-    @classmethod
-    def Clone(cls, state, identity=None, private_key_file=None) :
-        if identity is None :
-            identity = state.identity
-        if private_key_file is None :
-            private_key_file = state.private_key_file
-
-        return cls(state.__data__, identity, private_key_file)
-
-    # --------------------------------------------------
-    def __init__(self, initial_state, identity=None, private_key_file=None) :
-        # note that we do not want this to be a copy, state is a property
-        # of the client, not of the shell instance
-        self.__data__ = initial_state
-
-        # the one exception is the identity which we want to be
-        # specific to each shell instance
-        if identity is None :
-            identity = self.get(['Client', 'Identity'], "__unknown__")
-
-        self.set_identity(identity, private_key_file)
-
-    # --------------------------------------------------
-    def set_identity(self, identity, private_key_file=None) :
-        if private_key_file is None :
-            private_key_file = self.get(['Key', 'FileName'], "{0}_private.pem".format(identity))
-
-        self.identity = identity
-        self.private_key_file = private_key_file
-
-    # --------------------------------------------------
-    def set(self, keylist, value) :
-        current = self.__data__
-        for key in keylist[:-1] :
-            if key not in current :
-                current[key] = {}
-            # this can break of current is a value not a dict
-            # just let the exception happen & handle it elsewhere
-            current = current[key]
-
-        current[keylist[-1]] = value
-        return value
-
-    # --------------------------------------------------
-    def get(self, keylist, value=None) :
-        current = self.__data__
-        for key in keylist :
-            if key not in current :
-                return value
-            # this can break of current is a value not a dict
-            # just let the exception happen & handle it elsewhere
-            current = current[key]
-        return current
-
-
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class Bindings(object) :
-    """
-    """
-
-    # --------------------------------------------------
-    @classmethod
-    def Clone(cls, bindings) :
-        binding_map = copy.copy(bindings.__bindings__)
-
-        local_keys = [ key for key in binding_map if key.startswith('_') ]
-        for key in local_keys : binding_map.pop(key)
-
-        return cls(bindings=binding_map)
-
-    # --------------------------------------------------
-    def __init__(self, bindings = {}) :
-        self.__bindings__ = copy.deepcopy(bindings)
-
-    # --------------------------------------------------
-    def merge(self, bindings) :
-        binding_map = copy.copy(bindings.__bindings__)
-
-        local_keys = [ key for key in binding_map if key.startswith('_') ]
-        for key in local_keys : binding_map.pop(key)
-
-        self.__bindings__.update(binding_map)
-
-    # --------------------------------------------------
-    def bind(self, variable, value) :
-        saved = self.__bindings__.get(variable, '')
-        self.__bindings__[variable] = value
-        return saved
-
-    # --------------------------------------------------
-    def isbound(self, variable, default_value=None) :
-        return self.__bindings__.get(variable, default_value)
-
-    # --------------------------------------------------
-    def expand(self, argstring) :
-        try :
-            template = Template(argstring)
-            return template.substitute(self.__bindings__)
-
-        except KeyError as ke :
-            raise Exception('missing index variable {0}'.format(ke))
-
+from pdo.client.builder import Bindings, State
+from pdo.client.commands import load_common_commands
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # CLASS: ContractController
@@ -250,6 +141,9 @@ class ContractController(cmd.Cmd) :
         identity = self.state.identity
         self.prompt = "{0}> ".format(identity)
         self.bindings.bind('_identity_', identity)
+
+        # load the bindings for all of the commands
+        load_common_commands(self)
 
     # -----------------------------------------------------------------
     def __arg_parse__(self, args) :
@@ -625,6 +519,7 @@ class ContractController(cmd.Cmd) :
             group = parser.add_mutually_exclusive_group(required=True)
             group.add_argument('-c', '--contract-class', help='load contract plugin from data directory', type=str)
             group.add_argument('-f', '--file', help='file from which to read the plugin', type=str)
+            group.add_argument('-m', '--module', help='name of the module that implements the plugin', type=str)
             options = parser.parse_args(pargs)
 
             if options.file :
@@ -634,10 +529,14 @@ class ContractController(cmd.Cmd) :
                 contract_paths = self.state.get(['Contract', 'SourceSearchPath'], ['.'])
                 plugin_file = find_file_in_path(options.contract_class + '.py', contract_paths)
 
-            with open(plugin_file) as f:
-                code = compile(f.read(), plugin_file, 'exec')
-                exec(code, globals())
-            load_commands(ContractController)
+            if options.module :
+                plugin = importlib.import_module(options.module)
+            else :
+                spec = importlib.util.spec_from_file_location("extension", plugin_file)
+                plugin = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(plugin)
+
+            plugin.load_commands(self)
 
         except SystemExit as se :
             return self.__arg_error__('load_plugin', args, se.code)
@@ -702,91 +601,6 @@ class ContractController(cmd.Cmd) :
     # =================================================================
 
     # -----------------------------------------------------------------
-    def do_ledger(self, args) :
-        """ledger -- manage enclave service lists for contract creation
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            ledger(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('ledger', args, se.code)
-        except Exception as e :
-            return self.__error__('ledger', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_pservice(self, args) :
-        """pservice -- manage provisioning service list
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            pservice(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('pservice', args, se.code)
-        except Exception as e :
-            return self.__error__('pservice', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_eservice(self, args) :
-        """eservice -- manage enclave service lists for contract creation
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            eservice(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('eservice', args, se.code)
-        except Exception as e :
-            return self.__error__('eservice', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_sservice(self, args) :
-        """sservice -- manage storage service lists for contract creation
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            sservice(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('sservice', args, se.code)
-        except Exception as e :
-            return self.__error__('sservice', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_service_groups(self, args) :
-        """service_groups -- manage service group configuration
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            service_groups(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('service_groups', args, se.code)
-        except Exception as e :
-            return self.__error__('service_groups', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
     def do_eservice_db(self, args) :
         """eservice_db -- manage enclave service list
         """
@@ -800,57 +614,6 @@ class ContractController(cmd.Cmd) :
             return self.__arg_error__('eservice_db', args, se.code)
         except Exception as e :
             return self.__error__('eservice_db', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_contract(self, args) :
-        """contract -- load contract for use
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            contract(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('contract', args, se.code)
-        except Exception as e :
-            return self.__error__('contract', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_create(self, args) :
-        """create -- create a contract
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            create(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('contract', args, se.code)
-        except Exception as e :
-            return self.__error__('contract', args, str(e))
-
-        return False
-
-    # -----------------------------------------------------------------
-    def do_send(self, args) :
-        """send -- send a message to the contract
-        """
-        if self.deferred > 0 : return False
-
-        try :
-            pargs = self.__arg_parse__(args)
-            send(self.state, self.bindings, pargs)
-
-        except SystemExit as se :
-            return self.__arg_error__('send', args, se.code)
-        except Exception as e :
-            return self.__error__('send', args, str(e))
 
         return False
 

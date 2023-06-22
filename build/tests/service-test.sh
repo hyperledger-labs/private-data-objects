@@ -163,6 +163,18 @@ fi
 ## -----------------------------------------------------------------
 yell test failure conditions to ensure they are caught
 ## -----------------------------------------------------------------
+say create the contract
+
+declare CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.b64
+if [ ! -f ${CONTRACT_FILE} ]; then
+    die missing contract source file, ${CONTRACT_FILE}
+fi
+try ${PDO_HOME}/bin/pdo-create.psh \
+    --service_host ${F_SERVICE_HOST} \
+    --loglevel ${F_LOGLEVEL} --logfile __screen__ \
+    --identity user1 --psgroup all --esgroup all --ssgroup all \
+    --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
+
 say invalid method, this should fail
 ${PDO_HOME}/bin/pdo-invoke.psh \
            --service_host ${F_SERVICE_HOST} --identity user1 --pdo_file ${SAVE_FILE} --method no-such-method

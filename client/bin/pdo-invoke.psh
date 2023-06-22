@@ -57,15 +57,15 @@ trap_error
 
 if -n ${params}
    if -e ${wait} "yes"
-      send -e ${enclave} --wait -s _result_ -f ${pdo_file} ${method}
+      contract send -e ${enclave} --wait -s _result_ -f ${pdo_file} ${method}
    else
-      send -e ${enclave} -s _result_ -f ${pdo_file} ${method}
+      contract send -e ${enclave} -s _result_ -f ${pdo_file} ${method}
    fi
 else
    if -e ${wait} "yes"
-      send -e ${enclave} --wait -s _result_ -f ${pdo_file} -p ${params} ${method}
+      contract send -e ${enclave} --wait -s _result_ -f ${pdo_file} -p ${params} ${method}
    else
-      send -e ${enclave} -s _result_ -f ${pdo_file} -p ${params} ${method}
+      contract send -e ${enclave} -s _result_ -f ${pdo_file} -p ${params} ${method}
    fi
 fi
 

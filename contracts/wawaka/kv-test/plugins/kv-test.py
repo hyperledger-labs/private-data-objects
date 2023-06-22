@@ -15,152 +15,109 @@
 import argparse
 import json
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
-from pdo.service_client.enclave import EnclaveServiceClient
-import pdo.service_client.service_data.eservice as eservice_db
-from pdo.client.controller.commands.send import send_to_contract, get_contract
+import pdo.client.builder.shell as pshell
+import pdo.client.builder.contract as pcontract
 
-from pdo.client.controller.util import *
+from pdo.service_client.enclave import EnclaveServiceClient
+from pdo.client.commands.contract import send_to_contract
+from pdo.client.commands.eservice import get_eservice_from_contract
 from pdo.contract import invocation_request
 from pdo.common.key_value import KeyValueStore
-import pdo.common.block_store_manager as pblocks
+
+__all__ = [
+    'contract_op_get',
+    'contract_op_set',
+    'do_kv_test',
+    'load_commands',
+]
 
 ## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def __get_eservice_client__(state, save_file, eservice_url) :
+class contract_op_get(pcontract.contract_op_base) :
+    name = "get"
+    help = "Get a value from the test contract using a kv store"
 
-    try :
-        contract = get_contract(state, save_file)
-    except Exception as e :
-        raise Exception('unable to load the contract')
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('-k', '--key', dest='transfer_key', help='transfer key', type=str, default='_transfer_')
 
-    if eservice_url not in ['random', 'preferred'] :
-        try :
-            eservice_client = EnclaveServiceClient(eservice_url)
-        except Exception as e :
-            raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
-
-        if eservice_client.enclave_id not in contract.provisioned_enclaves :
-            raise Exception('requested enclave not provisioned for the contract; %s', eservice_url)
-    else :
-        if eservice_url == 'preferred' :
-            enclave_id = contract.extra_data.get('preferred-enclave', random.choice(contract.provisioned_enclaves))
-        else :
-            enclave_id = random.choice(contract.provisioned_enclaves)
-
-        eservice_info = eservice_db.get_by_enclave_id(enclave_id)
-        if eservice_info is None :
-            raise Exception('attempt to use an unknown enclave; %s', enclave_id)
-
-        try :
-            eservice_client = EnclaveServiceClient(eservice_info.url)
-        except Exception as e :
-            raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
-
-    return eservice_client
-
-
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def __command_kv__(state, bindings, pargs) :
-    """controller command to interact with an asset_type contract
-    """
-
-    parser = argparse.ArgumentParser(prog='attestation-test')
-    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str, default='preferred')
-    parser.add_argument('-f', '--save_file', help='File where contract data is stored', type=str)
-    parser.add_argument('-w', '--wait', help='Wait for the transaction to commit', action='store_true')
-
-    subparsers = parser.add_subparsers(dest='command')
-
-    subparser = subparsers.add_parser('get')
-    subparser.add_argument('-k', '--key', help='transfer key', type=str, default='_transfer_')
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('set')
-    subparser.add_argument('-k', '--key', help='transfer key', type=str, default='_transfer_')
-    subparser.add_argument('-v', '--value', help='value to send', type=str, required=True)
-
-    options = parser.parse_args(pargs)
-
-    extraparams={'wait' : options.wait}
-
-    # -------------------------------------------------------
-    if options.command == 'get' :
-
+    @classmethod
+    def invoke(cls, state, session_params, transfer_key, **kwargs) :
         kv = KeyValueStore()
         with kv :
-            kv.set(options.key, "")
+            kv.set(transfer_key, '')
 
         # push the blocks to the eservice so the server can open the store
-        eservice_client = __get_eservice_client__(state, options.save_file, options.enclave)
+        eservice_client = get_eservice_from_contract(state, session_params.save_file, session_params.eservice_url)
         kv.sync_to_block_store(eservice_client)
 
         params = {}
         params['encryption_key'] = kv.encryption_key
         params['state_hash'] = kv.hash_identity
-        params['transfer_key'] = options.key
+        params['transfer_key'] = transfer_key
         message = invocation_request('kv_get', **params)
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        result = json.loads(result)
+        result = send_to_contract(state, message, **session_params)
+        result = json.loads(result)       # get the hash for the root of the blockstore
 
         # sync the server blocks get to the local block manager
-        count = kv.sync_from_block_store(result, eservice_client)
-        logger.debug("sync complete with %d blocks", count)
+        _ = kv.sync_from_block_store(result, eservice_client)
 
         with kv :
-            value = kv.get(options.key)
-            logger.debug("value: %s", value)
+            value = kv.get(transfer_key)
 
-        if options.symbol :
-            bindings.bind(options.symbol, value)
-
+        logger.debug("value: %s", value)
         return value
 
-    # -------------------------------------------------------
-    if options.command == 'set' :
+## -----------------------------------------------------------------
+class contract_op_set(pcontract.contract_op_base) :
+    name = "set"
+    help = "Set a value for the test contract using a kv store"
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('-k', '--key', dest='transfer_key', help='transfer key', type=str, default='_transfer_')
+        subparser.add_argument('-v', '--value', help='value to send', type=str, required=True)
+
+    @classmethod
+    def invoke(cls, state, session_params, transfer_key, value, **kwargs) :
+        # this method changes the contract & we need to commit the changes
+        # to use them later
+        session_params = session_params.clone(commit=True)
 
         kv = KeyValueStore()
         with kv :
-            kv.set(options.key, options.value)
+            v = kv.set(transfer_key, value)
 
         # push the blocks to the eservice so the server can open the store
-        # local_block_store = pblocks.local_block_manager()
-        eservice_client = __get_eservice_client__(state, options.save_file, options.enclave)
-        kv.sync_to_block_store(eservice_client)
+        eservice_client = get_eservice_from_contract(state, session_params.save_file, session_params.eservice_url)
+        if not eservice_client :
+            raise Exception('unknown eservice {}'.format(session_params.eservice_url))
+
+        _ = kv.sync_to_block_store(eservice_client)
 
         params = {}
         params['encryption_key'] = kv.encryption_key
         params['state_hash'] = kv.hash_identity
-        params['transfer_key'] = options.key
+        params['transfer_key'] = transfer_key
         message = invocation_request('kv_set', **params)
-        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
+        result = send_to_contract(state, message, **session_params)
 
-        return
-
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-def do_kv(self, args) :
-    """
-    attestation -- methods on the attestation contract
-    """
-
-    if self.deferred > 0 : return False
-
-    try :
-        pargs = self.__arg_parse__(args)
-        __command_kv__(self.state, self.bindings, pargs)
-
-    except SystemExit as se :
-        return self.__arg_error__('kv', args, se.code)
-    except Exception as e :
-        return self.__error__('kv', args, str(e))
-
-    return False
+        return result
 
 ## -----------------------------------------------------------------
+## Create the generic, shell independent version of the aggregate command
+## -----------------------------------------------------------------
+__subcommands__ = [
+    contract_op_get,
+    contract_op_set,
+]
+do_kv_test = pcontract.create_shell_command('kv_test_contract', __subcommands__)
+
+## -----------------------------------------------------------------
+## Enable binding of the shell independent version to a pdo-shell command
 ## -----------------------------------------------------------------
 def load_commands(cmdclass) :
-    setattr(cmdclass, 'do_kv', do_kv)
+    pshell.bind_shell_command(cmdclass, 'kv_test_contract', do_kv_test)
