@@ -27,56 +27,28 @@ export CCF_BASE=/opt/ccf_virtual/
 ```bash
 source ${PDO_SOURCE_ROOT}/build/common-config.sh
 cd ${PDO_SOURCE_ROOT}/ledgers/ccf
-mkdir build
-cd build
-cmake .. -GNinja -DCCF_DIR=${CCF_BASE} -DCOMPILE_TARGET=virtual
-ninja
+make
 ```
 
 
 ## Deploy PDO TP
 
-The following steps will use CCF provided `/opt/ccf_virtual/bin/sandbox.sh` script to deploy CCF app using default values for end point address, governance scripts. The script will also automatically generate CCF member certificates to be used for Governance. (the script most certainly has options to override these default values, need to study them)
+The following steps will start a single node ledger available for transactions at `PDO_LEDGER_URL`. We use the CCF provided `/opt/ccf_virtual/bin/sandbox.sh` script to deploy CCF app using default values for end point address, governance scripts. The script will also automatically generate CCF member certificates to be used for Governance. The start script will automatically copy thekeys to `PDO_LEDGER_KEY_ROOT`.
 
 ```bash
-cd ${PDO_SOURCE_ROOT}/ledgers/ccf/build
-/opt/ccf_virtual/bin/sandbox.sh -p ${PDO_SOURCE_ROOT}/ledgers/ccf/build/libpdoenc
+source $PDO_HOME/ccf/bin/activate
+$PDO_HOME/ccf/bin/start_ccf_network.sh
 ```
-
-Carry out the rest of the steps in a new terminal on the same machine.
-
-```bash
-export PDO_LEDGER_URL=http://127.0.0.1:8000
-export PDO_LEDGER_KEY_ROOT=${PDO_SOURCE_ROOT}/ledgers/ccf/build/workspace/sandbox_common/
-cd ${PDO_LEDGER_KEY_ROOT}
-cp service_cert.pem networkcert.pem
-cp member0_cert.pem memberccf_cert.pem
-cp member0_privk.pem memberccf_privk.pem
-```
-
-## Install PDO
-
-Follow instructions at https://github.com/hyperledger-labs/private-data-objects/blob/main/docs/host_install.md to build PDO. Note that as part of PDO installation, we will install ccf==1.10.19 Python package as part of PDO's virtual environment. This package is required for futher steps described below.
-
-If PDO is already installed on your system, please regenerate the PDO config files using the above values of PDO_LEDGER_URL and PDO_LEDGER_KEY_ROOT.
-
-
-## Generate and Fetch Ledger Authority, Register Enclave Attestation Verification Policy
-
-The following operations are done by CCF member prior to usage of the PDOT TP by PDO clients.
-
-```bash
-source ${PDO_SOURCE_ROOT}/build/_dev/bin/activate
-cd ${PDO_SOURCE_ROOT}/ledgers/ccf/scripts/
-python generate_ledger_authority.py
-python fetch_ledger_authority.py
-python register_enclave_attestation_verification_policy.py
-```
-
 
 ## Test PDO
 
 ```bash
+source $PDO_INSTALL_ROOT/_dev/bin/activate
 cd ${PDO_SOURCE_ROOT}/build/__tools__
 ./run-tests.sh
+```
+
+## Stop PDO TP
+```bash
+$PDO_HOME/ccf/bin/stop_cchost.sh
 ```

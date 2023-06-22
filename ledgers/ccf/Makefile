@@ -20,10 +20,6 @@ ifndef PDO_INSTALL_ROOT
 $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
-ifndef PDO_LEDGER_KEY_ROOT
-$(error Incomplete configuration, PDO_LEDGER_KEY_ROOT is not defined)
-endif
-
 ifndef CCF_BASE
 $(error Incomplete configuration, CCF_BASE is not defined)
 endif
@@ -37,19 +33,15 @@ NINJA ?= ninja $(NINJA_OPTIONS)
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
 SRCDIR ?= $(PDO_SOURCE_ROOT)
-KEYDIR := $(PDO_LEDGER_KEY_ROOT)
-ETCDIR := $(CCFDSTDIR)/etc/
+WORKSPACEDIR := $(CCFDSTDIR)/workspace
 BINDIR := $(CCFDSTDIR)/bin/
 BLDDIR := $(SCRIPTDIR)/build
-
-KEYGEN=$(abspath $(BLDDIR)/keygenerator.sh
-CNFGEN=$(abspath $(PDO_SOURCE_ROOT)/build/__tools__/expand-config)
 
 PYTHON_DIR=$(CCFDSTDIR)/lib/python3.8
 
 COMPILE_TARGET=virtual
 
-all: environment keys config install
+all: environment install
 
 build: build-pdo-tp
 
@@ -57,7 +49,6 @@ build-pdo-tp : $(BLDDIR)
 	cd $(BLDDIR) && cmake .. -GNinja \
 		-DCCF_DIR=$(CCF_BASE) \
 		-DCOMPILE_TARGET=$(COMPILE_TARGET) \
-		-DLVI_MITIGATIONS=OFF \
 		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
 
@@ -69,18 +60,6 @@ clean-build:
 clean-install :
 	rm -rf $(CCFDSTDIR)
 
-config : $(ETCDIR)/cchost.toml $(ETCDIR)/constitution.js
-
-$(ETCDIR)/cchost.toml : etc/cchost.toml
-	@ echo create configuration file for cchost
-	@ . $(abspath $(CCFDSTDIR)/bin/activate) && \
-		$(CNFGEN) --template $(notdir $<) --template-directory $(dir $<) \
-			--output-directory $(dir $@) \
-			single --file $(notdir $@)
-
-$(ETCDIR)/constitution.js : etc/constitution.js
-	cp etc/constitution.js $(ETCDIR)/constitution.js
-
 environment : $(CCFDSTDIR) $(PYTHON_DIR)
 
 $(BLDDIR) :
@@ -90,10 +69,7 @@ $(BLDDIR) :
 $(CCFDSTDIR) :
 	@echo CREATE INSTALLATION DIRECTORY $(CCFDSTDIR)
 	mkdir -p $(CCFDSTDIR)
-	mkdir -p $(CCFDSTDIR)/logs
-	mkdir -p $(CCFDSTDIR)/run
-	mkdir -p $(ETCDIR)
-	mkdir -p $(KEYDIR)
+	mkdir -p $(WORKSPACEDIR)
 
 $(PYTHON_DIR) :
 	echo ${PYTHON_DIR}
@@ -105,7 +81,7 @@ $(PYTHON_DIR) :
 
 install : install-pdo-tp
 
-PDO_BASH_SCRIPTS=start_ccf_network.sh start_cchost.sh stop_cchost.sh
+PDO_BASH_SCRIPTS=start_ccf_network.sh stop_cchost.sh
 PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py utils.py
 
 install-pdo-tp : build-pdo-tp
@@ -114,10 +90,8 @@ install-pdo-tp : build-pdo-tp
 	cp $(addprefix scripts/,$(PDO_BASH_SCRIPTS)) $(BINDIR)
 	cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
 
-keys :
-	cd $(KEYDIR) && $(CCF_BASE)/bin/keygenerator.sh --name memberccf --gen-enc-key
 
 .PHONY : all build build-pdo-tp
 .PHONY : clean clean-build clean-install
-.PHONY : config environment
-.PHONY : install install-pdo-tp keys
+.PHONY : environment
+.PHONY : install install-pdo-tp
