@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
 source ${F_SERVICEHOME}/bin/lib/pdo_common.sh
 
-if [ -f ${F_SERVICEHOME}/run/cchost.pid ]; then
-    kill $(cat ${F_SERVICEHOME}/run/cchost.pid)
+if [ -f ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid ]; then
+    kill $(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid)
+    #Kill the parent as well. Otherwise cchost continues to liger as a defunct process 
+    CCHOST_PID=$(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid)
+    kill $(cat /proc/${CCHOST_PID}/status | grep PPid | cut -f2) > /dev/null
 fi

@@ -21,27 +21,29 @@ source ${F_SERVICEHOME}/bin/lib/pdo_common.sh
 
 check_python_version
 
-if [ -f ${F_SERVICEHOME}/run/cchost.pid ]; then
-    if ps -p $(cat ${F_SERVICEHOME}/run/cchost.pid) > /dev/null
+
+if [ -f ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid ]; then
+    if ps -p $(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid) > /dev/null
     then
         yell cchost appears to be running already
         exit -1
     fi
 fi
 
-rm -rf ${F_SERVICEHOME}/run/*
-rm -f ${F_SERVICEHOME}/logs/*.log
 
-rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/network_enc_pubk.pem
+rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem
 rm -f ${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem
 
 say attempt to start ccf node
-try ${F_SERVICEHOME}/bin/start_cchost.sh
+HOST_PORT="$(echo ${PDO_LEDGER_URL} | awk -F/ '{print $3}')"
+try ${CCF_BASE}/bin/sandbox.sh -p ${PDO_HOME}/ccf/lib/libpdoenc -n local://${HOST_PORT} -e virtual -t virtual --workspace ${PDO_HOME}/ccf/workspace --initial-node-cert-validity-days 365 --initial-service-cert-validity-days 365 &
 
-sleep 5
+sleep 30
 
-say configure ccf network : ACK the member, open network, add user
-try ${F_SERVICEHOME}/bin/configure_ccf_network.py --logfile __screen__ --loglevel WARNING
+say copy the keys
+cp ${PDO_HOME}/ccf/workspace/sandbox_common/service_cert.pem ${PDO_LEDGER_KEY_ROOT}/networkcert.pem
+cp ${PDO_HOME}/ccf/workspace/sandbox_common/member0_cert.pem ${PDO_LEDGER_KEY_ROOT}/memberccf_cert.pem
+cp ${PDO_HOME}/ccf/workspace/sandbox_common/member0_privk.pem ${PDO_LEDGER_KEY_ROOT}/memberccf_privk.pem
 
 sleep 5
 
