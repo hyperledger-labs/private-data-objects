@@ -1,4 +1,4 @@
-# Copyright 2018 Intel Corporation
+# Copyright 2023 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,22 @@
 # limitations under the License.
 
 __all__ = [
-    'eservice_db',
+    'context',
+    'contract',
+    'eservice',
+    'ledger',
+    'pservice',
+    'service_groups',
+    'sservice',
 ]
 
-import pdo.client.controller.commands.eservice_db
-eservice_db = eservice_db.command_eservice_db
+def load_common_commands(cmdclass) :
+    """Load all of the commands in the modules defined
+    """
+    import importlib
+    def load_command(module_name) :
+        command_module = importlib.import_module('pdo.client.commands.' + module_name)
+        command_module.load_commands(cmdclass)
+
+    for m in __all__ :
+        load_command(m)

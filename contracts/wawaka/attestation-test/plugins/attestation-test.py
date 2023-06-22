@@ -12,167 +12,199 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
 import argparse
+import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-from pdo.client.controller.commands.send import send_to_contract
-from pdo.client.controller.util import *
+import pdo.client.builder.shell as pshell
+import pdo.client.builder.contract as pcontract
+
+from pdo.client.commands.contract import send_to_contract
 from pdo.contract import invocation_request
+from pdo.client.builder import invocation_parameter
+
+__all__ = [
+    'contract_op_initialize',
+    'contract_op_get_contract_metadata',
+    'contract_op_get_contract_code_metadata',
+    'contract_op_add_endpoint',
+    'contract_op_send_secret',
+    'contract_op_recv_secret',
+    'contract_op_reveal_secret',
+    'contract_op_verify_sgx_report',
+    'do_attestation_test',
+    'load_commands',
+]
 
 ## -----------------------------------------------------------------
+class contract_op_initialize(pcontract.contract_op_base) :
+    name = "initialize"
+    help = "initialize the attestation test contract with the ledger key"
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('-l', '--ledger-key', help='ledger verifying key', required=True, type=str)
+
+    @classmethod
+    def invoke(cls, state, session_params, ledger_key, **kwargs) :
+        session_params = session_params.clone(commit=True)
+
+        message = invocation_request('initialize', ledger_verifying_key=ledger_key)
+        result = send_to_contract(state, message, **session_params)
+        return result
+
 ## -----------------------------------------------------------------
-def __command_attestation__(state, bindings, pargs) :
-    """controller command to interact with an asset_type contract
-    """
+class contract_op_get_contract_metadata(pcontract.contract_op_base) :
+    name = "get-contract-metadata"
+    help = ""
 
-    parser = argparse.ArgumentParser(prog='attestation-test')
-    parser.add_argument('-e', '--enclave', help='URL of the enclave service to use', type=str)
-    parser.add_argument('-f', '--save_file', help='File where contract data is stored', type=str)
-    parser.add_argument('-w', '--wait', help='Wait for the transaction to commit', action='store_true')
-    subparsers = parser.add_subparsers(dest='command')
-
-    subparser = subparsers.add_parser('initialize')
-    subparser.add_argument('-l', '--ledger-key', help='ledger verifying key', type=str)
-
-    subparser = subparsers.add_parser('get_contract_metadata')
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('get_contract_code_metadata')
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('add_endpoint')
-    subparser.add_argument('-c', '--code-metadata',
-                           help='contract code metadata', type=invocation_parameter, required=True)
-    subparser.add_argument('-i', '--contract-id',
-                           help='contract identifier', type=str, required=True)
-    subparser.add_argument('-l', '--ledger-attestation',
-                           help='attestation from the ledger', type=invocation_parameter, required=True)
-    subparser.add_argument('-m', '--contract-metadata',
-                           help='contract metadata', type=invocation_parameter, required=True)
-
-    subparser = subparsers.add_parser('send_secret')
-    subparser.add_argument('-i', '--contract-id', help='contract identifier', type=str, required=True)
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('recv_secret')
-    subparser.add_argument('--secret', help='contract secret', type=invocation_parameter, required=True)
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('reveal_secret')
-    subparser.add_argument('-a', '--state-attestation',
-                           help='ledger signature for current state attestation', type=invocation_parameter, required=True)
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    subparser = subparsers.add_parser('verify_sgx_report')
-    subparser.add_argument('-c', '--certificate', help='IAS verification certificate', type=str, required=True)
-    subparser.add_argument('-i', '--ias-signature', help='IAS signature', type=str, required=True)
-    subparser.add_argument('-r', '--report', help='IAS signed verification report', type=str, required=True)
-    subparser.add_argument('-s', '--symbol', help='binding symbol for result', type=str)
-
-    options = parser.parse_args(pargs)
-
-    extraparams={'wait' : options.wait}
-
-    # -------------------------------------------------------
-    if options.command == 'initialize' :
-        message = invocation_request('initialize', ledger_verifying_key=options.ledger_key)
-        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'get_contract_metadata' :
-        extraparams['commit'] = False
+    @classmethod
+    def invoke(cls, state, session_params, **kwargs) :
         message = invocation_request('get_contract_metadata')
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
-            bindings.bind(options.symbol, result)
-        return
+        result = send_to_contract(state, message, **session_params)
+        return result
 
-    # -------------------------------------------------------
-    if options.command == 'get_contract_code_metadata' :
-        extraparams['commit'] = False
+## -----------------------------------------------------------------
+class contract_op_get_contract_code_metadata(pcontract.contract_op_base) :
+    name = "get-contract-code-metadata"
+    help = ""
+
+    @classmethod
+    def invoke(cls, state, session_params, **kwargs) :
         message = invocation_request('get_contract_code_metadata')
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
-            bindings.bind(options.symbol, result)
-        return
+        result = send_to_contract(state, message, **session_params)
+        return result
 
-    # -------------------------------------------------------
-    if options.command == 'add_endpoint' :
-        message = invocation_request('add_endpoint',
-                                     contract_id=options.contract_id,
-                                     ledger_attestation=options.ledger_attestation,
-                                     contract_metadata=options.contract_metadata,
-                                     contract_code_metadata=options.code_metadata)
-        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'generate_secret' :
-        message = invocation_request('generate_secret')
-        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'send_secret' :
-        message = invocation_request('send_secret', contract_id=options.contract_id)
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
-            bindings.bind(options.symbol, result)
-
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'recv_secret' :
-        message = invocation_request('recv_secret', **options.secret)
-        send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'reveal_secret' :
-        extraparams['commit'] = False
-        message = invocation_request('reveal_secret', ledger_signature=options.state_attestation)
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        if result and options.symbol :
-            bindings.bind(options.symbol, result)
-        return
-
-    # -------------------------------------------------------
-    if options.command == 'verify_sgx_report' :
-        extraparams['commit'] = False
-        message = invocation_request('verify_sgx_report',
-                                     certificate=options.certificate.rstrip(),
-                                     report=options.report.rstrip(),
-                                     signature=options.ias_signature.rstrip())
-        result = send_to_contract(state, message, save_file=options.save_file, eservice_url=options.enclave, **extraparams)
-        if result is not None and options.symbol :
-            bindings.bind(options.symbol, result)
-        return
 
 ## -----------------------------------------------------------------
+class contract_op_add_endpoint(pcontract.contract_op_base) :
+    name = "add-endpoint"
+    help = ""
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument(
+            '-c', '--code-metadata',
+            help='contract code metadata',
+            type=invocation_parameter, required=True)
+        subparser.add_argument(
+            '-i', '--contract-id',
+            help='contract identifier',
+            type=str, required=True)
+        subparser.add_argument(
+            '-l', '--ledger-attestation',
+            help='attestation from the ledger',
+            type=invocation_parameter, required=True)
+        subparser.add_argument(
+            '-m', '--contract-metadata',
+            help='contract metadata',
+            type=invocation_parameter, required=True)
+
+    @classmethod
+    def invoke(cls, state, session_params, code_metadata, contract_id, ledger_attestation, contract_metadata, **kwargs) :
+        session_params = session_params.clone(commit=True)
+
+        message = invocation_request(
+            'add_endpoint',
+            contract_id=contract_id,
+            ledger_attestation=ledger_attestation,
+            contract_metadata=contract_metadata,
+            contract_code_metadata=code_metadata)
+
+        result = send_to_contract(state, message, **session_params)
+        return result
+
 ## -----------------------------------------------------------------
-def do_attestation(self, args) :
-    """
-    attestation -- methods on the attestation contract
-    """
+class contract_op_send_secret(pcontract.contract_op_base) :
+    name = "send-secret"
+    help = ""
 
-    if self.deferred > 0 : return False
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('-i', '--contract-id', help='contract identifier', type=str, required=True)
 
-    try :
-        pargs = self.__arg_parse__(args)
-        __command_attestation__(self.state, self.bindings, pargs)
-
-    except SystemExit as se :
-        return self.__arg_error__('attestation', args, se.code)
-    except Exception as e :
-        return self.__error__('attestation', args, str(e))
-
-    return False
+    @classmethod
+    def invoke(cls, state, session_params, contract_id, **kwargs) :
+        message = invocation_request('send_secret', contract_id=contract_id)
+        result = send_to_contract(state, message, **session_params)
+        return result
 
 ## -----------------------------------------------------------------
+class contract_op_recv_secret(pcontract.contract_op_base) :
+    name = "recv-secret"
+    help = ""
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('--secret', help='contract secret', type=invocation_parameter, required=True)
+
+    @classmethod
+    def invoke(cls, state, session_params, secret, **kwargs) :
+        session_params = session_params.clone(commit=True)
+
+        message = invocation_request('recv_secret', **secret)
+        result = send_to_contract(state, message, **session_params)
+        return result
+
+## -----------------------------------------------------------------
+class contract_op_reveal_secret(pcontract.contract_op_base) :
+    name = "reveal-secret"
+    help = ""
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument(
+            '-a', '--state-attestation',
+            help='ledger signature for current state attestation',
+            type=invocation_parameter, required=True)
+
+    @classmethod
+    def invoke(cls, state, session_params, state_attestation, **kwargs) :
+        message = invocation_request('reveal_secret', ledger_signature=state_attestation)
+        result = send_to_contract(state, message, **session_params)
+        return result
+
+## -----------------------------------------------------------------
+class contract_op_verify_sgx_report(pcontract.contract_op_base) :
+    name = "verify-sgx-report"
+    help = ""
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('-c', '--certificate', help='IAS verification certificate', type=str, required=True)
+        subparser.add_argument('-i', '--ias-signature', help='IAS signature', type=str, required=True)
+        subparser.add_argument('-r', '--report', help='IAS signed verification report', type=str, required=True)
+
+    @classmethod
+    def invoke(cls, state, session_params, certificate, ias_signature, report, **kwargs) :
+        message = invocation_request(
+            'verify_sgx_report',
+            certificate=certificate.rstrip(),
+            report=report.rstrip(),
+            signature=ias_signature.rstrip())
+        result = send_to_contract(state, message, **session_params)
+        return result
+
+## -----------------------------------------------------------------
+## Create the generic, shell independent version of the aggregate command
+## -----------------------------------------------------------------
+__subcommands__ = [
+    contract_op_initialize,
+    contract_op_get_contract_metadata,
+    contract_op_get_contract_code_metadata,
+    contract_op_add_endpoint,
+    contract_op_send_secret,
+    contract_op_recv_secret,
+    contract_op_reveal_secret,
+    contract_op_verify_sgx_report,
+]
+do_attestation_test = pcontract.create_shell_command('attestation_test_contract', __subcommands__)
+
+## -----------------------------------------------------------------
+## Enable binding of the shell independent version to a pdo-shell command
 ## -----------------------------------------------------------------
 def load_commands(cmdclass) :
-    setattr(cmdclass, 'do_attestation', do_attestation)
+    pshell.bind_shell_command(cmdclass, 'attestation_test_contract', do_attestation_test)

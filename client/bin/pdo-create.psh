@@ -68,7 +68,7 @@ identity -n ${identity}
 
 trap_error
 
-create -c ${class} -s ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup} -r ${ssgroup}
+contract create -c ${class} --source ${source} -f ${pdo_file} -p ${psgroup} -e ${esgroup} -r ${ssgroup}
 if -o ${_error_code_} 0
    echo ERROR: ${_error_message_}
    exit -v ${_error_code_}

@@ -42,27 +42,27 @@ set -s _contract_ -v ${save}/interpreter_contract.pdo
 echo ${INFO} create interpreter test contract ${ENDC}
 ## =================================================================
 identity -n user1
-create -c interpreter-type -s _interpreter-test -f ${_contract_}
+contract create -c interpreter-type --source _interpreter-test -f ${_contract_}
 
 ## =================================================================
 echo ${INFO} test set and get for kv parameters ${ENDC}
 ## =================================================================
-send -s _result_ -f ${_contract_} -k "message" "hello there" ecdsa_test
+contract send -s _result_ -f ${_contract_} -k "message" "hello there" ecdsa_test
 echo ecdsa_test ${_result_}
 
-send -s _result_ -f ${_contract_} -k "message" "hello there" aes_test
+contract send -s _result_ -f ${_contract_} -k "message" "hello there" aes_test
 echo aes_test ${_result_}
 
-send -s _result_ -f ${_contract_} rsa_test
+contract send -s _result_ -f ${_contract_} rsa_test
 echo rsa_test ${_result_}
 
-send -s _result_ -f ${_contract_} kv_test_set
+contract send -s _result_ -f ${_contract_} kv_test_set
 echo kv_test_set ${_result_}
 
-send -s _result_ -f ${_contract_} kv_test_get
+contract send -s _result_ -f ${_contract_} kv_test_get
 echo kv_test_get ${_result_}
 
-send -s _result_ -f ${_contract_} privileged_test_get
+contract send -s _result_ -f ${_contract_} privileged_test_get
 echo privileged_test_get ${_result_}
 
 echo ${INFO} interpreter test succeeded ${ENDC}

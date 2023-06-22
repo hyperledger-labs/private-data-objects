@@ -38,7 +38,6 @@ class Contract(object) :
     @classmethod
     def read_from_file(cls, ledger_config, basename, data_dir = None) :
         filename = putils.build_file_name(basename, data_dir, cls.__path__, cls.__extension__)
-        logger.debug('load contract information from %s', filename)
         if os.path.exists(filename) is not True :
             raise FileNotFoundError(errno.ENOENT, "contract data file does not exist", filename)
 

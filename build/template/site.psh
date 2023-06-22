@@ -72,16 +72,16 @@ pservice add --url ${pservice2}
 pservice add --url ${pservice3}
 
 ## pservice group p1
-pservice --group p1 add --url ${pservice3}
-pservice --group p1 add --url ${pservice4}
-pservice --group p1 add --url ${pservice5}
+pservice add --group p1 --url ${pservice3}
+pservice add --group p1 --url ${pservice4}
+pservice add --group p1 --url ${pservice5}
 
 ## pservice group all
-pservice --group all add --url ${pservice1}
-pservice --group all add --url ${pservice2}
-pservice --group all add --url ${pservice3}
-pservice --group all add --url ${pservice4}
-pservice --group all add --url ${pservice5}
+pservice add --group all --url ${pservice1}
+pservice add --group all --url ${pservice2}
+pservice add --group all --url ${pservice3}
+pservice add --group all --url ${pservice4}
+pservice add --group all --url ${pservice5}
 
 ## -----------------------------------------------------------------
 ## Define enclave service groups to simplify specification
@@ -99,36 +99,36 @@ eservice add --url ${eservice3}
 eservice use --url ${eservice1}
 
 ## eservice group e2
-eservice --group e2 add --url ${eservice2}
-eservice --group e2 add --url ${eservice3}
-eservice --group e2 add --url ${eservice4}
-eservice --group e2 use --url ${eservice2}
+eservice add --group e2 --url ${eservice2}
+eservice add --group e2 --url ${eservice3}
+eservice add --group e2 --url ${eservice4}
+eservice use --group e2 --url ${eservice2}
 
 ## eservice group e3
-eservice --group e3 add --url ${eservice3}
-eservice --group e3 add --url ${eservice4}
-eservice --group e3 add --url ${eservice5}
-eservice --group e3 use --url ${eservice3}
+eservice add --group e3 --url ${eservice3}
+eservice add --group e3 --url ${eservice4}
+eservice add --group e3 --url ${eservice5}
+eservice use --group e3 --url ${eservice3}
 
 ## eservice group e4
-eservice --group e4 add --url ${eservice4}
-eservice --group e4 add --url ${eservice5}
-eservice --group e4 add --url ${eservice1}
-eservice --group e4 use --url ${eservice4}
+eservice add --group e4 --url ${eservice4}
+eservice add --group e4 --url ${eservice5}
+eservice add --group e4 --url ${eservice1}
+eservice use --group e4 --url ${eservice4}
 
 ## eservice group e5
-eservice --group e5 add --url ${eservice5}
-eservice --group e5 add --url ${eservice1}
-eservice --group e5 add --url ${eservice2}
-eservice --group e5 use --url ${eservice5}
+eservice add --group e5 --url ${eservice5}
+eservice add --group e5 --url ${eservice1}
+eservice add --group e5 --url ${eservice2}
+eservice use --group e5 --url ${eservice5}
 
 ## eservice group all
-eservice --group all add --url ${eservice1}
-eservice --group all add --url ${eservice2}
-eservice --group all add --url ${eservice3}
-eservice --group all add --url ${eservice4}
-eservice --group all add --url ${eservice5}
-eservice --group all use --url ${eservice1}
+eservice add --group all --url ${eservice1}
+eservice add --group all --url ${eservice2}
+eservice add --group all --url ${eservice3}
+eservice add --group all --url ${eservice4}
+eservice add --group all --url ${eservice5}
+eservice use --group all --url ${eservice1}
 
 ## -----------------------------------------------------------------
 ## Define storage service groups to simplify specification
@@ -161,33 +161,33 @@ sservice add --url ${sservice3}
 sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s2
-sservice --group s2 add --url ${sservice2}
-sservice --group s2 add --url ${sservice3}
-sservice --group s2 add --url ${sservice4}
-sservice --group s2 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+sservice add --group s2 --url ${sservice2}
+sservice add --group s2 --url ${sservice3}
+sservice add --group s2 --url ${sservice4}
+sservice set --group s2 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s3
-sservice --group s3 add --url ${sservice3}
-sservice --group s3 add --url ${sservice4}
-sservice --group s3 add --url ${sservice5}
-sservice --group s3 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+sservice add --group s3 --url ${sservice3}
+sservice add --group s3 --url ${sservice4}
+sservice add --group s3 --url ${sservice5}
+sservice set --group s3 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s4
-sservice --group s4 add --url ${sservice4}
-sservice --group s4 add --url ${sservice5}
-sservice --group s4 add --url ${sservice1}
-sservice --group s4 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+sservice add --group s4 --url ${sservice4}
+sservice add --group s4 --url ${sservice5}
+sservice add --group s4 --url ${sservice1}
+sservice set --group s4 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s5
-sservice --group s5 add --url ${sservice5}
-sservice --group s5 add --url ${sservice1}
-sservice --group s5 add --url ${sservice2}
-sservice --group s5 set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+sservice add --group s5 --url ${sservice5}
+sservice add --group s5 --url ${sservice1}
+sservice add --group s5 --url ${sservice2}
+sservice set --group s5 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## all sservices
-sservice --group all add --url ${sservice1}
-sservice --group all add --url ${sservice2}
-sservice --group all add --url ${sservice3}
-sservice --group all add --url ${sservice4}
-sservice --group all add --url ${sservice5}
-sservice --group all set --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+sservice add --group all --url ${sservice1}
+sservice add --group all --url ${sservice2}
+sservice add --group all --url ${sservice3}
+sservice add --group all --url ${sservice4}
+sservice add --group all --url ${sservice5}
+sservice set --group all --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
