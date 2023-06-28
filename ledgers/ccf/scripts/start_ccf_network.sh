@@ -61,17 +61,17 @@ fi
 rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem
 rm -f ${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem
 
-yell "INTERFACE: ${F_INTERFACE}"
-yell "PORT: ${F_PORT}"
-yell "PDO_HOSTNAME: ${PDO_HOSTNAME}"
-yell start with "local://${F_INTERFACE}:${F_PORT}"
+# ensure that we use an IP address for the interface
+F_INTERFACE_ADDRESS=$(force_to_ip ${F_INTERFACE})
+
+yell start ccf network with "local://${F_INTERFACE_ADDRESS}:${F_PORT}"
 
 say attempt to start ccf node
 ${CCF_BASE}/bin/sandbox.sh \
     --verbose \
     --host-log-level info \
     -p ${PDO_HOME}/ccf/lib/libpdoenc \
-    -n "local://${F_INTERFACE}:${F_PORT}" \
+    -n "local://${F_INTERFACE_ADDRESS}:${F_PORT}" \
     -e virtual -t virtual \
     --workspace ${PDO_HOME}/ccf/workspace \
     --initial-node-cert-validity-days 365 \
@@ -94,7 +94,7 @@ cp ${PDO_HOME}/ccf/workspace/sandbox_common/member0_privk.pem ${PDO_LEDGER_KEY_R
 say generate the ledger authority
 try ${PDO_HOME}/ccf/bin/generate_ledger_authority.py \
     --logfile __screen__ --loglevel WARNING \
-    --interface ${F_INTERFACE} --port ${F_PORT}
+    --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
 
 # Set the enclave attestation policy while operating under SGX SIM
 # mode. When operating in the HW mode, the rpc gets invoked after the
@@ -104,11 +104,13 @@ if [ "${SGX_MODE}" == "SIM" ]; then
     say set check_attestation to false in SGX SIM mode
     try ${PDO_HOME}/ccf/bin/register_enclave_attestation_verification_policy.py \
         --logfile __screen__ --loglevel WARNING \
-        --interface ${F_INTERFACE} --port ${F_PORT}
+        --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
 
 fi
 
 say save the ledger authority key
 try ${PDO_HOME}/ccf/bin/fetch_ledger_authority.py \
     --logfile __screen__ --loglevel WARNING \
-    --interface ${F_INTERFACE} --port ${F_PORT}
+    --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
+
+yell ledger URL is http://${F_INTERFACE_ADDRESS}:${F_PORT}
