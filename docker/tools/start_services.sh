@@ -60,12 +60,16 @@ done
 # -----------------------------------------------------------------
 # Set up the interface, ledger url and proxy configuration
 # -----------------------------------------------------------------
+source /opt/intel/sgxsdk/environment
+source /project/pdo/tools/environment.sh
+source ${PDO_HOME}/bin/lib/common.sh
+
 export PDO_HOSTNAME=${PDO_HOSTNAME:-$HOSTNAME}
 if [ ! -z "${F_INTERFACE}" ] ; then
     export PDO_HOSTNAME=${F_INTERFACE}
 fi
 
-export PDO_LEDGER_ADDRESS=$(dig +short ${PDO_HOSTNAME})
+export PDO_LEDGER_ADDRESS=$(force_to_ip ${PDO_HOSTNAME})
 export PDO_LEDGER_URL=${PDO_LEDGER_URL:-http://${PDO_LEDGER_ADDRESS}:6600}
 if [ ! -z "${F_LEDGER_URL}" ] ; then
     export PDO_LEDGER_URL=${F_LEDGER_URL}
@@ -73,10 +77,6 @@ fi
 
 export no_proxy=$PDO_HOSTNAME,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
-
-source /opt/intel/sgxsdk/environment
-source /project/pdo/tools/environment.sh
-source ${PDO_HOME}/bin/lib/common.sh
 
 # -----------------------------------------------------------------
 # Handle the configuration of the services

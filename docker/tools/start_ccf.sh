@@ -55,19 +55,19 @@ done
 # -----------------------------------------------------------------
 # Set up the ledger url and proxy configuration
 # -----------------------------------------------------------------
+source /project/pdo/tools/environment.sh
+source ${PDO_HOME}/bin/lib/common.sh
+
 export PDO_HOSTNAME=${PDO_HOSTNAME:-${HOSTNAME}}
 if [ ! -z "${F_INTERFACE}" ] ; then
     export PDO_HOSTNAME=$F_INTERFACE
 fi
 
-export PDO_LEDGER_ADDRESS=$(dig +short ${PDO_HOSTNAME})
+export PDO_LEDGER_ADDRESS=$(force_to_ip ${PDO_HOSTNAME})
 export PDO_LEDGER_URL="http://${PDO_LEDGER_ADDRESS}:6600"
 
 export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
-
-source /project/pdo/tools/environment.sh
-source ${PDO_HOME}/bin/lib/common.sh
 
 # this is ridiculous. we need to canonicalize the ledger and
 # sgx keys into the keys directory hierarchy NOT the etc

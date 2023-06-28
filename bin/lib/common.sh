@@ -66,6 +66,19 @@ function check_python_version() {
     fi
 }
 
+# Common function to force name/address to address format
+#-----------------------------------------
+function force_to_ip()
+{
+    local name=$1
+
+    if [[ $name =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo $name
+    else
+        echo $(dig +short $name)
+    fi
+}
+
 # -----------------------------------------
 # Check the environment for completeness
 # -----------------------------------------
