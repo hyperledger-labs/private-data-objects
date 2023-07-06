@@ -58,6 +58,12 @@ if [ -f ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid ]; then
     fi
 fi
 
+if lsof -Pi "@${F_INTERFACE}:${F_PORT}" -sTCP:LISTEN -t > /dev/null
+then
+    yell interface "local:${F_INTERFACE}:${F_PORT}" appears to be in use
+    exit -1
+fi
+
 rm -f ${PDO_LEDGER_KEY_ROOT}/networkcert.pem
 rm -f ${PDO_LEDGER_KEY_ROOT}/ledger_authority_pub.pem
 

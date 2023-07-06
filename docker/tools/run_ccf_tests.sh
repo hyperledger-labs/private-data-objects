@@ -29,13 +29,6 @@ export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 # hierarchy. future PR.
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
 
-# # -----------------------------------------------------------------
-# yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-# # -----------------------------------------------------------------
-# rm -f ${PDO_HOME}/ccf/etc/cchost.toml ${PDO_HOME}/ccf/etc/constitution.js
-# try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf keys
-# try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf config
-
 # -----------------------------------------------------------------
 yell start the ccf service
 # -----------------------------------------------------------------
