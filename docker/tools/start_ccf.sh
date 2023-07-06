@@ -75,26 +75,6 @@ export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 mkdir -p ${PDO_LEDGER_KEY_ROOT}
 
 # -----------------------------------------------------------------
-# Handle the configuration of the services
-#
-# Note the environment should have been created during the build
-# process for the ccf image
-# -----------------------------------------------------------------
-# if [ "${F_MODE,,}" == "build" ]; then
-#     yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
-#     try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf keys
-#     try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf config
-# elif [ "${F_MODE,,}" == "copy" ]; then
-#     yell copy the configuration from xfer/ccf/etc and xfer/ccf/keys
-#     try cp ${XFER_DIR}/ccf/etc/* ${PDO_HOME}/ccf/etc/
-#     try cp ${XFER_DIR}/ccf/keys/* ${PDO_LEDGER_KEY_ROOT}/
-# elif [ "${F_MODE,,}" == "skip" ]; then
-#     yell restart with existing configuration
-# else
-#     die "invalid restart mode; ${F_MODE}"
-# fi
-
-# -----------------------------------------------------------------
 say start the ccf network
 # -----------------------------------------------------------------
 . ${PDO_HOME}/ccf/bin/activate
