@@ -284,6 +284,23 @@ def create_contract(state, source, **kwargs) :
     return contract_file
 
 ## -----------------------------------------------------------------
+## create_contract_from_context
+## -----------------------------------------------------------------
+def create_contract_from_context(state, context, default_class, **kwargs) :
+    """create a contract pulling the parameters from a context
+    """
+    params = {}
+    source = kwargs.get('source') or context['source']
+    params['save_file'] = kwargs.get('save_file') or context['save_file']
+    params['contract_class'] = kwargs.get('contact_class') or context['contract_class'] or default_class
+    params['eservice_group'] = kwargs.get('eservice_group') or context['eservice_group']
+    params['pservice_group'] = kwargs.get('pservice_group') or context['pservice_group']
+    params['sservice_group'] = kwargs.get('sservice_group') or context['sservice_group']
+    params['extra'] = kwargs.get('extra') or context['extra']
+
+    return create_contract(state, source, **params)
+
+## -----------------------------------------------------------------
 ## send_to_contract
 ## -----------------------------------------------------------------
 def send_to_contract(state, message, save_file, **kwargs) :

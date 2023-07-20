@@ -64,7 +64,6 @@ class script_command_load(pscript.script_command_base) :
     def invoke(cls, state, bindings, filename, merge=True, **kwargs) :
         try :
             filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc']))
-
             with open(filename, "r") as infile:
                 info = toml.load(infile)
 
@@ -81,8 +80,12 @@ class script_command_load(pscript.script_command_base) :
             state.set(['Service', 'StorageServiceGroups'], ssgroups)
             state.set(['Service', 'EnclaveServiceGroups'], esgroups)
 
+        except FileNotFoundError as e :
+            cls.display_error('service group file does not exist; {}'.format(filename))
+            return False
+
         except Exception as e :
-            cls.display_error('failed to load service group configuration; {}'.format(e))
+            cls.display_error('failed to load service group file {}; {}'.format(filename, e))
             return False
 
         return True
