@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     'bind_shell_command',
+    'initialize_environment',
     'parse_shell_command_line',
     'run_shell_command',
 ]
@@ -64,42 +65,15 @@ def bind_shell_command(cmdclass, command_name, command) :
     setattr(cmdclass.__class__, 'do_' + command_name, shell_command)
 
 # -----------------------------------------------------------------
-def parse_shell_command_line(args) :
-    parser = argparse.ArgumentParser(allow_abbrev=False)
+def initialize_environment(options) :
+    """Initialize a PDO client environment from a set of
+    options specified in a simple namespace. Configuration includes
+    loggers, site configuration, state, and bindings.
+    """
 
     __config_map__ = pconfig.build_configuration_map()
     __config_map__['base'] = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     __config_map__['save'] = os.path.join(__config_map__['data'], '__contract_cache__')
-
-    # allow for override of bindings in the config map
-    parser.add_argument('-m', '--mapvar', help='DEPRECATED!!! Use --bind', nargs=2, action='append', dest='bind')
-    parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
-
-    # add to the configuration files that will be loaded
-    parser.add_argument('--config', help='full path name of additional configuration files', nargs = '+', default=[])
-
-    # override specific values in the configuration files
-    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
-    parser.add_argument('--loglevel', help='Logging level', type=str)
-
-    parser.add_argument('--ledger', help='URL for the ledger, override PDO_LEDGER_URL', type=str)
-    parser.add_argument('--data-dir', help='Directory for storing generated files', type=str)
-    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
-    parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
-
-    parser.add_argument('--service-db', help='full path to the service database file', type=str)
-    parser.add_argument('--service-groups', help='full path name for service group specification', nargs='+', type=str)
-
-    parser.add_argument('--client-identity', help='Name of the user key file', type=str)
-    parser.add_argument('--client-key-file', help='Name of the user key file', type=str)
-
-    # set common runtime variables
-    parser.add_argument('--verbose', help='Show full exception', action='store_true')
-    parser.add_argument('--abridged', help='Show limited information', dest='verbose', action='store_false')
-    parser.set_defaults(verbose=True)
-
-    (options, unprocessed_args) = parser.parse_known_args(args)
-
     __config_map__['identity'] = options.client_identity or '__unknown__'
 
     # set up the configuration mapping from the parameters
@@ -120,7 +94,7 @@ def parse_shell_command_line(args) :
         config = pconfig.parse_configuration_files(conffiles, [], __config_map__)
     except pconfig.ConfigurationException as e :
         logger.error(str(e))
-        sys.exit(-1)
+        return None
 
     # set up the state based on the config
     state = State(config, identity=options.client_identity, private_key_file=options.client_key_file)
@@ -153,7 +127,6 @@ def parse_shell_command_line(args) :
         state.set(['Service', 'EnclaveServiceDatabaseFile'], options.service_db)
 
     if options.service_groups :
-        print("set groups to {}".format(options.service_groups))
         state.set(['Service', 'ServiceGroupFiles'], options.service_groups)
 
     # set up the data paths
@@ -170,25 +143,67 @@ def parse_shell_command_line(args) :
         data_file = state.get(['Service', 'EnclaveServiceDatabaseFile'])
         data_file = putils.find_file_in_path(data_file, state.get(['Client', 'SearchPath'], ['.', './etc/']))
         eservice_db.load_database(data_file, True)
-    except :
-        logger.error('Failed to load eservice database')
-        sys.exit(-1)
+    except Exception as e :
+        # log a warning but continue to run
+        logger.warning('Failed to load eservice database; {}'.format(e))
 
     # load the service groups from the groups.toml file, nothing breaks if the
     # file doesn't load, but we do want to give an error message
     try :
         groupfiles = state.get(['Service', 'ServiceGroupFiles'], [])
-        groupfiles = map(
-            lambda f : os.path.realpath(f),
-            functools.reduce(
-                lambda x, f : x + glob.glob(bindings.expand(f)),groupfiles, []))
-        groupfiles = list(groupfiles)
+        groupfiles = list(map(lambda f : os.path.realpath(bindings.expand(f)), groupfiles))
         for groupfile in groupfiles :
-            pgroups.script_command_load.invoke(state, bindings, groupfile)
-    except :
-        logger.error('Failed to load service group files')
-        sys.exit(-1)
+            if not pgroups.script_command_load.invoke(state, bindings, groupfile) :
+                return None
+    except Exception as e :
+        # log a warning but continue to run
+        logger.warning('Failed to load service group files; {}'.format(e))
 
+    return (state, bindings)
+
+# -----------------------------------------------------------------
+def parse_shell_command_line(args) :
+    """Parse command line parameters into the set of bindings
+    that can be processed to initialize a PDO client
+    """
+
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+
+    # allow for override of bindings in the config map
+    parser.add_argument('-m', '--mapvar', help='DEPRECATED!!! Use --bind', nargs=2, action='append', dest='bind')
+    parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
+
+    # add to the configuration files that will be loaded
+    parser.add_argument('--config', help='full path name of additional configuration files', nargs = '+', default=[])
+
+    # override specific values in the configuration files
+    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
+    parser.add_argument('--loglevel', help='Logging level', type=str)
+
+    parser.add_argument('--ledger', help='URL for the ledger, override PDO_LEDGER_URL', type=str)
+    parser.add_argument('--data-dir', help='Directory for storing generated files', type=str)
+    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
+    parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
+
+    parser.add_argument('--service-db', help='full path to the service database file', type=str)
+    parser.add_argument('--service-groups', help='full path name for service group specification', nargs='+', type=str)
+
+    parser.add_argument('--client-identity', help='Name of the user key file', type=str)
+    parser.add_argument('--client-key-file', help='Name of the user key file', type=str)
+
+    # set common runtime variables
+    parser.add_argument('--verbose', help='Show full exception', action='store_true')
+    parser.add_argument('--abridged', help='Show limited information', dest='verbose', action='store_false')
+    parser.set_defaults(verbose=True)
+
+    (options, unprocessed_args) = parser.parse_known_args(args)
+
+    # set up the configuration mapping from the parameters
+    environment = initialize_environment(options)
+    if environment is None :
+        return None
+
+    (state, bindings) = environment
     return (state, bindings, unprocessed_args)
 
 # -----------------------------------------------------------------
@@ -199,7 +214,11 @@ def run_shell_command(command_name, module_name) :
     for a particular command.
     """
 
-    (state, bindings, args) = parse_shell_command_line(sys.argv[1:])
+    environment = parse_shell_command_line(sys.argv[1:])
+    if environment is None :
+        sys.exit(-1)
+
+    (state, bindings, args) = environment
 
     try :
         module = importlib.import_module(module_name)
