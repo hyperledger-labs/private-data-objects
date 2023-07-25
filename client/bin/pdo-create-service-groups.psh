@@ -1,0 +1,191 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2023 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## load the eservice and pservice groups for the specified service host
+set --conditional -s service_host -v localhost
+set --conditional -s group_file -v ${home}/etc/${service_host}_groups.toml
+set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
+
+if --null "${data}"
+   echo data macro must be defined
+   exit
+fi
+
+## -----------------------------------------------------------------
+## Set the default set of eservices that this file knows
+## about. There may be more that have been added to the
+## eservice database. This list is primarily that ones that
+## will be used by the local client to create & interact with
+## contracts.
+## -----------------------------------------------------------------
+set -s eservice1 -v http://${service_host}:7101
+set -s eservice2 -v http://${service_host}:7102
+set -s eservice3 -v http://${service_host}:7103
+set -s eservice4 -v http://${service_host}:7104
+set -s eservice5 -v http://${service_host}:7105
+
+## make sure the minimal set of enclave services is included
+## if these are already in the database they will not be re-added
+eservice_db clear
+
+eservice_db add --url ${eservice1} --name es7101
+eservice_db add --url ${eservice2} --name es7102
+eservice_db add --url ${eservice3} --name es7103
+eservice_db add --url ${eservice4} --name es7104
+eservice_db add --url ${eservice5} --name es7105
+
+eservice_db save --database ${dbfile}
+
+## -----------------------------------------------------------------
+## Define provisioning service groups to simplify specification
+## of contract key provisioning. Each group specifies a set of
+## provisioning services that will be used for provisioning keys
+## into the contract enclaves.
+## -----------------------------------------------------------------
+set -s pservice1 -v http://${service_host}:7001
+set -s pservice2 -v http://${service_host}:7002
+set -s pservice3 -v http://${service_host}:7003
+set -s pservice4 -v http://${service_host}:7004
+set -s pservice5 -v http://${service_host}:7005
+
+## default pservice group
+pservice add --url ${pservice1}
+pservice add --url ${pservice2}
+pservice add --url ${pservice3}
+
+## pservice group p1
+pservice add --group p1 --url ${pservice3}
+pservice add --group p1 --url ${pservice4}
+pservice add --group p1 --url ${pservice5}
+
+## pservice group all
+pservice add --group all --url ${pservice1}
+pservice add --group all --url ${pservice2}
+pservice add --group all --url ${pservice3}
+pservice add --group all --url ${pservice4}
+pservice add --group all --url ${pservice5}
+
+## -----------------------------------------------------------------
+## Define enclave service groups to simplify specification
+## of eservices to be provisioned for the contract object. Each
+## group specifies a set of enclave services that may be used
+## to interact with the contract. It also specifies (through the
+## "use" command) a preferred service. The preferred service will
+## often have the current state already cached.
+## -----------------------------------------------------------------
+
+## default eservice group
+eservice add --url ${eservice1}
+eservice add --url ${eservice2}
+eservice add --url ${eservice3}
+eservice use --url ${eservice1}
+
+## eservice group e2
+eservice add --group e2 --url ${eservice2}
+eservice add --group e2 --url ${eservice3}
+eservice add --group e2 --url ${eservice4}
+eservice use --group e2 --url ${eservice2}
+
+## eservice group e3
+eservice add --group e3 --url ${eservice3}
+eservice add --group e3 --url ${eservice4}
+eservice add --group e3 --url ${eservice5}
+eservice use --group e3 --url ${eservice3}
+
+## eservice group e4
+eservice add --group e4 --url ${eservice4}
+eservice add --group e4 --url ${eservice5}
+eservice add --group e4 --url ${eservice1}
+eservice use --group e4 --url ${eservice4}
+
+## eservice group e5
+eservice add --group e5 --url ${eservice5}
+eservice add --group e5 --url ${eservice1}
+eservice add --group e5 --url ${eservice2}
+eservice use --group e5 --url ${eservice5}
+
+## eservice group all
+eservice add --group all --url ${eservice1}
+eservice add --group all --url ${eservice2}
+eservice add --group all --url ${eservice3}
+eservice add --group all --url ${eservice4}
+eservice add --group all --url ${eservice5}
+eservice use --group all --url ${eservice1}
+
+## -----------------------------------------------------------------
+## Define storage service groups to simplify specification
+## of contract state storage and replication policies. Each
+## group specifies a set of storage services, the policy
+## for how long the storage services will keep a copy of
+## the contract state, and the number of replicas that
+## must be completed before the ledger will accept a state
+## update.
+##
+## the persistent storage service adds a notation to the
+## contract file a storage service that will maintain
+## a persistent copy of the state of the contract object
+## that is, there is a HINT (not a guarantee) that the
+## current state of the object can be retrieved from the
+## persistent storage service
+## -----------------------------------------------------------------
+set -s sservice1 -v http://${service_host}:7201
+set -s sservice2 -v http://${service_host}:7202
+set -s sservice3 -v http://${service_host}:7203
+set -s sservice4 -v http://${service_host}:7204
+set -s sservice5 -v http://${service_host}:7205
+
+set -s persistent_storage_service -v ${sservice1}
+
+## default sservice group
+sservice add --url ${sservice1}
+sservice add --url ${sservice2}
+sservice add --url ${sservice3}
+sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s2
+sservice add --group s2 --url ${sservice2}
+sservice add --group s2 --url ${sservice3}
+sservice add --group s2 --url ${sservice4}
+sservice set --group s2 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s3
+sservice add --group s3 --url ${sservice3}
+sservice add --group s3 --url ${sservice4}
+sservice add --group s3 --url ${sservice5}
+sservice set --group s3 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s4
+sservice add --group s4 --url ${sservice4}
+sservice add --group s4 --url ${sservice5}
+sservice add --group s4 --url ${sservice1}
+sservice set --group s4 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s5
+sservice add --group s5 --url ${sservice5}
+sservice add --group s5 --url ${sservice1}
+sservice add --group s5 --url ${sservice2}
+sservice set --group s5 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## all sservices
+sservice add --group all --url ${sservice1}
+sservice add --group all --url ${sservice2}
+sservice add --group all --url ${sservice3}
+sservice add --group all --url ${sservice4}
+sservice add --group all --url ${sservice5}
+sservice set --group all --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+## write out the service groups file for the specified host
+service_groups save --file ${group_file}
