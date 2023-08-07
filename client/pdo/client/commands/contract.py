@@ -86,7 +86,7 @@ def get_contract_from_context(state, context) :
         contract = get_contract(state, save_file)
         logger.debug('contract found in file {}'.format(save_file))
     except Exception as e :
-        logger.warning("contract save file found, but load failed; {}".format(e))
+        logger.info("contract save file specified in context, but load failed; {}".format(e))
         return None
 
     return save_file

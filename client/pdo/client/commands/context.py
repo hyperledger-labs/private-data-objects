@@ -19,6 +19,7 @@ import os
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.client.builder as pbuilder
+import pdo.common.config as pconfig
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class script_command_get(pscript.script_command_base) :
         if context_file :
             try :
                 pbuilder.Context.LoadContextFile(state, bindings, *context_file, prefix=context_prefix)
-            except ConfigurationException as ce :
+            except pconfig.ConfigurationException as ce :
                 cls.display_error('failed to load context file; {}'.format(str(ce)))
                 return False
 
@@ -103,7 +104,7 @@ class script_command_load(pscript.script_command_base) :
 
         try :
             pbuilder.Context.LoadContextFile(state, bindings, *import_file, prefix=context_prefix)
-        except ConfigurationException as ce :
+        except pconfig.ConfigurationException as ce :
             cls.display_error('failed to load context file; {}'.format(str(ce)))
             return False
 

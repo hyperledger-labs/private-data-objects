@@ -90,6 +90,7 @@ def initialize_environment(options) :
     conffiles = __config_files__ + options.config
     conffiles = map(lambda f : os.path.realpath(f), functools.reduce(lambda x, f : x + glob.glob(f), conffiles, []))
     conffiles = list(conffiles)
+
     try :
         config = pconfig.parse_configuration_files(conffiles, [], __config_map__)
     except pconfig.ConfigurationException as e :
@@ -99,9 +100,8 @@ def initialize_environment(options) :
     # set up the state based on the config
     state = State(config, identity=options.client_identity, private_key_file=options.client_key_file)
 
-    # push the bindings into state and set up the bindings object
-    state.merge(__config_map__, ['Bindings'])
-    bindings = Bindings(state.get(['Bindings']))
+    # set up the initial variable bindings
+    bindings = Bindings(__config_map__)
 
     # save the verbosity level to the command base
     builder_command_base.verbose = options.verbose
