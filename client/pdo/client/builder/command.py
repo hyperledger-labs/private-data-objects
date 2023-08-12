@@ -26,8 +26,6 @@ import functools
 
 logger = logging.getLogger(__name__)
 
-import pdo.service_client.service_data.eservice as eservice_db
-
 import pdo.client.builder as pbuilder
 import pdo.client.builder.contract as pcontract
 

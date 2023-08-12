@@ -28,10 +28,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['ContractController']
 
-# this is only for the eservice_db which will be
-# changed to the new model in a future upgrade
-from pdo.client.controller.commands import *
-
 from pdo.common.utility import find_file_in_path
 from pdo.client.builder import Bindings, State
 from pdo.client.commands import load_common_commands

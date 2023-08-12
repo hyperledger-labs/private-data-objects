@@ -65,21 +65,21 @@ echo ${HEADER}test retrieval by url ${ENDC}
 ## note that the database normalizes the URL so we need to used the
 ## correct format for the comparison to work
 
-service_db info --type eservice --name eservice1 --symbol _info_ --quiet
+service_db info --type eservice --name eservice1 --symbol _info_
 parse -e "${_info_}" -p service_url -s _url_ --raw
 if --not -e ${_url_} "http://${service_host}:7101"
     echo ${ERROR} eservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type pservice --name pservice1 --symbol _info_ --quiet
+service_db info --type pservice --name pservice1 --symbol _info_
 parse -e "${_info_}" -p service_url -s _url_ --raw
 if --not -e ${_url_} "http://${service_host}:7001"
     echo ${ERROR} pservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type sservice --name sservice1 --symbol _info_ --quiet
+service_db info --type sservice --name sservice1 --symbol _info_
 parse -e "${_info_}" -p service_url -s _url_ --raw
 if --not -e ${_url_} "http://${service_host}:7201"
     echo ${ERROR} sservice info test failed ${ENDC}
@@ -89,21 +89,21 @@ fi
 ## -----------------------------------------------------------------
 echo ${HEADER}test retrieval by name ${ENDC}
 ## -----------------------------------------------------------------
-service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} eservice1
     echo ${ERROR} eservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} pservice1
     echo ${ERROR} pservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} sservice1
     echo ${ERROR} sservice info test failed ${ENDC}
@@ -113,27 +113,27 @@ fi
 ## -----------------------------------------------------------------
 echo ${HEADER}test retrieval by identity ${ENDC}
 ## -----------------------------------------------------------------
-service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_
 parse -e ${_info_} -p service_identity -s _identity_ --raw
-service_db info --type eservice --identity "${_identity_}" --symbol _info_ --quiet
+service_db info --type eservice --verifying-key "${_identity_}" --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} eservice1
     echo ${ERROR} eservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_
 parse -e ${_info_} -p service_identity -s _identity_ --raw
-service_db info --type pservice --identity "${_identity_}" --symbol _info_ --quiet
+service_db info --type pservice --verifying-key "${_identity_}" --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} pservice1
     echo ${ERROR} pservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_
 parse -e ${_info_} -p service_identity -s _identity_ --raw
-service_db info --type sservice --identity "${_identity_}" --symbol _info_ --quiet
+service_db info --type sservice --verifying-key "${_identity_}" --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} sservice1
     echo ${ERROR} sservice info test failed ${ENDC}
@@ -154,19 +154,19 @@ service_db remove --type sservice --name sservice1
 
 trap_error
 
-service_db info --type eservice --name eservice1 --symbol _info_ --quiet
+service_db info --type eservice --name eservice1 --symbol _info_
 if -e ${_error_code_} 0
    echo ${ERROR} failed to catch missing eservice ${ENDC}
    exit -v -1
 fi
 
-service_db info --type pservice --name pservice1 --symbol _info_ --quiet
+service_db info --type pservice --name pservice1 --symbol _info_
 if -e ${_error_code_} 0
    echo ${ERROR} failed to catch missing pservice ${ENDC}
    exit -v -1
 fi
 
-service_db info --type sservice --name sservice1 --symbol _info_ --quiet
+service_db info --type sservice --name sservice1 --symbol _info_
 if -e ${_error_code_} 0
    echo ${ERROR} failed to catch missing sservice ${ENDC}
    exit -v -1
@@ -237,21 +237,21 @@ service_db import --file ${tmpfile}
 ## -----------------------------------------------------------------
 echo ${HEADER}test retrieval by url from the imported database ${ENDC}
 ## -----------------------------------------------------------------
-service_db info --type eservice --url http://${service_host}:7101 --symbol _info_ --quiet
+service_db info --type eservice --url http://${service_host}:7101 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} eservice1
     echo ${ERROR} eservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type pservice --url http://${service_host}:7001 --symbol _info_ --quiet
+service_db info --type pservice --url http://${service_host}:7001 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} pservice1
     echo ${ERROR} pservice info test failed ${ENDC}
     exit -v -1
 fi
 
-service_db info --type sservice --url http://${service_host}:7201 --symbol _info_ --quiet
+service_db info --type sservice --url http://${service_host}:7201 --symbol _info_
 parse -e ${_info_} -p service_names[0] -s _name_ --raw
 if --not -e ${_name_} sservice1
     echo ${ERROR} sservice info test failed ${ENDC}

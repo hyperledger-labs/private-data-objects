@@ -68,9 +68,9 @@ setup(name='pdo_client',
               'pdo-eservice = pdo.client.scripts.EntryPoints:run_shell_eservice',
               'pdo-pservice = pdo.client.scripts.EntryPoints:run_shell_pservice',
               'pdo-sservice = pdo.client.scripts.EntryPoints:run_shell_sservice',
+              'pdo-service-db = pdo.client.scripts.EntryPoints:run_shell_service_db',
               'pdo-service-groups = pdo.client.scripts.EntryPoints:run_shell_service_groups',
               'pdo-install-plugin-resources = pdo.client.builder.installer:install_plugin_resources',
-              'pdo-service-db = pdo.client.scripts.CommandCLI:Main'
           ]
       }
 )
