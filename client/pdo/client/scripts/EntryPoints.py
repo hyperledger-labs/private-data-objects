@@ -35,6 +35,10 @@ def run_shell_ledger() :
     run_shell_command('do_ledger', 'pdo.client.commands.ledger')
 
 # -----------------------------------------------------------------
+def run_shell_service_db() :
+    run_shell_command('do_service_db', 'pdo.client.commands.service_db')
+
+# -----------------------------------------------------------------
 def run_shell_service_groups() :
     run_shell_command('do_service_groups', 'pdo.client.commands.service_groups')
 

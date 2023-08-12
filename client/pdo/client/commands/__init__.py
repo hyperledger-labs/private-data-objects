@@ -18,12 +18,13 @@ __all__ = [
     'eservice',
     'ledger',
     'pservice',
+    'service_db',
     'service_groups',
     'sservice',
 ]
 
 def load_common_commands(cmdclass) :
-    """Load all of the commands in the modules defined
+    """Load all of the command modules
     """
     import importlib
     def load_command(module_name) :

@@ -24,7 +24,6 @@ import types
 import pdo.common.config as pconfig
 import pdo.common.logger as plogger
 import pdo.common.utility as putils
-import pdo.service_client.service_data.eservice as eservice_db
 
 from pdo.client.builder import State, Bindings, builder_command_base
 import pdo.client.commands.service_groups as pgroups
@@ -124,7 +123,7 @@ def initialize_environment(options) :
 
     # set up the service configuration
     if options.service_db:
-        state.set(['Service', 'EnclaveServiceDatabaseFile'], options.service_db)
+        state.set(['Service', 'ServiceDatabaseFile'], options.service_db)
 
     if options.service_groups :
         state.set(['Service', 'ServiceGroupFiles'], options.service_groups)
@@ -137,15 +136,6 @@ def initialize_environment(options) :
 
     # make the configuration available to all of the PDO modules
     pconfig.initialize_shared_configuration(state.__data__)
-
-    # load the service database files, it may not exist
-    try :
-        data_file = state.get(['Service', 'EnclaveServiceDatabaseFile'])
-        data_file = putils.find_file_in_path(data_file, state.get(['Client', 'SearchPath'], ['.', './etc/']))
-        eservice_db.load_database(data_file, True)
-    except Exception as e :
-        # log a warning but continue to run
-        logger.warning('Failed to load eservice database; {}'.format(e))
 
     # load the service groups from the groups.toml file, nothing breaks if the
     # file doesn't load, but we do want to give an error message

@@ -20,8 +20,7 @@ import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.client.commands.contract as pcontract
 
-from pdo.service_client.enclave import EnclaveServiceClient
-import pdo.service_client.service_data.eservice as eservice_db
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 import pdo.common.utility as putils
 
 logger = logging.getLogger(__name__)
@@ -38,6 +37,15 @@ __all__ = [
     'do_eservice',
     'load_commands',
 ]
+
+def __get_by_name__(name) :
+    return service_data.local_service_manager.get_by_name(name, 'eservice')
+
+def __get_by_identity__(identity) :
+    return service_data.local_service_manager.get_by_identity(identity, 'eservice')
+
+def __get_by_url__(url) :
+    return service_data.local_service_manager.get_by_url(url, 'eservice')
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -56,7 +64,7 @@ def get_eservice(state, eservice_url="default", eservice_group="default") :
         raise Exception('no enclave service specified')
 
     logger.debug('get client for %s', eservice_url)
-    return EnclaveServiceClient(eservice_url)
+    return __get_by_url__(eservice_url).client()
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -77,7 +85,7 @@ def get_eservice_from_contract(state, save_file, eservice_url=None, **kwargs) :
     # if the url is specified as a URL then check the cache and create the client
     if putils.valid_service_url(eservice_url) :
         try :
-            eservice_client = EnclaveServiceClient(eservice_url)
+            eservice_client = __get_by_url__(eservice_url).client()
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
@@ -87,18 +95,18 @@ def get_eservice_from_contract(state, save_file, eservice_url=None, **kwargs) :
     else :
         if eservice_url == 'preferred' :
             enclave_id = contract.extra_data.get('preferred-enclave', random.choice(contract.provisioned_enclaves))
-            eservice_info = eservice_db.get_by_enclave_id(enclave_id)
+            eservice_info = __get_by_identity__(enclave_id)
         elif eservice_url == 'random' :
             enclave_id = random.choice(contract.provisioned_enclaves)
-            eservice_info = eservice_db.get_by_enclave_id(enclave_id)
+            eservice_info = __get_by_identity__(enclave_id)
         else :
-            eservice_info = eservice_db.get_by_name(eservice_url)
+            eservice_info = __get_by_name__(eservice_url)
 
         if eservice_info is None :
             raise Exception('attempt to use an unknown enclave; %s', eservice_url)
 
         try :
-            eservice_client = eservice_info.client
+            eservice_client = eservice_info.client()
         except Exception as e :
             raise Exception('unable to connect to enclave service; {0}'.format(str(e)))
 
@@ -117,7 +125,7 @@ def get_eservice_list(state, eservice_group="default") :
     eservice_url_list = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'urls'], [])
     eservice_client_list = []
     for eservice_url in eservice_url_list :
-        eservice_client_list.append(EnclaveServiceClient(eservice_url))
+        eservice_client_list.append(__get_by_url__(eservice_url).client())
 
     return eservice_client_list
 
@@ -127,10 +135,10 @@ def __expand_eservice_names__(names) :
     result = set()
     if names :
         for name in names :
-            eservice_info = eservice_db.get_by_name(name)
+            eservice_info = __get_by_name__(name)
             if eservice_info is None :
                 raise Exception('unknown eservice name {0}'.format(name))
-            result.add(eservice_info.url)
+            result.add(eservice_info.service_url)
 
     return result
 
@@ -224,10 +232,10 @@ class script_command_use(pscript.script_command_base) :
         if url :
             service_url = url
         elif name :
-            service_info = eservice_db.get_by_name(name)
+            service_info = __get_by_name__(name)
             if service_info is None :
                 raise Exception('unknown eservice name; %s', name)
-            service_url = service_info.url
+            service_url = service_info.service_url
 
         services = state.get(['Service', 'EnclaveServiceGroups', group, 'urls'], [])
         if service_url in services :

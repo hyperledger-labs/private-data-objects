@@ -27,8 +27,6 @@ import pdo.common.crypto as pcrypto
 import pdo.contract as pcontract
 from pdo.common.keys import ServiceKeys
 from pdo.common.utility import valid_service_url
-from pdo.service_client.enclave import EnclaveServiceClient
-import pdo.service_client.service_data.eservice as eservice_db
 from pdo.submitter.create import create_submitter
 
 logger = logging.getLogger(__name__)
@@ -223,7 +221,6 @@ def create_contract(state, source, **kwargs) :
     preferred_eservice_client = eservice.get_eservice(state, eservice_group=eservice_group)
     if preferred_eservice_client.interpreter != interpreter :
         raise Exception('enclave interpreter does not match requested contract interpreter %s', interpreter)
-
     extra_data['preferred-enclave'] = preferred_eservice_client.enclave_id
 
     # ---------- set up the provisioning service clients ----------

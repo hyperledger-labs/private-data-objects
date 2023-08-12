@@ -39,15 +39,13 @@ set -s eservice5 -v http://${service_host}:7105
 
 ## make sure the minimal set of enclave services is included
 ## if these are already in the database they will not be re-added
-eservice_db clear
+service_db clear
 
-eservice_db add --url ${eservice1} --name es7101
-eservice_db add --url ${eservice2} --name es7102
-eservice_db add --url ${eservice3} --name es7103
-eservice_db add --url ${eservice4} --name es7104
-eservice_db add --url ${eservice5} --name es7105
-
-eservice_db save --database ${dbfile}
+service_db add --type eservice --url ${eservice1} --name es7101
+service_db add --type eservice --url ${eservice2} --name es7102
+service_db add --type eservice --url ${eservice3} --name es7103
+service_db add --type eservice --url ${eservice4} --name es7104
+service_db add --type eservice --url ${eservice5} --name es7105
 
 ## -----------------------------------------------------------------
 ## Define provisioning service groups to simplify specification
