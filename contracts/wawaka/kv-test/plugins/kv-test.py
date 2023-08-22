@@ -15,14 +15,12 @@
 import argparse
 import json
 import logging
-import random
 
 logger = logging.getLogger(__name__)
 
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.contract as pcontract
 
-from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.client.commands.contract import send_to_contract
 from pdo.client.commands.eservice import get_eservice_from_contract
 from pdo.contract import invocation_request
