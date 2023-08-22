@@ -14,14 +14,19 @@ bash script. Similarly, the `mint_tokens` command may invoke a series
 of operations across multiple contract objects in order to mint new
 NFT tokens.
 
-There are three general styles of plugins: *contract operations*,
-*contract commands* and *scripts*. Loosely, a contract operation wraps
+There are three general styles of plugins:
+
+* *contract operations* : Loosely, a contract operation wraps
 the invocation of a single method on a contract object. Contract
 operations are parameterized to interact with a specific contract
 object with defaults for enclave service and ledger
-connections. Contract commands provide a logical operation that spans
+connections.
+
+* *contract commands* : Contract commands provide a logical operation that spans
 multiple invocations (possibly across multiple contract
-objects). Scripts simply provide a useful local function (such as
+objects).
+
+* *scripts* : Scripts simply provide a useful local function (such as
 updating the current configuration). The PDO client library includes a
 basic set of scripts that should be sufficient for most uses.
 
@@ -51,7 +56,7 @@ that sets up the invocation of the method on `kv-test` contract
 objects.
 
 The contract command portion of the plugin defines a set of commands
-that span multiple operations, dervied from the
+that span multiple operations, derived from the
 `contract_command_base` class. For example, provisioning a
 `token_issuer` contract object requires two operations to be performed
 (`add_endpoint` and `provision_token_issuer`). The `provision` command
@@ -84,7 +89,7 @@ the configuration of a contract object and its relationship to other
 contract objects. Scripts, take no additional parameters beyond the
 `State`.
 
-Functionality defined in the pluging can be mapped to a `pdo-shell`
+Functionality defined in the plugin can be mapped to a `pdo-shell`
 command by defining an entry point and binding it to a command
 attribute in the shell class. Each type of operation (contract
 operations, contract commands and scripts) has a class-specific
@@ -93,6 +98,10 @@ generator that creates a function for the shell,
 `pdo-shell` using `bind_shell_command`.
 
 ## Base Classes ##
+
+The base classes are primarily used to define consistent interfaces
+across the different types of objects. The base classes also provide
+a common set of display functions.
 
 ### State ###
 
@@ -138,9 +147,10 @@ configuration file.
 
 ### SessionParameters ###
 
-Captures the parameters for interacting with a specific contract. This
-includes information about the contract (the contract save file) and
-the preferred eservice for interacting with the contract.
+Captures the parameters for interacting with a specific contract
+instance. This includes information about the contract (the contract
+save file) and the preferred eservice for interacting with the
+contract.
 
 Properties include:
 * `eservice_url` -- Enclave service to use for all operations
