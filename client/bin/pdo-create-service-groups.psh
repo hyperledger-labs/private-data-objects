@@ -17,12 +17,13 @@
 ## load the eservice and pservice groups for the specified service host
 set --conditional -s service_host -v localhost
 set --conditional -s group_file -v ${home}/etc/${service_host}_groups.toml
-set --conditional -s dbfile --state Service EnclaveServiceDatabaseFile
 
 if --null "${data}"
    echo data macro must be defined
    exit
 fi
+
+echo create groups for ${service_host} in ${group_file}
 
 ## -----------------------------------------------------------------
 ## Set the default set of eservices that this file knows
