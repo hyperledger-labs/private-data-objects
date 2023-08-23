@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import json
+import toml
 
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
+import pdo.common.config as pconfig
 import pdo.common.utility as putils
 from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 
@@ -276,8 +278,9 @@ class script_command_import(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, filename, **kwargs) :
-        data_file = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc/']))
-        service_data.local_service_manager.import_service_information(data_file)
+        filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc/']))
+        services = pconfig.parse_configuration_file(filename, bindings)
+        service_data.local_service_manager.import_service_information(services)
         return True
 
 ## -----------------------------------------------------------------
@@ -295,7 +298,10 @@ class script_command_export(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, filename, **kwargs) :
-        service_data.local_service_manager.export_service_information(filename)
+        services = service_data.local_service_manager.export_service_information()
+        with open(filename, "w") as sf :
+            toml.dump(services, sf)
+
         return True
 
 ## -----------------------------------------------------------------

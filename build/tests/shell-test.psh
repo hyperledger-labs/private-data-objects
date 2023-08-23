@@ -16,76 +16,79 @@
 
 set --conditional -s data -v .
 set --conditional -s save -v .
+set --conditional -s service_host -v ${host}
 
 if --null "${tmpfile}"
    echo must specify tmpfile for test
    exit -v -1
 fi
 
+## echo running tests on ${service_host}
+
 ## create an eservice db with the known enclave services
 service_db clear
-service_db add --url http://${host}:7101 --name es7101 --type eservice
-service_db add --url http://${host}:7102 --name es7102 --type eservice
-service_db add --url http://${host}:7103 --name es7103 --type eservice
-service_db add --url http://${host}:7104 --name es7104 --type eservice
-service_db add --url http://${host}:7105 --name es7105 --type eservice
+service_db add --url http://${service_host}:7101 --name es7101 --type eservice
+service_db add --url http://${service_host}:7102 --name es7102 --type eservice
+service_db add --url http://${service_host}:7103 --name es7103 --type eservice
+service_db add --url http://${service_host}:7104 --name es7104 --type eservice
+service_db add --url http://${service_host}:7105 --name es7105 --type eservice
 
 ## default pservice group
-pservice add --url http://${host}:7001
-pservice add --url http://${host}:7002
-pservice add --url http://${host}:7003
+pservice add --url http://${service_host}:7001
+pservice add --url http://${service_host}:7002
+pservice add --url http://${service_host}:7003
 
 ## pservice group p1
-pservice add --group p1 --url http://${host}:7003
-pservice add --group p1 --url http://${host}:7004
-pservice add --group p1 --url http://${host}:7005
+pservice add --group p1 --url http://${service_host}:7003
+pservice add --group p1 --url http://${service_host}:7004
+pservice add --group p1 --url http://${service_host}:7005
 
 ## pservice group all
-pservice add --group all --url http://${host}:7001
-pservice add --group all --url http://${host}:7002
-pservice add --group all --url http://${host}:7003
-pservice add --group all --url http://${host}:7004
-pservice add --group all --url http://${host}:7005
+pservice add --group all --url http://${service_host}:7001
+pservice add --group all --url http://${service_host}:7002
+pservice add --group all --url http://${service_host}:7003
+pservice add --group all --url http://${service_host}:7004
+pservice add --group all --url http://${service_host}:7005
 
 ## default eservice group
-eservice add --url http://${host}:7101
-eservice add --url http://${host}:7102
-eservice add --url http://${host}:7103
+eservice add --url http://${service_host}:7101
+eservice add --url http://${service_host}:7102
+eservice add --url http://${service_host}:7103
 
 ## eservice group e1
 eservice add --group e1 --name es7103 es7104 es7105
-eservice use --group e1 --url http://${host}:7105
+eservice use --group e1 --url http://${service_host}:7105
 
 ## eservice group all
-eservice add --group all --url http://${host}:7101
-eservice add --group all --url http://${host}:7102 http://${host}:7103 --name es7104 es7105
+eservice add --group all --url http://${service_host}:7101
+eservice add --group all --url http://${service_host}:7102 http://${service_host}:7103 --name es7104 es7105
 eservice use --group all --name es7104
 
 ## default sservice group
-set -s persistent_storage_service -v http://${host}:7201
+set -s persistent_storage_service -v http://${service_host}:7201
 
-sservice add --url http://${host}:7201
-sservice add --url http://${host}:7202
-sservice add --url http://${host}:7203
+sservice add --url http://${service_host}:7201
+sservice add --url http://${service_host}:7202
+sservice add --url http://${service_host}:7203
 sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s1
-sservice add --group s1 --url http://${host}:7203
-sservice add --group s1 --url http://${host}:7204
-sservice add --group s1 --url http://${host}:7205
+sservice add --group s1 --url http://${service_host}:7203
+sservice add --group s1 --url http://${service_host}:7204
+sservice add --group s1 --url http://${service_host}:7205
 sservice set --group s1 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
 
 ## sservice group s2
-sservice add --group s2 --url http://${host}:7201
-sservice add --group s2 --url http://${host}:7202
+sservice add --group s2 --url http://${service_host}:7201
+sservice add --group s2 --url http://${service_host}:7202
 sservice set --group s2 --duration 120 --replicas 1 --persistent ${persistent_storage_service}
 
 ## all sservices
-sservice add --group all --url http://${host}:7201
-sservice add --group all --url http://${host}:7202
-sservice add --group all --url http://${host}:7203
-sservice add --group all --url http://${host}:7204
-sservice add --group all --url http://${host}:7205
+sservice add --group all --url http://${service_host}:7201
+sservice add --group all --url http://${service_host}:7202
+sservice add --group all --url http://${service_host}:7203
+sservice add --group all --url http://${service_host}:7204
+sservice add --group all --url http://${service_host}:7205
 sservice set --group all --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
 
 ## create some contracts
@@ -108,8 +111,8 @@ fi
 
 identity -n user2
 contract create -c mock-contract --source _mock-contract -r all -p all -e all -f ${save}/${contract2}.pdo
-contract send -f ${save}/${contract2}.pdo --wait inc_value -e http://${host}:7101
-contract send -f ${save}/${contract2}.pdo --wait inc_value -e http://${host}:7102
+contract send -f ${save}/${contract2}.pdo --wait inc_value -e http://${service_host}:7101
+contract send -f ${save}/${contract2}.pdo --wait inc_value -e http://${service_host}:7102
 contract send -f ${save}/${contract2}.pdo --wait inc_value -e random
 contract send -f ${save}/${contract2}.pdo --wait inc_value -e random
 contract send -f ${save}/${contract2}.pdo get_value -s value
@@ -157,7 +160,7 @@ fi
 service_groups save --file ${tmpfile}
 
 ## create a new group that should be overwritten by a no-merge load
-sservice add --group group_test --url http://${host}:7201
+sservice add --group group_test --url http://${service_host}:7201
 sservice set --group group_test --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
 
 service_groups load --file ${tmpfile} --no-merge
@@ -177,7 +180,7 @@ if --null "${_group_test_sym_}"
 fi
 
 ## create a new group that should be available after a merge load
-sservice add --group group_test --url http://${host}:7201
+sservice add --group group_test --url http://${service_host}:7201
 sservice set --group group_test --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
 
 service_groups load --file ${tmpfile} --merge
