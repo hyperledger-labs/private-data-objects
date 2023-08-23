@@ -19,9 +19,6 @@ from functools import lru_cache
 import json
 import lmdb
 import os
-import random
-import string
-import toml
 
 import pdo.common.config as pconfig
 import pdo.common.logger as plogger
@@ -529,9 +526,9 @@ class ServiceDatabaseManager(object) :
         return service_info
 
     # -----------------------------------------------------------------
-    def import_service_information(self, filename) :
-        with open(filename, "r") as sf :
-            services = toml.load(sf)
+    def import_service_information(self, services) :
+        """Bulk add of services to the database
+        """
 
         service_file_keys = [
             ('eservice', 'EnclaveService'),
@@ -566,7 +563,10 @@ class ServiceDatabaseManager(object) :
                     service_identity=service_identity)
 
     # -----------------------------------------------------------------
-    def export_service_information(self, filename) :
+    def export_service_information(self) :
+        """Bulk dump of all services from the database
+        """
+
         service_file_keys = [
             ('eservice', 'EnclaveService'),
             ('pservice', 'ProvisioningService'),
@@ -584,5 +584,4 @@ class ServiceDatabaseManager(object) :
 
                 services[service_class].append(export_service_info)
 
-        with open(filename, "w") as sf :
-            toml.dump(services, sf)
+        return services

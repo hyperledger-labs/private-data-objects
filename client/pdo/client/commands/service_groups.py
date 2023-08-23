@@ -19,6 +19,7 @@ import toml
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.common.utility as putils
+import pdo.common.config as pconfig
 
 import logging
 logger = logging.getLogger(__name__)
@@ -64,8 +65,7 @@ class script_command_load(pscript.script_command_base) :
     def invoke(cls, state, bindings, filename, merge=True, **kwargs) :
         try :
             filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc']))
-            with open(filename, "r") as infile:
-                info = toml.load(infile)
+            info = pconfig.parse_configuration_file(filename, bindings)
 
             psgroups = info.get('ProvisioningServiceGroups', {})
             ssgroups = info.get('StorageServiceGroups', {})
