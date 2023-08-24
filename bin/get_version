@@ -14,67 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import subprocess
 import sys
+import warnings
 
-top_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+count = 0
+commit = ''
+dirty = ''
 
-version_file = top_dir + "/VERSION"
-
-with open(version_file, 'r') as f:
-    version_data = f.read().strip()
-
-
-def bump_version(version):
-    (major, minor, patch) = version.split('.')
-    if 'rc' in patch:
-        parts = patch.split('rc')
-        parts[1] = str(int(parts[1]) + 1)
-        patch = "rc".join(parts)
-    else:
-        patch = str(int(patch) + 1)
-    return ".".join([major, minor, patch])
-
-
-def auto_version(default, strict):
+try :
     output = subprocess.check_output(['git', 'describe', '--dirty'])
-    parts = output.decode('utf-8').strip().split('-', 3)
-    parts[0] = parts[0][1:]  # strip the leading 'v'
-    if len(parts) > 1:
-        parts[0] = bump_version(parts[0])
-    if default != parts[0]:
-        msg = "VERSION file and (bumped?) git describe versions differ: " \
-              "{} != {}".format(default, parts[0])
-        if strict:
-            print("ERROR: " + msg, file=sys.stderr)
-            sys.exit(1)
-        else:
-            print("WARNING: " + msg, file=sys.stderr)
-            print("WARNING: using setup.py version {}".format(
-                  default), file=sys.stderr)
-            parts[0] = default
+    (version, *rest) = output.decode('utf-8').strip().split('-')
+    (major, minor, patch) = version.strip('v').split('.')
 
-    if len(parts) > 1:
-        parts[0] = ".dev".join([parts[0], parts[1].replace("-", ".")])
-        if len(parts) == 4:
-            parts[0] = parts[0] + "-" + parts[3]
-        return parts[0]
-    else:
-        return parts[0]
+    # first case: this is a dirty tagged release, only dirty flag
+    if len(rest) == 1 :
+        assert rest[0] == 'dirty'
+        dirty = 'dirty'
+    # second case: this is a committed post tag release
+    elif len(rest) == 2 :
+        count = rest[0]
+        commit = rest[1]
+    # third case: this is a dirty, committed post tag release
+    elif len(rest) == 3 :
+        assert rest[2] == 'dirty'
+        count = rest[0]
+        commit = rest[1]
+        dirty = rest[2]
 
-
-def version(default):
-    if 'VERSION' in os.environ:
-        if os.environ['VERSION'] == 'AUTO_STRICT':
-            version = auto_version(default, strict=True)
-        elif os.environ['VERSION'] == 'AUTO':
-            version = auto_version(default, strict=False)
-        else:
-            version = os.environ['VERSION']
-    else:
-        version = default + ".dev1"
-    return version
-
-
-print(version(version_data))
+    print('{}.{}.{}'.format(major, minor, count))
+except Exception as e :
+    warnings.warn('failed to compute version, using default')
+    print('0.0.0')
