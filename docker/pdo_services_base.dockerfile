@@ -19,9 +19,9 @@ FROM pdo_base
 ARG UBUNTU_VERSION=20.04
 ARG UBUNTU_NAME=focal
 
-ARG SGX=2.15.1
-ARG OPENSSL=1.1.1g
-ARG SGXSSL=2.10_1.1.1g
+ARG SGX=2.21
+ARG OPENSSL=3.0.10
+ARG SGXSSL=3.0-rc2
 
 ARG SGX_MODE SIM
 ENV SGX_MODE $SGX_MODE
@@ -77,10 +77,10 @@ ENV PATH="/opt/intel/sgxsdk.extras/external/toolset/ubuntu${UBUNTU_VERSION}:${PA
 # -----------------------------------------------------------------
 WORKDIR /tmp
 RUN . /opt/intel/sgxsdk/environment \
-    && git clone --depth 1 --branch lin_${SGXSSL} 'https://github.com/intel/intel-sgx-ssl.git' \
+    && git clone --depth 1 --branch ${SGXSSL} 'https://github.com/intel/intel-sgx-ssl.git' \
     && wget -q -P /tmp/intel-sgx-ssl/openssl_source https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz \
     && cd /tmp/intel-sgx-ssl/Linux \
-    && bash -c "make SGX_MODE=SIM DESTDIR=/opt/intel/sgxssl VERBOSE=0 all &> /dev/null" \
+    && bash -c "make SGX_MODE=SIM NO_THREADS=1 DESTDIR=/opt/intel/sgxssl VERBOSE=0 all &> /dev/null" \
     && make install \
     && make clean \
     && rm -rf /tmp/intel-sgx-ssl
