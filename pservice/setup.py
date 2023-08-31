@@ -137,12 +137,6 @@ setup(name='pdo_pservice',
       url = 'http://www.intel.com',
       packages = find_packages(exclude='./pservice'),
       namespace_packages=['pdo'],
-      install_requires = [
-          'colorlog',
-          'requests',
-          'toml',
-          'twisted'
-          ],
       ext_modules = [
           enclave_module
       ],
