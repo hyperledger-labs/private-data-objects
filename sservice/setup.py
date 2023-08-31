@@ -58,13 +58,6 @@ setup(name='pdo_sservice',
       url = 'http://www.intel.com',
       packages = find_packages(),
       namespace_packages=['pdo'],
-      install_requires = [
-          'colorlog',
-          'lmdb',
-          'requests',
-          'toml',
-          'twisted'
-          ],
       ext_modules = [],
       data_files = data_files,
       entry_points = {
