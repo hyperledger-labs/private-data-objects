@@ -45,7 +45,7 @@ DOCKER_BUILDARGS += --build-arg PDO_HOSTNAME=$(PDO_HOSTNAME)
 DOCKER_BUILDARGS += --build-arg PDO_LEDGER_URL=$(PDO_LEDGER_URL)
 DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
 DOCKER_BUILDARGS += --build-arg GID=$(PDO_GROUP_UID)
-DOCKER_ARGS = --progress=plain $(DOCKER_BUILDARGS)
+DOCKER_ARGS = $(DOCKER_BUILDARGS)
 
 IMAGES=base client services_base services ccf_base ccf
 

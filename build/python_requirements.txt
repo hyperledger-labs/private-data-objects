@@ -14,3 +14,4 @@ Twisted>=22.10.0
 urllib3>=1.26.14
 ccf==1.0.19
 colorama>=0.4.6
+zope.interface>=6.0
