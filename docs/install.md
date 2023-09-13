@@ -137,7 +137,7 @@ the DCAP SGX kernel driver:
 
 ```bash
 UBUNTU_VERS=20.04
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server/
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.21/distro/ubuntu${UBUNTU_VERS}-server
 DRIVER_FILE=sgx_linux_x64_driver_1.41.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
@@ -159,8 +159,8 @@ The following commands will download and install the SDK driver version
 2.11 of the SGX kernel driver:
 ```bash
 UBUNTU_VERS=20.04
-DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu${UBUNTU_VERS}-server
-DRIVER_FILE=sgx_linux_x64_driver_2.11.0_2d2b795.bin
+DRIVER_REPO=https://download.01.org/intel-sgx/sgx-linux/2.21/distro/ubuntu${UBUNTU_VERS}-server
+DRIVER_FILE=sgx_linux_x64_driver_2.11.54c9c4c.bin
 
 wget ${DRIVER_REPO}/${DRIVER_FILE} -P /tmp
 chmod a+x /tmp/${DRIVER_FILE}
