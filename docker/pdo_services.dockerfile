@@ -14,7 +14,8 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-FROM pdo_services_base
+ARG PDO_VERSION
+FROM pdo_services_base:${PDO_VERSION}
 
 # -----------------------------------------------------------------
 # set up the PDO sources
