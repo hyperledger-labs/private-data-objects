@@ -49,7 +49,7 @@ class Bindings(object) :
 
     # --------------------------------------------------
     def get(self, key, default_value=None) :
-        self.__bindings__.get(key, default_value)
+        return self.__bindings__.get(key, default_value)
 
     def __getitem__(self, key):
         return self.__bindings__[key]
@@ -73,9 +73,5 @@ class Bindings(object) :
 
     # --------------------------------------------------
     def expand(self, argstring) :
-        try :
-            template = Template(argstring)
-            return template.substitute(self.__bindings__)
-
-        except KeyError as ke :
-            raise Exception('missing index variable {0}'.format(ke))
+        template = Template(argstring)
+        return template.safe_substitute(self.__bindings__)
