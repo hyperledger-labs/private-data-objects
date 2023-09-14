@@ -273,14 +273,18 @@ class script_command_import(pscript.script_command_base) :
         subparser.add_argument(
             '--file',
             help='Name of the toml file to import',
-            dest='filename',
+            dest='filenames',
+            nargs='+',
             type=str, required=True),
 
     @classmethod
-    def invoke(cls, state, bindings, filename, **kwargs) :
-        filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc/']))
-        services = pconfig.parse_configuration_file(filename, bindings)
-        service_data.local_service_manager.import_service_information(services)
+    def invoke(cls, state, bindings, filenames, **kwargs) :
+        search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
+        for filename in filenames :
+            filename = putils.find_file_in_path(filename, search_path)
+            services = pconfig.parse_configuration_file(filename, bindings)
+            service_data.local_service_manager.import_service_information(services)
+
         return True
 
 ## -----------------------------------------------------------------

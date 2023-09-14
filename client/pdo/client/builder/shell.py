@@ -125,8 +125,14 @@ def initialize_environment(options) :
     if options.service_db:
         state.set(['Service', 'ServiceDatabaseFile'], options.service_db)
 
+    # importing a service group file will override earlier values, so we
+    # just add to the list of groups that have already been specified rather
+    # than simply replace it; note that these files will have bindings
+    # expanded and will be applied as glob expansions
     if options.service_groups :
-        state.set(['Service', 'ServiceGroupFiles'], options.service_groups)
+        groupfiles = state.get(['Service', 'ServiceGroupFiles'], [])
+        groupfiles += options.service_groups
+        state.set(['Service', 'ServiceGroupFiles'], groupfiles)
 
     # set up the data paths
     if options.data_dir :
@@ -141,10 +147,11 @@ def initialize_environment(options) :
     # file doesn't load, but we do want to give an error message
     try :
         groupfiles = state.get(['Service', 'ServiceGroupFiles'], [])
-        groupfiles = list(map(lambda f : os.path.realpath(bindings.expand(f)), groupfiles))
-        for groupfile in groupfiles :
-            if not pgroups.script_command_load.invoke(state, bindings, groupfile) :
-                return None
+        groupfiles = list(map(lambda f : bindings.expand(f), groupfiles))
+        groupfiles = map(lambda f : os.path.realpath(f), functools.reduce(lambda x, f : x + glob.glob(f), groupfiles, []))
+        groupfiles = list(groupfiles)
+        if not pgroups.script_command_load.invoke(state, bindings, groupfiles) :
+            return None
     except Exception as e :
         # log a warning but continue to run
         logger.warning('Failed to load service group files; {}'.format(e))
@@ -164,7 +171,7 @@ def parse_shell_command_line(args) :
     parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
 
     # add to the configuration files that will be loaded
-    parser.add_argument('--config', help='full path name of additional configuration files', nargs = '+', default=[])
+    parser.add_argument('--config', help='Full path name of additional configuration files', nargs = '+', default=[])
 
     # override specific values in the configuration files
     parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
@@ -175,10 +182,10 @@ def parse_shell_command_line(args) :
     parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
-    parser.add_argument('--service-db', help='full path to the service database file', type=str)
-    parser.add_argument('--service-groups', help='full path name for service group specification', nargs='+', type=str)
+    parser.add_argument('--service-db', help='Full path to the service database file', type=str)
+    parser.add_argument('--service-groups', help='Full path name for additional service group files', nargs='+', type=str)
 
-    parser.add_argument('--client-identity', help='Name of the user key file', type=str)
+    parser.add_argument('--client-identity', help='Name of the user', type=str)
     parser.add_argument('--client-key-file', help='Name of the user key file', type=str)
 
     # set common runtime variables
