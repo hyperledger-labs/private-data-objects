@@ -47,8 +47,9 @@ class script_command_load(pscript.script_command_base) :
         subparser.add_argument(
             '-f', '--file',
             help="Name of the file from where the groups will be loaded, destructive",
-            dest='filename',
+            dest='filenames',
             required=True,
+            nargs='+',
             type=str)
         subparser.add_argument(
             '--merge',
@@ -62,10 +63,10 @@ class script_command_load(pscript.script_command_base) :
             action='store_false')
 
     @classmethod
-    def invoke(cls, state, bindings, filename, merge=True, **kwargs) :
+    def invoke(cls, state, bindings, filenames, merge=True, **kwargs) :
         try :
-            filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc']))
-            info = pconfig.parse_configuration_file(filename, bindings)
+            search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
+            info = pconfig.parse_configuration_files(filenames, search_path, bindings)
 
             psgroups = info.get('ProvisioningServiceGroups', {})
             ssgroups = info.get('StorageServiceGroups', {})

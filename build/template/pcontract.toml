@@ -35,6 +35,9 @@ CertificateFile = "${ledger_key_root}/networkcert.pem"
 # --------------------------------------------------
 [Service]
 ServiceDatabaseFile = "${data}/service_db.mdb"
+ServiceGroupFiles = [
+    "${etc}/$${service_host}_groups.toml"
+]
 
 # --------------------------------------------------
 # StorageService -- information about KV block stores
@@ -72,13 +75,3 @@ LogFile  = "__screen__"
 # This key is the contract owner's private elliptic curve PEM key
 SearchPath = [ ".", "./keys", "${keys}" ]
 FileName = "${identity}_private.pem"
-
-# --------------------------------------------------
-# Bindings -- macro expansions for pdo-shell
-# --------------------------------------------------
-[Bindings]
-data = "${data}"
-save = "${data}/__contract_cache__"
-home = "${home}"
-base = "${base}"
-identity = "${identity}"
