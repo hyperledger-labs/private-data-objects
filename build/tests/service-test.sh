@@ -66,6 +66,15 @@ function cleanup {
 
 trap cleanup EXIT
 
+_COMMON_=("--logfile __screen__" "--loglevel ${F_LOGLEVEL}")
+LOCAL_OPTS=${_COMMON_[@]}
+
+_COMMON_+=("--ledger ${F_LEDGER_URL}")
+NETWORK_OPTS=${_COMMON_[@]}
+
+_COMMON_+=("--bind service_host ${F_SERVICE_HOST}")
+PSHELL_OPTS=${_COMMON_[@]}
+
 # -----------------------------------------------------------------
 say verify that services are running
 # -----------------------------------------------------------------
@@ -95,28 +104,27 @@ done
 say run unit tests for eservice database
 # -----------------------------------------------------------------
 try ${PDO_SOURCE_ROOT}/build/tests/service-storage-test.psh \
-    --loglevel ${F_LOGLEVEL} \
-    --ledger ${F_LEDGER_URL} \
-    --service_host ${F_SERVICE_HOST} \
-    --tmpfile ${ESDB_FILE}
+    ${PSHELL_OPTS} \
+    --bind tmpfile ${ESDB_FILE}
 
 say create the eservice database using database CLI
-try pdo-service-db --loglevel ${F_LOGLEVEL} clear
-try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7101 --name es7101 --type eservice
-try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7102 --name es7102 --type eservice
-try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7103 --name es7103 --type eservice
-try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7104 --name es7104 --type eservice
-try pdo-service-db --loglevel ${F_LOGLEVEL} add --url http://${F_SERVICE_HOST}:7105 --name es7105 --type eservice
+try pdo-service-db clear ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7101 --name es7101 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7102 --name es7102 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7103 --name es7103 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7104 --name es7104 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7105 --name es7105 --type eservice ${PSHELL_OPTS}
 
 # -----------------------------------------------------------------
 say start storage service test
 #  ----------------------------------------------------------------
-try pdo-test-storage --url http://${F_SERVICE_HOST}:7201 --loglevel ${F_LOGLEVEL} --logfile __screen__
+try pdo-test-storage ${LOCAL_OPTS} --url http://${F_SERVICE_HOST}:7201
 
 # -----------------------------------------------------------------
 say start request test
 # -----------------------------------------------------------------
 try pdo-test-request \
+    ${NETWORK_OPTS} \
     --config pcontract.toml \
     --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
     --eservice-url http://${F_SERVICE_HOST}:7101/ \
@@ -128,6 +136,7 @@ for test_file in ${PDO_SOURCE_ROOT}/build/tests/common/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start test ${test_contract} with services
     try pdo-test-contract \
+        ${NETWORK_OPTS} \
         --config pcontract.toml \
         --contract ${test_contract} --expressions ${test_file} \
         --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
@@ -145,6 +154,7 @@ for test_file in ${PDO_SOURCE_ROOT}/build/tests/${INTERPRETER_NAME}/*.json ; do
     test_contract=$(basename ${test_file} .json)
     say start interpreter-specific test ${test_contract} with services
     try pdo-test-contract \
+        ${NETWORK_OPTS} \
         --config pcontract.toml \
         --contract ${test_contract} --expressions ${test_file} \
         --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
@@ -171,21 +181,22 @@ if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi
 try ${PDO_HOME}/bin/pdo-create.psh \
-    --service_host ${F_SERVICE_HOST} \
-    --loglevel ${F_LOGLEVEL} --logfile __screen__ \
+    ${PSHELL_OPTS} \
     --identity user1 --psgroup all --esgroup all --ssgroup all \
     --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 
 say invalid method, this should fail
 ${PDO_HOME}/bin/pdo-invoke.psh \
-           --service_host ${F_SERVICE_HOST} --identity user1 --pdo_file ${SAVE_FILE} --method no-such-method
+    ${PSHELL_OPTS} \
+    --identity user1 --pdo_file ${SAVE_FILE} --method no-such-method
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
 say policy violation with identity, this should fail
 ${PDO_HOME}/bin/pdo-invoke.psh \
-           --service_host ${F_SERVICE_HOST} --identity user2 --pdo_file ${SAVE_FILE} --method get_value
+    ${PSHELL_OPTS} \
+    --identity user2 --pdo_file ${SAVE_FILE} --method get_value
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
@@ -193,9 +204,9 @@ fi
 # -----------------------------------------------------------------
 yell test pdo-shell
 # -----------------------------------------------------------------
-try ${PDO_SOURCE_ROOT}/build/tests/shell-test.psh --loglevel ${F_LOGLEVEL} \
-    -m host ${F_SERVICE_HOST} \
-    -m tmpfile ${GROUPS_FILE}
+try ${PDO_SOURCE_ROOT}/build/tests/shell-test.psh \
+    ${PSHELL_OPTS} \
+    --bind tmpfile ${GROUPS_FILE}
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -218,6 +229,7 @@ yell run tests for state replication
 say start mock-contract test with replication 3 eservices 2 replicas needed before txn.
 
 try pdo-test-request \
+    ${NETWORK_OPTS} \
     --config pcontract.toml \
     --pservice http://${F_SERVICE_HOST}:7001/ http://${F_SERVICE_HOST}:7002 http://${F_SERVICE_HOST}:7003 \
     --eservice-url http://${F_SERVICE_HOST}:7101/ http://${F_SERVICE_HOST}:7102/ http://${F_SERVICE_HOST}:7103/ \
