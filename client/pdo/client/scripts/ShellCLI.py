@@ -21,25 +21,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pdo.client.controller.contract_controller import ContractController
-import pdo.common.utility as putils
-import pdo.common.config as pconfig
-from pdo.contract.response import ContractResponse
-import pdo.common.block_store_manager as pblocks
+import pdo.client.builder.shell as pshell
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def LocalMain(config) :
+def LocalMain(state, bindings, script_file=None) :
     # if there is a script file, process it; the interactive
     # shell will start unless there is an explicit exit in the script
-    script_file = config.get("ScriptFile")
     if script_file :
-        shell = ContractController.CreateController(config, echo=False, interactive=False)
+        shell = ContractController(state, bindings, echo=False, interactive=False)
 
         logger.debug("Processing script file %s", str(script_file))
         exit_code = ContractController.ProcessScript(shell, script_file)
         sys.exit(exit_code)
 
-    shell = ContractController.CreateController(config, echo=True, interactive=True)
+    shell = ContractController(state, bindings, echo=True, interactive=True)
     shell.cmdloop()
     print("")
 
@@ -51,149 +47,28 @@ def LocalMain(config) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def Main() :
-    import pdo.common.config as pconfig
-    import pdo.common.logger as plogger
-
-    config_map = pconfig.build_configuration_map()
-    config_map['base'] = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-
-    # parse out the configuration file first
-    conffiles = [ 'pcontract.toml' ]
-    confpaths = [ ".", "./etc", config_map['etc'] ]
-
-    parser = argparse.ArgumentParser(allow_abbrev=False)
-
-    parser.add_argument('--config', help='configuration file', nargs = '+')
-    parser.add_argument('--config-dir', help='directories to search for the configuration file', nargs = '+')
-
-    parser.add_argument('-i', '--identity', help='Identity to use for the process', type=str)
-
-    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
-    parser.add_argument('--loglevel', help='Logging level', type=str)
-
-    parser.add_argument('--ledger', help='URL for the ledger', type=str)
-
-    parser.add_argument('--data-dir', help='Directory for storing generated files', type=str)
-    parser.add_argument('--source-dir', help='Directories to search for contract source', nargs='+', type=str)
-    parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
-
-    parser.add_argument('--service-db', help='json file for eservice database', type=str)
-
-    parser.add_argument('-m', '--mapvar', help='Define variables for script use', nargs=2, action='append')
-
-    options, script = parser.parse_known_args()
-
-    # first process the options necessary to load the default configuration
-    if options.config :
-        conffiles = options.config
-
-    if options.config_dir :
-        confpaths = options.config_dir
-
-    config_map['identity'] = '__unknown__'
-    if options.identity :
-        config_map['identity'] = options.identity
-    if options.data_dir :
-        config_map['data'] = options.data_dir
-        ContractData = options.data_dir
-
-    try :
-        config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
-    except pconfig.ConfigurationException as e :
-        logger.error(str(e))
+    environment = pshell.parse_shell_command_line(sys.argv[1:])
+    if environment is None :
         sys.exit(-1)
 
-    # set up the client config
-    if config.get('Client') is None :
-        config['Client'] = {
-            'Identity' : config_map['identity'],
-            'SearchPath' : confpaths,
-        }
-    if options.config_dir :
-        config['Client']['SearchPath'] = confpaths
+    (state, bindings, args) = environment
 
-    # set up the logging configuration
-    if config.get('Logging') is None :
-        config['Logging'] = {
-            'LogFile' : '__screen__',
-            'LogLevel' : 'WARN'
-        }
-    if options.logfile :
-        config['Logging']['LogFile'] = options.logfile
-    if options.loglevel :
-        config['Logging']['LogLevel'] = options.loglevel.upper()
+    script_file = None
+    if args :
+        script_file = args.pop(0)
 
-    plogger.setup_loggers(config.get('Logging', {}))
-
-    # set up the ledger configuration
-    if config.get('Ledger') is None :
-        config['Ledger'] = {
-            'LedgerURL' : 'http://localhost:6600',
-        }
-    if options.ledger :
-        config['Ledger']['LedgerURL'] = options.ledger
-
-    # set up the key search paths
-    if config.get('Key') is None :
-        config['Key'] = {
-            'SearchPath' : ['.', './keys', ContractKeys],
-            'FileName' : options.identity + ".pem"
-        }
-    if options.key_dir :
-        config['Key']['SearchPath'] = options.key_dir
-
-   # set up the service configuration
-    if config.get('Service') is None :
-        config['Service'] = {
-            'ServiceDatabaseFile' : os.path.join(ContractData, 'service_db.mdb')
-        }
-
-    if options.service_db:
-        config['Service']['ServiceDatabaseFile'] = options.service_db
-
-    # set up the data paths
-    if config.get('Contract') is None :
-        config['Contract'] = {
-            'DataDirectory' : ContractData,
-            'BlockStore' : os.path.join(ContractData, "local_cache.mdb"),
-            'SourceSearchPath' : [ ".", "./contract", os.path.join(ContractHome,'contracts') ]
-        }
-
-    if options.data_dir :
-        config['Contract']['DataDirectory'] = options.data_dir
-    if options.source_dir :
-        config['Contract']['SourceSearchPath'] = options.source_dir
-
-    if config['Contract'].get('BlockStore') is None :
-        config['Contract']['BlockStore'] = os.path.join(config['Contract']['DataDirectory'], "local_cache.mdb"),
-
-    # make the configuration available to all of the PDO modules
-    pconfig.initialize_shared_configuration(config)
-
-    if script :
-        config["ScriptFile"] = script.pop(0)
-
-        varmap = config.get("Bindings", {})
-        while script :
+        while args :
             try :
-                key = script.pop(0)
-                val = script.pop(0)
+                key = args.pop(0).strip('-')
+                val = args.pop(0)
             except ValueError :
                 logger.error('unable to process script arguments')
                 sys.exit(1)
 
-            key = key.lstrip('-')
-            varmap[key] = val
-        config["Bindings"] = varmap
-
-    # this sets the initial bindings available in the script
-    if options.mapvar :
-        varmap = config.get("Bindings", {})
-        for (k, v) in options.mapvar : varmap[k] = v
-        config["Bindings"] = varmap
+            bindings.bind(key, val)
 
     # GO!
-    LocalMain(config)
+    LocalMain(state, bindings, script_file)
 
 ## -----------------------------------------------------------------
 ## Entry points
