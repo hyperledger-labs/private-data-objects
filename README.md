@@ -38,6 +38,8 @@ to scale with available hardware. Because PDO contract execution occurs off
 the blockchain, redundancy is limited to the applications requirements rather
 than the entire blockchain, providing fewer potential targets for compromise.
 
+Please see the [PDO Contracts](https://github.com/hyperledger-labs/pdo-contracts) open-source repository for sample smart contracts developed using the Private Data Objects framework. Our examples cover  smart contracts for  managing fungible and non-fungible assets, contracts that can be used to set up a fair exchange of assets among multiple parties, etc. Please use these sample contracts as guide to develop your own PDO smart contracts. We encourage you to share your use-cases including solution approaches to the [PDO Contracts](https://github.com/hyperledger-labs/pdo-contracts) repository.
+
 Documentation
 -------------
 
