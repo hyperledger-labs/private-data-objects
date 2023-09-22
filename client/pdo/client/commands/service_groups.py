@@ -28,6 +28,7 @@ __all__ = [
     'script_command_load',
     'script_command_save',
     'script_command_list',
+    'script_command_clear',
     'do_service_groups',
     'load_commands',
 ]
@@ -150,12 +151,27 @@ class script_command_list(pscript.script_command_base) :
         return True
 
 ## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_clear(pscript.script_command_base) :
+    name = "clear"
+    help = "Clear all information in the service groups database"
+
+    @classmethod
+    def invoke(cls, state, bindings, **kwargs) :
+        state.set(['Service', 'ProvisioningServiceGroups'], {})
+        state.set(['Service', 'StorageServiceGroups'], {})
+        state.set(['Service', 'EnclaveServiceGroups'], {})
+
+        return True
+
+## -----------------------------------------------------------------
 ## Create the generic, shell independent version of the aggregate command
 ## -----------------------------------------------------------------
 __subcommands__ = [
     script_command_load,
     script_command_save,
-    script_command_list
+    script_command_list,
+    script_command_clear,
 ]
 do_service_groups = pscript.create_shell_command('service_groups', __subcommands__)
 

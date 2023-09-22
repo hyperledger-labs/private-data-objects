@@ -25,6 +25,9 @@ fi
 
 echo create groups for ${service_host} in ${group_file}
 
+## Remove any groups previously defined
+service_groups clear
+
 ## -----------------------------------------------------------------
 ## Set the default set of eservices that this file knows
 ## about. There may be more that have been added to the
