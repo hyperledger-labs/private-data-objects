@@ -38,11 +38,12 @@ def _copy_to_destination_(source_path, destination_path) :
         return
 
     dp = pathlib.Path(destination_path)
-    dp.mkdir(exist_ok=True)
+    dp.mkdir(parents=True, exist_ok=True)
 
     for f in source_path.iterdir() :
         logger.info('copy plugin resource {} to {}'.format(f.name, destination_path))
         dp.joinpath(f.name).write_bytes(f.read_bytes())
+        dp.joinpath(f.name).chmod(f.stat().st_mode)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -61,6 +62,7 @@ def install_plugin_resources() :
     created through the standard configuration modules. destinations can be overridden
     with the '--bind' arguments.
     """
+
     (state, bindings, args) = pshell.parse_shell_command_line(sys.argv[1:])
 
     parser = argparse.ArgumentParser()
