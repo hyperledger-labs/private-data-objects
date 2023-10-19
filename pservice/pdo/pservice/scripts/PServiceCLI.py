@@ -429,6 +429,8 @@ def Main() :
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
+
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
@@ -455,6 +457,11 @@ def Main() :
 
     config_map['identity'] = options.identity
 
+    # set up the configuration mapping from the parameters
+    if options.bind :
+        for (k, v) in options.bind : config_map[k] = v
+
+    # parse the configuration files
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
     except pconfig.ConfigurationException as e :
@@ -505,7 +512,7 @@ def Main() :
         config['ProvisioningData'] = {
             'FileName' : 'provisioning.data',
             'SavePath' : './data',
-            'SearchPath' : [ '.', './data' ]
+            'SearchPath' : [ '.', './data', config_map['data'] ]
         }
     if options.provisioning_data :
         config['ProvisioningData']['FileName'] = options.provisioning_data

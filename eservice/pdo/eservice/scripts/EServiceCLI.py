@@ -251,6 +251,8 @@ def Main() :
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
+
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
@@ -280,6 +282,11 @@ def Main() :
 
     config_map['identity'] = options.identity
 
+    # set up the configuration mapping from the parameters
+    if options.bind :
+        for (k, v) in options.bind : config_map[k] = v
+
+    # parse the configuration files
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
     except pconfig.ConfigurationException as e :
@@ -323,7 +330,7 @@ def Main() :
         config['EnclaveData'] = {
             'FileName' : 'enclave.data',
             'SavePath' : './data',
-            'SearchPath' : [ '.', './data' ]
+            'SearchPath' : [ '.', './data', config_map['data'] ]
         }
     if options.enclave_data :
         config['EnclaveData']['FileName'] = options.enclave_data
@@ -335,7 +342,7 @@ def Main() :
     # set up the enclave service configuration
     if config.get('StorageService') is None :
         config['StorageService'] = {
-            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),
+            'BlockStore' : os.path.join(config_map['data'], options.identity + '.mdb'),
             'URL' : 'http://localhost:7201'
         }
     if options.block_store :
