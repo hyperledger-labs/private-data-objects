@@ -36,10 +36,19 @@ extern "C" bool b64_decode_wrapper(
 
 extern "C" bool ecdsa_create_signing_keys_wrapper(
     wasm_exec_env_t exec_env,
-    const int32 private_buffer_pointer_offset,
-    const int32 private_length_pointer_offset,
-    const int32 public_buffer_pointer_offset,
-    const int32 public_length_pointer_offset);
+    int32 private_buffer_pointer_offset,
+    int32 private_length_pointer_offset,
+    int32 public_buffer_pointer_offset,
+    int32 public_length_pointer_offset);
+
+extern "C" bool ecdsa_create_signing_keys_from_extended_key_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 key_buffer_pointer_offset,
+    const int32 key_buffer_length,
+    int32 private_buffer_pointer_offset,
+    int32 private_length_pointer_offset,
+    int32 public_buffer_pointer_offset,
+    int32 public_length_pointer_offset);
 
 extern "C" bool ecdsa_sign_message_wrapper(
     wasm_exec_env_t exec_env,
