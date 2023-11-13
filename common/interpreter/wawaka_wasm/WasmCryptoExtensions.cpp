@@ -41,6 +41,10 @@
 namespace pe = pdo::error;
 namespace pcrypto = pdo::crypto;
 
+typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
+typedef std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)> EC_GROUP_ptr;
+
+
 /* ----------------------------------------------------------------- *
  * NAME: _b64_encode_wrapper
  * ----------------------------------------------------------------- */
@@ -1061,4 +1065,57 @@ extern "C" bool parse_sgx_report_wrapper(
     }
 
     return true;
+}
+
+/* ----------------------------------------------------------------- *
+ * NAME: _ecdsa_create_extended_key_wrapper(
+ * ----------------------------------------------------------------- */
+extern "C" bool ecdsa_create_signing_keys_from_extended_key_wrapper(
+    wasm_exec_env_t exec_env,
+    const int32 key_buffer_offset, // uint8_t*
+    const int32 key_buffer_length, // size_t
+    int32 private_buffer_pointer_offset, // char**
+    int32 private_length_pointer_offset, // size_t*
+    int32 public_buffer_pointer_offset,  // char**
+    int32 public_length_pointer_offset   // size_t*
+    )
+{
+    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+    try {
+        pe::ThrowIf<pe::RuntimeError>(key_buffer_length != 48, "unsupported key size");
+
+        const uint8_t* key_buffer = (uint8_t*)get_buffer(module_inst, key_buffer_offset, key_buffer_length);
+        pe::ThrowIfNull(key_buffer, "allocation error");
+
+        ByteArray key(key_buffer, key_buffer + key_buffer_length);
+
+        std::unique_ptr<BIGNUM, void(*)(BIGNUM*)> bn_key(BN_new(), BN_free);
+        pdo::error::ThrowIfNull(bn_key.get(), "allocation error");
+
+        pdo::error::ThrowIfNull(
+            BN_bin2bn((const unsigned char*)key.data(), key.size(), bn_key.get()),
+            "could not create bignum from byte array");
+
+        pcrypto::sig::PrivateKey privkey(pcrypto::sig::SigCurve::SECP384R1, bn_key.get());
+        pcrypto::sig::PublicKey pubkey(privkey);
+
+        std::string encpriv = privkey.Serialize();
+        std::string encpub = pubkey.Serialize();
+
+        if (! save_buffer(module_inst, encpriv, private_buffer_pointer_offset, private_length_pointer_offset))
+            return false;
+
+        if (! save_buffer(module_inst, encpub, public_buffer_pointer_offset, public_length_pointer_offset))
+            return false;
+
+        return true;
+    }
+    catch (pdo::error::Error& e) {
+        SAFE_LOG(PDO_LOG_ERROR, "failure in %s; %s", __FUNCTION__, e.what());
+        return false;
+    }
+    catch (...) {
+        SAFE_LOG(PDO_LOG_ERROR, "unexpected failure in %s", __FUNCTION__);
+        return false;
+    }
 }

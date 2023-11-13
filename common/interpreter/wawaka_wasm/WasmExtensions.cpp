@@ -174,6 +174,7 @@ static NativeSymbol native_symbols[] =
     EXPORT_WASM_API_WITH_SIG2(b64_encode,"(iiii)i"),
     EXPORT_WASM_API_WITH_SIG2(b64_decode,"(iiii)i"),
     EXPORT_WASM_API_WITH_SIG2(ecdsa_create_signing_keys,"(iiii)i"),
+    EXPORT_WASM_API_WITH_SIG2(ecdsa_create_signing_keys_from_extended_key,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(ecdsa_sign_message,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(ecdsa_verify_signature,"(iiiiii)i"),
     EXPORT_WASM_API_WITH_SIG2(aes_generate_key,"(ii)i"),

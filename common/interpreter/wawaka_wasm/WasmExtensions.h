@@ -83,6 +83,14 @@ bool ecdsa_create_signing_keys(
     char** public_buffer_pointer,
     size_t* public_length_pointer);
 
+bool ecdsa_create_signing_keys_from_extended_key(
+    const uint8_t* extended_key_buffer,
+    const size_t extended_key_length,
+    char** private_buffer_pointer,
+    size_t* private_length_pointer,
+    char** public_buffer_pointer,
+    size_t* public_length_pointer);
+
 bool ecdsa_sign_message(
     const uint8_t* msg_buffer,
     const size_t msg_length,
