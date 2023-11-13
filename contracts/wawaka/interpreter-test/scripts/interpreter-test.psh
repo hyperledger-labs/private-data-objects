@@ -50,6 +50,9 @@ echo ${INFO} test set and get for kv parameters ${ENDC}
 contract send -s _result_ -f ${_contract_} -k "message" "hello there" ecdsa_test
 echo ecdsa_test ${_result_}
 
+contract send -s _result_ -f ${_contract_} -k "message" "hello there" extended_ecdsa_test
+echo extended_ecdsa_test ${_result_}
+
 contract send -s _result_ -f ${_contract_} -k "message" "hello there" aes_test
 echo aes_test ${_result_}
 

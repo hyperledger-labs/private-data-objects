@@ -97,6 +97,11 @@ namespace crypto
             std::string& private_key,
             std::string& public_key);
 
+        bool generate_keys(
+            const ww::types::ByteArray& key,
+            std::string& private_key,
+            std::string& public_key);
+
         bool sign_message(
             const ww::types::ByteArray& message,
             const std::string& private_key,

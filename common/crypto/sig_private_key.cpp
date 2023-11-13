@@ -21,13 +21,14 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+
 #include "base64.h"  //simple base64 enc/dec routines
 #include "crypto_shared.h"
 #include "error.h"
-#include "hex_string.h"
 #include "sig.h"
-#include "hash.h"
 #include "sig_public_key.h"
+#include "types.h"
+
 /***Conditional compile untrusted/trusted***/
 #if _UNTRUSTED_
 #include <openssl/crypto.h>
@@ -91,6 +92,64 @@ pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::SigCurve& sigCurve)
 {
     sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(sigCurve)];
     key_ = nullptr;
+}  // pcrypto::sig::PrivateKey::PrivateKey
+
+// Custom curve constructor
+pcrypto::sig::PrivateKey::PrivateKey(
+    const pcrypto::sig::SigCurve& sigCurve,
+    const BIGNUM* numeric_key)
+{
+    sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(sigCurve)];
+    key_ = nullptr;
+
+    BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
+    pdo::error::ThrowIfNull(b_ctx.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN context");
+
+    BIGNUM_ptr r(BN_new(), BN_free);
+    pdo::error::ThrowIfNull(r.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN");
+
+    BIGNUM_ptr o(BN_new(), BN_free);
+    pdo::error::ThrowIfNull(o.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN");
+
+    // setup the private key
+    EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
+    pdo::error::ThrowIfNull(private_key.get(), "Crypto Error (sig::PrivateKey()): Could not create new EC_KEY");
+
+    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
+    pdo::error::ThrowIfNull(ec_group.get(), "Crypto Error (sig::PrivateKey()): Could not create EC_GROUP");
+
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! EC_KEY_set_group(private_key.get(), ec_group.get()),
+        "Crypto Error (sig::PrivateKey()): Could not set EC_GROUP");
+
+    EC_GROUP_get_order(ec_group.get(), o.get(), b_ctx.get());
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! BN_mod(r.get(), numeric_key, o.get(), b_ctx.get()),
+        "Crypto Error (sig::PrivateKey()): Bignum modulus failed");
+
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! EC_KEY_set_private_key(private_key.get(), r.get()),
+        "Crypto Error (sig::PrivateKey()): Could not create new key");
+
+    // setup the public key
+    EC_POINT_ptr public_point(EC_POINT_new(ec_group.get()), EC_POINT_free);
+    pdo::error::ThrowIfNull(public_point.get(), "Crypto Error (sig::PrivateKey()): Could not allocate point");
+
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! EC_POINT_mul(ec_group.get(), public_point.get(), r.get(), NULL, NULL, b_ctx.get()),
+        "Crypto Error (sig::PrivateKey()): point multiplication failed");
+
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! EC_KEY_set_public_key(private_key.get(), public_point.get()),
+        "Crypto Error (sig::PrivateKey()): failed to set public key");
+
+    // complete the sanity check
+    pdo::error::ThrowIf<Error::RuntimeError>(
+        ! EC_KEY_check_key(private_key.get()),
+        "Crypto Error (sig::PrivateKey()): something is wrong with the key");
+
+    key_ = EC_KEY_dup(private_key.get());
+    pdo::error::ThrowIf<Error::RuntimeError>(! key_, "Crypto Error (sig::PrivateKey()): Could not dup private EC_KEY");
 }  // pcrypto::sig::PrivateKey::PrivateKey
 
 // Constructor from encoded string

@@ -24,6 +24,7 @@
 #include "KeyValue.h"
 #include "Message.h"
 #include "Response.h"
+#include "Util.h"
 #include "Value.h"
 #include "WasmExtensions.h"
 
@@ -107,6 +108,44 @@ bool ecdsa_test(const Message& msg, const Environment& env, Response& rsp)
     std::string public_key;
     if (! meta_store.get(verifying_key, public_key))
         return rsp.error("failed to find public key");
+
+    // ---------- sign the message ----------
+    ww::types::ByteArray signature;
+    if (! ww::crypto::ecdsa::sign_message(message, private_key, signature))
+        return rsp.error("failed to sign message");
+
+    if (! ww::crypto::ecdsa::verify_signature(message, public_key, signature))
+        return rsp.error("failed to verify the signature");
+
+    // ---------- return the signature ----------
+    std::string encoded;
+    if (! ww::crypto::b64_encode(signature, encoded))
+        return rsp.error("failed to encode signature");
+
+    ww::value::String v(encoded.c_str());
+    return rsp.value(v, false);
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// NAME: extended_ecdsa_test
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+bool extended_ecdsa_test(const Message& msg, const Environment& env, Response& rsp)
+{
+    const std::string message_string(msg.get_string("message"));
+    const ww::types::ByteArray message(message_string.begin(), message_string.end());
+
+    // ---------- get the keys we need ----------
+    ww::types::ByteArray bytes(48);
+    ASSERT_SUCCESS(
+        rsp, ww::crypto::random_identifier(bytes),
+        "failed to build random identifier");
+
+    std::string private_key;
+    std::string public_key;
+
+    ASSERT_SUCCESS(
+        rsp, ww::crypto::ecdsa::generate_keys(bytes, private_key, public_key),
+        "failed to generate ecdsa key from extended value");
 
     // ---------- sign the message ----------
     ww::types::ByteArray signature;
@@ -410,6 +449,7 @@ bool privileged_test_get(const Message& msg, const Environment& env, Response& r
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 contract_method_reference_t contract_method_dispatch_table[] = {
     CONTRACT_METHOD(ecdsa_test),
+    CONTRACT_METHOD(extended_ecdsa_test),
     CONTRACT_METHOD(aes_test),
     CONTRACT_METHOD(rsa_test),
     CONTRACT_METHOD(hash_test),

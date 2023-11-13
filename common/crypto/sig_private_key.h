@@ -38,6 +38,8 @@ namespace crypto
             PrivateKey();
             // Custom curve constructor
             PrivateKey(const SigCurve& sigCurve);
+            // Custom curve with initializer
+            PrivateKey(const SigCurve& sigCurve, const BIGNUM* numeric_key);
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);

@@ -1,5 +1,6 @@
 [
     { "MethodName" : "ecdsa_test", "KeywordParameters": { "message" : "hello there" } },
+    { "MethodName" : "extended_ecdsa_test", "KeywordParameters": { "message" : "hello there" } },
     { "MethodName" : "aes_test", "KeywordParameters": { "message" : "hello there" } },
     { "MethodName" : "rsa_test"},
     { "MethodName" : "hash_test", "expected" : "[tT]rue"},
