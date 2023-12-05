@@ -27,6 +27,8 @@ services:
       args:
         PDO_HOSTNAME: localhost
         PDO_LEDGER_URL: http://localhost:6600
+        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
+        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
     entrypoint: /project/pdo/tools/run_services_tests.sh
 
   client_container:
@@ -34,4 +36,6 @@ services:
       args:
         PDO_HOSTNAME: localhost
         PDO_LEDGER_URL: http://localhost:6600
+        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
+        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
     entrypoint: /project/pdo/tools/run_client_tests.sh
