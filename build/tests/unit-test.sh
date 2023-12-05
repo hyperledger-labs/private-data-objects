@@ -21,24 +21,32 @@ check_python_version
 
 PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
 
+OUTFILE='/dev/null'
+CMAKE_TEST_ARGS=''
+
+if [ "${PDO_LOG_LEVEL,,}" == 'debug' ]; then
+    CMAKE_TEST_ARGS='ARGS=-V'
+    OUTFILE='/dev/stdout'
+fi
+
 # -----------------------------------------------------------------
 yell run unit tests for python, common, contracts and eservice
 # -----------------------------------------------------------------
-say run unit tests for python package
-cd ${PDO_SOURCE_ROOT}/python
-try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
-
 say run unit tests for common library
 cd ${PDO_SOURCE_ROOT}/common/build
-try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} ${CMAKE_TEST_ARGS} test > ${OUTFILE}
+
+say run unit tests for python package
+cd ${PDO_SOURCE_ROOT}/python
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > ${OUTFILE}
 
 say run unit tests for eservice
 cd ${PDO_SOURCE_ROOT}/eservice
-try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > ${OUTFILE}
 
 say run unit tests for contracts
 cd ${PDO_SOURCE_ROOT}/contracts
-try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > /dev/null
+try make TEST_LOG_LEVEL=${PDO_LOG_LEVEL} test > ${OUTFILE}
 
 # -----------------------------------------------------------------
 yell start tests without provisioning or enclave services
