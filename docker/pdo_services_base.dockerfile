@@ -23,7 +23,7 @@ ARG SGX=2.22
 ARG OPENSSL=3.0.12
 ARG SGXSSL=3.0_Rev1
 
-ARG SGX_MODE SIM
+ARG SGX_MODE=SIM
 ENV SGX_MODE $SGX_MODE
 
 RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
@@ -80,7 +80,8 @@ RUN . /opt/intel/sgxsdk/environment \
     && git clone --depth 1 --branch ${SGXSSL} 'https://github.com/intel/intel-sgx-ssl.git' \
     && wget -q -P /tmp/intel-sgx-ssl/openssl_source https://www.openssl.org/source/openssl-${OPENSSL}.tar.gz \
     && cd /tmp/intel-sgx-ssl/Linux \
-    && bash -c "make SGX_MODE=SIM NO_THREADS=1 DESTDIR=/opt/intel/sgxssl VERBOSE=0 all &> /dev/null" \
+    && if [ $SGX_MODE = SIM ] ; then SKIP_INTELCPU_CHECK=TRUE ; else SKIP_INTELCPU_CHECK=FALSE ; fi \
+    && bash -c "make SKIP_INTELCPU_CHECK=$SKIP_INTELCPU_CHECK SGX_MODE=$SGX_MODE NO_THREADS=1 DESTDIR=/opt/intel/sgxssl VERBOSE=0 all &> /dev/null" \
     && make install \
     && make clean \
     && rm -rf /tmp/intel-sgx-ssl
