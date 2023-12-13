@@ -27,6 +27,8 @@ services:
         PDO_LEDGER_TYPE: ccf
         PDO_HOSTNAME: ${PDO_HOSTNAME}
         PDO_LEDGER_URL: ${PDO_LEDGER_URL}
+        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
+        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
     depends_on:
       - ccf_container
       - services_container

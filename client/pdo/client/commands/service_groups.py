@@ -28,6 +28,7 @@ __all__ = [
     'script_command_load',
     'script_command_save',
     'script_command_list',
+    'script_command_clear',
     'do_service_groups',
     'load_commands',
 ]
@@ -47,8 +48,9 @@ class script_command_load(pscript.script_command_base) :
         subparser.add_argument(
             '-f', '--file',
             help="Name of the file from where the groups will be loaded, destructive",
-            dest='filename',
+            dest='filenames',
             required=True,
+            nargs='+',
             type=str)
         subparser.add_argument(
             '--merge',
@@ -62,10 +64,10 @@ class script_command_load(pscript.script_command_base) :
             action='store_false')
 
     @classmethod
-    def invoke(cls, state, bindings, filename, merge=True, **kwargs) :
+    def invoke(cls, state, bindings, filenames, merge=True, **kwargs) :
         try :
-            filename = putils.find_file_in_path(filename, state.get(['Client', 'SearchPath'], ['.', './etc']))
-            info = pconfig.parse_configuration_file(filename, bindings)
+            search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
+            info = pconfig.parse_configuration_files(filenames, search_path, bindings)
 
             psgroups = info.get('ProvisioningServiceGroups', {})
             ssgroups = info.get('StorageServiceGroups', {})
@@ -149,12 +151,27 @@ class script_command_list(pscript.script_command_base) :
         return True
 
 ## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_clear(pscript.script_command_base) :
+    name = "clear"
+    help = "Clear all information in the service groups database"
+
+    @classmethod
+    def invoke(cls, state, bindings, **kwargs) :
+        state.set(['Service', 'ProvisioningServiceGroups'], {})
+        state.set(['Service', 'StorageServiceGroups'], {})
+        state.set(['Service', 'EnclaveServiceGroups'], {})
+
+        return True
+
+## -----------------------------------------------------------------
 ## Create the generic, shell independent version of the aggregate command
 ## -----------------------------------------------------------------
 __subcommands__ = [
     script_command_load,
     script_command_save,
-    script_command_list
+    script_command_list,
+    script_command_clear,
 ]
 do_service_groups = pscript.create_shell_command('service_groups', __subcommands__)
 

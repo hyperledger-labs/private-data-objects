@@ -21,4 +21,3 @@ enclave {
     from "contract.edl" import *;
     from "block_store.edl" import *;
 };
-

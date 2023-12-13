@@ -49,6 +49,9 @@ ENV PDO_INTERPRETER=${PDO_INTERPRETER}
 ARG WASM_MEM_CONFIG=MEDIUM
 ENV WASM_MEM_CONFIG=${WASM_MEM_CONFIG}
 
+ARG PDO_LOG_LEVEL=info
+ENV PDO_LOG_LEVEL=${PDO_LOG_LEVEL}
+
 # copy the source files into the image
 WORKDIR /project/pdo
 COPY --chown=${UNAME}:${UNAME} repository /project/pdo/src

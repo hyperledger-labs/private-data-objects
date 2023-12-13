@@ -214,6 +214,8 @@ def Main() :
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-b', '--bind', help='Define variables for configuration and script use', nargs=2, action='append')
+
     parser.add_argument('--config', help='configuration file', nargs = '+')
     parser.add_argument('--config-dir', help='directory to search for configuration files', nargs = '+')
 
@@ -244,6 +246,11 @@ def Main() :
     if options.data_dir :
         config_map['data'] = options.data_dir
 
+    # set up the configuration mapping from the parameters
+    if options.bind :
+        for (k, v) in options.bind : config_map[k] = v
+
+    # parse the configuration files
     try :
         config = pconfig.parse_configuration_files(conffiles, confpaths, config_map)
     except pconfig.ConfigurationException as e :
@@ -271,7 +278,7 @@ def Main() :
     # set up the key search paths
     if config.get('Key') is None :
         config['Key'] = {
-            'SearchPath' : ['.', './keys', ContractKeys],
+            'SearchPath' : [ '.', './keys', config_map['keys'] ],
             'FileName' : options.identity + ".pem"
         }
     if options.key_dir :
@@ -283,7 +290,7 @@ def Main() :
             'HttpPort' : 7201,
             'Host' : 'localhost',
             'Identity' : options.identity,
-            'BlockStore' : os.path.join(ContractData, options.identity + '.mdb'),
+            'BlockStore' : os.path.join(config_map['data'], options.identity + '.mdb'),
             'GarbageCollectionInterval' : 10
         }
     if options.http :

@@ -110,15 +110,23 @@ done
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
+_COMMON_=("--logfile __screen__" "--loglevel ${F_LOGLEVEL}")
+_COMMON_+=("--ledger ${F_LEDGER_URL}" "-m service_host ${F_SERVICE_HOST}")
+PSHELL_OPTS=${_COMMON_[@]}
 
 # enclave service group e3 uses ports 7103, 7104, and 7105
 # this code makes the assumption that the eservice database contains
 # entries for $F_SERVICE_HOST.
 say create the contract
+say ${PDO_HOME}/bin/pdo-create.psh \
+    ${PSHELL_OPTS} \
+    --client-identity user1 \
+    --psgroup all --esgroup all --ssgroup all \
+    --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 try ${PDO_HOME}/bin/pdo-create.psh \
-    --service_host ${F_SERVICE_HOST} \
-    --loglevel ${F_LOGLEVEL} --logfile __screen__ \
-    --identity user1 --psgroup all --esgroup all --ssgroup all \
+    ${PSHELL_OPTS} \
+    --client-identity user1 \
+    --psgroup all --esgroup all --ssgroup all \
     --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 
 # this will invoke the increment operation 5 times on each enclave round robin
@@ -137,10 +145,9 @@ for v in $(seq 1 ${iterations}) ; do
     u=$((v % user_count + base_user))
     p=$((v % port_count + base_port))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
+                       ${PSHELL_OPTS} \
                        --wait yes \
-                       --service_host ${F_SERVICE_HOST} \
-                       --logfile __screen__ --loglevel ${F_LOGLEVEL} \
-                       --enclave "es${p}" --identity user${u} \
+                       --enclave "es${p}" --client-identity user${u} \
                        --pdo_file ${SAVE_FILE} --method anonymous_inc_value)
     if [ $value != $v ]; then
         die "contract has the wrong value ($value instead of $v) for enclave $e"
@@ -151,9 +158,8 @@ say get the value and check it
 for v in $(seq 1 ${port_count}) ; do
     p=$((v % port_count + base_port))
     value=$(${PDO_HOME}/bin/pdo-invoke.psh \
-                       --service_host ${F_SERVICE_HOST} \
-                       --logfile __screen__ --loglevel ${F_LOGLEVEL} \
-                       --enclave "es${p}" --identity user1 \
+                       ${PSHELL_OPTS} \
+                       --enclave "es${p}" --client-identity user1 \
                        --pdo_file ${SAVE_FILE} --method get_value)
     if [ $value != $iterations ]; then
         die "contract has the wrong value ($value instead of $iterations for enclave $e"
