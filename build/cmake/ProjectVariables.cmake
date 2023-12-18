@@ -17,7 +17,7 @@
 ################################################################################
 
 # These options apply to all PDO projects
-ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector -Wall)
+ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector)
 ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
 
 OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" FALSE)
@@ -34,4 +34,24 @@ ELSE()
   ADD_COMPILE_OPTIONS(-O2)
   ADD_COMPILE_DEFINITIONS(PDO_DEBUG_BUILD=0)
   MESSAGE(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
+ENDIF()
+
+# The verbose build flag allows warning messages
+# to be turned off. This removes a lot of the verbosity
+# of the OpenSSL/SGXSSL deprecation warnings. In general
+# we do not want to ignore those messages to verbose is
+# set to true by default.
+OPTION(PDO_VERBOSE_BUILD "Build with all warnings turned on" TRUE)
+
+IF (DEFINED ENV{PDO_VERBOSE_BUILD})
+  SET(PDO_VERBOSE_BUILD $ENV{PDO_VERBOSE_BUILD})
+ENDIF()
+
+IF (${PDO_VERBOSE_BUILD})
+  ADD_COMPILE_OPTIONS(-Wall)
+ELSE()
+  # this should not be necessary (no -Wall), but make
+  # sure we don't pick up the OpenSSL/SGXSSL deprecation warnings
+  ADD_COMPILE_OPTIONS(-Wno-deprecated)
+  ADD_COMPILE_OPTIONS(-Wno-deprecated-declarations)
 ENDIF()
