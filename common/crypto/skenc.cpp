@@ -29,30 +29,19 @@
 #include "hex_string.h"
 
 /***Conditional compile untrusted/trusted***/
-
 #if _UNTRUSTED_
-
 #include <openssl/crypto.h>
 #include <stdio.h>
 #else
 #include "tSgxSSL_api.h"
 #endif
-
-namespace pcrypto = pdo::crypto;
-
 /***END Conditional compile untrusted/trusted***/
 
-// Typedefs for memory management
-// Specify type and destroy function type for unique_ptrs
-typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
-typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
-typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
+namespace pcrypto = pdo::crypto;
+namespace constants = pdo::crypto::constants;
 
 // Error handling
 namespace Error = pdo::error;
-
-namespace constants = pdo::crypto::constants;
 
 //***Private functions***//
 
@@ -116,7 +105,7 @@ ByteArray pcrypto::skenc::EncryptMessage(
         throw Error::ValueError(msg);
     }
 
-    CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    pdo::crypto::CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!context)
     {
         std::string msg(
@@ -232,7 +221,7 @@ ByteArray pcrypto::skenc::DecryptMessage(
         throw Error::ValueError(msg);
     }
 
-    CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    pdo::crypto::CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!context)
     {
         std::string msg(
@@ -322,7 +311,7 @@ ByteArray pcrypto::skenc::DecryptMessage(const ByteArray& key, const ByteArray& 
         throw Error::ValueError(msg);
     }
 
-    CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    pdo::crypto::CTX_ptr context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
     if (!context)
     {
         std::string msg(

@@ -39,18 +39,7 @@
 /***END Conditional compile untrusted/trusted***/
 
 namespace pcrypto = pdo::crypto;
-namespace constants = pdo::crypto::constants;
 
-// Typedefs for memory management
-// Specify type and destroy function type for unique_ptrs
-typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
-typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
-typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
-typedef std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)> EC_GROUP_ptr;
-typedef std::unique_ptr<EC_POINT, void (*)(EC_POINT*)> EC_POINT_ptr;
-typedef std::unique_ptr<EC_KEY, void (*)(EC_KEY*)> EC_KEY_ptr;
-typedef std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)> ECDSA_SIG_ptr;
 // Error handling
 namespace Error = pdo::error;
 
@@ -79,14 +68,13 @@ EC_KEY* deserializeECDSAPrivateKey(const std::string& encoded)
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Default constructor (default curve specified in PDO_DEFAULT_SIGCURVE)
-pcrypto::sig::PrivateKey::PrivateKey()
-{
-    key_ = nullptr;
-    // PDO_DEFAULT_SIGCURVE is define that must be provided at compile time
-    // Its default value is set in the cmake file
-    sigDetails_ = SigDetails[static_cast<int>(SigCurve::PDO_DEFAULT_SIGCURVE)];
-}
+// PDO_DEFAULT_SIGCURVE is define that must be provided at compile time
+// Its default value is set in the cmake file
+ pcrypto::sig::PrivateKey::PrivateKey() :
+    pcrypto::sig::PrivateKey::PrivateKey(SigCurve::PDO_DEFAULT_SIGCURVE)
+{}
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Custom curve constructor
 pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::SigCurve& sigCurve)
 {
@@ -94,28 +82,27 @@ pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::SigCurve& sigCurve)
     key_ = nullptr;
 }  // pcrypto::sig::PrivateKey::PrivateKey
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Custom curve constructor
 pcrypto::sig::PrivateKey::PrivateKey(
     const pcrypto::sig::SigCurve& sigCurve,
-    const BIGNUM* numeric_key)
+    const BIGNUM* numeric_key) :
+    pcrypto::sig::PrivateKey::PrivateKey(sigCurve)
 {
-    sigDetails_ = pcrypto::sig::SigDetails[static_cast<int>(sigCurve)];
-    key_ = nullptr;
-
-    BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
+    pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
     pdo::error::ThrowIfNull(b_ctx.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN context");
 
-    BIGNUM_ptr r(BN_new(), BN_free);
+    pdo::crypto::BIGNUM_ptr r(BN_new(), BN_free);
     pdo::error::ThrowIfNull(r.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN");
 
-    BIGNUM_ptr o(BN_new(), BN_free);
+    pdo::crypto::BIGNUM_ptr o(BN_new(), BN_free);
     pdo::error::ThrowIfNull(o.get(), "Crypto Error (sig::PrivateKey()): Cound not create BN");
 
     // setup the private key
-    EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
+    pdo::crypto::EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
     pdo::error::ThrowIfNull(private_key.get(), "Crypto Error (sig::PrivateKey()): Could not create new EC_KEY");
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
+    pdo::crypto::EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
     pdo::error::ThrowIfNull(ec_group.get(), "Crypto Error (sig::PrivateKey()): Could not create EC_GROUP");
 
     pdo::error::ThrowIf<Error::RuntimeError>(
@@ -132,7 +119,7 @@ pcrypto::sig::PrivateKey::PrivateKey(
         "Crypto Error (sig::PrivateKey()): Could not create new key");
 
     // setup the public key
-    EC_POINT_ptr public_point(EC_POINT_new(ec_group.get()), EC_POINT_free);
+    pdo::crypto::EC_POINT_ptr public_point(EC_POINT_new(ec_group.get()), EC_POINT_free);
     pdo::error::ThrowIfNull(public_point.get(), "Crypto Error (sig::PrivateKey()): Could not allocate point");
 
     pdo::error::ThrowIf<Error::RuntimeError>(
@@ -152,6 +139,7 @@ pcrypto::sig::PrivateKey::PrivateKey(
     pdo::error::ThrowIf<Error::RuntimeError>(! key_, "Crypto Error (sig::PrivateKey()): Could not dup private EC_KEY");
 }  // pcrypto::sig::PrivateKey::PrivateKey
 
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Constructor from encoded string
 // throws RuntimeError, ValueError
 pcrypto::sig::PrivateKey::PrivateKey(const std::string& encoded)
@@ -165,6 +153,8 @@ pcrypto::sig::PrivateKey::PrivateKey(const std::string& encoded)
 // throws RuntimeError
 pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::PrivateKey& privateKey)
 {
+    ResetKey();
+
     sigDetails_ = privateKey.sigDetails_;
     key_ = EC_KEY_dup(privateKey.key_);
     if (!key_)
@@ -179,6 +169,8 @@ pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::PrivateKey& privateKey)
 // throws RuntimeError
 pcrypto::sig::PrivateKey::PrivateKey(pcrypto::sig::PrivateKey&& privateKey)
 {
+    ResetKey();
+
     sigDetails_ = privateKey.sigDetails_;
     key_ = privateKey.key_;
     privateKey.key_ = nullptr;
@@ -193,9 +185,17 @@ pcrypto::sig::PrivateKey::PrivateKey(pcrypto::sig::PrivateKey&& privateKey)
 // Destructor
 pcrypto::sig::PrivateKey::~PrivateKey()
 {
+    ResetKey();
+}  // pcrypto::sig::PrivateKey::~PrivateKey
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pcrypto::sig::PrivateKey::ResetKey(void)
+{
+    // reset the the key, do not change the curve details
     if (key_)
         EC_KEY_free(key_);
-}  // pcrypto::sig::PrivateKey::~PrivateKey
+    key_ = nullptr;
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // assignment operator overload
@@ -205,8 +205,8 @@ pcrypto::sig::PrivateKey& pcrypto::sig::PrivateKey::operator=(
 {
     if (this == &privateKey)
         return *this;
-    if (key_)
-        EC_KEY_free(key_);
+
+    ResetKey();
 
     sigDetails_ = privateKey.sigDetails_;
     key_ = EC_KEY_dup(privateKey.key_);
@@ -224,10 +224,14 @@ pcrypto::sig::PrivateKey& pcrypto::sig::PrivateKey::operator=(
 // thorws RuntimeError, ValueError
 void pcrypto::sig::PrivateKey::Deserialize(const std::string& encoded)
 {
-    EC_KEY* key = deserializeECDSAPrivateKey(encoded);
-    if (key_)
-        EC_KEY_free(key_);
-    key_ = key;
+    ResetKey();
+
+    pdo::crypto::BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
+    pdo::error::ThrowIfNull(bio.get(), "Crypto Error (sig::Deserialize()): Could not create BIO");
+
+    key_ = PEM_read_bio_ECPrivateKey(bio.get(), NULL, NULL, NULL);
+    pdo::error::ThrowIfNull(key_, "Crypto Error (sig::Deserialize()): Could not deserialize private ECDSA key");
+
     SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PrivateKey::Deserialize
 
@@ -236,10 +240,9 @@ void pcrypto::sig::PrivateKey::Deserialize(const std::string& encoded)
 // throws RuntimeError
 void pcrypto::sig::PrivateKey::Generate()
 {
-    if (key_)
-        EC_KEY_free(key_);
+    ResetKey();
 
-    EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
+    pdo::crypto::EC_KEY_ptr private_key(EC_KEY_new(), EC_KEY_free);
 
     if (!private_key)
     {
@@ -247,7 +250,7 @@ void pcrypto::sig::PrivateKey::Generate()
         throw Error::RuntimeError(msg);
     }
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
+    pdo::crypto::EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
     if (!ec_group)
     {
         std::string msg("Crypto Error (sig::PrivateKey()): Could not create EC_GROUP");
@@ -288,7 +291,7 @@ pcrypto::sig::PublicKey pcrypto::sig::PrivateKey::GetPublicKey() const
 // thorws RuntimeError
 std::string pcrypto::sig::PrivateKey::Serialize() const
 {
-    BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
 
     if (!bio)
     {
@@ -325,7 +328,7 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
     sigDetails_.SHAFunc(message, hash);
     // Then Sign
 
-    ECDSA_SIG_ptr sig(ECDSA_do_sign(hash.data(), hash.size(), key_), ECDSA_SIG_free);
+    pdo::crypto::ECDSA_SIG_ptr sig(ECDSA_do_sign(hash.data(), hash.size(), key_), ECDSA_SIG_free);
     pdo::error::ThrowIf<Error::RuntimeError>(!sig, "Crypto Error (SignMessage): Could not compute ECDSA signature");
 
     const BIGNUM* sc;
@@ -341,10 +344,10 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
     r = BN_dup(rc);
     pdo::error::ThrowIf<Error::RuntimeError>(!r, "Crypto Error (SignMessage): Could not dup BIGNUM for r");
 
-    BIGNUM_ptr ord(BN_new(), BN_free);
+    pdo::crypto::BIGNUM_ptr ord(BN_new(), BN_free);
     pdo::error::ThrowIf<Error::RuntimeError>(!ord,"Crypto Error (SignMessage): Could not create BIGNUM for ord");
 
-    BIGNUM_ptr ordh(BN_new(), BN_free);
+    pdo::crypto::BIGNUM_ptr ordh(BN_new(), BN_free);
     pdo::error::ThrowIf<Error::RuntimeError>(!ordh, "Crypto Error (SignMessage): Could not create BIGNUM for ordh");
 
     int res = EC_GROUP_get_order(EC_KEY_get0_group(key_), ord.get(), NULL);

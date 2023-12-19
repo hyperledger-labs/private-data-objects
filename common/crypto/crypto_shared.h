@@ -14,6 +14,14 @@
  */
 
 #pragma once
+
+#include <memory>
+#include <openssl/bio.h>
+#include <openssl/bn.h>
+#include <openssl/evp.h>
+#include <openssl/ec.h>
+#include <openssl/rsa.h>
+
 namespace pdo
 {
 namespace crypto
@@ -23,5 +31,21 @@ namespace crypto
         // OpenSSL Error string buffer size
         const int ERR_BUF_LEN = 130;
     }
+
+    // Typedefs for memory management
+    // Specify type and destroy function type for unique_ptrs
+    typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
+    typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
+
+    typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
+
+    typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
+
+    typedef std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)> EC_GROUP_ptr;
+    typedef std::unique_ptr<EC_KEY, void (*)(EC_KEY*)> EC_KEY_ptr;
+    typedef std::unique_ptr<EC_POINT, void (*)(EC_POINT*)> EC_POINT_ptr;
+    typedef std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)> ECDSA_SIG_ptr;
+
+    typedef std::unique_ptr<RSA, void (*)(RSA*)> RSA_ptr;
 }
 }

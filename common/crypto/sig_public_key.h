@@ -30,6 +30,9 @@ namespace crypto
 
         class PublicKey: public Key
         {
+        private:
+            void ResetKey(void);
+
         public:
             // default constructor: UNINITIALIZED PublicKey!
             PublicKey();
