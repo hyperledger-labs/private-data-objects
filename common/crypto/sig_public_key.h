@@ -34,10 +34,8 @@ namespace crypto
             void ResetKey(void);
 
         public:
-            // default constructor: UNINITIALIZED PublicKey!
-            PublicKey();
             // Custom curve constructor
-            PublicKey(const SigCurve& sigCurve);
+            PublicKey(const SigCurve& sigCurve = SigCurve::UNDEFINED);
             // copy constructor
             // throws RuntimeError
             PublicKey(const PublicKey& publicKey);
@@ -52,20 +50,16 @@ namespace crypto
             ~PublicKey();
             // throws RuntimeError
             PublicKey& operator=(const PublicKey& publicKey);
+            // boolean conversion, true if key is initialized
+            operator bool() const;
             // throws RuntimeError, ValueError
             void Deserialize(const std::string& encoded);
             // throws RuntimeError
             std::string Serialize() const;
-            // throws RuntimeError
-            // Serialize EC point (X,Y) to hex string
-            // throws RuntimeError
-            std::string SerializeXYToHex() const;
-            // Deserialize EC point (X,Y) hex string
-            // throws RuntimeError, ValueError
-            void DeserializeXYFromHex(const std::string& hexXY);
             // Verify signature signature.data() on message.data() and return 1 if signature is
             // valid, 0 if signature is not valid or -1 if there was an internal error
             int VerifySignature(const ByteArray& message, const ByteArray& signature) const;
+
             static unsigned int MaxSigSize(const std::string& encoded);
         };
     }

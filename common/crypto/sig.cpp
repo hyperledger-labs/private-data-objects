@@ -41,18 +41,13 @@ unsigned int pcsig::Key::MaxSigSize() const
 void pcsig::Key::SetSigDetailsFromDeserializedKey()
 {
     int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(key_));
-    if(nid == NID_undef)
-    {
-        std::string msg("Crypto Error (sig::PrivateKey(const std::string& encoded): undefined nid");
-        throw Error::RuntimeError(msg);
-    }
+    Error::ThrowIf<Error::RuntimeError>(
+        nid == NID_undef, "Crypto Error (sig::PrivateKey(const std::string& encoded): undefined nid");
 
     auto mSigCurve = NidToSigCurveMap.find(nid);
-    if(mSigCurve == NidToSigCurveMap.end())
-    {
-        std::string msg("Crypto Error (sig::PrivateKey(const std::string& encoded):unsupported nid: " + nid);
-        throw Error::RuntimeError(msg);
-    }
+    Error::ThrowIf<Error::RuntimeError>(
+        mSigCurve == NidToSigCurveMap.end(),
+        "Crypto Error (sig::PrivateKey(const std::string& encoded):unsupported nid: " + nid);
 
     sigDetails_ = pcsig::SigDetails[static_cast<int>(mSigCurve->second)];
 }
