@@ -33,6 +33,9 @@ namespace crypto
         {
             friend PublicKey;
 
+        private:
+            void ResetKey(void);
+
         public:
             // Default constructor (default curve specified in PDO_DEFAULT_SIGCURVE)
             PrivateKey();

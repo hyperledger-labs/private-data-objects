@@ -38,18 +38,6 @@
 /***END Conditional compile untrusted/trusted***/
 
 namespace pcrypto = pdo::crypto;
-namespace constants = pdo::crypto::constants;
-
-// Typedefs for memory management
-// Specify type and destroy function type for unique_ptrs
-typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
-typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
-typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
-typedef std::unique_ptr<EC_KEY, void (*)(EC_KEY*)> EC_KEY_ptr;
-typedef std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)> EC_GROUP_ptr;
-typedef std::unique_ptr<EC_POINT, void (*)(EC_POINT*)> EC_POINT_ptr;
-typedef std::unique_ptr<ECDSA_SIG, void (*)(ECDSA_SIG*)> ECDSA_SIG_ptr;
 
 // Error handling
 namespace Error = pdo::error;
@@ -99,28 +87,28 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::SigCurve& sigCurve)
 // Constructor from PrivateKey
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
 {
-    EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
+    pdo::crypto::EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
     if (!public_key)
     {
         std::string msg("Crypto Error (sig::PublicKey()): Could not create new public EC_KEY");
         throw Error::RuntimeError(msg);
     }
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(privateKey.sigDetails_.sslNID), EC_GROUP_clear_free);
+    pdo::crypto::EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(privateKey.sigDetails_.sslNID), EC_GROUP_clear_free);
     if (!ec_group)
     {
         std::string msg("Crypto Error (sig::PublicKey()()): Could not create EC_GROUP");
         throw Error::RuntimeError(msg);
     }
     EC_GROUP_set_point_conversion_form(ec_group.get(), POINT_CONVERSION_COMPRESSED);
-    BN_CTX_ptr context(BN_CTX_new(), BN_CTX_free);
+    pdo::crypto::BN_CTX_ptr context(BN_CTX_new(), BN_CTX_free);
     if (!context)
     {
         std::string msg("Crypto Error (sig::PublicKey()): Could not create new CTX");
         throw Error::RuntimeError(msg);
     }
 
-    EC_POINT_ptr p(EC_POINT_new(ec_group.get()), EC_POINT_free);
+    pdo::crypto::EC_POINT_ptr p(EC_POINT_new(ec_group.get()), EC_POINT_free);
     if (!p)
     {
         std::string msg("Crypto Error (sig::PublicKey()): Could not create new EC_POINT");
@@ -169,6 +157,8 @@ pcrypto::sig::PublicKey::PublicKey(const std::string& encoded)
 // throws RuntimeError
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 {
+    ResetKey();
+
     sigDetails_ = publicKey.sigDetails_;
     key_ = EC_KEY_dup(publicKey.key_);
     if (!key_)
@@ -183,6 +173,8 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PublicKey& publicKey)
 // throws RuntimeError
 pcrypto::sig::PublicKey::PublicKey(pcrypto::sig::PublicKey&& publicKey)
 {
+    ResetKey();
+
     sigDetails_ = publicKey.sigDetails_;
     key_ = publicKey.key_;
     publicKey.key_ = nullptr;
@@ -197,9 +189,17 @@ pcrypto::sig::PublicKey::PublicKey(pcrypto::sig::PublicKey&& publicKey)
 // Destructor
 pcrypto::sig::PublicKey::~PublicKey()
 {
+    ResetKey();
+}  // pcrypto::sig::PublicKey::~PublicKey
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pcrypto::sig::PublicKey::ResetKey(void)
+{
+    // reset the the key, do not change the curve details
     if (key_)
         EC_KEY_free(key_);
-}  // pcrypto::sig::PublicKey::~PublicKey
+    key_ = nullptr;
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // assignment operator overload
@@ -209,8 +209,8 @@ pcrypto::sig::PublicKey& pcrypto::sig::PublicKey::operator=(
 {
     if (this == &publicKey)
         return *this;
-    if (key_)
-        EC_KEY_free(key_);
+
+    ResetKey();
 
     sigDetails_ = publicKey.sigDetails_;
     key_ = EC_KEY_dup(publicKey.key_);
@@ -227,10 +227,14 @@ pcrypto::sig::PublicKey& pcrypto::sig::PublicKey::operator=(
 // throws RunTime
 void pcrypto::sig::PublicKey::Deserialize(const std::string& encoded)
 {
-    EC_KEY* key = deserializeECDSAPublicKey(encoded);
-    if (key_)
-        EC_KEY_free(key_);
-    key_ = key;
+    ResetKey();
+
+    pdo::crypto::BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
+    pdo::error::ThrowIfNull(bio.get(), "Crypto Error (sig::Deserialize()): Could not create BIO");
+
+    key_ = PEM_read_bio_EC_PUBKEY(bio.get(), NULL, NULL, NULL);
+    pdo::error::ThrowIfNull(key_, "Crypto Error (sig::Deserialize()): Could not deserialize public ECDSA key");
+
     SetSigDetailsFromDeserializedKey();
 }  // pcrypto::sig::PublicKey::Deserialize
 
@@ -239,7 +243,9 @@ void pcrypto::sig::PublicKey::Deserialize(const std::string& encoded)
 // throws RuntimeError, ValueError
 void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
 {
-    EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
+    ResetKey();
+
+    pdo::crypto::EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
     if (!public_key)
     {
         std::string msg(
@@ -247,7 +253,7 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
         throw Error::RuntimeError(msg);
     }
 
-    EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
+    pdo::crypto::EC_GROUP_ptr ec_group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
     if (!ec_group)
     {
         std::string msg("Crypto Error (sig::DeserializeXYFromHex): Could not create EC_GROUP");
@@ -260,7 +266,7 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
         throw Error::RuntimeError(msg);
     }
 
-    EC_POINT_ptr p(EC_POINT_hex2point(ec_group.get(), hexXY.data(), NULL, NULL), EC_POINT_free);
+    pdo::crypto::EC_POINT_ptr p(EC_POINT_hex2point(ec_group.get(), hexXY.data(), NULL, NULL), EC_POINT_free);
     if (!p)
     {
         std::string msg("Crypto Error (sig::DeserializeXYFromHex): Could not create new EC_POINT");
@@ -273,10 +279,8 @@ void pcrypto::sig::PublicKey::DeserializeXYFromHex(const std::string& hexXY)
         std::string msg("Crypto Error (DeserializeXYFromHex): Could not set EC point");
         throw Error::ValueError(msg);
     }
-    if (key_)
-        EC_KEY_free(key_);
-    key_ = EC_KEY_dup(public_key.get());
 
+    key_ = EC_KEY_dup(public_key.get());
     if (!key_)
     {
         std::string msg("Crypto Error (DeserializeXYFromHex): Could not dup public EC_KEY");
@@ -299,7 +303,7 @@ std::string pcrypto::sig::PublicKey::Serialize() const
     std::string str("");
     int keylen = 0;
 
-    BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
     if (!bio)
     {
         std::string msg("Crypto Error (Serialize): Could not create BIO");
@@ -365,7 +369,7 @@ int pcrypto::sig::PublicKey::VerifySignature(
 
     // Decode signature B64 -> DER -> ECDSA_SIG
     const unsigned char* der_SIG = (const unsigned char*)signature.data();
-    ECDSA_SIG_ptr sig(
+    pdo::crypto::ECDSA_SIG_ptr sig(
         d2i_ECDSA_SIG(NULL, (const unsigned char**)(&der_SIG), signature.size()), ECDSA_SIG_free);
     if (!sig)
     {

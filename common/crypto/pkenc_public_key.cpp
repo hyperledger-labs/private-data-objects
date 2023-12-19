@@ -38,14 +38,6 @@
 namespace pcrypto = pdo::crypto;
 namespace constants = pdo::crypto::constants;
 
-// Typedefs for memory management
-// Specify type and destroy function type for unique_ptrs
-typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
-typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
-typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
-typedef std::unique_ptr<RSA, void (*)(RSA*)> RSA_ptr;
-
 // Error handling
 namespace Error = pdo::error;
 
@@ -54,7 +46,7 @@ namespace Error = pdo::error;
 // throws RuntimeError, ValueError
 RSA* deserializeRSAPublicKey(const std::string& encoded)
 {
-    BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
     if (!bio)
     {
         std::string msg("Crypto Error (deserializeRSAPublicKey): Could not create BIO");
@@ -174,7 +166,7 @@ std::string pcrypto::pkenc::PublicKey::Serialize() const
         throw Error::RuntimeError(msg);
     }
 
-    BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
     if (!bio)
     {
         std::string msg("Crypto Error (Serialize): Could not create BIO");
