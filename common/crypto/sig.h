@@ -22,6 +22,12 @@
 
 #include "types.h"
 
+// Generally, this should be set in the makefile and provides
+// the default curve when no curve is explicitly set
+#ifndef PDO_DEFAULT_SIGCURVE
+#define PDO_DEFAULT_SIGCURVE SECP384R1
+#endif
+
 namespace pdo
 {
 namespace crypto
