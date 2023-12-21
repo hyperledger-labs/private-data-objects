@@ -34,7 +34,8 @@ static void LogStdOut(
     const char* message
     )
 {
-    printf("[LOG %u] %s", level, message);
+    fprintf(stderr, "[LOG %u] %s", level, message);
+    fflush(stderr);
 } // LogStdOut
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
