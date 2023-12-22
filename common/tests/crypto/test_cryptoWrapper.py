@@ -48,8 +48,6 @@ def test_ecdsa(sig_curve=crypto.SigCurve_UNDEFINED):
      eskString = esk.Serialize()
      # test public key serialization
      epkString = epk.Serialize()
-     # test public key xy serialization
-     hepkString = epk.SerializeXYToHex()
      # test private key PEM constructor
      esk1 = crypto.SIG_PrivateKey(eskString)
      # test public key PEM constructor

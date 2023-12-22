@@ -27,7 +27,7 @@ IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
   ENDIF()
 ENDIF()
 
-SET(CRYPTO_TEST_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/testCrypto.cpp)
+SET(CRYPTO_TEST_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/testCrypto.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_sig.cpp)
 SET(CRYPTO_TEST_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 
 ################################################################################
