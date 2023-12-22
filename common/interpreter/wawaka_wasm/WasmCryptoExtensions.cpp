@@ -1089,14 +1089,7 @@ extern "C" bool ecdsa_create_signing_keys_from_extended_key_wrapper(
 
         ByteArray key(key_buffer, key_buffer + key_buffer_length);
 
-        std::unique_ptr<BIGNUM, void(*)(BIGNUM*)> bn_key(BN_new(), BN_free);
-        pdo::error::ThrowIfNull(bn_key.get(), "allocation error");
-
-        pdo::error::ThrowIfNull(
-            BN_bin2bn((const unsigned char*)key.data(), key.size(), bn_key.get()),
-            "could not create bignum from byte array");
-
-        pcrypto::sig::PrivateKey privkey(pcrypto::sig::SigCurve::SECP384R1, bn_key.get());
+        pcrypto::sig::PrivateKey privkey(pcrypto::sig::SigCurve::SECP384R1, key);
         pcrypto::sig::PublicKey pubkey(privkey);
 
         std::string encpriv = privkey.Serialize();

@@ -58,9 +58,15 @@ pcrypto::sig::PrivateKey::PrivateKey(const pcrypto::sig::SigCurve& sigCurve)
 // Custom curve constructor with initial key specified as a bignum
 pcrypto::sig::PrivateKey::PrivateKey(
     const pcrypto::sig::SigCurve& sigCurve,
-    const BIGNUM* numeric_key) :
+    const ByteArray& numeric_key) :
     pcrypto::sig::PrivateKey::PrivateKey(sigCurve)
 {
+    int res;
+
+    pdo::crypto::BIGNUM_ptr bn_key(BN_bin2bn((const unsigned char*)numeric_key.data(), numeric_key.size(), NULL), BN_free);
+    Error::ThrowIf<Error::MemoryError>(
+        bn_key == nullptr, "Crypto Error (sig::PrivateKey): Could not create bignum");
+
     pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
     Error::ThrowIf<Error::MemoryError>(
         b_ctx == nullptr, "Crypto Error (sig::PrivateKey): Cound not create BN context");
@@ -82,15 +88,13 @@ pcrypto::sig::PrivateKey::PrivateKey(
     Error::ThrowIf<Error::MemoryError>(
         ec_group == nullptr, "Crypto Error (sig::PrivateKey): Could not create EC_GROUP");
 
-    int res;
-
     res = EC_KEY_set_group(private_key.get(), ec_group.get());
     Error::ThrowIf<Error::CryptoError>(
         res <= 0, "Crypto Error (sig::PrivateKey): Could not set EC_GROUP");
 
     EC_GROUP_get_order(ec_group.get(), o.get(), b_ctx.get());
 
-    res = BN_mod(r.get(), numeric_key, o.get(), b_ctx.get());
+    res = BN_mod(r.get(), bn_key.get(), o.get(), b_ctx.get());
     Error::ThrowIf<Error::CryptoError>(
         res <= 0, "Crypto Error (sig::PrivateKey): Bignum modulus failed");
 
@@ -380,3 +384,20 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
 
     return der_SIG;
 }  // pcrypto::sig::PrivateKey::SignMessage
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pcrypto::sig::PrivateKey::GetNumericKey(ByteArray& numeric_key) const
+{
+    Error::ThrowIfNull(key_, "Crypto Error (sig::PrivateKey::GetNumericKey): Key not initialized");
+
+    const BIGNUM *bn = EC_KEY_get0_private_key(key_);
+    Error::ThrowIf<Error::CryptoError>(
+        bn == nullptr, "Crypto Error (sig::PrivateKey::GetNumericKey) failed to retrieve the private key");
+
+    numeric_key.resize(BN_num_bytes(bn));
+    int res;
+
+    res = BN_bn2bin(bn, numeric_key.data());
+    Error::ThrowIf<Error::CryptoError>(
+        res <= 0, "Crypto Error (sig::PrivateKey::GetNumericKey) failed to convert bignum");
+}

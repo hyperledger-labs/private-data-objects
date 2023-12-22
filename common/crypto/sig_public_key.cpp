@@ -54,6 +54,49 @@ pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::SigCurve& sigCurve)
 } // pcrypto::sig::PublicKey::PublicKey
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// Constructor from numeric key
+pcrypto::sig::PublicKey::PublicKey(
+    const pcrypto::sig::SigCurve& sigCurve,
+    const ByteArray& numeric_key) :
+    pcrypto::sig::PublicKey::PublicKey(sigCurve)
+{
+    int res;
+
+    pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
+    Error::ThrowIf<Error::MemoryError>(
+        b_ctx == nullptr, "Crypto Error (sig::PrivateKey): Cound not create BN context");
+
+    EC_GROUP_ptr group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
+    Error::ThrowIf<Error::MemoryError>(
+        group == nullptr, "Crypto Error (sig::PrivateKey): Cound not create group");
+
+    EC_GROUP_set_point_conversion_form(group.get(), POINT_CONVERSION_COMPRESSED);
+
+    EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
+    Error::ThrowIf<Error::MemoryError>(
+        public_key == nullptr, "Crypto Error (sig::PrivateKey): Cound not create public_key");
+
+    res = EC_KEY_set_group(public_key.get(), group.get());
+    Error::ThrowIf<Error::CryptoError>(
+        res <= 0, "Crypto Error (sig::DeserializeXYFromHex): Could not set EC_GROUP");
+
+    EC_POINT_ptr point(EC_POINT_new(group.get()), EC_POINT_free);
+    Error::ThrowIf<Error::MemoryError>(
+        point == nullptr, "Crypto Error (sig::PrivateKey): Cound not create point");
+
+    res = EC_POINT_oct2point(group.get(), point.get(), numeric_key.data(), numeric_key.size(), b_ctx.get());
+    Error::ThrowIf<Error::CryptoError>(
+        res <= 0, "Crypto Error (sig::PrivateKey): Cound not convert octet to point");
+
+    res = EC_KEY_set_public_key(public_key.get(), point.get());
+    Error::ThrowIf<Error::CryptoError>(
+        res <= 0, "Crypto Error (sig::PrivateKey): Cound not set public key");
+
+    key_ = public_key.get();
+    public_key.release();
+}
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Constructor from PrivateKey
 pcrypto::sig::PublicKey::PublicKey(const pcrypto::sig::PrivateKey& privateKey)
 {
@@ -268,6 +311,29 @@ int pcrypto::sig::PublicKey::VerifySignature(
     // Verify
     return ECDSA_do_verify(hash.data(), hash.size(), sig.get(), key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+void pcrypto::sig::PublicKey::GetNumericKey(ByteArray& numeric_key) const
+{
+    Error::ThrowIfNull(key_, "Crypto Error (sig::PublicKey::GetNumericKey): Key not initialized");
+
+    pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
+    Error::ThrowIf<Error::MemoryError>(
+        b_ctx == nullptr, "Crypto Error (sig::PrivateKey): Cound not create BN context");
+
+    const EC_GROUP *group = EC_KEY_get0_group(key_);
+    const EC_POINT *point = EC_KEY_get0_public_key(key_);
+
+    int result;
+
+    // this call just returns the size of the buffer that is necessary
+    result = EC_POINT_point2oct(group, point, POINT_CONVERSION_COMPRESSED, NULL, 0, b_ctx.get());
+    numeric_key.resize(result);
+
+    // this call writes the data to the numeric_key
+    result = EC_POINT_point2oct(
+        group, point, POINT_CONVERSION_COMPRESSED, numeric_key.data(), numeric_key.size(), b_ctx.get());
+}
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 unsigned int pcrypto::sig::PublicKey::MaxSigSize(const std::string& encoded)
