@@ -36,6 +36,7 @@ namespace crypto
         public:
             // Custom curve constructor
             PublicKey(const SigCurve& sigCurve = SigCurve::UNDEFINED);
+            PublicKey(const SigCurve& sigCurve, const ByteArray& numeric_key);
             // copy constructor
             // throws RuntimeError
             PublicKey(const PublicKey& publicKey);
@@ -59,6 +60,8 @@ namespace crypto
             // Verify signature signature.data() on message.data() and return 1 if signature is
             // valid, 0 if signature is not valid or -1 if there was an internal error
             int VerifySignature(const ByteArray& message, const ByteArray& signature) const;
+            // Retrieve the numeric key
+            void GetNumericKey(ByteArray& numeric_key) const;
 
             static unsigned int MaxSigSize(const std::string& encoded);
         };
