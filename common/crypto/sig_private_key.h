@@ -41,7 +41,7 @@ namespace crypto
             // PDO_DEFAULT_SIGCURVE setting that comes from the makefiles
             PrivateKey(const SigCurve& sigCurve = SigCurve::UNDEFINED);
             // Custom curve with initializer
-            PrivateKey(const SigCurve& sigCurve, const BIGNUM* numeric_key);
+            PrivateKey(const SigCurve& sigCurve, const ByteArray& numeric_key);
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);
@@ -69,6 +69,8 @@ namespace crypto
             // Sign message.data() and return ByteArray containing raw binary signature
             // throws RuntimeError
             ByteArray SignMessage(const ByteArray& message) const;
+            // Retrieve the numeric key
+            void GetNumericKey(ByteArray& numeric_key) const;
         };
     }
 }
