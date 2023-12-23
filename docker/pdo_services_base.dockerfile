@@ -14,7 +14,8 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-FROM pdo_base
+ARG PDO_VERSION
+FROM pdo_base:${PDO_VERSION}
 
 ARG UBUNTU_VERSION=20.04
 ARG UBUNTU_NAME=focal

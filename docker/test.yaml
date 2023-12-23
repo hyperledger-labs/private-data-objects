@@ -18,6 +18,7 @@ services:
   ccf_container:
     build:
       args:
+        PDO_VERSION: ${PDO_VERSION}
         PDO_HOSTNAME: localhost
         PDO_LEDGER_URL: http://localhost:6600
     entrypoint: /project/pdo/tools/run_ccf_tests.sh
@@ -25,6 +26,7 @@ services:
   services_container:
     build:
       args:
+        PDO_VERSION: ${PDO_VERSION}
         PDO_HOSTNAME: localhost
         PDO_LEDGER_URL: http://localhost:6600
         PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
@@ -34,6 +36,7 @@ services:
   client_container:
     build:
       args:
+        PDO_VERSION: ${PDO_VERSION}
         PDO_HOSTNAME: localhost
         PDO_LEDGER_URL: http://localhost:6600
         PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
