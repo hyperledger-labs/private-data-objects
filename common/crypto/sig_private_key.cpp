@@ -336,7 +336,6 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
     Error::ThrowIf<Error::MemoryError>(
         s == nullptr, "Crypto Error (SignMessage): Could not dup BIGNUM for s");
 
-    // r = BN_dup(rc);
     pdo::crypto::BIGNUM_ptr r(BN_dup(rc), BN_free);
     Error::ThrowIf<Error::MemoryError>(
         r == nullptr, "Crypto Error (SignMessage): Could not dup BIGNUM for r");
