@@ -331,7 +331,6 @@ ByteArray pcrypto::sig::PrivateKey::SignMessage(const ByteArray& message) const
     const BIGNUM* sc = ECDSA_SIG_get0_s(sig.get());
     Error::ThrowIfNull(sc, "Crypto Error (SignMessage): bad s value");
 
-    // s = BN_dup(sc);
     pdo::crypto::BIGNUM_ptr s(BN_dup(sc), BN_free);
     Error::ThrowIf<Error::MemoryError>(
         s == nullptr, "Crypto Error (SignMessage): Could not dup BIGNUM for s");
