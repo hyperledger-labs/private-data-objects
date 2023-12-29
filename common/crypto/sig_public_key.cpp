@@ -64,17 +64,17 @@ pcrypto::sig::PublicKey::PublicKey(
 
     pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
     Error::ThrowIf<Error::MemoryError>(
-        b_ctx == nullptr, "Crypto Error (sig::PrivateKey): Cound not create BN context");
+        b_ctx == nullptr, "Crypto Error (sig::PublicKey): Cound not create BN context");
 
     EC_GROUP_ptr group(EC_GROUP_new_by_curve_name(sigDetails_.sslNID), EC_GROUP_clear_free);
     Error::ThrowIf<Error::MemoryError>(
-        group == nullptr, "Crypto Error (sig::PrivateKey): Cound not create group");
+        group == nullptr, "Crypto Error (sig::PublicKey): Cound not create group");
 
     EC_GROUP_set_point_conversion_form(group.get(), POINT_CONVERSION_COMPRESSED);
 
     EC_KEY_ptr public_key(EC_KEY_new(), EC_KEY_free);
     Error::ThrowIf<Error::MemoryError>(
-        public_key == nullptr, "Crypto Error (sig::PrivateKey): Cound not create public_key");
+        public_key == nullptr, "Crypto Error (sig::PublicKey): Cound not create public_key");
 
     res = EC_KEY_set_group(public_key.get(), group.get());
     Error::ThrowIf<Error::CryptoError>(
@@ -82,15 +82,15 @@ pcrypto::sig::PublicKey::PublicKey(
 
     EC_POINT_ptr point(EC_POINT_new(group.get()), EC_POINT_free);
     Error::ThrowIf<Error::MemoryError>(
-        point == nullptr, "Crypto Error (sig::PrivateKey): Cound not create point");
+        point == nullptr, "Crypto Error (sig::PublicKey): Cound not create point");
 
     res = EC_POINT_oct2point(group.get(), point.get(), numeric_key.data(), numeric_key.size(), b_ctx.get());
     Error::ThrowIf<Error::CryptoError>(
-        res <= 0, "Crypto Error (sig::PrivateKey): Cound not convert octet to point");
+        res <= 0, "Crypto Error (sig::PublicKey): Cound not convert octet to point");
 
     res = EC_KEY_set_public_key(public_key.get(), point.get());
     Error::ThrowIf<Error::CryptoError>(
-        res <= 0, "Crypto Error (sig::PrivateKey): Cound not set public key");
+        res <= 0, "Crypto Error (sig::PublicKey): Cound not set public key");
 
     key_ = public_key.get();
     public_key.release();
@@ -319,7 +319,7 @@ void pcrypto::sig::PublicKey::GetNumericKey(ByteArray& numeric_key) const
 
     pdo::crypto::BN_CTX_ptr b_ctx(BN_CTX_new(), BN_CTX_free);
     Error::ThrowIf<Error::MemoryError>(
-        b_ctx == nullptr, "Crypto Error (sig::PrivateKey): Cound not create BN context");
+        b_ctx == nullptr, "Crypto Error (sig::PublicKey): Cound not create BN context");
 
     const EC_GROUP *group = EC_KEY_get0_group(key_);
     const EC_POINT *point = EC_KEY_get0_public_key(key_);

@@ -24,6 +24,7 @@
 #include "packages/parson/parson.h"
 
 #include "crypto.h"
+#include "crypto_shared.h"
 #include "crypto/verify_ias_report/ias-certificates.h"
 #include "error.h"
 #include "jsonvalue.h"
@@ -40,10 +41,6 @@
 
 namespace pe = pdo::error;
 namespace pcrypto = pdo::crypto;
-
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
-typedef std::unique_ptr<EC_GROUP, void (*)(EC_GROUP*)> EC_GROUP_ptr;
-
 
 /* ----------------------------------------------------------------- *
  * NAME: _b64_encode_wrapper
