@@ -419,8 +419,6 @@ bool ww::crypto::ecdsa::generate_keys(
     uint8_t* pub_data_pointer = NULL;
     size_t pub_data_size = 0;
 
-    CONTRACT_SAFE_LOG(3, "generate keys from byte array");
-
     if (! ::ecdsa_create_signing_keys_from_extended_key(
             key.data(), key.size(),
             (char**)&priv_data_pointer, &priv_data_size,
