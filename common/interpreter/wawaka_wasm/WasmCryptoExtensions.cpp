@@ -25,7 +25,7 @@
 
 #include "crypto.h"
 #include "crypto_shared.h"
-#include "crypto/verify_ias_report/ias-certificates.h"
+#include "crypto/verify_ias_report/verify-report.h"
 #include "error.h"
 #include "jsonvalue.h"
 #include "log.h"

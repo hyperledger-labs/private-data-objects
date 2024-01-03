@@ -31,6 +31,5 @@
 #include "skenc.h"
 #if _CLIENT_ONLY_
 #else
-#include "verify_ias_report/ias-certificates.h"
 #include "verify_ias_report/verify-report.h"
 #endif

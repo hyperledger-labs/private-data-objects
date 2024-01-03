@@ -17,7 +17,7 @@ OPTION(BUILD_UNTRUSTED "Build modules for running with SGX outside an enclave" O
 OPTION(BUILD_CLIENT "Build modules for running clients without SGX" OFF)
 OPTION(BLOCK_STORE_DEBUG "Debug logging for block store operations" OFF)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16 FATAL_ERROR)
 FIND_PACKAGE(PkgConfig REQUIRED)
 
 IF (NOT DEFINED ENV{PDO_SOURCE_ROOT})
