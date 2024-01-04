@@ -30,8 +30,8 @@ enclave with Wawaka enabled, you will need to do the following:
 There are many toolchains that could be used to build a WASM code. By default, Wawaka contracts are
 compiled with the compilers provided by [WASI SDK](https://github.com/WebAssembly/wasi-sdk). To use
 WASI SDK, download and install the appropriate package file from
-https://github.com/WebAssembly/wasi-sdk/releases (we have verified that release wasi-sdk-12 works
-with WAMR version WAMR-1.1.2).
+https://github.com/WebAssembly/wasi-sdk/releases (we have verified that release wasi-sdk-21 works
+with WAMR version WAMR-1.3).
 
 ```bash
 wget -q -P /tmp https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk_12.0_amd64.deb
@@ -46,14 +46,14 @@ SDK would be installed in the directory `/opt/wasi-sdk`.
 If wawaka is configured as the contract interpreter, the libraries implementing the WASM interpreter
 will be built for use with Intel SGX. The source for the WAMR interpreter is
 included as a submodule in the interpreters/ folder, and will
-always point to the latest tagged commit that we have validated: `WAMR-1.1.2`.
+always point to the latest tagged commit that we have validated: `WAMR-1.3`.
 If the PDO parent repo was not cloned with the `--recurse-submodules` flag,
 you will have to explictly pull the submodule source.
 
 ```
 cd ${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime
 git submodule update --init
-git checkout WAMR-1.1.2 # optional
+git checkout WAMR-1.3 # optional
 ```
 
 The WAMR API is built during the Wawaka build, so no additional

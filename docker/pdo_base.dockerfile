@@ -68,7 +68,8 @@ RUN apt-get update \
 # -----------------------------------------------------------------
 # Install WASI toolkit
 # -----------------------------------------------------------------
-ARG WASI_VERSION=12
+##ARG WASI_VERSION=12
+ARG WASI_VERSION=21
 ARG WASI_PACKAGE="wasi-sdk_${WASI_VERSION}.0_amd64.deb"
 
 WORKDIR /tmp
