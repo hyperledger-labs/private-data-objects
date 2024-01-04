@@ -42,7 +42,6 @@ while true ; do
     	*) echo "Internal error!" ; exit 1 ;;
     esac
 done
-TEMP
 
 if [ ${F_CLIENT} == "yes" ]; then
     CMAKE_ARGS="-DBUILD_CLIENT=1 -DBUILD_TRUSTED=0 -DBUILD_UNTRUSTED=0"
