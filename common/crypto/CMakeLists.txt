@@ -39,17 +39,23 @@ ENDIF()
 # by the client (ias verification requires sgx).
 ################################################################################
 IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
-  SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.cpp)
+  SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.txt)
   SET_SOURCE_FILES_PROPERTIES(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
+  SET(FETCH_IAS_CERTS ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/fetch_ias_certificates.sh)
 
   ADD_CUSTOM_COMMAND(
     OUTPUT  ${PROJECT_GENERATED_IAS_SOURCES}
-    COMMAND ./build_ias_certificates_cpp.sh
-    DEPENDS verify_ias_report/ias-certificates.template verify_ias_report/build_ias_certificates_cpp.sh
+    COMMAND ${FETCH_IAS_CERTS} ${IAS_CERTIFICATE_URL} ${PROJECT_GENERATED_IAS_SOURCES}
+    DEPENDS ${FETCH_IAS_CERTS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report
   )
 
   ADD_CUSTOM_TARGET(generate-ias-files DEPENDS ${PROJECT_GENERATED_IAS_SOURCES})
+
+  SET_PROPERTY(
+    TARGET generate-ias-files
+    APPEND
+    PROPERTY ADDITIONAL_CLEAN_FILES ${PROJECT_GENERATED_IAS_SOURCE})
 
   IF (${SGX_MODE} STREQUAL "HW")
     SET(IAS_CA_CERT_REQUIRED "IAS_CA_CERT_REQUIRED=1")

@@ -24,10 +24,8 @@ check_python_version
 # -----------------------------------------------------------------
 
 yell --------------- COMMON ---------------
-cd $SRCDIR/common/crypto/verify_ias_report
-rm -f ias-certificates.cpp
-
 cd $SRCDIR/common
+cmake --build build --target clean
 rm -rf build
 
 yell --------------- BIN ---------------
