@@ -104,13 +104,18 @@ ENABLE_LANGUAGE (ASM)
 #################################################################
 # WAMR Library
 #################################################################
-
 # include the build config template file
 INCLUDE (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
 
 INCLUDE (${SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
 INCLUDE (${SHARED_DIR}/mem-alloc/mem_alloc.cmake)
 INCLUDE (${SHARED_DIR}/utils/shared_utils.cmake)
+
+# this picks up the libc_erro.h, this appears to be an error in WAMR in that the
+# test for WASI is AFTER the attempt to include a file that is only available when
+# WASI is turned on.
+INCLUDE (${SHARED_DIR}/platform/common/libc-util/platform_common_libc_util.cmake)
+
 IF (WAMR_BUILD_LIBC_BUILTIN EQUAL 1)
   INCLUDE (${IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
 ENDIF ()
@@ -126,13 +131,19 @@ ENDIF ()
 
 ADD_LIBRARY (${IWASM_STATIC_NAME}
              ${PLATFORM_SHARED_SOURCE}
+             ${PLATFORM_COMMON_LIBC_UTIL_SOURCE}
              ${MEM_ALLOC_SHARED_SOURCE}
              ${UTILS_SHARED_SOURCE}
              ${LIBC_BUILTIN_SOURCE}
              ${LIBC_WASI_SOURCE}
+             ${WAMR_POSIX_SOURCES}
              ${IWASM_COMMON_SOURCE}
              ${IWASM_INTERP_SOURCE}
-             ${IWASM_COMPL_SOURCE})
+             ${IWASM_COMPL_SOURCE}
+             # this is necessary because WAMR currently does not have a definition
+             # for os_is_handle_valid in the sgx_platform.c file
+             ${CMAKE_CURRENT_SOURCE_DIR}/wamr_fixes.c
+           )
 
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${SHARED_DIR}/include)
 TARGET_INCLUDE_DIRECTORIES(${IWASM_STATIC_NAME} PUBLIC ${IWASM_DIR}/include)
