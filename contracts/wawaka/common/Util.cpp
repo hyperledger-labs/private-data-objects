@@ -73,6 +73,12 @@ int vfprintf(FILE *__restrict, const char *__restrict, __isoc_va_list)
     return -1;
 }
 
+extern "C" void __cxa_pure_virtual(void)
+{
+    CONTRACT_SAFE_LOG(4, "missing pure virtual function");
+    std::abort();
+}
+
 #endif
 
 /* ----------------------------------------------------------------- *

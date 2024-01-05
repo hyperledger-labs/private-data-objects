@@ -99,7 +99,11 @@
 static JSON_Malloc_Function parson_malloc = malloc;
 static JSON_Free_Function parson_free = free;
 
+#ifndef COMPILE_FOR_SGX
 static int parson_escape_slashes = 1;
+#else
+static int parson_escape_slashes = 0;
+#endif
 
 static char *parson_float_format = NULL;
 
