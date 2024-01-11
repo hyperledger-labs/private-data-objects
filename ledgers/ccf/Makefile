@@ -85,7 +85,7 @@ $(PYTHON_DIR) :
 install : install-pdo-tp
 
 PDO_BASH_SCRIPTS=start_ccf_network.sh stop_cchost.sh
-PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py utils.py
+PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py
 
 install-pdo-tp : build-pdo-tp
 	@ cd $(BLDDIR) && $(NINJA) install

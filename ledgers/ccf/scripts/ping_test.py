@@ -19,19 +19,10 @@ import http
 import os
 import sys
 import time
-import toml
 from urllib.parse import urlparse
 
 from ccf.clients import CCFClient
-
-from utils import parse_ledger_url
-# pick up the logger used by the rest of CCF
 from loguru import logger as LOG
-
-## -----------------------------------------------------------------
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_Etc = os.path.join(ContractHome, "ccf", "etc")
-CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
 
 # -----------------------------------------------------------------
 def ping_test(client, options):
@@ -47,17 +38,20 @@ def ping_test(client, options):
     total_time = end_time - start_time
     txn_throuput = num_pings/total_time
 
-    LOG.info("Performed {0} pings. Average txn_throuput is {1} pings per second".format(num_pings, txn_throuput))
+    if options.verbose :
+        LOG.warning("Performed {0} pings. Average throughput is {1} pings per second".format(num_pings, txn_throuput))
 
 # -----------------------------------------------------------------
 def Main() :
-    parser = argparse.ArgumentParser(description='Script to enable the CCF network')
+    parser = argparse.ArgumentParser(description='Test the connection to a CCF server')
 
-    parser.add_argument('--logfile', help='Name of the log file, __screen__ for standard output', type=str)
-    parser.add_argument('--loglevel', help='Logging level', default='INFO', type=str)
-    parser.add_argument('--user-name', help="Name of the user being added", default = "userccf", type=str)
-    parser.add_argument("--num-pings", help="Number of ping operations to do", default = 100, type=int)
-
+    parser.add_argument('--loglevel', help='Logging level', default='WARNING', type=str)
+    parser.add_argument("--num-pings", help="Number of ping operations to do", default = 1, type=int)
+    parser.add_argument('--url', type=str, required=True)
+    parser.add_argument('--cert', type=str, required=True)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--verbose', action='store_true', default=True)
+    group.add_argument('--quiet', action='store_false', dest='verbose')
     options = parser.parse_args()
 
     # -----------------------------------------------------------------
@@ -65,20 +59,29 @@ def Main() :
     LOG.add(sys.stderr, level=options.loglevel)
 
     # -----------------------------------------------------------------
-    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
-
-    host, port = parse_ledger_url()
-
     try :
-        user_client = CCFClient(
-            host,
-            port,
-            network_cert)
+        (host, port) = urlparse(options.url).netloc.split(':')
     except Exception as e:
-        LOG.error('failed to connect to CCF service: {}'.format(str(e)))
+        if options.verbose :
+            LOG.error('failed to parse ledger URL: {}'.format(str(e)))
         sys.exit(-1)
 
-    ping_test(user_client, options)
+    try :
+        user_client = CCFClient(host, port, options.cert)
+    except Exception as e:
+        if options.verbose :
+            LOG.error('failed to connect to CCF service: {}'.format(str(e)))
+        sys.exit(-1)
+
+    try :
+        ping_test(user_client, options)
+    except Exception as e:
+        # this just lets the script get back to the original error
+        # that caused the execption
+        if options.verbose :
+            while e.__context__ : e = e.__context__
+            LOG.error('ping test failed: {}', str(e))
+        sys.exit(-1)
 
     sys.exit(0)
 

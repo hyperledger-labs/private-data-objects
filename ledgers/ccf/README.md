@@ -131,7 +131,7 @@ at the end of the test.
 
 ```bash
 source $PDO_HOME/ccf/bin/activate
-${PDO_SOURCE_ROOT}/ledgers/ccf/scripts/ping_test.py
+${PDO_SOURCE_ROOT}/ledgers/ccf/scripts/ping_test.py --url ${PDO_LEDGER_URL} --cert ${PDO_LEDGER_KEY_ROOT}/networkcert.pem
 ```
 
 While invoking the test from a remote machine, be sure to 1) copy the
