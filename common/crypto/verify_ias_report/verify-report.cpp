@@ -22,8 +22,11 @@
 #include <string.h>
 
 #include "c11_support.h"
-#include "ias-certificates.h"
 #include "parson.h"
+
+const char* const ias_report_signing_ca_cert_pem =
+#include "ias-certificates.txt"
+    ;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 //########### INTERNAL FUNCTIONS #########################################
@@ -211,7 +214,7 @@ err:
     return VERIFY_FAILURE;
 }
 
-verify_status_t verify_ias_certificate_chain(const char* cert_pem)
+verify_status_t verify_ias_certificate_chain(const char* const cert_pem)
 #ifndef IAS_CA_CERT_REQUIRED
 {
     return VERIFY_FAILURE;  // fail (conservative approach for simulator-mode and in absence of CA

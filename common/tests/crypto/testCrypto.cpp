@@ -21,7 +21,7 @@
 
 #include "c11_support.h"
 #include "crypto.h"
-#include "crypto/verify_ias_report/ias-certificates.h"
+#include "crypto/verify_ias_report/verify-report.h"
 #include "error.h"
 #include "log.h"
 #include "packages/parson/parson.h"

@@ -47,6 +47,8 @@ IF (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   MESSAGE(FATAL_ERROR "CMAKE_LIBRARY_OUTPUTDIRECTORY must be set")
 ENDIF()
 
+SET(IAS_CERTIFICATE_URL "https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem")
+
 ################################################################################
 # Internal SGX Variables
 ################################################################################

@@ -18,6 +18,8 @@
 
 #include <sgx_quote.h>
 
+extern const char* const ias_report_signing_ca_cert_pem;
+
 typedef enum
 {
     VERIFY_SUCCESS,
@@ -52,7 +54,7 @@ verify_status_t verify_enclave_quote_status(const char* ias_report,
                                             unsigned int ias_report_len,
                                             unsigned int quote_status_flags);
 verify_status_t verify_ias_certificate_chain(const char* cert_pem);
-verify_status_t verify_ias_report_signature(const char* ias_attestation_signing_cert_pem,
+verify_status_t verify_ias_report_signature(const char* const ias_attestation_signing_cert_pem,
                                             const char* ias_report,
                                             const unsigned int ias_report_len,
                                             const char* ias_signature,
