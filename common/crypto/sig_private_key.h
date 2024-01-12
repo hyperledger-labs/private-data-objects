@@ -33,11 +33,15 @@ namespace crypto
         {
             friend PublicKey;
 
+        private:
+            void ResetKey(void);
+
         public:
-            // Default constructor (default curve specified in PDO_DEFAULT_SIGCURVE)
-            PrivateKey();
-            // Custom curve constructor
-            PrivateKey(const SigCurve& sigCurve);
+            // custom curve constructor, will ultimately default to the value of the
+            // PDO_DEFAULT_SIGCURVE setting that comes from the makefiles
+            PrivateKey(const SigCurve& sigCurve = SigCurve::UNDEFINED);
+            // Custom curve with initializer
+            PrivateKey(const SigCurve& sigCurve, const ByteArray& numeric_key);
             // copy constructor
             // throws RuntimeError
             PrivateKey(const PrivateKey& privateKey);
@@ -47,7 +51,10 @@ namespace crypto
             // deserializing constructor
             // throws RuntimeError, ValueError
             PrivateKey(const std::string& encoded);
+            // destructor
             ~PrivateKey();
+            // boolean conversion, true if key is initialized
+            operator bool() const;
             // throws RuntimeError
             PrivateKey& operator=(const PrivateKey& privateKey);
             // throws RuntimeError, ValueError
@@ -62,6 +69,8 @@ namespace crypto
             // Sign message.data() and return ByteArray containing raw binary signature
             // throws RuntimeError
             ByteArray SignMessage(const ByteArray& message) const;
+            // Retrieve the numeric key
+            void GetNumericKey(ByteArray& numeric_key) const;
         };
     }
 }

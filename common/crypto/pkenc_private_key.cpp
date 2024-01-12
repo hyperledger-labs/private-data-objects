@@ -38,14 +38,6 @@
 namespace pcrypto = pdo::crypto;
 namespace constants = pdo::crypto::constants;
 
-// Typedefs for memory management
-// Specify type and destroy function type for unique_ptrs
-typedef std::unique_ptr<BIO, void (*)(BIO*)> BIO_ptr;
-typedef std::unique_ptr<EVP_CIPHER_CTX, void (*)(EVP_CIPHER_CTX*)> CTX_ptr;
-typedef std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> BN_CTX_ptr;
-typedef std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> BIGNUM_ptr;
-typedef std::unique_ptr<RSA, void (*)(RSA*)> RSA_ptr;
-
 // Error handling
 namespace Error = pdo::error;
 
@@ -54,7 +46,7 @@ namespace Error = pdo::error;
 // throws RuntimeError, ValueError
 RSA* deserializeRSAPrivateKey(const std::string& encoded)
 {
-    BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new_mem_buf(encoded.c_str(), -1), BIO_free_all);
     if (!bio)
     {
         std::string msg("Crypto Error (deserializeRSAPrivateKey): Could not create BIO");
@@ -151,9 +143,9 @@ void pcrypto::pkenc::PrivateKey::Generate()
 {
     if (private_key_)
         RSA_free(private_key_);
-    
+
     unsigned long e = RSA_F4;
-    BIGNUM_ptr exp(BN_new(), BN_free);
+    pdo::crypto::BIGNUM_ptr exp(BN_new(), BN_free);
     private_key_ = nullptr;
 
     if (!exp)
@@ -170,7 +162,7 @@ void pcrypto::pkenc::PrivateKey::Generate()
         throw Error::RuntimeError(msg);
     }
 
-    RSA_ptr private_key(RSA_new(), RSA_free);
+    pdo::crypto::RSA_ptr private_key(RSA_new(), RSA_free);
     if (!private_key)
     {
         std::string msg("Crypto  Error (pkenc::PrivateKey()): Could not create new RSA key");
@@ -199,7 +191,7 @@ std::string pcrypto::pkenc::PrivateKey::Serialize() const
         std::string msg("Crypto Error (Serialize): PrivateKey is not initialized");
         throw Error::RuntimeError(msg);
     }
-    BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
+    pdo::crypto::BIO_ptr bio(BIO_new(BIO_s_mem()), BIO_free_all);
     if (!bio)
     {
         std::string msg("Crypto Error (Serialize): Could not create BIO\n");
