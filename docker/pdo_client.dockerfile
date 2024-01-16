@@ -40,7 +40,7 @@ USER $UNAME
 # -----------------------------------------------------------------
 # set up the PDO sources
 # -----------------------------------------------------------------
-ARG REBUILD 0
+ARG REBUILD=0
 
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
@@ -73,13 +73,5 @@ ARG GID=${UID}
 RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip \
     /project/pdo/tools/build_client.sh
 
-ARG PDO_HOSTNAME
-ENV PDO_HOSTNAME=$PDO_HOSTNAME
-
-ARG PDO_LEDGER_URL
-ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
-
-# the client is set up for interactive access; the environment can be
-# set up by source /project/pdo/tools/start_client.sh with the arguments
-# to build a new client environment or copy one from the xfer directory
+RUN ln -s /project/pdo/tools/bashrc_client.sh /project/pdo/.bashrc
 ENTRYPOINT [ "/bin/bash" ]

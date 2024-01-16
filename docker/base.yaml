@@ -17,7 +17,7 @@ version: "3.4"
 
 services:
   base_container:
-    image: pdo_base
-    build:
-      context: .
-      dockerfile: pdo_base.dockerfile
+    image: pdo_base:${PDO_VERSION:-latest}
+    # build containers only via Makefile and directly via docker build
+    # as we use containers also outside of docker-compose to prevent
+    # double-build

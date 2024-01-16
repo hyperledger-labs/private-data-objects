@@ -25,9 +25,9 @@ FROM pdo_ccf_base:${PDO_VERSION}
 # -----------------------------------------------------------------
 # set up the PDO sources
 # -----------------------------------------------------------------
-ARG REBUILD 0
+ARG REBUILD=0
 
-ARG SGX_MODE SIM
+ARG SGX_MODE=SIM
 ENV SGX_MODE=$SGX_MODE
 
 ARG PDO_DEBUG_BUILD=0
@@ -57,13 +57,6 @@ RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip \
 # Network ports for running services
 EXPOSE 6600
 
-ARG PDO_HOSTNAME
-ENV PDO_HOSTNAME=$PDO_HOSTNAME
-
-ARG PDO_LEDGER_URL
-ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
-
-# Note that the entry point when specified with exec syntax
 # can be extended through the docker run interface far more
 # easily than if you use the other specification format of
 # a single string

@@ -17,18 +17,9 @@ version: "3.4"
 
 services:
   services_container:
-    image: pdo_services
-    build:
-      context: .
-      dockerfile: pdo_services.dockerfile
-      args:
-        PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
-        PDO_HOSTNAME: ${PDO_HOSTNAME}
-        PDO_LEDGER_TYPE: ccf
-        PDO_LEDGER_URL: ${PDO_LEDGER_URL}
-        SGX_MODE: ${SGX_MODE:-SIM}
-        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
-        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
+    image: pdo_services:${PDO_VERSION:-latest}
+    # build containers only via Makefile and directly via docker build
+    # as we use containers also outside of docker-compose to prevent
     container_name: services_container
     network_mode: "host"
     depends_on:

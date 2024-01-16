@@ -25,7 +25,7 @@ FROM pdo_services_base:${PDO_VERSION}
 # -----------------------------------------------------------------
 # set up the PDO sources
 # -----------------------------------------------------------------
-ARG REBUILD 0
+ARG REBUILD=0
 
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
@@ -63,11 +63,6 @@ EXPOSE 7001 7002 7003 7004 7005
 EXPOSE 7101 7102 7103 7104 7105
 EXPOSE 7201 7202 7203 7204 7205
 
-ARG PDO_HOSTNAME
-ENV PDO_HOSTNAME=$PDO_HOSTNAME
-
-ARG PDO_LEDGER_URL
-ENV PDO_LEDGER_URL=$PDO_LEDGER_URL
 
 # Note that the entry point when specified with exec syntax
 # can be extended through the docker run interface far more

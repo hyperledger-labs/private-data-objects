@@ -16,29 +16,23 @@ version: "3.4"
 
 services:
   ccf_container:
-    build:
-      args:
-        PDO_VERSION: ${PDO_VERSION}
-        PDO_HOSTNAME: localhost
-        PDO_LEDGER_URL: http://localhost:6600
+    environment:
+      - PDO_VERSION=${PDO_VERSION}
+      - PDO_HOSTNAME=localhost
     entrypoint: /project/pdo/tools/run_ccf_tests.sh
 
   services_container:
-    build:
-      args:
-        PDO_VERSION: ${PDO_VERSION}
-        PDO_HOSTNAME: localhost
-        PDO_LEDGER_URL: http://localhost:6600
-        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
-        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
+    environment:
+      - PDO_VERSION=${PDO_VERSION}
+      - PDO_HOSTNAME=localhost
+      - PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
+      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-0}
     entrypoint: /project/pdo/tools/run_services_tests.sh
 
   client_container:
-    build:
-      args:
-        PDO_VERSION: ${PDO_VERSION}
-        PDO_HOSTNAME: localhost
-        PDO_LEDGER_URL: http://localhost:6600
-        PDO_LOG_LEVEL: ${PDO_LOG_LEVEL:-info}
-        PDO_DEBUG_BUILD: ${PDO_DEBUG_BUILD:-0}
+    environment:
+      - PDO_VERSION=${PDO_VERSION}
+      - PDO_HOSTNAME=localhost
+      - PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
+      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-0}
     entrypoint: /project/pdo/tools/run_client_tests.sh
