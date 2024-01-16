@@ -25,6 +25,8 @@
 PDO_REPO ?= ${PDO_SOURCE_ROOT}
 PDO_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
+PDO_VERSION ?= $(shell cd repository; bin/get_version) 
+
 # PDO_USER_UID, PDO_GROUP_UID --
 #   The UID/GID for the user accounts that will be created in the container; this is
 #   important especially when the containers are being used for development; note
@@ -38,11 +40,9 @@ PDO_GROUP_UID ?= $(shell id -g)
 # Turns out that setting the script directory from the Makefile's name
 # does not work very well if the path contains spaces in the name; in
 # fact lots of things break very badly; set this explicitly
-SCRIPT_DIR ?= ${PDO_SOURCE_ROOT}/docker
+DOCKER_DIR ?= ${PDO_SOURCE_ROOT}/docker
 
 DOCKER_USERNAME = $(LOGNAME)
-DOCKER_BUILDARGS += --build-arg PDO_HOSTNAME=$(PDO_HOSTNAME)
-DOCKER_BUILDARGS += --build-arg PDO_LEDGER_URL=$(PDO_LEDGER_URL)
 DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
 DOCKER_BUILDARGS += --build-arg GID=$(PDO_GROUP_UID)
 DOCKER_ARGS = $(DOCKER_BUILDARGS)
@@ -56,32 +56,47 @@ TIMESTAMP := $(shell /bin/date "+%Y%m%d%H%M%S")
 all : $(addprefix build_,$(IMAGES))
 
 rebuild_% : repository
-	@ docker build $(DOCKER_ARGS) \
+	docker build $(DOCKER_ARGS) \
 		--build-arg REBUILD=$(TIMESTAMP) \
-		--build-arg PDO_VERSION=$(shell cd repository; bin/get_version) \
-		--tag pdo_$*:$(shell cd repository; bin/get_version) \
-		--file $(SCRIPT_DIR)/pdo_$*.dockerfile .
+		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--tag pdo_$*:$(PDO_VERSION) \
+		--file $(DOCKER_DIR)/pdo_$*.dockerfile .
 
 build_% : repository
-	@ docker build $(DOCKER_ARGS) \
-		--build-arg PDO_VERSION=$(shell cd repository; bin/get_version) \
-		--tag pdo_$*:$(shell cd repository; bin/get_version) \
-		--file $(SCRIPT_DIR)/pdo_$*.dockerfile .
+	docker build $(DOCKER_ARGS) \
+		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--tag pdo_$*:$(PDO_VERSION) \
+		--file $(DOCKER_DIR)/pdo_$*.dockerfile .
+
+# docker build dependencies
+build_client: build_base
+build_services: build_services_base
+build_services_base: build_base
+build_ccf: build_ccf_base
+
 
 clean_% :
-	@ docker rmi -f pdo_$*
+	@ docker rmi -f pdo_$*:$(PDO_VERSION)
 
-run_ccf : build_ccf
-	- docker rm -f ccf_container
-	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host --name ccf_container -P -d pdo_ccf
+run_ccf : build_ccf stop_ccf
+	@ docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} --network host --name ccf_container -P -d pdo_ccf:$(PDO_VERSION)
 
-run_services : build_base build_services_base build_services
-	- docker rm -f services_container
-	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host --name services_container -P -d pdo_services
+run_services : build_base build_services_base build_services stop_services
+	@ docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} --network host --name services_container -P -d pdo_services:$(PDO_VERSION)
 
 run_client : build_base build_client
+	@docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} -it --network host --name client_container pdo_client:$(PDO_VERSION) -c "stty cols $$(tput cols) rows $$(tput lines) && bash"
+
+stop_all : stop_ccf stop_services stop_client
+
+stop_ccf :
+	- docker rm -f ccf_container
+
+stop_services :
+	- docker rm -f services_container
+
+stop_client :
 	- docker rm -f client_container
-	@ docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer -it --network host --name client_container pdo_client
 
 # -----------------------------------------------------------------
 # We need a repository with the source for the branch we are going
@@ -109,14 +124,12 @@ TEST_FILES += -f services_base.yaml
 TEST_FILES += -f ccf_base.yaml
 TEST_FILES += -f test.yaml
 
-build_test : repository
-	PDO_USER_UID=$(PDO_USER_UID) PDO_GROUP_UID=$(PDO_GROUP_UID) \
-		docker-compose $(TEST_FILES) build \
-			--build-arg PDO_VERSION=$(shell cd repository; bin/get_version)
+build_test : repository build_services build_ccf build_client
 
-test : clean_config clean_repository build_base build_services_base build_ccf_base build_test
-	docker-compose $(TEST_FILES) up --abort-on-container-exit
-	docker-compose $(TEST_FILES) down
+test : clean_config clean_repository build_test stop_all
+	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+
 
 # -----------------------------------------------------------------
 # Cleaning is a bit interesting because the containers don't go away
@@ -131,9 +144,9 @@ clean_images : $(addprefix clean_,$(IMAGES))
 	@ if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
 
 clean_config :
-	@ rm -f $(SCRIPT_DIR)/xfer/ccf/keys/*.pem $(SCRIPT_DIR)/xfer/ccf/etc/*.toml
-	@ rm -f $(SCRIPT_DIR)/xfer/services/keys/*.pem $(SCRIPT_DIR)/xfer/services/etc/*.toml
-	@ rm -f $(SCRIPT_DIR)/xfer/services/etc/site.psh
+	@ rm -f $(DOCKER_DIR)/xfer/ccf/keys/*.pem $(DOCKER_DIR)/xfer/ccf/etc/*.toml
+	@ rm -f $(DOCKER_DIR)/xfer/services/keys/*.pem $(DOCKER_DIR)/xfer/services/etc/*.toml
+	@ rm -f $(DOCKER_DIR)/xfer/services/etc/site.psh
 
 clean : clean_images clean_config clean_repository
 

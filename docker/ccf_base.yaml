@@ -16,16 +16,10 @@ version: "3.4"
 
 services:
   ccf_container:
-    image: pdo_ccf
-    build:
-      context: .
-      dockerfile: pdo_ccf.dockerfile
-      args:
-        PDO_INTERPRETER: ${PDO_INTERPRETER:-wawaka}
-        PDO_LEDGER_TYPE: ccf
-        PDO_HOSTNAME: ${PDO_HOSTNAME}
-        PDO_LEDGER_URL: ${PDO_LEDGER_URL}
-        SGX_MODE: ${SGX_MODE:-SIM}
+    image: pdo_ccf:${PDO_VERSION:-latest}
+    # build containers only via Makefile and directly via docker build
+    # as we use containers also outside of docker-compose to prevent
+    # double-build
     container_name: ccf_container
     network_mode: "host"
     volumes:
