@@ -56,7 +56,7 @@ fi
 
 # this variable is needed for the build for signing the
 # eservice and pservice enclaves
-export PDO_ENCLAVE_CODE_SIGN_PEM=${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem
+export PDO_ENCLAVE_CODE_SIGN_PEM=/tmp/enclave_code_sign.pem
 
 # these are only used for configuration and registration
 # they are not used at build or run time

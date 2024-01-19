@@ -29,6 +29,20 @@ from loguru import logger as LOG
 ## -----------------------------------------------------------------
 ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
 CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
+XFER_Dir = os.environ.get("XFER_DIR") or os.path.realpath("/opt/pdo")
+CCF_XFER_Keys = os.path.join(XFER_Dir, "ccf", "keys")
+
+# -----------------------------------------------------------------
+def locate_ccf_keys():
+    for keys_path in [CCF_Keys, CCF_XFER_Keys] :
+        # let's try to find one
+        #kp = os.path.join(keys_path, "networkcert.pem")
+        kp = os.path.join(keys_path, "memberccf_cert.pem")
+        if os.path.exists(kp) :
+            LOG.info('ccf keys located in {}'.format(keys_path))
+            return keys_path
+
+    return None
 
 # -----------------------------------------------------------------
 def register_enclave_attestation_policy(client, options):
@@ -55,8 +69,6 @@ def register_enclave_attestation_policy(client, options):
 
 # -----------------------------------------------------------------
 def Main() :
-    default_output = os.path.join(CCF_Keys, 'ledger_authority.pem')
-
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
 
     parser.add_argument(
@@ -95,17 +107,22 @@ def Main() :
         LOG.add(options.logfile)
 
     # -----------------------------------------------------------------
-    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
+    keys_path = locate_ccf_keys()
+    if not keys_path:
+        LOG.error('cannot locate CCF keys')
+        sys.exit(-1)
+
+    network_cert = os.path.join(keys_path, "networkcert.pem")
     if not os.path.exists(network_cert) :
         LOG.error('network certificate ({}) does not exist'.format(network_cert))
         sys.exit(-1)
 
-    member_cert = os.path.join(CCF_Keys, "{}_cert.pem".format(options.member_name))
+    member_cert = os.path.join(keys_path, "{}_cert.pem".format(options.member_name))
     if not os.path.exists(member_cert) :
         LOG.error('member certificate ({}) does not exist'.format(member_cert))
         sys.exit(-1)
 
-    member_key = os.path.join(CCF_Keys, "{}_privk.pem".format(options.member_name))
+    member_key = os.path.join(keys_path, "{}_privk.pem".format(options.member_name))
     if not os.path.exists(member_key) :
         LOG.error('member key ({}) does not exist'.format(member_key))
         sys.exit(-1)

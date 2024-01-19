@@ -21,7 +21,8 @@ source ${PDO_HOME}/bin/lib/common.sh
 
 export PDO_HOSTNAME=localhost
 export PDO_LEDGER_ADDRESS=$(force_to_ip ${PDO_HOSTNAME})
-export PDO_LEDGER_URL="http://${PDO_LEDGER_ADDRESS}:6600"
+export PDO_LEDGER_PORT=6600
+export PDO_LEDGER_URL="http://${PDO_LEDGER_ADDRESS}:${PDO_LEDGER_PORT}"
 
 export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
