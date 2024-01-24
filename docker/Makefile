@@ -25,7 +25,7 @@
 PDO_REPO ?= ${PDO_SOURCE_ROOT}
 PDO_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-PDO_VERSION ?= $(shell cd repository; bin/get_version) 
+PDO_VERSION ?= $$( if [ -d repository ]; then cd repository; bin/get_version; else echo "latest"; fi )
 
 # PDO_USER_UID, PDO_GROUP_UID --
 #   The UID/GID for the user accounts that will be created in the container; this is
@@ -74,18 +74,21 @@ build_services: build_services_base
 build_services_base: build_base
 build_ccf: build_ccf_base
 
-
 clean_% :
-	@ docker rmi -f pdo_$*:$(PDO_VERSION)
+	docker rmi -f pdo_$*:$(PDO_VERSION)
+
+DOCKER_RUN_ARGS = -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer
+DOCKER_RUN_ARGS += --network host
 
 run_ccf : build_ccf stop_ccf
-	@ docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} --network host --name ccf_container -P -d pdo_ccf:$(PDO_VERSION)
+	docker run $(DOCKER_RUN_ARGS) --name ccf_container -P -d pdo_ccf:$(PDO_VERSION)
 
 run_services : build_base build_services_base build_services stop_services
-	@ docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} --network host --name services_container -P -d pdo_services:$(PDO_VERSION)
+	docker run $(DOCKER_RUN_ARGS) --name services_container -P -d pdo_services:$(PDO_VERSION)
 
-run_client : build_base build_client
-	@docker run -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer -e PDO_HOSTNAME=${PDO_HOSTNAME} -it --network host --name client_container pdo_client:$(PDO_VERSION) -c "stty cols $$(tput cols) rows $$(tput lines) && bash"
+run_client : build_base build_client stop_client
+	docker run $(DOCKER_RUN_ARGS) -it --name client_container pdo_client:$(PDO_VERSION) \
+		-c "stty cols $$(tput cols) rows $$(tput lines) && bash"
 
 stop_all : stop_ccf stop_services stop_client
 
@@ -106,10 +109,10 @@ stop_client :
 # performance requirements are relatively low.
 # -----------------------------------------------------------------
 repository :
-	@ git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules $(PDO_REPO) repository
+	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules $(PDO_REPO) repository
 
 clean_repository :
-	@ rm -rf repository
+	rm -rf repository
 
 # -----------------------------------------------------------------
 # Testing uses docker-compose to build a set of images that will be configured
@@ -130,7 +133,6 @@ test : clean_config clean_repository build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
 
-
 # -----------------------------------------------------------------
 # Cleaning is a bit interesting because the containers don't go away
 # unless they are told to very nicely. Until they go away they hold onto
@@ -140,16 +142,21 @@ test : clean_config clean_repository build_test stop_all
 _IMAGES_=$(shell docker images -a --filter=dangling=true -q)
 _CONTAINERS_=$(shell docker ps --filter=status=exited --filter=status=created -q)
 clean_images : $(addprefix clean_,$(IMAGES))
-	@ if [ ! -z "$(_CONTAINERS_)" ]; then docker rm -f $(_CONTAINERS_); fi
-	@ if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
+	if [ ! -z "$(_CONTAINERS_)" ]; then docker rm -f $(_CONTAINERS_); fi
+	if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
 
 clean_config :
-	@ rm -f $(DOCKER_DIR)/xfer/ccf/keys/*.pem $(DOCKER_DIR)/xfer/ccf/etc/*.toml
-	@ rm -f $(DOCKER_DIR)/xfer/services/keys/*.pem $(DOCKER_DIR)/xfer/services/etc/*.toml
-	@ rm -f $(DOCKER_DIR)/xfer/services/etc/site.psh
+	rm -f $(DOCKER_DIR)/xfer/ccf/keys/*.pem $(DOCKER_DIR)/xfer/ccf/etc/*.toml
+	rm -f $(DOCKER_DIR)/xfer/services/keys/*.pem $(DOCKER_DIR)/xfer/services/etc/*.toml
+	rm -f $(DOCKER_DIR)/xfer/services/etc/site.psh
 
 clean : clean_images clean_config clean_repository
 
 .PHONY: clean clean_images clean_config clean_repository
 .PHONY: build_test test
 .PHONY: run_ccf run_client run_services
+
+# -----------------------------------------------------------------
+# Include additional targets to simplify development inside containers
+# -----------------------------------------------------------------
+include make.dev
