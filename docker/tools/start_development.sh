@@ -13,6 +13,8 @@ fi
 source /project/pdo/tools/environment.sh
 source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
 
+check_pdo_runtime_env
+
 export no_proxy=$PDO_HOSTNAME,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 

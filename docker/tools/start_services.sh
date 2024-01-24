@@ -77,6 +77,8 @@ if [ ! -z "${F_LEDGER_URL}" ] ; then
     export PDO_LEDGER_ADDRESS=$( echo $PDO_LEDGER_URL | awk -F[/:] '{print $4}' )
 fi
 
+check_pdo_runtime_env
+
 export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 

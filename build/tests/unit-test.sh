@@ -17,6 +17,7 @@
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
+check_pdo_runtime_env
 check_python_version
 
 PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}

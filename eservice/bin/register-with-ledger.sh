@@ -29,6 +29,7 @@ PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
 eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
 source ${SRCDIR}/bin/lib/common.sh
+check_pdo_runtime_env
 check_python_version
 
 function cleanup {

@@ -17,6 +17,7 @@
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 source ${PDO_HOME}/bin/lib/common.sh
+check_pdo_runtime_env
 
 if [ -f ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid ]; then
     kill $(cat ${PDO_HOME}/ccf/workspace/sandbox_0/node.pid)
