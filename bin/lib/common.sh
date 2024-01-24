@@ -47,7 +47,7 @@ function yell () {
 }
 
 function die() {
-    recho "$(basename $0): $*" >&2
+    recho "$(basename $0): ERROR: $*" >&2
     exit 111
 }
 
@@ -80,12 +80,41 @@ function force_to_ip()
 }
 
 # -----------------------------------------
-# Check the environment for completeness
+# Check for build time environment variables
 # -----------------------------------------
-: "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
-: "${PDO_HOSTNAME:-$(die Missing environment variable PDO_HOSTNAME)}"
-: "${PDO_INTERPRETER:-$(die Missing environment variable PDO_INTERPRETER)}"
-: "${PDO_LEDGER_KEY_ROOT:-$(die Missing environment variable PDO_LEDGER_KEY_ROOT)}"
-: "${PDO_LEDGER_TYPE:-$(die Missing environment variable PDO_LEDGER_TYPE)}"
-: "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
-: "${PDO_SOURCE_ROOT:-$(die Missing environment variable PDO_SOURCE_ROOT)}"
+function check_pdo_build_env()
+{
+    # note: despite the 'die' below this does _not_ terminate, just prints error!
+    : "${PDO_SOURCE_ROOT:-$(die Missing environment variable PDO_SOURCE_ROOT)}"
+    : "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
+    : "${PDO_INTERPRETER:-$(die Missing environment variable PDO_INTERPRETER)}"
+    : "${PDO_LEDGER_TYPE:-$(die Missing environment variable PDO_LEDGER_TYPE)}"
+    : "${PDO_LEDGER_KEY_ROOT:-$(die Missing environment variable PDO_LEDGER_KEY_ROOT)}"
+}
+
+# -----------------------------------------
+# Check for runtime environment variables
+# -----------------------------------------
+function check_pdo_runtime_env()
+{
+    # PDO_SOURCE_ROOT is a runtime dependency we should remove
+    : "${PDO_SOURCE_ROOT:-$(die Missing environment variable PDO_SOURCE_ROOT)}"
+
+    # Base path for finding libraries and configuration files
+    : "${PDO_HOME:-$(die Missing environment variable PDO_HOME)}"
+
+    # Used for building contracts
+    : "${PDO_INTERPRETER:-$(die Missing environment variable PDO_INTERPRETER)}"
+
+    # Used for selection of key formats
+    : "${PDO_LEDGER_TYPE:-$(die Missing environment variable PDO_LEDGER_TYPE)}"
+
+    # Used to find the ledger keys
+    : "${PDO_LEDGER_KEY_ROOT:-$(die Missing environment variable PDO_LEDGER_KEY_ROOT)}"
+
+    # Used to find the ledger
+    : "${PDO_LEDGER_URL:-$(die Missing environment variable PDO_LEDGER_URL)}"
+
+    # Used to identify the interface for services
+    : "${PDO_HOSTNAME:-$(die Missing environment variable PDO_HOSTNAME)}"
+}

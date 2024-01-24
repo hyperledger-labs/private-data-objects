@@ -16,6 +16,7 @@
 
 F_SERVICEHOME="$( cd -P "$( dirname ${BASH_SOURCE[0]} )/.." && pwd )"
 source ${F_SERVICEHOME}/bin/lib/common.sh
+check_pdo_runtime_env
 source ${F_SERVICEHOME}/bin/lib/common_service.sh
 
 check_python_version

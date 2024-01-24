@@ -15,9 +15,9 @@
 
 source /project/pdo/tools/environment.sh
 
-# these variables should be unused during build
-export PDO_HOSTNAME=
-export PDO_LEDGER_URL=
+# to get build without (ignored) errors
+export PDO_HOSTNAME=localhost
+export PDO_LEDGER_URL=https://127.0.0.1:6600
 
 make -C ${PDO_SOURCE_ROOT}/build environment
 make -C ${PDO_SOURCE_ROOT}/build template

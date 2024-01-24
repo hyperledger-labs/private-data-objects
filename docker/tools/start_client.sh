@@ -68,6 +68,8 @@ if [ ! -z "${F_LEDGER_URL}" ] ; then
     export PDO_LEDGER_URL=${F_LEDGER_URL}
 fi
 
+check_pdo_runtime_env
+
 export no_proxy=$PDO_HOSTNAME,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$NO_PROXY
 

@@ -20,6 +20,7 @@ SCRIPTDIR="$(dirname $(readlink --canonicalize ${BASH_SOURCE}))"
 SRCDIR="$(realpath ${SCRIPTDIR}/../..)"
 
 source ${SRCDIR}/bin/lib/common.sh
+check_pdo_build_env
 check_python_version
 
 # Automatically determine how many cores the host system has
