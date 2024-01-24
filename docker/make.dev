@@ -1,0 +1,73 @@
+# ------------------------------------------------------------------------------
+# Copyright 2024 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+
+# This file, included in main Makefile, contains targets that are useful for running
+# docker containers for development. Note that these are highly specific to individual
+# developer tastes and can be modified as appropriate.
+
+DOCKER_DEV_CMD = stty cols $$(tput cols) rows $$(tput lines) && bash
+
+DOCKER_DEV_ARGS = $(DOCKER_RUN_ARGS)
+DOCKER_DEV_ARGS += -v $(PDO_SOURCE_ROOT)/docker/tools/:/project/pdo/tools
+DOCKER_DEV_ARGS += -v $(PDO_SOURCE_ROOT)/:/project/pdo/src
+DOCKER_DEV_ARGS += --entrypoint=/bin/bash -it --rm
+
+# sharing a pip download cache on the host can be beneficial if you have to
+# restart your container, e.g., for testing client contracts with large python
+# dependencies. By default, we create a local cache dir but you can have it anywhere,
+# e.g., in /tmp or even pointing ~/.cache/pip (although be aware that not pip does
+# not necessarily guarantee cross-version compatibility!)
+PIP_CACHE_DIR   ?= $(DOCKER_DIR)/cache/pip
+DOCKER_DEV_ARGS += -v $(PIP_CACHE_DIR):/project/pdo/.cache/pip
+
+# Docker runtime args specific to client
+DOCKER_CLIENT_DEV_ARGS ?= 
+# - if you want pdo-contracts mounted in client dev image, define (e.g., in make.loc)
+#   variable 'DOCKER_CLIENT_WITH_PDO_CONTRACTS'
+ifdef DOCKER_CLIENT_WITH_PDO_CONTRACTS
+	DOCKER_CLIENT_DEV_ARGS += -v $(DOCKER_DIR)/../../pdo-contracts.git:/project/pdo/contracts
+endif
+
+run_ccf_dev : build_ccf
+	docker run $(DOCKER_DEV_ARGS) --name ccf_container_dev \
+		-P pdo_ccf:$(PDO_VERSION) -c "$(DOCKER_DEV_CMD)"
+
+run_services_dev : build_base build_services_base build_services
+	docker run $(DOCKER_DEV_ARGS) --name services_container_dev \
+		-P pdo_services:$(PDO_VERSION) -c "$(DOCKER_DEV_CMD)"
+
+run_client_dev : build_base build_client
+	docker run $(DOCKER_CLIENT_DEV_ARGS) $(DOCKER_DEV_ARGS) --name client_container_dev pdo_client:$(PDO_VERSION) \
+		-c "$(DOCKER_DEV_CMD)"
+
+stop_all : stop_ccf_dev stop_services_dev stop_client_dev
+
+stop_ccf_dev :
+	- docker rm -f ccf_container_dev
+
+stop_services_dev :
+	- docker rm -f services_container_dev
+
+stop_client_dev :
+	- docker rm -f client_container_dev
+
+test_no_reset : build_test stop_all
+	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+
+.PHONY: test_no_reset
+.PHONY: stop_ccf_dev stop_services_dev stop_client_dev
+.PHONY: run_ccf_dev run_services_dev run_client_dev
