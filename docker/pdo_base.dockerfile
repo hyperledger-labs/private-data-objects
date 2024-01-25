@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-ARG UBUNTU_VERSION=20.04
-ARG UBUNTU_NAME=focal
+ARG UBUNTU_VERSION=22.04
+ARG UBUNTU_NAME=jammy
 
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -48,7 +48,7 @@ RUN apt-get update \
         ocamlbuild \
         pkg-config \
         protobuf-compiler \
-        python \
+        python3 \
         python3-dev \
         python3-venv \
         python3-virtualenv \
