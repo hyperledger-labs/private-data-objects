@@ -17,8 +17,8 @@
 ARG PDO_VERSION
 FROM pdo_base:${PDO_VERSION}
 
-ARG UBUNTU_VERSION=20.04
-ARG UBUNTU_NAME=focal
+ARG UBUNTU_VERSION=22.04
+ARG UBUNTU_NAME=jammy
 
 ARG SGX=2.22
 ARG OPENSSL=3.0.12
@@ -59,8 +59,7 @@ ENV SGX_SDK=/opt/intel/sgxsdk
 #   has 2.30 but Intel ships binary distro for 2.32.51.20190719
 # -----------------------------------------------------------------
 WORKDIR /opt/intel
-RUN [ "$UBUNTU_VERSION" = "20.04" ] \
-  && SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
+RUN SGX_SDK_BINUTILS_REPO=https://download.01.org/intel-sgx/sgx-linux/${SGX} \
   && SGX_SDK_BINUTILS_FILE=$(wget -P /tmp --delete-after --spider --recursive --level=1 --no-parent ${SGX_SDK_BINUTILS_REPO} 2>&1 | perl  -ne 'if (m|'${SGX_SDK_BINUTILS_REPO}'/(as.ld.objdump.*)|) { print "$1\n"; }') \
   && wget -q -P /tmp ${SGX_SDK_BINUTILS_REPO}/${SGX_SDK_BINUTILS_FILE} \
   && mkdir sgxsdk.extras \
