@@ -14,6 +14,8 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
+# syntax = docker/dockerfile:experimental
+
 ARG PDO_VERSION
 FROM pdo_services_base:${PDO_VERSION}
 
@@ -48,7 +50,9 @@ WORKDIR /project/pdo/tools
 COPY --chown=${UNAME}:${UNAME} tools/*.sh ./
 
 # built it!
-RUN /project/pdo/tools/build_services.sh
+ARG UID=1000
+ARG GID=${UID}
+RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip /project/pdo/tools/build_services.sh
 
 # Network ports for running services
 EXPOSE 7001 7002 7003 7004 7005
