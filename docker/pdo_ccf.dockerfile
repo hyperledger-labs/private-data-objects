@@ -15,6 +15,9 @@
 # ------------------------------------------------------------------------------
 
 # syntax = docker/dockerfile:experimental
+# above enable build-kit extension for 'RUN --mount=type= ..' extension used below
+# to cache pip downloads between builds, cutting down noticeably build time.
+# Note that cache is cleaned with the "uusal" docker prune commans, e.g., docker builder prune.
 
 ARG PDO_VERSION
 FROM pdo_ccf_base:${PDO_VERSION}
@@ -48,7 +51,8 @@ COPY --chown=${UNAME}:${UNAME} tools/*.sh ./
 # build it!!!
 ARG UID=1000
 ARG GID=${UID}
-RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip /project/pdo/tools/build_ccf.sh
+RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip \
+    /project/pdo/tools/build_ccf.sh
 
 # Network ports for running services
 EXPOSE 6600
