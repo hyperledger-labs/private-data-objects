@@ -30,7 +30,7 @@ ARG UNAME=pdo_client
 ENV UNAME=${UNAME}
 
 ARG UID=1000
-ARG GID=$UID
+ARG GID=${UID}
 
 RUN groupadd -f -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
@@ -68,8 +68,6 @@ WORKDIR /project/pdo/tools
 COPY --chown=${UNAME}:${UNAME} tools/*.sh ./
 
 # build it!!!
-ARG UID=1000
-ARG GID=${UID}
 RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip \
     /project/pdo/tools/build_client.sh
 
