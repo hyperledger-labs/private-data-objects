@@ -79,9 +79,11 @@ mkdir -p ${PDO_LEDGER_KEY_ROOT}
 # -----------------------------------------------------------------
 say start the ccf network
 # -----------------------------------------------------------------
-. ${PDO_HOME}/ccf/bin/activate
 if [ ${F_NETWORK_MODE} == "start" ] ; then
-    try ${PDO_HOME}/ccf/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}
+    yell ${CCF_LEDGER_DIR}/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}  \
+        --pdo-dir ${CCF_PDO_DIR} --ledger-dir ${CCF_LEDGER_DIR}
+    try ${CCF_LEDGER_DIR}/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}  \
+        --pdo-dir ${CCF_PDO_DIR} --ledger-dir ${CCF_LEDGER_DIR}
 elif [ ${F_NETWORK_MODE} == "join" ] ; then
     die "joining a network is not yet supported"
 else

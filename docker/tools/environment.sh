@@ -42,7 +42,6 @@ else
     export PDO_DEFAULT_SIGCURVE=SECP256K1
 fi
 
-export CCF_BASE=/opt/ccf_virtual
 export XFER_DIR=${XFER_DIR:-/project/pdo/xfer}
 
 # if the container is running HW mode, then we will grab the
@@ -62,3 +61,11 @@ export PDO_ENCLAVE_CODE_SIGN_PEM=${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem
 # they are not used at build or run time
 export PDO_SPID="$(cat ${PDO_SGX_KEY_ROOT}/sgx_spid.txt)"
 export PDO_SPID_API_KEY="$(cat ${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt)"
+
+# set up the ccf directories, ccf_base is where the ccf
+# core is installed, ccf_pdo_dir is where the pdo tp
+# components will be installed, and ccf_ledger_dir is
+# where the ccf python virtual environment will be built
+export CCF_BASE=/opt/ccf_virtual
+export CCF_PDO_DIR=${PDO_INSTALL_ROOT}
+export CCF_LEDGER_DIR=${PDO_HOME}/ccf

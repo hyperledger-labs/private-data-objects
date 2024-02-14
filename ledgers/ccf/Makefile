@@ -28,72 +28,99 @@ ifndef PDO_SOURCE_ROOT
 $(error Incomplete configuration, PDO_SOURCE_ROOT is not defined)
 endif
 
+CCF_COMPILE_TARGET ?= virtual
+CCF_VERSION ?= 4.0.1
+CCF_LEDGER_DIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
+
 NINJA ?= ninja $(NINJA_OPTIONS)
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-CCFDSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
-SRCDIR ?= $(PDO_SOURCE_ROOT)
-WORKSPACEDIR := $(CCFDSTDIR)/workspace
-BINDIR := $(CCFDSTDIR)/bin/
 BLDDIR := $(SCRIPTDIR)/build
-
-PYTHON_DIR=$(CCFDSTDIR)/lib/python3.8
-
-COMPILE_TARGET=virtual
 
 all: environment install
 
-build: build-pdo-tp
+# -----------------------------------------------------------------
+# There are two environments that need to be created: the PDO
+# environment and the ledger environment. This is necessitated by
+# the incompatibilities between the client requirements (which requires
+# ccf 1.0.19 which is the last python package with the ccf client modules)
+# and the ledger requirements (which installs the python modules from
+# our current verson of CCF). The client environment may be useful on
+# any pdo installation (e.g. ledger ping test makes sense on any client)
+# while the ledger environment is only useful where ccf nodes are run
+# -----------------------------------------------------------------
+environment: pdo-environment ledger-environment
+
+pdo-environment : $(PDO_INSTALL_ROOT)
+
+ledger-environment : $(CCF_LEDGER_DIR)/lib/python3.8
+
+# This directory indicates whether the pdo python virtual
+# environment has been created
+$(PDO_INSTALL_ROOT) :
+	make -C $(PDO_SOURCE_ROOT)/build environment
+	make -C $(PDO_SOURCE_ROOT)/bin install
+
+# This directory indicates whether the ccf ledger python
+# virtual environment has been created
+$(CCF_LEDGER_DIR)/lib/python3.8 :
+	mkdir -p $(CCF_LEDGER_DIR)
+	mkdir -p $(CCF_LEDGER_DIR)/workspace
+	virtualenv -p python3.8 --no-download $(PDO_HOME)/ccf
+	$(CCF_LEDGER_DIR)/bin/pip install --upgrade pip
+	$(CCF_LEDGER_DIR)/bin/pip install --upgrade -r $(CCF_BASE)/bin/requirements.txt
+	$(CCF_LEDGER_DIR)/bin/pip install ccf==$(CCF_VERSION)
+
+# -----------------------------------------------------------------
+# build it
+# -----------------------------------------------------------------
+build : build-pdo-tp
 
 build-pdo-tp : $(BLDDIR)
-	cd $(BLDDIR) && cmake .. -GNinja \
-		-DCCF_DIR=$(CCF_BASE) \
-		-DCOMPILE_TARGET=$(COMPILE_TARGET) \
-		-DCMAKE_INSTALL_PREFIX=$(CCFDSTDIR)
 	cd $(BLDDIR) && $(NINJA)
 
-clean : clean-build clean-install
+$(BLDDIR) :
+	cmake -S . -B $(BLDDIR) -GNinja \
+		-DCCF_DIR=$(CCF_BASE) \
+		-DCOMPILE_TARGET=$(CCF_COMPILE_TARGET) \
+		-DCMAKE_INSTALL_PREFIX=$(CCF_LEDGER_DIR)
+
+# -----------------------------------------------------------------
+# clean up
+# -----------------------------------------------------------------
+clean : clean-build clean-ledger
 
 clean-build:
 	rm -rf $(BLDDIR)
 
-clean-install :
-	rm -rf $(CCFDSTDIR)
+clean-ledger :
+	rm -rf $(CCF_LEDGER_DIR)
 
-environment : $(CCFDSTDIR) $(PYTHON_DIR)
+# -----------------------------------------------------------------
+# install the pdo tp library and scripts in the appropriate
+# directories; the library and bash scripts are only necessary
+# for running the ledger and go in the ledger directory; the
+# python scripts may be useful on any client so they are installed
+# in the pdo install root directory where the rest of the pdo
+# scripts are installed. future work to move the python scripts
+# to an installable wheel file
+# -----------------------------------------------------------------
 
-$(BLDDIR) :
-	@echo CREATE BUILD DIRECTORY $(BLDDIR)
-	mkdir -p $(BLDDIR)
+PDO_BASH_SCRIPTS = $(wildcard scripts/*.sh)
+PDO_PYTHON_SCRIPTS = $(wildcard scripts/*.py)
 
-# build out the entire pdo directory tree since
-# we may use it for placement of the ledger keys
-$(CCFDSTDIR) :
-	@echo CREATE INSTALLATION DIRECTORY $(CCFDSTDIR)
-	@make -C $(PDO_SOURCE_ROOT)/build $(PDO_INSTALL_ROOT)
-	@mkdir -p $(CCFDSTDIR)
-	@mkdir -p $(WORKSPACEDIR)
-
-$(PYTHON_DIR) :
-	echo ${PYTHON_DIR}
-	virtualenv -p python3.8 --no-download $(CCFDSTDIR)
-	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade pip
-	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade setuptools
-	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade -r $(CCF_BASE)/bin/requirements.txt
-	. $(abspath $(CCFDSTDIR)/bin/activate) && pip install --upgrade ccf==1.0.19 toml
-
-install : install-pdo-tp
-
-PDO_BASH_SCRIPTS=start_ccf_network.sh stop_cchost.sh
-PDO_PYTHON_SCRIPTS=configure_ccf_network.py generate_ledger_authority.py fetch_ledger_authority.py register_enclave_attestation_verification_policy.py
+install : install-pdo-tp install-pdo-scripts
 
 install-pdo-tp : build-pdo-tp
-	@ cd $(BLDDIR) && $(NINJA) install
-	@ cp $(addprefix scripts/,$(PDO_BASH_SCRIPTS)) $(BINDIR)
-	@ cp $(addprefix scripts/,$(PDO_PYTHON_SCRIPTS)) $(BINDIR)
-	@ make -C ${PDO_SOURCE_ROOT}/bin install
+	cd $(BLDDIR) && $(NINJA) install
+	cp $(PDO_BASH_SCRIPTS) $(CCF_LEDGER_DIR)/bin
 
-.PHONY : all build build-pdo-tp
-.PHONY : clean clean-build clean-install
-.PHONY : environment
-.PHONY : install install-pdo-tp
+install-pdo-scripts :
+	cp $(PDO_PYTHON_SCRIPTS) $(PDO_INSTALL_ROOT)/bin
+
+# -----------------------------------------------------------------
+.PHONY : all
+.PHONY : environment pdo-environment ledger-environment
+.PHONY : build build-pdo-tp
+.PHONY : clean clean-build clean-ledger
+.PHONY : install install-pdo-tp install-pdo-scripts
