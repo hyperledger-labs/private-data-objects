@@ -19,5 +19,8 @@ source /project/pdo/tools/environment.sh
 export PDO_HOSTNAME=
 export PDO_LEDGER_URL=
 
+# -----------------------------------------------------------------
+# set up the basic structure in ${PDO_INSTALL_ROOT}
+# -----------------------------------------------------------------
 make -C ${PDO_SOURCE_ROOT}/ledgers/ccf environment
 make -C ${PDO_SOURCE_ROOT}/ledgers/ccf install

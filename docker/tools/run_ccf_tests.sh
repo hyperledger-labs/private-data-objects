@@ -34,9 +34,10 @@ mkdir -p ${PDO_LEDGER_KEY_ROOT}
 # -----------------------------------------------------------------
 yell start the ccf service
 # -----------------------------------------------------------------
-. ${PDO_HOME}/ccf/bin/activate
-yell ${PDO_HOME}/ccf/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}
-try ${PDO_HOME}/ccf/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}
+yell ${CCF_LEDGER_DIR}/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}  \
+    --pdo-dir ${CCF_PDO_DIR} --ledger-dir ${CCF_LEDGER_DIR}
+try ${CCF_LEDGER_DIR}/bin/start_ccf_network.sh -i ${PDO_LEDGER_ADDRESS}  \
+    --pdo-dir ${CCF_PDO_DIR} --ledger-dir ${CCF_LEDGER_DIR}
 
 # -----------------------------------------------------------------
 yell copy the ledger keys
