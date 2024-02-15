@@ -34,7 +34,7 @@ PIP_CACHE_DIR   ?= $(DOCKER_DIR)/cache/pip
 DOCKER_DEV_ARGS += -v $(PIP_CACHE_DIR):/project/pdo/.cache/pip
 
 # Docker runtime args specific to client
-DOCKER_CLIENT_DEV_ARGS ?= 
+DOCKER_CLIENT_DEV_ARGS ?=
 # - if you want pdo-contracts mounted in client dev image, define (e.g., in make.loc)
 #   variable 'DOCKER_CLIENT_WITH_PDO_CONTRACTS'
 ifdef DOCKER_CLIENT_WITH_PDO_CONTRACTS
@@ -64,7 +64,7 @@ stop_services_dev :
 stop_client_dev :
 	- docker rm -f client_container_dev
 
-test_no_reset : build_test stop_all
+test_no_reset : clean_config build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
 
