@@ -74,7 +74,7 @@ clean-build : $(PYTHON_DIR)
 
 environment : $(DSTDIR) $(PYTHON_DIR)
 
-$(PYTHON_DIR) :
+$(PYTHON_DIR) : $(DSTDIR)
 	virtualenv -p python3 --no-download $(DSTDIR)
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade pip
 	. $(abspath $(DSTDIR)/bin/activate) && pip install --upgrade setuptools

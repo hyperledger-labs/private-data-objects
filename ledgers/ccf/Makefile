@@ -63,7 +63,7 @@ $(PDO_INSTALL_ROOT) :
 
 # This directory indicates whether the ccf ledger python
 # virtual environment has been created
-$(CCF_LEDGER_DIR)/lib/python3.8 :
+$(CCF_LEDGER_DIR)/lib/python3.8 : pdo-environment
 	mkdir -p $(CCF_LEDGER_DIR)
 	mkdir -p $(CCF_LEDGER_DIR)/workspace
 	virtualenv -p python3.8 --no-download $(PDO_HOME)/ccf
@@ -77,7 +77,7 @@ $(CCF_LEDGER_DIR)/lib/python3.8 :
 build : build-pdo-tp
 
 build-pdo-tp : $(BLDDIR)
-	cd $(BLDDIR) && $(NINJA)
+	cmake --build $(BLDDIR)
 
 $(BLDDIR) :
 	cmake -S . -B $(BLDDIR) -GNinja \
@@ -111,11 +111,12 @@ PDO_PYTHON_SCRIPTS = $(wildcard scripts/*.py)
 
 install : install-pdo-tp install-pdo-scripts
 
-install-pdo-tp : build-pdo-tp
-	cd $(BLDDIR) && $(NINJA) install
+# cd $(BLDDIR) && $(NINJA) install
+install-pdo-tp : ledger-environment build-pdo-tp
+	cmake --install $(BLDDIR)
 	cp $(PDO_BASH_SCRIPTS) $(CCF_LEDGER_DIR)/bin
 
-install-pdo-scripts :
+install-pdo-scripts : pdo-environment
 	cp $(PDO_PYTHON_SCRIPTS) $(PDO_INSTALL_ROOT)/bin
 
 # -----------------------------------------------------------------

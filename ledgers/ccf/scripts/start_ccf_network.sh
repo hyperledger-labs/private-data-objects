@@ -98,6 +98,7 @@ yell start ccf network with "local://${F_INTERFACE_ADDRESS}:${F_PORT}"
 say attempt to start ccf node
 
 source ${F_CCF_LEDGER_DIR}/bin/activate
+# Note below is adopted from (the end of ) CCF's tests/sandbox/sandbox.sh ..
 CURL_CLIENT=ON INITIAL_MEMBER_COUNT=1 \
     ${F_CCF_LEDGER_DIR}/bin/python ${CCF_BASE}/bin/start_network.py \
         --binary-dir ${CCF_BASE}/bin \

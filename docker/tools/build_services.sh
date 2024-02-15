@@ -20,7 +20,13 @@ export PDO_LEDGER_URL=https://127.0.0.1:6600
 source /opt/intel/sgxsdk/environment
 source /project/pdo/tools/environment.sh
 
-make -C ${PDO_SOURCE_ROOT}/build environment
-make -C ${PDO_SOURCE_ROOT}/build template
-make -C ${PDO_SOURCE_ROOT}/build system-keys
-make -C ${PDO_SOURCE_ROOT}/build verified-build
+source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
+check_pdo_build_env
+
+# -----------------------------------------------------------------
+yell Build and install services into ${PDO_INSTALL_ROOT}
+# -----------------------------------------------------------------
+try make -C ${PDO_SOURCE_ROOT}/build environment
+try make -C ${PDO_SOURCE_ROOT}/build template
+try make -C ${PDO_SOURCE_ROOT}/build system-keys
+try make -C ${PDO_SOURCE_ROOT}/build verified-build

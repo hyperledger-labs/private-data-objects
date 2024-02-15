@@ -14,11 +14,13 @@
 # limitations under the License.
 
 source /project/pdo/tools/environment.sh
+source ${PDO_SOURCE_ROOT}/bin/lib/common.sh
+check_pdo_build_env
 
 # to get build without (ignored) errors
 export PDO_HOSTNAME=localhost
 export PDO_LEDGER_URL=https://127.0.0.1:6600
 
-make -C ${PDO_SOURCE_ROOT}/build environment
-make -C ${PDO_SOURCE_ROOT}/build template
-make -C ${PDO_SOURCE_ROOT}/build build-client
+try make -C ${PDO_SOURCE_ROOT}/build environment
+try make -C ${PDO_SOURCE_ROOT}/build template
+try make -C ${PDO_SOURCE_ROOT}/build build-client

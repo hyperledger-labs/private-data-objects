@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PDO_HOME ?= /opt/pdo
-BIN_DIR=${PDO_HOME}/bin
-BIN_LIB_DIR=${PDO_HOME}/bin/lib
+ifndef PDO_INSTALL_ROOT
+$(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
+endif
 
-
+DSTDIR ?= $(PDO_INSTALL_ROOT)/opt/pdo
+BIN_LIB_DIR=$(DSTDIR)/bin/lib
 
 all : install
 
 build :
 
 install : build
-	mkdir -p ${BIN_DIR} ${BIN_LIB_DIR}
-	cp lib/*.sh ${BIN_LIB_DIR}
-	
+	mkdir -p $(BIN_LIB_DIR)
+	cp lib/*.sh $(BIN_LIB_DIR)
 
 clean:
 
