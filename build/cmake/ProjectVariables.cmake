@@ -55,3 +55,25 @@ ELSE()
   ADD_COMPILE_OPTIONS(-Wno-deprecated)
   ADD_COMPILE_OPTIONS(-Wno-deprecated-declarations)
 ENDIF()
+
+IF (NOT DEFINED ENV{PDO_INSTALL_ROOT})
+  MESSAGE(FATAL_ERROR "PDO_INSTALL_ROOT not defined")
+ENDIF()
+SET(PDO_INSTALL_ROOT $ENV{PDO_INSTALL_ROOT})
+
+IF (NOT DEFINED ENV{PDO_SOURCE_ROOT})
+  MESSAGE(FATAL_ERROR "PDO_SOURCE_ROOT not defined")
+ENDIF()
+SET(PDO_SOURCE_ROOT $ENV{PDO_SOURCE_ROOT})
+
+# Get the current version using the get_version
+# utility; note that this will provide 0.0.0 as
+# the version if something goes wrong (like running
+# without any annotated version tags)
+EXECUTE_PROCESS(
+  COMMAND ./get_version
+  WORKING_DIRECTORY ${PDO_SOURCE_ROOT}/bin
+  OUTPUT_VARIABLE PDO_VERSION
+  ERROR_QUIET
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
