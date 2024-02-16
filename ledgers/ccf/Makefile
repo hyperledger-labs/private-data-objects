@@ -35,7 +35,14 @@ CCF_LEDGER_DIR ?= $(PDO_INSTALL_ROOT)/opt/pdo/ccf
 NINJA ?= ninja $(NINJA_OPTIONS)
 
 SCRIPTDIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-BLDDIR := $(SCRIPTDIR)/build
+
+# Build the PDO TP in the transaction processor subdirectory
+PDO_TP_SRCDIR := $(SCRIPTDIR)/transaction_processor
+PDO_TP_BLDDIR := $(SCRIPTDIR)/transaction_processor/build
+
+# Build the Python wheel in this directory
+PYTHON_SRCDIR := $(SCRIPTDIR)
+PYTHON_BLDDIR := $(SCRIPTDIR)/build
 
 all: environment install
 
@@ -76,14 +83,20 @@ $(CCF_LEDGER_DIR)/lib/python3.8 : pdo-environment
 # -----------------------------------------------------------------
 build : build-pdo-tp
 
-build-pdo-tp : $(BLDDIR)
-	cmake --build $(BLDDIR)
+build-pdo-tp : $(PDO_TP_BLDDIR)
+	cmake --build $(PDO_TP_BLDDIR)
 
-$(BLDDIR) :
-	cmake -S . -B $(BLDDIR) -GNinja \
+$(PDO_TP_BLDDIR) :
+	cmake -S $(PDO_TP_SRCDIR) -B $(PDO_TP_BLDDIR) -GNinja \
 		-DCCF_DIR=$(CCF_BASE) \
 		-DCOMPILE_TARGET=$(CCF_COMPILE_TARGET) \
 		-DCMAKE_INSTALL_PREFIX=$(CCF_LEDGER_DIR)
+
+build-python : $(PYTHON_BLDDIR)
+	cmake --build $(PYTHON_BLDDIR)
+
+$(PYTHON_BLDDIR) :
+	cmake -S $(PYTHON_SRCDIR) -B $(PYTHON_BLDDIR)
 
 # -----------------------------------------------------------------
 # clean up
@@ -91,7 +104,7 @@ $(BLDDIR) :
 clean : clean-build clean-ledger
 
 clean-build:
-	rm -rf $(BLDDIR)
+	rm -rf $(PDO_TP_BLDDIR) $(PYTHON_BLDDIR)
 
 clean-ledger :
 	rm -rf $(CCF_LEDGER_DIR)
@@ -109,15 +122,14 @@ clean-ledger :
 PDO_BASH_SCRIPTS = $(wildcard scripts/*.sh)
 PDO_PYTHON_SCRIPTS = $(wildcard scripts/*.py)
 
-install : install-pdo-tp install-pdo-scripts
+install : install-pdo-tp install-python
 
-# cd $(BLDDIR) && $(NINJA) install
 install-pdo-tp : ledger-environment build-pdo-tp
-	cmake --install $(BLDDIR)
+	cmake --install $(PDO_TP_BLDDIR)
 	cp $(PDO_BASH_SCRIPTS) $(CCF_LEDGER_DIR)/bin
 
-install-pdo-scripts : pdo-environment
-	cp $(PDO_PYTHON_SCRIPTS) $(PDO_INSTALL_ROOT)/bin
+install-python : pdo-environment build-python
+	cmake --install $(PYTHON_BLDDIR)
 
 # -----------------------------------------------------------------
 .PHONY : all

@@ -143,7 +143,7 @@ cp ${F_CCF_LEDGER_DIR}/workspace/pdo_tp_common/member0_privk.pem ${PDO_LEDGER_KE
 source ${F_CCF_PDO_DIR}/bin/activate
 
 say generate the ledger authority
-try ${F_CCF_PDO_DIR}/bin/generate_ledger_authority.py \
+try ${F_CCF_PDO_DIR}/bin/ccf_generate_ledger_authority \
     --logfile __screen__ --loglevel WARNING \
     --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
 
@@ -153,13 +153,13 @@ try ${F_CCF_PDO_DIR}/bin/generate_ledger_authority.py \
 
 if [ "${SGX_MODE}" == "SIM" ]; then
     say set check_attestation to false in SGX SIM mode
-    try ${F_CCF_PDO_DIR}/bin/register_enclave_attestation_verification_policy.py \
+    try ${F_CCF_PDO_DIR}/bin/ccf_register_enclave_policy \
         --logfile __screen__ --loglevel WARNING \
         --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
 fi
 
 say save the ledger authority key
-try ${F_CCF_PDO_DIR}/bin/fetch_ledger_authority.py \
+try ${F_CCF_PDO_DIR}/bin/ccf_fetch_ledger_authority \
     --logfile __screen__ --loglevel WARNING \
     --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
 

@@ -19,14 +19,10 @@ import http
 import os
 import sys
 
-from ccf.clients import CCFClient
-
 # pick up the logger used by the rest of CCF
 from loguru import logger as LOG
 
-## -----------------------------------------------------------------
-ContractHome = os.environ.get("PDO_HOME") or os.path.realpath("/opt/pdo")
-CCF_Keys = os.environ.get("PDO_LEDGER_KEY_ROOT") or os.path.join(ContractHome, "ccf", "keys")
+from pdo.ledgers.ccf.common import parse_common_arguments
 
 # -----------------------------------------------------------------
 def fetch_ledger_authority(client, output_file) :
@@ -52,59 +48,28 @@ def fetch_ledger_authority(client, output_file) :
 
 # -----------------------------------------------------------------
 def Main() :
-    default_output = os.path.join(CCF_Keys, 'ledger_authority_pub.pem')
+    (options, unprocessed_args, user_client) = parse_common_arguments(
+        sys.argv[1:], 'Fetch the ledger authority key from a CCF server')
 
+    # Parse the arguments that are unique to fetch_ledger_authority
     parser = argparse.ArgumentParser(description='Fetch the ledger authority key from a CCF server')
-
-    parser.add_argument(
-        '--logfile',
-        help='Name of the log file, __screen__ for standard output',
-        default='__screen__',
-        type=str)
-    parser.add_argument(
-        '--loglevel',
-        help='Logging level',
-        default='WARNING',
-        type=str)
-
-    parser.add_argument('--interface', help='Host interface where CCF is listening', required=True)
-    parser.add_argument('--port', help='Port where CCF is listening', type=int, default=6600)
-
     parser.add_argument(
         "--output-file",
         help="Name of the file where the key will be saved",
-        default = default_output,
+        default = os.path.join(options.key_dir, 'ledger_authority_pub.pem'),
         type=str)
 
-    options = parser.parse_args()
+    local_options = parser.parse_args(unprocessed_args)
 
     # -----------------------------------------------------------------
-    LOG.remove()
-    if options.logfile == '__screen__' :
-        LOG.add(sys.stderr, level=options.loglevel)
-    else :
-        LOG.add(options.logfile)
-
-    # -----------------------------------------------------------------
-    network_cert = os.path.join(CCF_Keys, "networkcert.pem")
-    if not os.path.exists(network_cert) :
-        LOG.error('network certificate ({}) does not exist'.format(network_cert))
-        sys.exit(-1)
-
     try :
-        user_client = CCFClient(
-            options.interface,
-            options.port,
-            network_cert)
+        fetch_ledger_authority(user_client, local_options.output_file)
     except Exception as e:
-        LOG.error('failed to connect to CCF service: {}'.format(str(e)))
+        # this just lets the script get back to the original error
+        # that caused the execption
+        while e.__context__ : e = e.__context__
+        LOG.error('fetch ledger authority failed: {}', str(e))
         sys.exit(-1)
-
-    fetch_ledger_authority(user_client, options.output_file)
 
     LOG.info('successfully fetched ledger authority')
     sys.exit(0)
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-Main()
