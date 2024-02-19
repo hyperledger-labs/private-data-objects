@@ -22,5 +22,5 @@ export PDO_HOSTNAME=localhost
 export PDO_LEDGER_URL=https://127.0.0.1:6600
 
 try make -C ${PDO_SOURCE_ROOT}/build environment
-try make -C ${PDO_SOURCE_ROOT}/build template
 try make -C ${PDO_SOURCE_ROOT}/build build-client
+try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf install-python

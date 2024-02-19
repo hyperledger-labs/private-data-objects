@@ -27,6 +27,6 @@ check_pdo_build_env
 yell Build and install services into ${PDO_INSTALL_ROOT}
 # -----------------------------------------------------------------
 try make -C ${PDO_SOURCE_ROOT}/build environment
-try make -C ${PDO_SOURCE_ROOT}/build template
 try make -C ${PDO_SOURCE_ROOT}/build system-keys
 try make -C ${PDO_SOURCE_ROOT}/build verified-build
+try make -C ${PDO_SOURCE_ROOT}/ledgers/ccf install-python
