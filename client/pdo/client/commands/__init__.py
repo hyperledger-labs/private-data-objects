@@ -13,6 +13,7 @@
 # limitations under the License.
 
 __all__ = [
+    'collection',
     'context',
     'contract',
     'eservice',
