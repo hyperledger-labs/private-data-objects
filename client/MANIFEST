@@ -7,6 +7,7 @@
 ./pdo/client/builder/shell.py
 ./pdo/client/builder/state.py
 ./pdo/client/commands/__init__.py
+./pdo/client/commands/collection.py
 ./pdo/client/commands/contract.py
 ./pdo/client/commands/eservice.py
 ./pdo/client/commands/ledger.py

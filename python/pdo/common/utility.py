@@ -55,6 +55,18 @@ def deprecated(func):
 
     return new_func
 
+def experimental(func):
+    """decorator to mark functions as experimental, logs a warning
+    with information about the function and the caller
+    """
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        stack = inspect.stack()
+        logger.warn('invocation of experimental function %s by %s in file %s', func.__name__, stack[1][3], stack[1][1])
+        return func(*args, **kwargs)
+
+    return new_func
+
 class classproperty(property) :
     """decorator to mark a class method as a property, used for
     simplified access to module initiated variables
