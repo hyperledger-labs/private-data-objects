@@ -56,7 +56,8 @@ namespace ccfapp
     DECLARE_JSON_REQUIRED_FIELDS(Get_Ledger_Key::Out, verifying_key);
 
     // utility constants
-    const string PDO_ENCLAVE_ATTESTATION_POLICY{"pdo_enclave_attestation_policy"};
+    const string PDO_ENCLAVE_EXPECTED_SGX_MEASUREMENTS{"pdo_enclave_expected_sgx_measurements"};
+    const string PDO_ENCLAVE_CHECK_ATTESTATION_FLAG{"pdo_enclave_check_attestation_flag"};
     const string OK_QUOTE_STATUS{"OK"};
     const string GROUP_OUT_OF_DATE_QUOTE_STATUS{"GROUP_OUT_OF_DATE"};
     const string SW_HARDENING_NEEDED_QUOTE_STATUS{"SW_HARDENING_NEEDED"};
@@ -68,7 +69,8 @@ namespace ccfapp
 
     //methods that write
     static constexpr auto REGISTER_ENCLAVE = "register_enclave";
-    static constexpr auto SET_CONTRACT_ENCLAVE_ATTESTATION_VERIFICATION_POLICY = "set_contract_enclave_attestatation_verification_policy";
+    static constexpr auto SET_CONTRACT_ENCLAVE_CHECK_ATTESTATION_FLAG = "set_contract_enclave_check_attestatation_flag";
+    static constexpr auto SET_CONTRACT_ENCLAVE_EXPECTED_SGX_MEASUREMENTS = "set_contract_enclave_expected_sgx_measurements";
     static constexpr auto REGISTER_CONTRACT = "register_contract";
     static constexpr auto ADD_ENCLAVE_TO_CONTRACT ="add_enclave_to_contract";
     static constexpr auto INITIALIZE_CONTRACT_STATE ="ccl_initialize";
@@ -89,10 +91,13 @@ namespace ccfapp
     {
         private:
 
-            kv::Map<string, ContractEnclaveAttestationVerificationPolicy> attestation_policy_table;
-                        // There is a single entry with key PDO_ENCLAVE_ATTESTATION_POLICY.
+            kv::Map<string, ContractEnclaveExpectedSGXMeasurements> contract_enclave_expected_sgx_measurements;
+                        // There is a single entry with key PDO_ENCLAVE_EXPECTED_SGX_MEASUREMENTS.
                         // Only the CCF Governing body can update this entry.
                         // Can be generalized if multiple enclave "types" need to be verified.
+                        // Also, the expected measurements are used only if the check_attestation_flag is True
+            kv::Map<string, ContractEnclaveAttestionCheckFlag> contract_enclave_check_attestation_flag;
+                        // key is PDO_ENCLAVE_CHECK_ATTESTATION_FLAG
             kv::Map<string, EnclaveInfo> enclavetable; // key is encalve_id
             kv::Map<string, ContractInfo> contracttable; // key is contract_id
             kv::Map<string, ContractStateInfo> ccltable; // key is contract_id + state_hash (string addition)

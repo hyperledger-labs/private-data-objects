@@ -152,10 +152,15 @@ try ${F_CCF_PDO_DIR}/bin/ccf_generate_ledger_authority \
 # enclave is built.
 
 if [ "${SGX_MODE}" == "SIM" ]; then
-    say set check_attestation to false in SGX SIM mode
-    try ${F_CCF_PDO_DIR}/bin/ccf_register_enclave_policy \
+    say setting check_attestation to false in SGX SIM mode
+    try ${F_CCF_PDO_DIR}/bin/ccf_set_attestation_check_flag \
         --logfile __screen__ --loglevel WARNING \
-        --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT}
+        --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT} --no-attestation
+else
+    say setting check_attestation to true
+    try ${F_CCF_PDO_DIR}/bin/ccf_set_attestation_check_flag \
+        --logfile __screen__ --loglevel WARNING \
+        --interface ${F_INTERFACE_ADDRESS} --port ${F_PORT} --attestation
 fi
 
 say save the ledger authority key

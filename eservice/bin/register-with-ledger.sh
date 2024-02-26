@@ -88,8 +88,10 @@ function Register {
         : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
         if [ ${PDO_LEDGER_TYPE} == "ccf" ]; then
-            try ${SRCDIR}/ledgers/ccf/scripts/register_enclave_attestation_verification_policy.py --logfile __screen__ --loglevel INFO \
-                --check_attestation --mrenclave ${VAR_MRENCLAVE} --basename  ${VAR_BASENAME} --ias-public-key "$(cat $PDO_IAS_KEY_PEM)"
+            source ${PDO_INSTALL_ROOT}/bin/activate
+            try ${PDO_INSTALL_ROOT}/bin/ccf_set_expected_sgx_measurements \
+                --logfile __screen__ --loglevel INFO --mrenclave ${VAR_MRENCLAVE} \
+                --basename  ${VAR_BASENAME} --ias-public-key "$(cat $PDO_IAS_KEY_PEM)"
         else
             die unsupported ledger ${PDO_LEDGER_TYPE}
         fi

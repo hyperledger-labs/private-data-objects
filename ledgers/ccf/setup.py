@@ -71,7 +71,8 @@ setup(
             'ccf_ping_test=pdo.ledgers.ccf.scripts.ping_test:Main',
             'ccf_generate_ledger_authority=pdo.ledgers.ccf.scripts.generate_ledger_authority:Main',
             'ccf_fetch_ledger_authority=pdo.ledgers.ccf.scripts.fetch_ledger_authority:Main',
-            'ccf_register_enclave_policy=pdo.ledgers.ccf.scripts.register_enclave_attestation_verification_policy:Main',
+            'ccf_set_attestation_check_flag=pdo.ledgers.ccf.scripts.set_attestation_check_flag:Main',
+            'ccf_set_expected_sgx_measurements=pdo.ledgers.ccf.scripts.set_expected_sgx_measurements:Main',
         ]
     }
 )

@@ -39,7 +39,8 @@ namespace ccfapp
 
     TPHandlerRegistry ::TPHandlerRegistry (AbstractNodeContext& context):
         UserEndpointRegistry(context),
-        attestation_policy_table("attestation_policy"),
+        contract_enclave_expected_sgx_measurements("contract_enclave_expected_sgx_measurements"),
+        contract_enclave_check_attestation_flag("contract_enclave_check_attestation_flag"),
         enclavetable("enclaves"),
         contracttable("contracts"),
         ccltable("ccl_updates"),
@@ -54,26 +55,70 @@ namespace ccfapp
         };
 
         //======================================================================================================
-        // register enclave expected measurements (member method)
-        auto set_contract_enclave_attestatation_verification_policy = [this](auto& ctx, const nlohmann::json& params) {
+        // register contract enclave attestation check flag (member method)
+        auto set_contract_enclave_attestation_check_flag = [this](auto& ctx, const nlohmann::json& params) {
 
-            const auto in = params.get<RegisterContractEnclaveAttestationVerificationPolicy::In>();
+            const auto in = params.get<RegisterContractEnclaveAttestionCheckFlag::In>();
 
-            // get the current measurements view
-            auto attestation_policy_view = ctx.tx.rw(attestation_policy_table);
+            // get the current view of contract_enclave_check_attestation_flag
+            auto check_attestation_flag_view = ctx.tx.rw(contract_enclave_check_attestation_flag);
 
-            // collect the data to be stored
-            ContractEnclaveAttestationVerificationPolicy attestation_policy;
+            // Current PDO policy permits the flag to be set only once. Check if already set.
 
-            attestation_policy.check_attestation = in.check_attestation;
-            if(in.check_attestation){
-                attestation_policy.mrenclave = in.mrenclave;
-                attestation_policy.basename = in.basename;
-                attestation_policy.ias_public_key = in.ias_public_key;
+            // Below we check the ccf node has a local copy of the attestation flag. If yes, an error
+            // is returned. (Note that global commit of the flag might be pending, and this is OK).
+            auto check_attestation_flag_check = check_attestation_flag_view->get(PDO_ENCLAVE_CHECK_ATTESTATION_FLAG);
+            if (check_attestation_flag_check.has_value()){
+                return ccf::make_error(
+                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,"Attesation check flag can be set only once");
             }
 
+            // collect the data to be stored
+            ContractEnclaveAttestionCheckFlag check_attestation_flag;
+            check_attestation_flag.check_attestation = in.check_attestation;
+
             //store the data
-            attestation_policy_view->put(PDO_ENCLAVE_ATTESTATION_POLICY, attestation_policy);
+            check_attestation_flag_view->put(PDO_ENCLAVE_CHECK_ATTESTATION_FLAG, check_attestation_flag);
+
+            return ccf::make_success(true);
+        };
+
+        // register PDO enclave expected SGX measurements (member method)
+        // Note that this RPC may be called only setting the
+        // set_contract_enclave_attestation_check_flag to true.
+        auto set_contract_enclave_expected_sgx_measurements = [this](auto& ctx, const nlohmann::json& params) {
+
+            //ensure that attestation check flag is true; otherwise throw error
+
+            // get the current view of contract_enclave_check_attestation_flag
+            auto check_attestation_flag_view = ctx.tx.rw(contract_enclave_check_attestation_flag);
+            auto check_attestation_flag_global = check_attestation_flag_view->get_globally_committed(PDO_ENCLAVE_CHECK_ATTESTATION_FLAG);
+            if (!check_attestation_flag_global.has_value()){
+                return ccf::make_error(
+                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,"Please set the check-attestation flag before providing expected measurements");
+            }
+            auto check_attestation_flag = check_attestation_flag_global.value();
+            if (!check_attestation_flag.check_attestation){
+                return ccf::make_error(
+                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,"Please enable attesation check before providing expected measurements");
+            }
+
+            // pre-conditions are met. get expected sgx measurements from input and save them
+
+            // check input schema compliance
+            const auto in = params.get<RegisterContractEnclaveExpectedSGXMeasurements::In>();
+
+            // get the current measurements view
+            auto contract_enclave_expected_sgx_measurements_view = ctx.tx.rw(contract_enclave_expected_sgx_measurements);
+
+            // collect the data to be stored
+            ContractEnclaveExpectedSGXMeasurements expected_sgx_measurements;
+            expected_sgx_measurements.mrenclave = in.mrenclave;
+            expected_sgx_measurements.basename = in.basename;
+            expected_sgx_measurements.ias_public_key = in.ias_public_key;
+
+            //store the data
+            contract_enclave_expected_sgx_measurements_view->put(PDO_ENCLAVE_EXPECTED_SGX_MEASUREMENTS, expected_sgx_measurements);
 
             return ccf::make_success(true);
         };
@@ -166,18 +211,25 @@ namespace ccfapp
             }
 
             //Determine if enclave attestation check is enabled or not
-            auto attestation_policy_view = ctx.tx.rw(attestation_policy_table);
-
-            // First ensure that any policy has been set. Else, fail the rpc.
-            auto attestation_policy_global = attestation_policy_view->get_globally_committed(PDO_ENCLAVE_ATTESTATION_POLICY);
-            if (!attestation_policy_global.has_value()){
+            auto check_attestation_flag_view = ctx.tx.rw(contract_enclave_check_attestation_flag);
+            auto check_attestation_flag_global = check_attestation_flag_view->get_globally_committed(PDO_ENCLAVE_CHECK_ATTESTATION_FLAG);
+            if (!check_attestation_flag_global.has_value()){
                 return ccf::make_error(
-                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "No attestation policy has been set. Enclave cannot be registered");
+                HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "No value set for attestation-check flag. Enclave cannot be registered");
             }
 
-            auto attestation_policy=attestation_policy_global.value();
+            auto check_attestation_flag = check_attestation_flag_global.value();
+            if(check_attestation_flag.check_attestation){
 
-            if(attestation_policy.check_attestation){
+                // ensure that expected measurements are set
+                auto expected_sgx_measurements_view = ctx.tx.rw(contract_enclave_expected_sgx_measurements);
+                auto expected_sgx_measurements_global = expected_sgx_measurements_view->get_globally_committed(PDO_ENCLAVE_EXPECTED_SGX_MEASUREMENTS);
+                if (!check_attestation_flag_global.has_value()){
+                    return ccf::make_error(
+                HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Expected sgx measurents have not been set. Enclave cannot be registered");
+                }
+
+                auto expected_sgx_measurements = expected_sgx_measurements_global.value();
 
                 //ensure that proof data is not empty
                 if(in.proof_data.empty()) {
@@ -214,7 +266,7 @@ namespace ccfapp
                 string verification_report_string = enclave_proof_data.verification_report;
 
                 // verify ias report signature
-                if (!verify_ias_signature(ias_signature, attestation_policy.ias_public_key, verification_report_string)){
+                if (!verify_ias_signature(ias_signature, expected_sgx_measurements.ias_public_key, verification_report_string)){
                     return ccf::make_error(
                         HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "unable to verify IAS report signature for registering enclave");
                 }
@@ -259,7 +311,7 @@ namespace ccfapp
                 std::vector<uint8_t> mrEnclaveFromReport_vector(mrEnclaveFromReport.m, mrEnclaveFromReport.m + SGX_HASH_SIZE);
                 std::string mrEnclavFromReport_hex = ds::to_hex(mrEnclaveFromReport_vector);
                 transform(mrEnclavFromReport_hex.begin(), mrEnclavFromReport_hex.end(), mrEnclavFromReport_hex.begin(), ::toupper);
-                if (mrEnclavFromReport_hex != attestation_policy.mrenclave) {
+                if (mrEnclavFromReport_hex != expected_sgx_measurements.mrenclave) {
                     return ccf::make_error(HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid MREnclave");
                 }
 
@@ -273,7 +325,7 @@ namespace ccfapp
                 std::vector<uint8_t> basenameFromReport_vector(mrBasename.name, mrBasename.name + BASENAME_SIZE);
                 std::string basenameFromReport_hex = ds::to_hex(basenameFromReport_vector);
                 transform(basenameFromReport_hex.begin(), basenameFromReport_hex.end(), basenameFromReport_hex.begin(), ::toupper);
-                if (basenameFromReport_hex != attestation_policy.basename) {
+                if (basenameFromReport_hex != expected_sgx_measurements.basename) {
                     return ccf::make_error(
                         HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid enclave base name");
                 }
@@ -912,9 +964,15 @@ namespace ccfapp
             member_cert_sign_required).install();
 
         make_endpoint(
-            SET_CONTRACT_ENCLAVE_ATTESTATION_VERIFICATION_POLICY,
+            SET_CONTRACT_ENCLAVE_CHECK_ATTESTATION_FLAG,
             HTTP_POST,
-            json_adapter(set_contract_enclave_attestatation_verification_policy),
+            json_adapter(set_contract_enclave_attestation_check_flag),
+            member_cert_sign_required).install();
+
+        make_endpoint(
+            SET_CONTRACT_ENCLAVE_EXPECTED_SGX_MEASUREMENTS,
+            HTTP_POST,
+            json_adapter(set_contract_enclave_expected_sgx_measurements),
             member_cert_sign_required).install();
 
         make_endpoint(
