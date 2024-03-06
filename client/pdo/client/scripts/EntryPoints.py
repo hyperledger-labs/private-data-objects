@@ -23,6 +23,10 @@ warnings.catch_warnings()
 warnings.simplefilter("ignore")
 
 # -----------------------------------------------------------------
+def run_shell_collection() :
+    run_shell_command('do_collection', 'pdo.client.commands.collection')
+
+# -----------------------------------------------------------------
 def run_shell_context() :
     run_shell_command('do_context', 'pdo.client.commands.context')
 

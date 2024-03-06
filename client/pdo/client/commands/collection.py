@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# collections are a package for sharing multiple, interrelated
+# contracts. more information is available in the file
+# $PDO_SOURCE_ROOT/client/docs/collection.md
+
 import argparse
 import copy
 import logging
@@ -29,8 +33,8 @@ from pdo.common.utility import experimental
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    'export_contract_collection',
-    'import_contract_collection',
+    'export',
+    'import',
     'script_command_export',
     'script_command_import',
     'do_collection',
@@ -57,11 +61,15 @@ def __find_contracts__(context : dict) -> typing.List[str] :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 @experimental
-def export_contract_collection(context, context_paths : typing.List[str], contract_cache : str, export_file : str) :
+def export_contract_collection(
+        context : pbuilder.context.Context,
+        context_paths : typing.List[str],
+        contract_cache : str,
+        export_file : str) :
     """Export the context and associated contract files to a zip file that
     can be shared with others who want to use the contract
 
-    @type context: pdo.client.builder.context.Context
+    @type context: pbuilder.context.Context
     @param context: current context
     @param context_paths : list of path expressions to retrieve values from a context
     @param contract_cache : name of the directory where contract save files are stored

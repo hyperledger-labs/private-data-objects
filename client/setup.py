@@ -62,6 +62,7 @@ setup(name='pdo_client',
       entry_points = {
           'console_scripts': [
               'pdo-shell = pdo.client.scripts.ShellCLI:Main',
+              'pdo-collection = pdo.client.scripts.EntryPoints:run_shell_collection',
               'pdo-contract = pdo.client.scripts.EntryPoints:run_shell_contract',
               'pdo-context = pdo.client.scripts.EntryPoints:run_shell_context',
               'pdo-ledger = pdo.client.scripts.EntryPoints:run_shell_ledger',
