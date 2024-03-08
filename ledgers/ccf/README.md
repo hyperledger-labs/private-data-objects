@@ -217,8 +217,32 @@ make test
 ```
 
 ## CCF TP TEE attestation verification policy
-CCF TP provides two APIs to be used by the CCF Governance consortium to register attestation verification policy that must be satisfied by PDO contract enclaves.
+We briefly describe the attestation verification policy implemented by CCF TP.
 
-1. The first API `set_attestation_check_flag` is invoked as part of the TP start up scripts to specify whether PDO runs in SGX `HW` mode or SGX `SIM` mode. The flag can be set only once. There is no default value for the flag, and hence must be set explicitly before the TP can accept any `register_encalve` transactions.
+1. The TP contains a programmable flag that specifies whether the TP will check
+for PDO contract enclaves' attestation when eservices attempt registering
+PDO enclaves with TP. The CCF TP governance consortium
+(see https://microsoft.github.io/CCF/release/4.x/governance/index.html)
+gets to set the flag after the TP is started. The flag can be set only once.
 
-2. The second API `set_expected_sgx_measurements` is used whenever the `set_attestation_check_flag` specifies that PDO runs in SGX `HW` mode. In this case, the second API is used to the specify expected `MREnclave` value, and additionally `basename` and the `ias_public_key`. Note that PDO currently supports SGX `HW mode` with EPID attestation. The expected SGX measurements can be updated via the second API, subject to voting rules of the consortium. 
+2. If the flag described above is set, then it is expected that the CCF TP
+governance consortium further programs the TP with expected values required to
+verify enclave attestation reports. We note that PDO currently supports EPID
+attestation verification, and while running in SGX HW mode, the eservice submits
+IAS attestation report to the TP as part of contract enclave
+registration with TP. To help the TP verify the IAS attestation report, the TP
+must be programmed with expected `MREnclave`, enclave `basename` and `ias_public_key`.
+Further, the CCF TP governance consortium is permitted to change the
+values of these parameters, subject to TP consoritum governance rules.
+
+The TP provides two APIs `set_attestation_check_flag` and `set_expected_sgx_measurements`
+to program the various values required to implement the above attestation
+verification policy.
+
+1. The first API `set_attestation_check_flag` is invoked as part of the TP start up
+scripts to specify whether PDO runs in SGX `HW` mode or SGX `SIM` mode.
+
+2. The second API `set_expected_sgx_measurements` is used whenever the
+`set_attestation_check_flag` specifies that PDO runs in SGX `HW` mode.
+In this case, as noted above the second API is used to the specify expected
+`MREnclave` value, and additionally `basename` and the `ias_public_key`.
