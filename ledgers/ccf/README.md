@@ -233,7 +233,7 @@ IAS attestation report to the TP as part of contract enclave
 registration with TP. To help the TP verify the IAS attestation report, the TP
 must be programmed with expected `MREnclave`, enclave `basename` and `ias_public_key`.
 Further, the CCF TP governance consortium is permitted to change the
-values of these parameters, subject to TP consoritum governance rules.
+values of these parameters, subject to TP consortium governance rules.
 
 The TP provides two APIs `set_attestation_check_flag` and `set_expected_sgx_measurements`
 to program the various values required to implement the above attestation
