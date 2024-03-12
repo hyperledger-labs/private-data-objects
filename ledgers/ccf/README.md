@@ -245,7 +245,8 @@ A convenience script `ccf_set_attestation_check_flag` is provided to invoke this
 
 The script for starting the CCF network in PDO automates the call to the script above, setting the check-attestation-flag based on whether PDO runs in SGX `HW` mode or SGX `SIM` mode.
 
-2. The second API `set_expected_sgx_measurements` is used whenever the
-`set_attestation_check_flag` specifies that PDO runs in SGX `HW` mode.
-In this case, as noted above the second API is used to the specify expected
-`MREnclave` value, and additionally `basename` and the `ias_public_key`.
+2. The second API `set_expected_sgx_measurements` accepts as input the MREnclave, the basename and the IAS public key values. It is meant to be called by the first eservice who will register enclaves. If the previous API was called to require attestation checks, then this API _must_ be called; otherwise, it may, or may not, be called.
+
+A convenience script `ccf_set_expected_sgx_measurements` is provided to invoke this API. The script requires a CCF endpoint and the `--mrenclave`, `--basename` and `--ias-public-key` arguments.
+
+The script for starting services in PDO contains an optional argument (`--register`) which automates the call to the script above. This allows an eservice running in SGX `HW` mode to register/set the policy/arguments with the PDO TP.
