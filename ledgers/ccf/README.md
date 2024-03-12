@@ -239,8 +239,11 @@ The TP provides two APIs `set_attestation_check_flag` and `set_expected_sgx_meas
 to program the various values required to implement the above attestation
 verification policy.
 
-1. The first API `set_attestation_check_flag` is invoked as part of the TP start up
-scripts to specify whether PDO runs in SGX `HW` mode or SGX `SIM` mode.
+1. The first API `set_attestation_check_flag` accepts as input a boolean value (indicating whether to check attestation reports or not). It is meant to be called when the CCF network starts up. It _must_ be called before enclave registrations and before the second API and only once.
+
+A convenience script `ccf_set_attestation_check_flag` is provided to invoke this API. The script requires a CCF endpoint and the `--attestation` or `--no-attestation` argument.
+
+The script for starting the CCF network in PDO automates the call to the script above, setting the check-attestation-flag based on whether PDO runs in SGX `HW` mode or SGX `SIM` mode.
 
 2. The second API `set_expected_sgx_measurements` is used whenever the
 `set_attestation_check_flag` specifies that PDO runs in SGX `HW` mode.
