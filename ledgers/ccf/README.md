@@ -231,7 +231,11 @@ verify enclave attestation reports. We note that PDO currently supports EPID
 attestation verification, and while running in SGX HW mode, the eservice submits
 IAS attestation report to the TP as part of contract enclave
 registration with TP. To help the TP verify the IAS attestation report, the TP
-must be programmed with expected `MREnclave`, enclave `basename` and `ias_public_key`.
+must be programmed with the following SGX-defined expected values:
+* `MREnclave`, a unique identifier of the contract enclave code;
+* `basename`, which contains (and is directly derived from) the SPID in EPID attestations;
+* `ias_public_key`, which is the IAS public key for verifying attestation reports.
+At contract enclave registration time, the TP verifies that an attestation report is correctly signed by IAS and includes the expected values.
 Further, the CCF TP governance consortium is permitted to change the
 values of these parameters, subject to TP consortium governance rules.
 
