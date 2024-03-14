@@ -14,6 +14,16 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
+# Include local customizations if they are available
+-include make.loc
+
+# PDO_SOURCE_ROOT
+# The root directory of this checked out source tree.
+# Usually, below default should do the "right thing" but if your path
+# contains spaces _you will_ have to explicitly pass, e.g. via make.loc,
+# the desired PDO_SOURCE_ROOT when invoking make.
+PDO_SOURCE_ROOT ?= $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../)
+
 # PDO_REPO --
 #   The URL or path to the git repository, the default uses the current repository
 #   though it might be reasonable to build a particular branch from the primary
@@ -34,14 +44,7 @@ PDO_VERSION ?= $$( if [ -d repository ]; then cd repository; bin/get_version; el
 PDO_USER_UID ?= $(shell id -u)
 PDO_GROUP_UID ?= $(shell id -g)
 
-# Include local customizations if they are available
--include make.loc
-
-# Turns out that setting the script directory from the Makefile's name
-# does not work very well if the path contains spaces in the name; in
-# fact lots of things break very badly; set this explicitly
-DOCKER_DIR ?= ${PDO_SOURCE_ROOT}/docker
-
+DOCKER_DIR = ${PDO_SOURCE_ROOT}/docker
 DOCKER_USERNAME = $(LOGNAME)
 DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
 DOCKER_BUILDARGS += --build-arg GID=$(PDO_GROUP_UID)
@@ -60,13 +63,13 @@ rebuild_% : repository
 		--build-arg REBUILD=$(TIMESTAMP) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
-		--file $(DOCKER_DIR)/pdo_$*.dockerfile .
+		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
 build_% : repository
 	docker build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
-		--file $(DOCKER_DIR)/pdo_$*.dockerfile .
+		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
 # docker build dependencies
 build_client: build_base
@@ -109,7 +112,7 @@ stop_client :
 # performance requirements are relatively low.
 # -----------------------------------------------------------------
 repository :
-	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules $(PDO_REPO) repository
+	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules '$(PDO_REPO)' repository
 
 clean_repository :
 	rm -rf repository
@@ -146,9 +149,9 @@ clean_images : $(addprefix clean_,$(IMAGES))
 	if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
 
 clean_config :
-	rm -f $(DOCKER_DIR)/xfer/ccf/keys/*.pem $(DOCKER_DIR)/xfer/ccf/etc/*.toml
-	rm -f $(DOCKER_DIR)/xfer/services/keys/*.pem $(DOCKER_DIR)/xfer/services/etc/*.toml
-	rm -f $(DOCKER_DIR)/xfer/services/etc/site.psh
+	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
+	rm -f '$(DOCKER_DIR)'/xfer/services/keys/*.pem '$(DOCKER_DIR)'/xfer/services/etc/*.toml
+	rm -f '$(DOCKER_DIR)'/xfer/services/etc/site.psh
 
 clean : clean_images clean_config clean_repository
 
