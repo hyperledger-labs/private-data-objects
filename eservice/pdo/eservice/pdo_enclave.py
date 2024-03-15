@@ -309,6 +309,8 @@ def create_signup_info(originator_public_key_hash, nonce):
                 logger.warning("Quote has GROUP_OUT_OF_DATE status (update your BIOS/microcode!!!) keep going")
             elif _ias.last_verification_error() == "SW_HARDENING_NEEDED":
                 logger.warning("Quote has SW_HARDENING_NEEDED status (update your platform!!!) keep going")
+            elif _ias.last_verification_error() == "CONFIGURATION_AND_SW_HARDENING_NEEDED":
+                logger.warning("Quote has CONFIGURATION_AND_SW_HARDENING_NEEDED status (update your platform!!!) keep going")
             else:
                 logger.error("invalid report fields")
                 return None
