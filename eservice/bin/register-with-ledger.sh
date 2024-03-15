@@ -70,7 +70,7 @@ function Store {
     try eservice-enclave-info \
         --spid ${SPID} \
         --save ${eservice_enclave_info_file} \
-        --loglevel warn \
+        --loglevel ${PDO_LOG_LEVEL} \
         --logfile __screen__ \
         --identity ${ESERVICE_IDENTITY} \
         --config ${ESERVICE_TOML} ${ENCLAVE_TOML} \
