@@ -16,12 +16,17 @@ import argparse
 import logging
 import random
 
+import pdo.common.config as pconfig
+import pdo.common.utility as putils
+
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.client.commands.contract as pcontract
+import pdo.client.commands.service_groups as pgroups
+import pdo.client.commands.service_db as pservice
 
 from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
-import pdo.common.utility as putils
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +34,13 @@ __all__ = [
     'get_eservice',
     'get_eservice_from_contract',
     'get_eservice_list',
+    'script_command_create',
+    'script_command_create_from_site',
+    'script_command_delete',
     'script_command_add',
     'script_command_remove',
     'script_command_set',
     'script_command_use',
-    'script_command_list',
     'do_eservice',
     'load_commands',
 ]
@@ -54,11 +61,13 @@ def get_eservice(state, eservice_url="default", eservice_group="default") :
     exception handling by the calling procedure
     """
 
+    group_info = pgroups.get_group_info('eservice', eservice_group)
+
     if eservice_url == 'default' or eservice_url is None :
-        eservice_url = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'preferred'], 'random')
+        eservice_url = group_info.preferred or 'random'
 
     if eservice_url == 'random' :
-        eservice_url = random.choice(state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'urls'], []))
+        eservice_url = random.choice(group_info.service_urls)
 
     if eservice_url is None :
         raise Exception('no enclave service specified')
@@ -122,7 +131,9 @@ def get_eservice_list(state, eservice_group="default") :
     """create a list of eservice clients from the specified eservice group; assumes
     exception handling by the calling procedure
     """
-    eservice_url_list = state.get(['Service', 'EnclaveServiceGroups', eservice_group, 'urls'], [])
+
+    group_info = pgroups.get_group_info('eservice', eservice_group)
+    eservice_url_list = group_info.service_urls
     eservice_client_list = []
     for eservice_url in eservice_url_list :
         eservice_client_list.append(__get_by_url__(eservice_url).client())
@@ -131,16 +142,72 @@ def get_eservice_list(state, eservice_group="default") :
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-def __expand_eservice_names__(names) :
-    result = set()
-    if names :
-        for name in names :
-            eservice_info = __get_by_name__(name)
-            if eservice_info is None :
-                raise Exception('unknown eservice name {0}'.format(name))
-            result.add(eservice_info.service_url)
+class script_command_create(pscript.script_command_base) :
+    name = "create"
+    help = "Create a new enclave service group"
 
-    return result
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('--group', help='Name of the eservice group', type=str, default='default')
+        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+', default=[])
+        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+', default=[])
+        subparser.add_argument('--preferred', help='URL for preferred enclave service', type=str, default='random')
+
+    @classmethod
+    def invoke(cls, state, bindings, group, url=[], name=[], preferred='random', **kwargs) :
+        service_urls = url + pservice.expand_service_names('eservice', name)
+        service_urls = list(set(service_urls))   # remove duplicates
+
+        pgroups.add_group('eservice', group, service_urls, preferred=preferred)
+        return list(service_urls)
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_create_from_site(pscript.script_command_base) :
+    """Create service group from a service site file
+
+    Build a service group for all of the enclave services listed in
+    a site file (typically generated as site.toml. One group will be
+    created that includes all of the listed services.
+    """
+
+    name = "create_from_site"
+    help = "Import service group from a services site file"
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('--group', help="Name of the group to create", required=True, type=str)
+        subparser.add_argument('--file', help="Name of the site file", dest='filename', required=True, type=str)
+        subparser.add_argument('--preferred', help='URL for preferred enclave service', type=str, default='random')
+    @classmethod
+    def invoke(cls, state, bindings, group, filename, preferred='random', **kwargs) :
+        search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
+        filename = putils.find_file_in_path(filename, search_path)
+        services = pconfig.parse_configuration_file(filename, bindings)
+
+        service_urls = []
+        for s in services.get('EnclaveService') :
+            service_urls.append(s['URL'])
+        service_urls = list(set(service_urls))   # remove duplicates
+
+        pgroups.add_group('eservice', group, service_urls, preferred=preferred)
+        return True
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_delete(pscript.script_command_base) :
+    name = "delete"
+    help = "Delete an enclave service group"
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument('--group', help='Name of the eservice group', type=str, default='default')
+
+    @classmethod
+    def invoke(cls, state, bindings, group, **kwargs) :
+
+        pgroups.remove_group('eservice', group)
+        return True
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -151,18 +218,18 @@ class script_command_add(pscript.script_command_base) :
     @classmethod
     def add_arguments(cls, subparser) :
         subparser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
-        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+')
-        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+')
+        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+', default=[])
+        subparser.add_argument('--name', help='Names for enclave services', type=str, nargs='+', default=[])
 
     @classmethod
     def invoke(cls, state, bindings, group, url=[], name=[], **kwargs) :
-        services = set(state.get(['Service', 'EnclaveServiceGroups', group, 'urls'], []))
-        if url :
-            services = services.union(url)
-        if name :
-            services = services.union(__expand_eservice_names__(name))
-        state.set(['Service', 'EnclaveServiceGroups', group, 'urls'], list(services))
-        return list(services)
+        group_info = pgroups.get_group_info('eservice', group)
+
+        service_urls = group_info.service_urls + url + pservice.expand_service_names('eservice', name)
+        service_urls = list(set(service_urls))   # remove duplicates
+
+        pgroups.add_group('eservice', group, service_urls, preferred=group_info.preferred)
+        return list(service_urls)
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -173,17 +240,19 @@ class script_command_remove(pscript.script_command_base) :
     @classmethod
     def add_arguments(cls, subparser) :
         subparser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
-        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+')
-        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+')
+        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+', default=[])
+        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+', default=[])
 
     @classmethod
     def invoke(cls, state, bindings, group, url=[], name=[], **kwargs) :
-        services = set(state.get(['Service', 'EnclaveServiceGroups', group, 'urls'], []))
-        if url :
-            services = services.difference(url)
-        if name :
-            services = services.difference(__expand_eservice_names__(name))
-        state.set(['Service', 'EnclaveServiceGroups', group, 'urls'], list(services))
+        group_info = pgroups.get_group_info('eservice', group)
+        service_urls = group_info.service_urls
+
+        map(lambda u : u in service_urls and service_urls.remove(u), url)
+        map(lambda u : u in service_urls and service_urls.remove(u), pservice.expand_service_name('eservice', name))
+        service_urls = list(set(service_urls))   # remove duplicates
+
+        pgroups.add_group('eservice', group, service_urls, preferred=group_info.preferred)
         return list(services)
 
 ## -----------------------------------------------------------------
@@ -195,17 +264,17 @@ class script_command_set(pscript.script_command_base) :
     @classmethod
     def add_arguments(cls, subparser) :
         subparser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
-        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+')
-        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+')
+        subparser.add_argument('--url', help='URLs for enclave services', type=str, nargs='+', default=[])
+        subparser.add_argument('--name', help='EService DB names for enclave services', type=str, nargs='+', default=[])
 
     @classmethod
     def invoke(cls, state, bindings, group, url=[], name=[], **kwargs) :
-        services = set()
-        if url :
-            services = services.union(url)
-        if name :
-            services = services.union(__expand_eservice_names__(name))
-        state.set(['Service', 'EnclaveServiceGroups', group, 'urls'], list(services))
+        group_info = pgroups.get_group_info('eservice', group)
+
+        service_urls = url + pservice.expand_service_names('eservice', name)
+        service_urls = list(set(service_urls))   # remove duplicates
+
+        pgroups.add_group('eservice', group, service_urls, preferred=group_info.preferred)
         return list(services)
 
 ## -----------------------------------------------------------------
@@ -218,60 +287,41 @@ class script_command_use(pscript.script_command_base) :
     def add_arguments(cls, subparser) :
         subparser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
         eservice_group = subparser.add_mutually_exclusive_group(required=True)
+        eservice_group.add_argument('--random', help='No preferred enclave service', action='store_true')
         eservice_group.add_argument('--url', help='URL for enclave service', type=str)
         eservice_group.add_argument('--name', help='EService DB name for enclave services', type=str)
-        eservice_group.add_argument('--random', help='No preferred enclave service', action='store_true')
 
     @classmethod
     def invoke(cls, state, bindings, group, url=None, name=None, random=None, **kwargs) :
+        group_info = pgroups.get_group_info('eservice', group)
+
         if random :
-            state.set(['Service', 'EnclaveServiceGroups', group, 'preferred'], 'random')
+            pgroups.add_group('eservice', group, group_info.service_urls, preferred='random')
             return True
 
         service_url = None
         if url :
             service_url = url
         elif name :
-            service_info = __get_by_name__(name)
-            if service_info is None :
-                raise Exception('unknown eservice name; %s', name)
-            service_url = service_info.service_url
+            service_url = pservice.expand_service_name('eservice', name)
 
-        services = state.get(['Service', 'EnclaveServiceGroups', group, 'urls'], [])
-        if service_url in services :
-            state.set(['Service', 'EnclaveServiceGroups', group, 'preferred'], service_url)
-        else :
+        if service_url not in group_info.service_urls :
             raise Exception('preferred URL not in the service group')
+
+        pgroups.add_group('eservice', group, group_info.service_urls, preferred=service_url)
         return True
-
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-class script_command_list(pscript.script_command_base) :
-    name = "list"
-    help = ""
-
-    @classmethod
-    def add_arguments(cls, subparser) :
-        subparser.add_argument('--group', help='Name of the eservice group', type=str, default="default")
-
-    @classmethod
-    def invoke(cls, state, bindings, group, **kwargs) :
-        preferred = state.get(['Service', 'EnclaveServiceGroups', group, 'preferred'], 'random')
-        services = state.get(['Service', 'EnclaveServiceGroups', group, 'urls'], [])
-        cls.display_highlight("preferred: {0}".format(preferred))
-        for service in services :
-            cls.display(service)
-        return list(services)
 
 ## -----------------------------------------------------------------
 ## Create the generic, shell independent version of the aggregate command
 ## -----------------------------------------------------------------
 __subcommands__ = [
+    script_command_create,
+    script_command_create_from_site,
+    script_command_delete,
     script_command_add,
     script_command_remove,
     script_command_set,
     script_command_use,
-    script_command_list,
 ]
 do_eservice = pscript.create_shell_command('eservice', __subcommands__)
 
