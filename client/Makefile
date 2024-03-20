@@ -32,7 +32,7 @@ install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		python3 setup.py install
 
-$(EGG_FILE) : $(PYTHON_SOURCE) bin/pdo-invoke.psh bin/pdo-create.psh bin/pdo-create-service-groups.psh
+$(EGG_FILE) : $(PYTHON_SOURCE) bin/pdo-invoke.psh bin/pdo-create.psh
 	@echo Build Distribution
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
 		python3 setup.py bdist_egg
