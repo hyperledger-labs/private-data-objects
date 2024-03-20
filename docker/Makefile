@@ -195,7 +195,6 @@ clean_config :
 	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
 	rm -f '$(DOCKER_DIR)'/xfer/services/keys/*.pem '$(DOCKER_DIR)'/xfer/services/etc/*.toml
 	rm -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.pem '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.txt
-	rm -f '$(DOCKER_DIR)'/xfer/services/etc/site.psh
 	# clean the artifacts of the prepare_ias_certificates target
 	rm -f $(IAS_CERTIFICATES)
 

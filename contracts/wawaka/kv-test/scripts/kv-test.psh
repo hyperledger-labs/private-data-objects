@@ -22,10 +22,6 @@ set --conditional -s test_data -v ${data}
 set --conditional -s _contracts_ -v ${home}/contracts
 set --conditional -s _plugins_ -v ${_contracts_}/plugins
 
-## load the eservice and pservice groups for the site
-set --conditional -s site_configuration -v "${home}/etc/site.psh"
-script -f ${site_configuration}
-
 ## some definitions to make it easier to display text
 set -s ENDC   -v "\033[0m"
 set -s BOLD   -v '\033[1m'
