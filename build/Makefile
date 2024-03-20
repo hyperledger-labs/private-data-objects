@@ -148,7 +148,7 @@ build-client : $(PYTHON_DIR)
 # CLIENT_KEY_COUNT is the number of user keys to create
 # For the test environment we create 10 by default
 CLIENT_KEY_COUNT ?= 10
-CLIENT_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, pcontract.toml site.psh)
+CLIENT_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, pcontract.toml)
 CLIENT_CONF_TARGET = $(DSTDIR)/opt/pdo/.client_configured
 
 $(CLIENT_CONF_TARGET) : $(PYTHON_DIR) $(CLIENT_CONF_TEMPLATES)

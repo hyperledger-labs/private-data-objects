@@ -28,7 +28,7 @@ services:
       - ./xfer/:/project/pdo/xfer/
     entrypoint: /project/pdo/tools/start_services.sh
     healthcheck:
-      test: ["CMD", "test", "-r", "/project/pdo/xfer/site.psh"]
+      test: ["CMD", "test", "-r", "/project/pdo/xfer/site.toml"]
       start_period: 20s
       interval: 10s
       retries: 5

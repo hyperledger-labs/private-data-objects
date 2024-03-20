@@ -41,13 +41,6 @@ configuration file:
 | `sservice` | state storage service associated with an enclave service | [`sservice.toml`](../build/opt/pdo/templates/sservice.toml) |
 | `pdo-shell` | the PDO client shell for creating contracts and invoking methods | [`pcontract.toml`](../build/opt/pdo/templates/pcontract.toml) |
 
-In addition, most provided `pdo-shell` scripts use the service
-configuration information found in
-[`${PDO_HOME}/etc/site.psh`](../build/opt/pdo/templates/site.psh).
-That can be included in scripts to load and configure a database of
-enclave, provisioning and storage services. This will simplify script
-execution. Add or change service references as necessary.
-
 Default versions of the configuration files are constructed during the
 build process. The default setup provides configuration files for five
 different service instances plus the `pdo-shell` client configuration.
