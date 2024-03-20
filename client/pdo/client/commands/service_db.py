@@ -19,6 +19,7 @@ import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.common.config as pconfig
 import pdo.common.utility as putils
+
 from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 
 import logging
@@ -29,6 +30,8 @@ __all__ = [
     'add_service',
     'remove_service',
     'clear_service_data',
+    'expand_service_name',
+    'expand_service_names',
     'script_command_add',
     'script_command_remove',
     'script_command_rename',
@@ -60,7 +63,7 @@ def add_select_parser(select_parser) :
 ## -----------------------------------------------------------------
 
 ## -----------------------------------------------------------------
-def get_service_info(state, service_type, service_url=None, service_name=None, service_identity=None) :
+def get_service_info(service_type, service_url=None, service_name=None, service_identity=None) :
         if service_type not in service_data.service_types :
             raise RuntimeError("unknown service type; {}".format(service_type))
 
@@ -74,7 +77,7 @@ def get_service_info(state, service_type, service_url=None, service_name=None, s
             raise RuntimeError("no service identifier provided")
 
 ## -----------------------------------------------------------------
-def add_service(state, service_type, service_url, service_names=[]) :
+def add_service(service_type, service_url, service_names=[]) :
     if service_type not in service_data.service_types :
         raise RuntimeError("unknown service type; {}".format(service_type))
 
@@ -86,15 +89,41 @@ def add_service(state, service_type, service_url, service_names=[]) :
     return True
 
 ## -----------------------------------------------------------------
-def remove_service(state, service_type, service_url=None, service_name=None, service_identity=None) :
-    service_info = get_service_info(state, service_type, service_url, service_name, service_identity)
+def remove_service(service_type, service_url=None, service_name=None, service_identity=None) :
+    service_info = get_service_info(service_type, service_url, service_name, service_identity)
     service_data.local_service_manager.remove(service_info)
     return True
 
 ## -----------------------------------------------------------------
-def clear_service_data(state) :
+def clear_service_data() :
     service_data.local_service_manager.reset()
     return True
+
+## -----------------------------------------------------------------
+def expand_service_name(service_type, name) :
+    """A utility function for expanding a service name into a URL
+    """
+    if service_type not in service_data.service_types :
+        raise RuntimeError("unknown service type; {}".format(service_type))
+
+    service_info = get_service_info(service_type, service_name=name)
+    if service_info is None :
+        raise RuntimeError('unknown service name {0}'.format(name))
+
+    return service_info.service_url
+
+## -----------------------------------------------------------------
+def expand_service_names(service_type, names = []) :
+    """A utility function for expanding a list of service names into URLs
+    """
+    if service_type not in service_data.service_types :
+        raise RuntimeError("unknown service type; {}".format(service_type))
+
+    result = set()                        # this ensures uniqueness
+    for name in names :
+        result.add(expand_service_name(service_type, name))
+
+    return list(result)
 
 ## -----------------------------------------------------------------
 ## COMMANDS
@@ -121,9 +150,9 @@ class script_command_add(pscript.script_command_base) :
     @classmethod
     def invoke(cls, state, bindings, service_type, url, names, update=False, **kwargs) :
         if update :
-            remove_service(state, service_type, service_url=url)
+            remove_service(service_type, service_url=url)
 
-        return add_service(state, service_type, service_url=url, service_names=names)
+        return add_service(service_type, service_url=url, service_names=names)
 
 ## -----------------------------------------------------------------
 class script_command_remove(pscript.script_command_base) :
@@ -136,7 +165,6 @@ class script_command_remove(pscript.script_command_base) :
     @classmethod
     def invoke(cls, state, bindings, service_type, url=None, name=None, verifying_key=None, **kwargs) :
         return remove_service(
-            state,
             service_type,
             service_url=url,
             service_name=name,
@@ -158,7 +186,6 @@ class script_command_rename(pscript.script_command_base) :
     @classmethod
     def invoke(cls, state, bindings, service_type, url=None, name=None, verifying_key=None, add=[], remove=[], remove_all=False) :
         old_service_info = get_service_info(
-            state,
             service_type,
             service_url=url,
             service_name=name,
@@ -192,7 +219,6 @@ class script_command_verify(pscript.script_command_base) :
     @classmethod
     def invoke(cls, state, bindings, service_type, url=None, name=None, verifying_key=None, **kwargs) :
         old_service_info = get_service_info(
-            state,
             service_type,
             service_url=url,
             service_name=name,
@@ -214,7 +240,7 @@ class script_command_clear(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, **kwargs) :
-        clear_service_data(state)
+        clear_service_data()
 
 ## -----------------------------------------------------------------
 class script_command_list(pscript.script_command_base) :
@@ -252,7 +278,6 @@ class script_command_info(pscript.script_command_base) :
     @classmethod
     def invoke(cls, state, bindings, service_type, url=None, name=None, verifying_key=None, **kwargs) :
         service_info = get_service_info(
-            state,
             service_type,
             service_url=url,
             service_name=name,

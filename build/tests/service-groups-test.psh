@@ -1,0 +1,205 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2018 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+set --conditional -s data -v .
+set --conditional -s save -v .
+set --conditional -s service_host -v localhost
+
+if --null "${tmpfile}"
+   echo must specify tmpfile for test
+   exit -v -1
+fi
+
+## some definitions to make it easier to display text
+set -s ENDC   -v "\033[0m"
+set -s BOLD   -v '\033[1m'
+set -s HEADER -v "\033[95m"
+set -s ERROR  -v "\033[91m"
+set -s WARN   -v "\033[93m"
+set -s INFO   -v "\033[92m"
+
+## -----------------------------------------------------------------
+echo ${HEADER}service groups database test on host ${service_host} ${ENDC}
+## -----------------------------------------------------------------
+
+## -----------------------------------------------------------------
+echo ${HEADER}create the initial service database ${ENDC}
+## -----------------------------------------------------------------
+## create an eservice db with the known enclave services
+service_db clear
+service_db add --type eservice --url http://${service_host}:7101 --name eservice1
+service_db add --type eservice --url http://${service_host}:7102 --name eservice2
+service_db add --type eservice --url http://${service_host}:7103 --name eservice3
+service_db add --type eservice --url http://${service_host}:7104 --name eservice4
+service_db add --type eservice --url http://${service_host}:7105 --name eservice5
+
+service_db add --type pservice --url http://${service_host}:7001 --name pservice1
+service_db add --type pservice --url http://${service_host}:7002 --name pservice2
+service_db add --type pservice --url http://${service_host}:7003 --name pservice3
+service_db add --type pservice --url http://${service_host}:7004 --name pservice4
+service_db add --type pservice --url http://${service_host}:7005 --name pservice5
+
+service_db add --type sservice --url http://${service_host}:7201 --name sservice1
+service_db add --type sservice --url http://${service_host}:7202 --name sservice2
+service_db add --type sservice --url http://${service_host}:7203 --name sservice3
+service_db add --type sservice --url http://${service_host}:7204 --name sservice4
+service_db add --type sservice --url http://${service_host}:7205 --name sservice5
+
+## -----------------------------------------------------------------
+echo ${HEADER}create the initial groups database ${ENDC}
+## -----------------------------------------------------------------
+service_groups clear
+
+## default eservice group
+echo ${INFO}create default enclave service group ${ENDC}
+eservice create
+eservice add --url http://${service_host}:7101
+eservice add --url http://${service_host}:7102
+eservice add --url http://${service_host}:7103
+
+## make sure that adding a bad URL generates an error
+trap_error
+eservice create --group test --url http://${service_host}:9999
+if -e ${_error_code_} 0
+   echo ${ERROR}Failed to catch bad URL ${ENDC}
+   exit -v -1
+fi
+untrap_error
+
+## eservice group e1, add by name
+echo ${INFO}create enclave service group e1${ENDC}
+eservice create --group e1
+eservice add --group e1 --name eservice3 eservice4 eservice5
+echo ${INFO}set preferred group e1 ${ENDC}
+eservice use --group e1 --url http://${service_host}:7105
+
+## eservice group all
+echo ${INFO}create enclave service group all${ENDC}
+eservice create --group all
+eservice add --group all --url http://${service_host}:7101
+eservice add --group all --url http://${service_host}:7102 http://${service_host}:7103 --name eservice4 eservice5
+eservice use --group all --name eservice5
+
+## default pservice group
+echo ${INFO}create default provisioning service${ENDC}
+pservice create
+pservice add --url http://${service_host}:7001
+pservice add --url http://${service_host}:7002
+pservice add --url http://${service_host}:7003
+
+## pservice group p1
+echo ${INFO}create provisioning service group p1${ENDC}
+pservice create --group p1
+pservice add --group p1 --url http://${service_host}:7003
+pservice add --group p1 --url http://${service_host}:7004
+pservice add --group p1 --url http://${service_host}:7005
+
+## pservice group all
+echo ${INFO}create provisioning service group all${ENDC}
+pservice create --group all
+pservice add --group all --url http://${service_host}:7001
+pservice add --group all --url http://${service_host}:7002
+pservice add --group all --url http://${service_host}:7003
+pservice add --group all --url http://${service_host}:7004
+pservice add --group all --url http://${service_host}:7005
+
+## default sservice group
+set -s persistent_storage_service -v http://${service_host}:7201
+
+echo ${INFO}create default storage service group${ENDC}
+sservice create
+sservice add --url http://${service_host}:7201
+sservice add --url http://${service_host}:7202
+sservice add --url http://${service_host}:7203
+sservice set --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s1
+echo ${INFO}create storage service group s1 ${ENDC}
+sservice create --group s1
+sservice add --group s1 --url http://${service_host}:7203
+sservice add --group s1 --url http://${service_host}:7204
+sservice add --group s1 --url http://${service_host}:7205
+sservice set --group s1 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+## sservice group s2
+echo ${INFO}create storage service group s2 ${ENDC}
+sservice create --group s2
+sservice add --group s2 --url http://${service_host}:7201
+sservice add --group s2 --url http://${service_host}:7202
+sservice set --group s2 --duration 120 --replicas 1 --persistent ${persistent_storage_service}
+
+## all sservices
+echo ${INFO}create storage service group all ${ENDC}
+sservice create --group all
+sservice add --group all --url http://${service_host}:7201
+sservice add --group all --url http://${service_host}:7202
+sservice add --group all --url http://${service_host}:7203
+sservice add --group all --url http://${service_host}:7204
+sservice add --group all --url http://${service_host}:7205
+sservice set --group all --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+## test service group export and import
+echo ${HEADER}Test import/export ${ENDC}
+service_groups export --file ${tmpfile}
+
+## remove the s1 group
+sservice delete --group s1
+
+## create a new group that should be overwritten by a no-merge load
+sservice create --group group_test --url http://${service_host}:7201
+sservice set --group group_test --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+echo ${INFO}import file through overwrite ${ENDC}
+service_groups import --file ${tmpfile} --no-merge
+
+## test that the group_test group was overwritten
+trap_error
+service_groups info --type sservice --group group_test
+if -e ${_error_code_} 0
+   echo ${ERROR} failed to remove existing service
+   exit -v -1
+fi
+untrap_error
+
+## test that the group s1 was restored successfully
+trap_error
+service_groups info --type sservice --group s1
+if -e ${_error_code_} -1
+   echo ${ERROR} failed to restore deleted service
+   exit -v -1
+fi
+untrap_error
+
+## create a new group that should not be overwritten
+sservice create --group group_test --url http://${service_host}:7201
+sservice set --group group_test --duration 3600 --replicas 3 --persistent ${persistent_storage_service}
+
+echo ${INFO}import file through merge ${ENDC}
+service_groups import --file ${tmpfile} --merge
+
+## test that the group was not overwritten
+echo ${INFO}check that group_test was not overwritten ${ENDC}
+trap_error
+service_groups info --type sservice --group group_test
+if -e ${_error_code_} -1
+   echo ${ERROR} existing service group overwritten during import
+   exit -v -1
+fi
+untrap_error
+
+
+echo ${BOLD} all tests succeeded ${ENDC}
+exit -v 0

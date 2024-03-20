@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import json
 import mergedeep
 import toml
 
@@ -20,28 +21,81 @@ import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.common.utility as putils
 import pdo.common.config as pconfig
+import pdo.client.commands.service_db as pservice
+
+from pdo.service_client.service_data.service_groups import GroupsDatabaseManager as group_data
 
 import logging
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    'script_command_load',
-    'script_command_save',
-    'script_command_list',
+    'get_group_info',
+    'add_group',
+    'remove_group',
+    'clear_service_data',
     'script_command_clear',
+    'script_command_export',
+    'script_command_import',
+    'script_command_info',
+    'script_command_list',
     'do_service_groups',
     'load_commands',
 ]
 
 ## -----------------------------------------------------------------
+## OPERATIONS
 ## -----------------------------------------------------------------
-class script_command_load(pscript.script_command_base) :
+
+## -----------------------------------------------------------------
+def get_group_info(service_type, group_name) :
+    if service_type not in group_data.service_types :
+        raise RuntimeError("unknown service type; {}".format(service_type))
+
+    return group_data.local_groups_manager.get_by_name(group_name, service_type)
+
+## -----------------------------------------------------------------
+def add_group(service_type : str, group_name : str, service_urls, **kwargs) :
+    """Add a new service group or update an existing one
+    """
+    if service_type not in group_data.service_types :
+        raise RuntimeError("unknown service type; {}".format(service_type))
+
+    # make sure that all of the URLs are registered in the service_db
+    for u in service_urls :
+        _ = pservice.get_service_info(service_type, service_url=u)
+
+    info = group_data.service_group_map[service_type](group_name, service_urls, **kwargs)
+    group_data.local_groups_manager.update(info)
+
+## -----------------------------------------------------------------
+def remove_group(service_type : str, group_name : str) :
+    """Remove a group from the groups database
+    """
+    if service_type not in group_data.service_types :
+        raise RuntimeError("unknown service type; {}".format(service_type))
+
+    # no problem if the group doesn't exist
+    try :
+        info = get_group_info(service_type, group_name)
+        group_data.local_groups_manager.remove(info)
+    except :
+        pass
+
+## -----------------------------------------------------------------
+def clear_data() :
+    """Remove all data from the groups database
+    """
+    group_data.local_groups_manager.reset()
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_import(pscript.script_command_base) :
     """Load the service group configuration from a file, the SearchPath configuration will
     be searched for the file
     """
 
-    name = "load"
-    help = "Load service group settings from a TOML file"
+    name = "import"
+    help = "Import service group settings from a TOML file"
 
     @classmethod
     def add_arguments(cls, subparser) :
@@ -65,41 +119,23 @@ class script_command_load(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, filenames, merge=True, **kwargs) :
-        try :
-            search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
-            info = pconfig.parse_configuration_files(filenames, search_path, bindings)
+        search_path = state.get(['Client', 'SearchPath'], ['.', './etc/'])
+        groups_info = pconfig.parse_configuration_files(filenames, search_path, bindings)
 
-            psgroups = info.get('ProvisioningServiceGroups', {})
-            ssgroups = info.get('StorageServiceGroups', {})
-            esgroups = info.get('EnclaveServiceGroups', {})
+        if not merge :
+            clear_data()
 
-            if merge :
-                psgroups = mergedeep.merge(state.get(['Service', 'ProvisioningServiceGroups'], {}), psgroups)
-                ssgroups = mergedeep.merge(state.get(['Service', 'StorageServiceGroups'], {}), ssgroups)
-                esgroups = mergedeep.merge(state.get(['Service', 'EnclaveServiceGroups'], {}), esgroups)
-
-            state.set(['Service', 'ProvisioningServiceGroups'], psgroups)
-            state.set(['Service', 'StorageServiceGroups'], ssgroups)
-            state.set(['Service', 'EnclaveServiceGroups'], esgroups)
-
-        except FileNotFoundError as e :
-            cls.display_error('service group file does not exist; {}'.format(filename))
-            return False
-
-        except Exception as e :
-            cls.display_error('failed to load service group file {}; {}'.format(filename, e))
-            return False
-
+        group_data.local_groups_manager.import_group_information(groups_info)
         return True
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
-class script_command_save(pscript.script_command_base) :
+class script_command_export(pscript.script_command_base) :
     """Save the service configuration to a file, the filename is assumed to be absolute
     """
 
-    name = "save"
-    help = "Save service group settings to a TOML file"
+    name = "export"
+    help = "Export service group settings to a TOML file"
 
     @classmethod
     def add_arguments(cls, subparser) :
@@ -112,18 +148,51 @@ class script_command_save(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, filename, **kwargs) :
-        try :
-            info = {}
-            info['ProvisioningServiceGroups'] = state.get(['Service', 'ProvisioningServiceGroups'], {})
-            info['StorageServiceGroups'] = state.get(['Service', 'StorageServiceGroups'], {})
-            info['EnclaveServiceGroups'] = state.get(['Service', 'EnclaveServiceGroups'], {})
-            with open(filename, "w") as outfile:
-                toml.dump(info,outfile)
-        except Exception as e :
-            cls.display_error('failed to save service group configuration; {}'.format(e))
-            return False
+        groups_info = group_data.local_groups_manager.export_group_information()
+        with open(filename, "w") as outfile:
+            toml.dump(groups_info, outfile)
 
         return True
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_clear(pscript.script_command_base) :
+    name = "clear"
+    help = "remove all information from the groups database"
+
+    @classmethod
+    def invoke(cls, state, bindings, **kwargs) :
+        clear_data()
+
+## -----------------------------------------------------------------
+## -----------------------------------------------------------------
+class script_command_info(pscript.script_command_base) :
+    name = "info"
+    help = "get information about a specific service group"
+
+    @classmethod
+    def add_arguments(cls, subparser) :
+        subparser.add_argument(
+            '--type',
+            help='Type of service to add',
+            type=str, choices=group_data.service_types,
+            dest='service_type',
+            required=True),
+
+        subparser.add_argument(
+            '--group',
+            help='Name of the service group',
+            type=str,
+            dest='group_name',
+            required=True),
+
+    @classmethod
+    def invoke(cls, state, bindings, service_type, group_name, **kwargs) :
+        group_info = get_group_info(service_type, group_name)
+        result = group_info.serialize()
+
+        cls.display(result)
+        return json.dumps(result)
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
@@ -132,35 +201,25 @@ class script_command_list(pscript.script_command_base) :
     help = "List information about the service groups"
 
     @classmethod
-    def invoke(cls, state, bindings, **kwargs) :
-        services = state.get(['Service', 'EnclaveServiceGroups'], {})
-        cls.display_highlight("Enclave Service Groups")
-        for service in services.keys() :
-            cls.display("\t{}".format(service))
-
-        services = state.get(['Service', 'ProvisioningServiceGroups'], {})
-        cls.display_highlight("Provisioning Service Groups")
-        for service in services.keys() :
-            cls.display("\t{}".format(service))
-
-        services = state.get(['Service', 'StorageServiceGroups'], {})
-        cls.display_highlight("Storage Service Groups")
-        for service in services.keys() :
-            cls.display("\t{}".format(service))
-
-        return True
-
-## -----------------------------------------------------------------
-## -----------------------------------------------------------------
-class script_command_clear(pscript.script_command_base) :
-    name = "clear"
-    help = "Clear all information in the service groups database"
+    def add_arguments(cls, subparser) :
+        subparser.add_argument(
+            '--type',
+            help='Type of service to add',
+            type=str, choices=group_data.service_types,
+            dest='service_type',
+            required=True),
+        subparser.add_argument(
+            '--output',
+            help='Python format string for output',
+            type=str, default="{name}: {urls}"),
 
     @classmethod
-    def invoke(cls, state, bindings, **kwargs) :
-        state.set(['Service', 'ProvisioningServiceGroups'], {})
-        state.set(['Service', 'StorageServiceGroups'], {})
-        state.set(['Service', 'EnclaveServiceGroups'], {})
+    def invoke(cls, state, bindings, service_type, output, **kwargs) :
+        groups = group_data.local_groups_manager.list_groups(service_type)
+        for (group_name, group_info) in groups :
+            serialized = group_info.serialize()
+            serialized['name'] = group_name
+            cls.display(output.format(**serialized))
 
         return True
 
@@ -168,10 +227,11 @@ class script_command_clear(pscript.script_command_base) :
 ## Create the generic, shell independent version of the aggregate command
 ## -----------------------------------------------------------------
 __subcommands__ = [
-    script_command_load,
-    script_command_save,
-    script_command_list,
     script_command_clear,
+    script_command_export,
+    script_command_import,
+    script_command_info,
+    script_command_list,
 ]
 do_service_groups = pscript.create_shell_command('service_groups', __subcommands__)
 

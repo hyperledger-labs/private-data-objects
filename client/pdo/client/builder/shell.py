@@ -125,14 +125,9 @@ def initialize_environment(options) :
     if options.service_db:
         state.set(['Service', 'ServiceDatabaseFile'], options.service_db)
 
-    # importing a service group file will override earlier values, so we
-    # just add to the list of groups that have already been specified rather
-    # than simply replace it; note that these files will have bindings
-    # expanded and will be applied as glob expansions
-    if options.service_groups :
-        groupfiles = state.get(['Service', 'ServiceGroupFiles'], [])
-        groupfiles += options.service_groups
-        state.set(['Service', 'ServiceGroupFiles'], groupfiles)
+    # set up the groups configuration
+    if options.groups_db:
+        state.set(['Service', 'GroupDatabaseFile'], options.groups_db)
 
     # set up the data paths
     if options.data_dir :
@@ -142,19 +137,6 @@ def initialize_environment(options) :
 
     # make the configuration available to all of the PDO modules
     pconfig.initialize_shared_configuration(state.__data__)
-
-    # load the service groups from the groups.toml file, nothing breaks if the
-    # file doesn't load, but we do want to give an error message
-    try :
-        groupfiles = state.get(['Service', 'ServiceGroupFiles'], [])
-        groupfiles = list(map(lambda f : bindings.expand(f), groupfiles))
-        groupfiles = map(lambda f : os.path.realpath(f), functools.reduce(lambda x, f : x + glob.glob(f), groupfiles, []))
-        groupfiles = list(groupfiles)
-        if not pgroups.script_command_load.invoke(state, bindings, groupfiles) :
-            return None
-    except Exception as e :
-        # log a warning but continue to run
-        logger.warning('Failed to load service group files; {}'.format(e))
 
     return (state, bindings)
 
@@ -183,7 +165,7 @@ def parse_shell_command_line(args) :
     parser.add_argument('--key-dir', help='Directories to search for key files', nargs='+')
 
     parser.add_argument('--service-db', help='Full path to the service database file', type=str)
-    parser.add_argument('--service-groups', help='Full path name for additional service group files', nargs='+', type=str)
+    parser.add_argument('--groups-db', help='Full path to the groups database file', type=str)
 
     parser.add_argument('--client-identity', help='Name of the user', type=str)
     parser.add_argument('--client-key-file', help='Name of the user key file', type=str)
