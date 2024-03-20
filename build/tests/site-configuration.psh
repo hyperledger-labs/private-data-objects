@@ -1,0 +1,142 @@
+#! /usr/bin/env pdo-shell
+
+## Copyright 2023 Intel Corporation
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+## load the eservice and pservice groups for the specified service host
+set --conditional -s service_host -v localhost
+set --conditional -s group_file -v ${home}/etc/${service_host}_groups.toml
+
+if --null "${data}"
+   echo data macro must be defined
+   exit
+fi
+
+## -----------------------------------------------------------------
+## Set the default set of eservices that this file knows
+## about. There may be more that have been added to the
+## eservice database. This list is primarily that ones that
+## will be used by the local client to create & interact with
+## contracts.
+## -----------------------------------------------------------------
+set -s pservice1 -v http://${service_host}:7001
+set -s pservice2 -v http://${service_host}:7002
+set -s pservice3 -v http://${service_host}:7003
+set -s pservice4 -v http://${service_host}:7004
+set -s pservice5 -v http://${service_host}:7005
+
+set -s eservice1 -v http://${service_host}:7101
+set -s eservice2 -v http://${service_host}:7102
+set -s eservice3 -v http://${service_host}:7103
+set -s eservice4 -v http://${service_host}:7104
+set -s eservice5 -v http://${service_host}:7105
+
+set -s sservice1 -v http://${service_host}:7201
+set -s sservice2 -v http://${service_host}:7202
+set -s sservice3 -v http://${service_host}:7203
+set -s sservice4 -v http://${service_host}:7204
+set -s sservice5 -v http://${service_host}:7205
+
+set -s persistent_storage_service -v ${sservice1}
+
+## make sure the minimal set of enclave services is included
+## if these are already in the database they will not be re-added
+service_db clear
+
+service_db add --type pservice --url ${pservice1} --name ps7001
+service_db add --type pservice --url ${pservice2} --name ps7002
+service_db add --type pservice --url ${pservice3} --name ps7003
+service_db add --type pservice --url ${pservice4} --name ps7004
+service_db add --type pservice --url ${pservice5} --name ps7005
+
+service_db add --type eservice --url ${eservice1} --name es7101
+service_db add --type eservice --url ${eservice2} --name es7102
+service_db add --type eservice --url ${eservice3} --name es7103
+service_db add --type eservice --url ${eservice4} --name es7104
+service_db add --type eservice --url ${eservice5} --name es7105
+
+service_db add --type sservice --url ${sservice1} --name ss7201
+service_db add --type sservice --url ${sservice2} --name ss7202
+service_db add --type sservice --url ${sservice3} --name ss7203
+service_db add --type sservice --url ${sservice4} --name ss7204
+service_db add --type sservice --url ${sservice5} --name ss7205
+
+## Remove any groups previously defined
+service_groups clear
+
+## -----------------------------------------------------------------
+## Define provisioning service groups to simplify specification
+## of contract key provisioning. Each group specifies a set of
+## provisioning services that will be used for provisioning keys
+## into the contract enclaves.
+## -----------------------------------------------------------------
+
+pservice create --group default --name ps7001 ps7002 ps7003
+pservice create --group p1 --name ps7003 ps7004 ps7005
+pservice create --group all --name ps7001 ps7002 ps7003 ps7004 ps7005
+
+## -----------------------------------------------------------------
+## Define enclave service groups to simplify specification
+## of eservices to be provisioned for the contract object. Each
+## group specifies a set of enclave services that may be used
+## to interact with the contract. It also specifies (through the
+## "use" command) a preferred service. The preferred service will
+## often have the current state already cached.
+## -----------------------------------------------------------------
+
+eservice create --group default --name es7101 es7102 es7103 --preferred ${eservice1}
+eservice create --group e1 --name es7101 es7102 es7103 --preferred ${eservice1}
+eservice create --group e2 --name es7102 es7103 es7104 --preferred ${eservice2}
+eservice create --group e3 --name es7103 es7104 es7105 --preferred ${eservice3}
+eservice create --group e4 --name es7104 es7105 es7101 --preferred ${eservice4}
+eservice create --group e5 --name es7105 es7101 es7102 --preferred ${eservice5}
+eservice create --group all --name es7101 es7102 es7103 es7104 es7105 --preferred ${eservice1}
+
+## -----------------------------------------------------------------
+## Define storage service groups to simplify specification
+## of contract state storage and replication policies. Each
+## group specifies a set of storage services, the policy
+## for how long the storage services will keep a copy of
+## the contract state, and the number of replicas that
+## must be completed before the ledger will accept a state
+## update.
+##
+## the persistent storage service adds a notation to the
+## contract file a storage service that will maintain
+## a persistent copy of the state of the contract object
+## that is, there is a HINT (not a guarantee) that the
+## current state of the object can be retrieved from the
+## persistent storage service
+## -----------------------------------------------------------------
+
+sservice create --group default --name ss7201 ss7202 ss7203
+sservice set --group default --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group s1 --name ss7201 ss7202 ss7203
+sservice set --group s1 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group s2 --name ss7202 ss7203 ss7204
+sservice set --group s2 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group s3 --name ss7203 ss7204 ss7205
+sservice set --group s3 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group s4 --name ss7204 ss7205 ss7201
+sservice set --group s4 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group s5 --name ss7205 ss7201 ss7202
+sservice set --group s5 --duration 120 --replicas 2 --persistent ${persistent_storage_service}
+
+sservice create --group all --name ss7201 ss7202 ss7203 ss7204 ss7205
+sservice set --group all --duration 3600 --replicas 3 --persistent ${persistent_storage_service}

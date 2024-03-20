@@ -33,9 +33,6 @@ set --conditional -s params -v ""
 set --conditional -s method -v ""
 set --conditional -s wait -v "no"
 
-set --conditional -s site_configuration -v "${home}/etc/site.psh"
-script -f ${site_configuration}
-
 if -e ${_identity_} '__unknown__'
    echo missing required parameter, identity
    exit -v -1

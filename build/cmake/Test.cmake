@@ -89,9 +89,9 @@ ENDFUNCTION()
 # -----------------------------------------------------------------
 # ADD_SYSTEM_TEST
 # This function invokes a pdo-shell script on an optional set of
-# parameters. The assumption is that the script loads site.psh to
-# pick up the service configuration. TEST_SERVICE_HOST will be used
-# to configure the services host in site.psh.
+# parameters. The assumption is that site configuration has taken
+# place outside the script (meaning the service data and service
+# group databases are assumed to be up to date).
 # -----------------------------------------------------------------
 FUNCTION(ADD_SYSTEM_TEST contract)
   CMAKE_PARSE_ARGUMENTS(ST "" "SCRIPT" "PARAMS" ${ARGN})
