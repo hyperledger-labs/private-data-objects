@@ -35,9 +35,7 @@ CertificateFile = "${ledger_key_root}/networkcert.pem"
 # --------------------------------------------------
 [Service]
 ServiceDatabaseFile = "${data}/service_db.mdb"
-ServiceGroupFiles = [
-    "${etc}/$${service_host}_groups.toml"
-]
+GroupDatabaseFile = "${data}/groups_db.mdb"
 
 # --------------------------------------------------
 # StorageService -- information about KV block stores
