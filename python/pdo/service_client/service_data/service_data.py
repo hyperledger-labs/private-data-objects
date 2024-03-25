@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import atexit
+import datetime
 from functools import lru_cache
 import json
 import lmdb
@@ -27,6 +28,7 @@ from pdo.service_client.enclave import EnclaveServiceClient
 from pdo.service_client.provisioning import ProvisioningServiceClient
 from pdo.service_client.storage import StorageServiceClient
 from pdo.common.utility import classproperty
+from pdo.submitter.create import create_submitter
 
 from urllib.parse import urlparse
 
@@ -64,14 +66,14 @@ class BaseInfo(object) :
     @classmethod
     def unpack(cls, url, json_encoded_info) :
         service_info = json.loads(json_encoded_info)
-        return cls(url, service_info['service_identity'], **service_info)
+        return cls(**service_info)
 
-    def __init__(self, service_type, url, identity, service_names=[]) :
+    def __init__(self, service_type, service_url, service_identity, service_names=[], last_verified_time=0) :
         self.service_type = BaseInfo.force_to_string(service_type)
-        self.service_url = BaseInfo.force_to_string(url)
-        self.service_identity = BaseInfo.force_to_string(identity)
+        self.service_url = BaseInfo.force_to_string(service_url)
+        self.service_identity = BaseInfo.force_to_string(service_identity)
         self.service_names = set(map(lambda n : BaseInfo.force_to_string(n), service_names))
-        self.last_verified_time = 0
+        self.last_verified_time = last_verified_time
 
     def pack(self) :
         return BaseInfo.force_to_bytes(json.dumps(self.serialize()))
@@ -98,7 +100,7 @@ class BaseInfo(object) :
         self.service_names.discard(BaseInfo.force_to_string(service_name))
 
     def clone(self) :
-        return type(self).unpack(self.serialize())
+        return type(self).unpack(self.service_url, self.pack())
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -125,8 +127,10 @@ class EnclaveServiceInfo(BaseInfo) :
 
         return new_info
 
-    def __init__(self, url, identity, **kwargs) :
-        super().__init__('eservice', url, identity, kwargs.get('service_names'))
+    def __init__(self, service_url, service_identity, **kwargs) :
+        service_names = kwargs.get('service_names', [])
+        last_verified_time = kwargs.get('last_verified_time', 0)
+        super().__init__('eservice', service_url, service_identity, service_names, last_verified_time)
 
         self.verifying_key = BaseInfo.force_to_string(kwargs.get('verifying_key', ''))
         self.encryption_key = BaseInfo.force_to_string(kwargs.get('encryption_key', ''))
@@ -176,7 +180,7 @@ class EnclaveServiceInfo(BaseInfo) :
         if enclave_state['encryption_key'] != self.encryption_key :
             return False
 
-        self.last_verified_time = int(round(datetime.datetime.new().timestamp()))
+        self.last_verified_time = int(round(datetime.datetime.now().timestamp()))
         return True
 
 # -----------------------------------------------------------------
@@ -196,8 +200,11 @@ class ProvisioningServiceInfo(BaseInfo) :
 
         return new_info
 
-    def __init__(self, url, identity, **kwargs) :
-        super().__init__('pservice', url, identity, kwargs.get('service_names'))
+    def __init__(self, service_url, service_identity, **kwargs) :
+        service_names = kwargs.get('service_names', [])
+        last_verified_time = kwargs.get('last_verified_time', 0)
+        super().__init__('pservice', service_url, service_identity, service_names, last_verified_time)
+
         self.verifying_key = BaseInfo.force_to_string(kwargs.get('verifying_key', ''))
 
     def serialize(self) :
@@ -222,7 +229,7 @@ class ProvisioningServiceInfo(BaseInfo) :
         if client.verifying_key != self.verifying_key :
             return False
 
-        self.last_verified_time = int(round(datetime.datetime.new().timestamp()))
+        self.last_verified_time = int(round(datetime.datetime.now().timestamp()))
         return True
 
 # -----------------------------------------------------------------
@@ -242,8 +249,11 @@ class StorageServiceInfo(BaseInfo) :
 
         return new_info
 
-    def __init__(self, url, identity, **kwargs) :
-        super().__init__('sservice', url, identity, kwargs.get('service_names'))
+    def __init__(self, service_url, service_identity, **kwargs) :
+        service_names = kwargs.get('service_names', [])
+        last_verified_time = kwargs.get('last_verified_time', 0)
+        super().__init__('sservice', service_url, service_identity, service_names, last_verified_time)
+
         self.verifying_key = BaseInfo.force_to_string(kwargs.get('verifying_key', ''))
         # will add information about duration etal when it is exported
 
@@ -269,7 +279,7 @@ class StorageServiceInfo(BaseInfo) :
         if client.verifying_key != self.verifying_key :
             return False
 
-        self.last_verified_time = int(round(datetime.datetime.new().timestamp()))
+        self.last_verified_time = int(round(datetime.datetime.now().timestamp()))
         return True
 
 ## =================================================================
@@ -351,7 +361,9 @@ class ServiceDatabaseManager(object) :
         transaction... so it either works completely or not at all
         """
 
-        service_db = self.service_db(service_info.service_type)
+        assert old_service_info.service_type == new_service_info.service_type
+
+        service_db = self.service_db(old_service_info.service_type)
         identity_db = self.service_db_env.open_db(b'identity_index')
         name_db = self.service_db_env.open_db(b'name_index')
 
