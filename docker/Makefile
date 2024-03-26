@@ -50,7 +50,7 @@ DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
 DOCKER_BUILDARGS += --build-arg GID=$(PDO_GROUP_UID)
 DOCKER_ARGS = $(DOCKER_BUILDARGS)
 
-IMAGES=base client services_base services ccf_base ccf
+IMAGES=base client services_base services services_sgx ccf_base ccf
 
 # for the most part this is just used to force rebuild when the
 # PDO repository has changed
@@ -70,6 +70,13 @@ build_% : repository
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
+
+sgx_build_services : repository build_services_base
+	docker build $(DOCKER_ARGS) \
+        --build-arg PDO_VERSION=$(PDO_VERSION) \
+        --build-arg SGX_MODE=HW \
+        --tag pdo_services_sgx:$(PDO_VERSION) \
+        --file $(DOCKER_DIR)/pdo_services.dockerfile .
 
 # docker build dependencies
 build_client: build_base
@@ -112,6 +119,23 @@ stop_client :
 # performance requirements are relatively low.
 # -----------------------------------------------------------------
 repository :
+	# If an enclave signing key is available on the host, copy that under build/keys in the repo
+	# Note: the docker build (see PDO_ENCLAVE_CODE_SIGN_PEM in environment.sh) expects the key there
+	if [ ! -z "${PDO_ENCLAVE_CODE_SIGN_PEM}" ]; then \
+		if [ -z "${PDO_SGX_KEY_ROOT}" ]; then \
+			echo "Error: PDO_SGX_KEY_ROOT must be defined to transfer the enclave signing key in docker"; exit 1; \
+		fi ;\
+		if [ -e ${PDO_ENCLAVE_CODE_SIGN_PEM} ]; then \
+			echo "Enclave code signing key: using ${PDO_ENCLAVE_CODE_SIGN_PEM}"; \
+			(test ${PDO_ENCLAVE_CODE_SIGN_PEM} -ef ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem || \
+			cp ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem); \
+		else \
+			echo "Enclave code signing key: unavailable, a new one will be generated"; \
+		fi \
+	else \
+		echo "Enclave code signing key: PDO_ENCLAVE_CODE_SIGN_PEM undefined, a new one will be generated"; \
+	fi
+	# clone the repo
 	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules '$(PDO_REPO)' repository
 
 clean_repository :
@@ -130,11 +154,55 @@ TEST_FILES += -f services_base.yaml
 TEST_FILES += -f ccf_base.yaml
 TEST_FILES += -f test.yaml
 
+TEST_SGX_FILES = ${TEST_FILES}
+TEST_SGX_FILES += -f test-sgx.yaml
+
+SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; \
+				then echo "/dev/isgx"; \
+				elif [ -e "/dev/sgx/enclave" ]; \
+					then echo "/dev/sgx/enclave"; \
+				else echo "ERROR: NO SGX DEVICE FOUND"; \
+				fi)
+
+DOCKER_COMPOSE_SGX := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} docker-compose
+
 build_test : repository build_services build_ccf build_client
 
 test : clean_config clean_repository build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+
+sgx_build_test : repository sgx_build_services build_ccf build_client
+
+sgx_keys :
+	# check for collateral in PDO_SGX_KEY_ROOT and copy that in xfer
+	# or, copy anything in the default folder to xfer
+	if [ ! -z "${PDO_SGX_KEY_ROOT}" ]; then \
+		echo "Checking for source SGX collateral in ${PDO_SGX_KEY_ROOT}"; \
+		if [ ! -f ${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt ] || \
+			[ ! -f ${PDO_SGX_KEY_ROOT}/sgx_spid.txt ] || \
+			[ ! -f ${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem ]; then \
+			echo "Error: check PDO_SGX_KEY_ROOT and SGX collateral in it"; exit 1; \
+		fi ;\
+		echo "Copying source SGX collateral to docker"; \
+		cp ${PDO_SGX_KEY_ROOT}/* '$(DOCKER_DIR)'/xfer/services/keys/sgx/; \
+	else \
+		echo "PDO_SGX_KEY_ROOT undefined, rsync default folder to docker"; \
+		rsync -r ${PDO_SOURCE_ROOT}/build/keys/sgx_mode_hw/ '$(DOCKER_DIR)'/xfer/services/keys/sgx/; \
+	fi
+
+	# test collateral availability in xfer (possibly, but not necessarily, after the copy above)
+	@echo "Checking for SGX collateral in docker"
+	if [ ! -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/sgx_spid_api_key.txt ] || \
+		[ ! -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/sgx_spid.txt ] || \
+		[ ! -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/sgx_ias_key.pem ]; then \
+		echo "Error: SGX collateral not docker-ready -- set PDO_SGX_KEY_ROOT and check collateral"; exit 1; \
+	fi
+	@echo "SGX collateral is docker-ready"
+
+sgx_test : clean_config clean_repository sgx_build_test stop_all sgx_keys
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) down
 
 # -----------------------------------------------------------------
 # Cleaning is a bit interesting because the containers don't go away
@@ -151,6 +219,7 @@ clean_images : $(addprefix clean_,$(IMAGES))
 clean_config :
 	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
 	rm -f '$(DOCKER_DIR)'/xfer/services/keys/*.pem '$(DOCKER_DIR)'/xfer/services/etc/*.toml
+	rm -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.pem '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.txt
 	rm -f '$(DOCKER_DIR)'/xfer/services/etc/site.psh
 
 clean : clean_images clean_config clean_repository

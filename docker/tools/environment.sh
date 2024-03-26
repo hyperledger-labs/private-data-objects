@@ -44,14 +44,7 @@ fi
 
 export XFER_DIR=${XFER_DIR:-/project/pdo/xfer}
 
-# if the container is running HW mode, then we will grab the
-# SGX keys from the xfer directory; we know that the default
-# keys must be overridden
-if [ ${SGX_MODE} == "HW" ]; then
-    export PDO_SGX_KEY_ROOT=${XFER_DIR}/services/keys/sgx
-else
-    export PDO_SGX_KEY_ROOT=${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}
-fi
+export PDO_SGX_KEY_ROOT=${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}
 
 # this variable is needed for the build for signing the
 # eservice and pservice enclaves

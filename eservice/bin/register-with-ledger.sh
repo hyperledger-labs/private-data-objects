@@ -71,9 +71,11 @@ function Store {
         --spid ${SPID} \
         --save ${eservice_enclave_info_file} \
         --loglevel warn \
+        --logfile __screen__ \
         --identity ${ESERVICE_IDENTITY} \
         --config ${ESERVICE_TOML} ${ENCLAVE_TOML} \
         --config-dir ${ETCDIR}
+    yell Enclave info are ready
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
@@ -88,6 +90,7 @@ function Register {
         : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
         if [ ${PDO_LEDGER_TYPE} == "ccf" ]; then
+            yell Register enclave with CCF ledger
             source ${PDO_INSTALL_ROOT}/bin/activate
             try ${PDO_INSTALL_ROOT}/bin/ccf_set_expected_sgx_measurements \
                 --logfile __screen__ --loglevel INFO --mrenclave ${VAR_MRENCLAVE} \

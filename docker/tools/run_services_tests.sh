@@ -28,6 +28,16 @@ export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 
 # -----------------------------------------------------------------
+yell copy sgx keys
+# -----------------------------------------------------------------
+# this collateral *must* be copied before configuring the services
+# as it will be included in the service/enclave toml files
+[ -z "$(ls -A ${XFER_DIR}/services/keys/sgx/)" ] ||\
+    cp ${XFER_DIR}/services/keys/sgx/* ${PDO_SGX_KEY_ROOT}
+# refresh the environment variables (necessary for SGX-related ones)
+source /project/pdo/tools/environment.sh
+
+# -----------------------------------------------------------------
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
 try ${PDO_INSTALL_ROOT}/bin/pdo-configure-services -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME}\
@@ -56,7 +66,7 @@ yell check for registration
 # -----------------------------------------------------------------
 # this probably requires additional CCF keys, need to test this
 if [ "$SGX_MODE" == "HW" ]; then
-    if [ ! -f ${XFER}/ccf/keys/memberccf_privk.pem ] ; then
+    if [ ! -f ${XFER_DIR}/ccf/keys/memberccf_privk.pem ] ; then
         die unable to locate CCF policies keys
     fi
 
