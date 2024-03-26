@@ -293,8 +293,10 @@ namespace ccfapp
                 // Verify the verification report enclave quote status
                 transform(verification_report.isvEnclaveQuoteStatus.begin(), verification_report.isvEnclaveQuoteStatus.end(),
                     verification_report.isvEnclaveQuoteStatus.begin(), ::toupper);
-                if ((verification_report.isvEnclaveQuoteStatus != OK_QUOTE_STATUS) && (verification_report.isvEnclaveQuoteStatus != GROUP_OUT_OF_DATE_QUOTE_STATUS) &&
-                     (verification_report.isvEnclaveQuoteStatus != SW_HARDENING_NEEDED_QUOTE_STATUS))  {
+                if ((verification_report.isvEnclaveQuoteStatus != OK_QUOTE_STATUS) && 
+                    (verification_report.isvEnclaveQuoteStatus != GROUP_OUT_OF_DATE_QUOTE_STATUS) &&
+                    (verification_report.isvEnclaveQuoteStatus != SW_HARDENING_NEEDED_QUOTE_STATUS) && 
+                    (verification_report.isvEnclaveQuoteStatus != CONFIGURATION_AND_SW_HARDENING_NEEDED_QUOTE_STATUS))  {
                     return ccf::make_error(
                         HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid quote status");
                 }

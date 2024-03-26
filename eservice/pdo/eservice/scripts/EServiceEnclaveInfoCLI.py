@@ -37,8 +37,7 @@ def GetBasename(spid, save_path, config) :
     while True :
         try :
             logger.debug('initialize the enclave')
-            enclave_config = {}
-            info = pdo_enclave_helper.get_enclave_service_info(spid, config=enclave_config)
+            info = pdo_enclave_helper.get_enclave_service_info(spid)
 
             logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
             with open(save_path, "w") as file :

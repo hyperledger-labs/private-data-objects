@@ -613,7 +613,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     int r;
     // verify quote (group-of-date is considered ok)
     r = verify_enclave_quote_status(verificationReport.c_str(), verificationReport.length(),
-            QSF_ACCEPT_GROUP_OUT_OF_DATE | QSF_ACCEPT_SW_HARDENING_NEEDED);
+            QSF_ACCEPT_GROUP_OUT_OF_DATE | QSF_ACCEPT_SW_HARDENING_NEEDED | QSF_ACCEPT_CONFIGURATION_AND_SW_HARDENING_NEEDED);
     pdo::error::ThrowIf<pdo::error::ValueError>(
         r!=VERIFY_SUCCESS, "Invalid Enclave Quote");
 

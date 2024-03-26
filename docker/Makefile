@@ -71,11 +71,20 @@ build_% : repository
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
+build_sgx_services : repository
+	docker build $(DOCKER_ARGS) \
+        --build-arg PDO_VERSION=$(PDO_VERSION) \
+        --build-arg SGX_MODE=HW \
+        --tag pdo_services:$(PDO_VERSION) \
+        --file $(DOCKER_DIR)/pdo_services.dockerfile .
+
 # docker build dependencies
 build_client: build_base
 build_services: build_services_base
 build_services_base: build_base
 build_ccf: build_ccf_base
+
+build_sgx_services: build_services_base
 
 clean_% :
 	docker rmi -f pdo_$*:$(PDO_VERSION)
@@ -112,6 +121,12 @@ stop_client :
 # performance requirements are relatively low.
 # -----------------------------------------------------------------
 repository :
+	# if an enclave signing key is available on the host, copy that under build/keys in the repo
+	# Note: the docker build (see PDO_ENCLAVE_CODE_SIGN_PEM in environment.sh) expects the key there
+	[ ! -e ${PDO_ENCLAVE_CODE_SIGN_PEM} ] ||\
+		(test ${PDO_ENCLAVE_CODE_SIGN_PEM} -ef ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem || \
+		cp ${PDO_ENCLAVE_CODE_SIGN_PEM} ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem)
+	# clone the repo
 	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules '$(PDO_REPO)' repository
 
 clean_repository :
@@ -130,11 +145,36 @@ TEST_FILES += -f services_base.yaml
 TEST_FILES += -f ccf_base.yaml
 TEST_FILES += -f test.yaml
 
+TEST_SGX_FILES = ${TEST_FILES}
+TEST_SGX_FILES += -f test-sgx.yaml
+
+SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; \
+				then echo "/dev/isgx"; \
+				elif [ -e "/dev/sgx/enclave" ]; \
+					then echo "/dev/sgx/enclave"; \
+				else echo "ERROR: NO SGX DEVICE FOUND"; \
+				fi)
+
+DOCKER_COMPOSE_SGX := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} docker-compose
+
 build_test : repository build_services build_ccf build_client
 
 test : clean_config clean_repository build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+
+sgx_build_test : repository build_sgx_services build_ccf build_client
+
+sgx_keys :
+	# test for key availability and make keys available to the container through xfer
+	test -f ${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt
+	test -f ${PDO_SGX_KEY_ROOT}/sgx_spid.txt
+	test -f ${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
+	cp ${PDO_SGX_KEY_ROOT}/* '$(DOCKER_DIR)'/xfer/services/keys/sgx/
+
+sgx_test : clean_config clean_repository sgx_build_test stop_all sgx_keys
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) down
 
 # -----------------------------------------------------------------
 # Cleaning is a bit interesting because the containers don't go away
@@ -151,6 +191,7 @@ clean_images : $(addprefix clean_,$(IMAGES))
 clean_config :
 	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
 	rm -f '$(DOCKER_DIR)'/xfer/services/keys/*.pem '$(DOCKER_DIR)'/xfer/services/etc/*.toml
+	rm -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.pem '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.txt
 	rm -f '$(DOCKER_DIR)'/xfer/services/etc/site.psh
 
 clean : clean_images clean_config clean_repository

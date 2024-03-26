@@ -79,6 +79,16 @@ as services in detached mode. The last for the client will run an
 interactive shell in the client container. See below for information
 on how to use the client container.
 
+### Build for SGX ###
+
+For the contract enclave to run in SGX hardware mode, the `pdo_services`
+image must be built using the following target:
+```bash
+    make build_sgx_services
+```
+Inside the `pdo_services` images, the `SGX_MODE` environment variable 
+can help distinguish the build type.
+
 <!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
 ## Pattern: Local Development in a Container ##
 
@@ -245,6 +255,29 @@ with the PDO tool `pdo-configure-services`.
     docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
         --name ${USER}_services_container pdo_services --mode copy
 ```
+
+#### PDO Services Deployment Using SGX ####
+
+There are a few _additional_ considerations when using the services with SGX.
+
+Before starting the container, make sure that the SGX collateral is available 
+as described [here](../docs/install).
+
+Also, recall that the attestation policy on the ledger has to be set once by the 
+first eservice of a ledger consortium member. Hence, the first service container 
+that is deputed to perform such registration must be instructed to do so.
+```bash
+    docker run -v $(SCRIPT_DIR)/xfer/:/project/pdo/xfer --network host \
+        --name ${USER}_services_container pdo_services --register
+```
+This updated command allows to trigger the registration step right before
+starting the services. The policy registration must happen before enclaves are 
+registered (or any enclave registration will fail).
+
+Finally, the _same_ SGX collateral must be made available to all service containers.
+At enclave registration time, this will allow the eservice to generate the right 
+quote (and attestation verification report) that meets the attestation policy 
+originally registered with the PDO Transaction Processor.
 
 ### PDO Client Deployment ###
 
