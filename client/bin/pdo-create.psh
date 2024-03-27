@@ -18,9 +18,9 @@
 ##
 ## Several shell variables are used:
 ## Optional:
-##    psgroup -- the provisioning service group as defined in site.psh
-##    esgroup -- the enclave service group as defined in site.psh
-##    ssgroup -- the storage service group as defined in site.psh
+##    psgroup -- the provisioning service group
+##    esgroup -- the enclave service group
+##    ssgroup -- the storage service group
 ##    save -- directory where the pdo file will be saved
 ##
 ## Required:
@@ -32,9 +32,6 @@
 
 set --conditional -s data -v .
 set --conditional -s save -v .
-
-set --conditional -s site_configuration -v "${home}/etc/site.psh"
-script -f ${site_configuration}
 
 ## create a random string that uniquely identifies the contract
 ## that we are going to create

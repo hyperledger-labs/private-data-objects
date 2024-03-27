@@ -37,7 +37,7 @@ log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
 data_files = [
-    (bin_dir, [ 'bin/pdo-create.psh', 'bin/pdo-invoke.psh', 'bin/pdo-create-service-groups.psh' ]),
+    (bin_dir, [ 'bin/pdo-create.psh', 'bin/pdo-invoke.psh' ]),
     (etc_dir, [ 'etc/sample_client.toml' ])
 ]
 

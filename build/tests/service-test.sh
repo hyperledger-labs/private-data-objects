@@ -102,28 +102,77 @@ for v in $(seq 0 $((${port_count} - 1))) ; do
 done
 
 # -----------------------------------------------------------------
-say run unit tests for eservice database
+# these functions attemp to create a reproducible environment for
+# each of the tests
 # -----------------------------------------------------------------
+function begin_test {
+    yell $@
+    try ${PDO_SOURCE_ROOT}/build/tests/site-configuration.psh ${PSHELL_OPTS}
+}
+
+function end_test {
+    yell end test
+
+    try pdo-service-db clear ${PSHELL_OPTS}
+    try pdo-service-groups clear ${PSHELL_OPTS}
+}
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+begin_test run unit tests for eservice database
+
 try ${PDO_SOURCE_ROOT}/build/tests/service-storage-test.psh \
     ${PSHELL_OPTS} \
     --bind tmpfile ${ESDB_FILE}
 
 say create the eservice database using database CLI
 try pdo-service-db clear ${PSHELL_OPTS}
+try pdo-service-groups clear
+
 try pdo-service-db add --url http://${F_SERVICE_HOST}:7101 --name es7101 --type eservice ${PSHELL_OPTS}
 try pdo-service-db add --url http://${F_SERVICE_HOST}:7102 --name es7102 --type eservice ${PSHELL_OPTS}
 try pdo-service-db add --url http://${F_SERVICE_HOST}:7103 --name es7103 --type eservice ${PSHELL_OPTS}
 try pdo-service-db add --url http://${F_SERVICE_HOST}:7104 --name es7104 --type eservice ${PSHELL_OPTS}
 try pdo-service-db add --url http://${F_SERVICE_HOST}:7105 --name es7105 --type eservice ${PSHELL_OPTS}
 
-# -----------------------------------------------------------------
-say start storage service test
-#  ----------------------------------------------------------------
-try pdo-test-storage ${LOCAL_OPTS} --url http://${F_SERVICE_HOST}:7201
+end_test
 
 # -----------------------------------------------------------------
-say start request test
+# ----------------------------------------------------------------
+begin_test start storage service test
+
+try pdo-test-storage ${LOCAL_OPTS} --url http://${F_SERVICE_HOST}:7201
+
+end_test
+
 # -----------------------------------------------------------------
+# -----------------------------------------------------------------
+begin_test run unit tests for service groups database
+
+try ${PDO_SOURCE_ROOT}/build/tests/service-groups-test.psh \
+    ${PSHELL_OPTS} \
+    --bind tmpfile ${GROUPS_FILE}
+
+say create the service and groups database using the groups CLI
+try pdo-service-db clear ${PSHELL_OPTS}
+try pdo-service-groups clear
+
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7101 --name es7101 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7102 --name es7102 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7103 --name es7103 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7104 --name es7104 --type eservice ${PSHELL_OPTS}
+try pdo-service-db add --url http://${F_SERVICE_HOST}:7105 --name es7105 --type eservice ${PSHELL_OPTS}
+
+try pdo-eservice create --group test1
+try pdo-eservice add --group test1 --url http://${F_SERVICE_HOST}:7101 http://${F_SERVICE_HOST}:7102
+try pdo-eservice add --group test1 --name es7103 es7104
+
+end_test
+
+# -----------------------------------------------------------------
+# -----------------------------------------------------------------
+begin_test start request test
+
 try pdo-test-request \
     ${NETWORK_OPTS} \
     --config pcontract.toml \
@@ -163,33 +212,36 @@ for test_file in ${PDO_SOURCE_ROOT}/build/tests/${INTERPRETER_NAME}/*.json ; do
         --logfile __screen__ --loglevel ${F_LOGLEVEL}
 done
 
+end_test
+
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
 if [[ "$PDO_INTERPRETER" =~ ^"wawaka" ]]; then
-    yell start multi-user tests
+    begin_test start the multi-user test
     try ${PDO_SOURCE_ROOT}/build/tests/multi-user.sh -h ${F_SERVICE_HOST} -l ${F_LEDGER_URL} --loglevel ${F_LOGLEVEL}
+    end_test
 else
     yell no multi-user test for ${PDO_INTERPRETER}
 fi
 
 ## -----------------------------------------------------------------
-yell test failure conditions to ensure they are caught
 ## -----------------------------------------------------------------
-say create the contract
+begin_test test failure conditions to ensure they are caught
 
+say create the contract
 declare CONTRACT_FILE=${PDO_HOME}/contracts/_mock-contract.b64
 if [ ! -f ${CONTRACT_FILE} ]; then
     die missing contract source file, ${CONTRACT_FILE}
 fi
 try ${PDO_HOME}/bin/pdo-create.psh \
     ${PSHELL_OPTS} \
-    --identity user1 --psgroup all --esgroup all --ssgroup all \
+    --client-identity user1 --psgroup all --esgroup all --ssgroup all \
     --pdo_file ${SAVE_FILE} --source ${CONTRACT_FILE} --class mock-contract
 
 say invalid method, this should fail
 ${PDO_HOME}/bin/pdo-invoke.psh \
     ${PSHELL_OPTS} \
-    --identity user1 --pdo_file ${SAVE_FILE} --method no-such-method
+    --client-identity user1 --pdo_file ${SAVE_FILE} --method no-such-method
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
@@ -197,36 +249,42 @@ fi
 say policy violation with identity, this should fail
 ${PDO_HOME}/bin/pdo-invoke.psh \
     ${PSHELL_OPTS} \
-    --identity user2 --pdo_file ${SAVE_FILE} --method get_value
+    --client-identity user2 --pdo_file ${SAVE_FILE} --method get_value
 if [ $? == 0 ]; then
     die mock contract test succeeded though it should have failed
 fi
 
+end_test
+
 # -----------------------------------------------------------------
-yell test pdo-shell
 # -----------------------------------------------------------------
+begin_test test pdo-shell
+
 try ${PDO_SOURCE_ROOT}/build/tests/shell-test.psh \
-    ${PSHELL_OPTS} \
-    --bind tmpfile ${GROUPS_FILE}
+    ${PSHELL_OPTS}
+
+end_test
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 if [[ "$PDO_INTERPRETER" =~ ^"wawaka" ]]; then
-    yell run system tests for contracts
+    begin_test run system tests for contracts
 
     cd ${PDO_SOURCE_ROOT}/contracts/wawaka
     try make system-test \
         TEST_LOG_LEVEL=${F_LOGLEVEL} \
         TEST_SERVICE_HOST=${F_SERVICE_HOST} \
         TEST_LEDGER=${F_LEDGER_URL}
+    end_test
 else
     yell no system tests for "${PDO_INTERPRETER}"
 fi
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
+begin_test run tests for state replication
+
 cd ${PDO_SOURCE_ROOT}/build
-yell run tests for state replication
 say start mock-contract test with replication 3 eservices 2 replicas needed before txn.
 
 try pdo-test-request \
@@ -237,6 +295,8 @@ try pdo-test-request \
     --ledger ${F_LEDGER_URL} \
     --logfile __screen__ --loglevel ${F_LOGLEVEL} --iterations 100 \
     --num-provable-replicas 2 --availability-duration 100 --randomize-eservice
+
+end_test
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
