@@ -34,7 +34,7 @@ def ping_test(client, num_pings):
     total_time = end_time - start_time
     txn_throuput = num_pings/total_time
 
-    LOG.warn("Performed {0} pings. Average throughput is {1} pings per second".format(num_pings, txn_throuput))
+    LOG.warning("Performed {0} pings. Average throughput is {1} pings per second".format(num_pings, txn_throuput))
 
 # -----------------------------------------------------------------
 def Main() :
