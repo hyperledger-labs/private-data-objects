@@ -15,20 +15,16 @@
 # limitations under the License.
 
 import atexit
-from functools import lru_cache
 import json
 import lmdb
-import os
 
 import pdo.common.config as pconfig
-import pdo.common.logger as plogger
 
-from pdo.service_client.enclave import EnclaveServiceClient
-from pdo.service_client.provisioning import ProvisioningServiceClient
-from pdo.service_client.storage import StorageServiceClient
+from pdo.service_client.service_data.service_data import ServiceDatabaseManager as service_data
 from pdo.common.utility import classproperty
 
-from urllib.parse import urlparse
+import logging
+logger = logging.getLogger(__name__)
 
 ## =================================================================
 ## SERVICE GROUP CLASSES
@@ -63,6 +59,16 @@ class BaseGroup(object) :
         service_info['service_type'] = self.service_type
         service_info['urls'] = self.service_urls
         return service_info
+
+    def verify(self) :
+        """Verify that the URLs in the group are all part of the service db
+
+        Raises an exception if verification fails. Note that this only checks
+        if the URLs currently exist in the database. There is no enforcement
+        for future changes.
+        """
+        for u in self.service_urls :
+            _ = service_data.local_service_manager.get_by_url(u, self.service_type)
 
     def clone(self) :
         return type(self).unpack(self.serialize())
@@ -132,7 +138,7 @@ class GroupsDatabaseManager(object) :
     @classproperty
     def local_groups_manager(cls) :
         if cls.__local_groups_manager__ is None :
-            groups_db_file = pconfig.shared_configuration(['Service','GroupDatabaseFile'], "./groups_db.mdb")
+            groups_db_file = pconfig.shared_configuration(['Service', 'GroupDatabaseFile'], "./groups_db.mdb")
             cls.__local_groups_manager__ = cls(groups_db_file, True)
 
             atexit.register(cls.__local_groups_manager__.close)
@@ -183,6 +189,10 @@ class GroupsDatabaseManager(object) :
         The update operation is effectively the same as the store operation except
         that update overwrites an existing entry, while store fails.
         """
+
+        # make sure that all of the URLs are registered in the service_db
+        group_info.verify()
+
         groups_db = self.groups_db(group_info.service_type)
         with self.groups_db_env.begin(write=True) as txn :
             group_name = BaseGroup.force_to_bytes(group_info.group_name)
@@ -191,6 +201,9 @@ class GroupsDatabaseManager(object) :
 
     # -----------------------------------------------------------------
     def store(self, group_info) :
+
+        # make sure that all of the URLs are registered in the service_db
+        group_info.verify()
 
         groups_db = self.groups_db(group_info.service_type)
         with self.groups_db_env.begin(write=True) as txn :
@@ -264,8 +277,11 @@ class GroupsDatabaseManager(object) :
                 except :
                     pass
 
-                group_info = self.service_group_map[service_type](group_name, **group_info)
-                self.store(group_info)
+                try :
+                    group_info = self.service_group_map[service_type](group_name, **group_info)
+                    self.store(group_info)
+                except :
+                    logger.warning('failed to import {} group {}'.format(service_type, group_name))
 
     # -----------------------------------------------------------------
     def export_group_information(self) :
