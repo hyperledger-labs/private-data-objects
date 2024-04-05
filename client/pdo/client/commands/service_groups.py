@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import json
-import mergedeep
 import toml
 
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
-import pdo.common.utility as putils
 import pdo.common.config as pconfig
-import pdo.client.commands.service_db as pservice
 
 from pdo.service_client.service_data.service_groups import GroupsDatabaseManager as group_data
 
@@ -32,7 +28,6 @@ __all__ = [
     'get_group_info',
     'add_group',
     'remove_group',
-    'clear_service_data',
     'script_command_clear',
     'script_command_export',
     'script_command_import',
@@ -59,10 +54,6 @@ def add_group(service_type : str, group_name : str, service_urls, **kwargs) :
     """
     if service_type not in group_data.service_types :
         raise RuntimeError("unknown service type; {}".format(service_type))
-
-    # make sure that all of the URLs are registered in the service_db
-    for u in service_urls :
-        _ = pservice.get_service_info(service_type, service_url=u)
 
     info = group_data.service_group_map[service_type](group_name, service_urls, **kwargs)
     group_data.local_groups_manager.update(info)
