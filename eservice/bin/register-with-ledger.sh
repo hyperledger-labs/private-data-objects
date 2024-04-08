@@ -54,7 +54,7 @@ function Store {
         yell PDO_FORCE_IAS_PROXY is true
         NO_PROXY='' no_proxy='' try eservice-enclave-info \
             --save ${eservice_enclave_info_file} \
-            --loglevel info \
+            --loglevel ${PDO_LOG_LEVEL} \
             --logfile __screen__ \
             --identity ${ESERVICE_IDENTITY} \
             --config ${ESERVICE_TOML} \
@@ -62,7 +62,7 @@ function Store {
     else
         try eservice-enclave-info \
             --save ${eservice_enclave_info_file} \
-            --loglevel info \
+            --loglevel ${PDO_LOG_LEVEL} \
             --logfile __screen__ \
             --identity ${ESERVICE_IDENTITY} \
             --config ${ESERVICE_TOML} \
