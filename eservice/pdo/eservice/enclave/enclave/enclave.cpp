@@ -22,6 +22,7 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <pthread.h>
+#include <algorithm>
 
 #include <sgx_uae_epid.h>
 #include "sgx_support.h"
@@ -327,9 +328,15 @@ namespace pdo {
             const HexEncodedString& inSpid
             )
         {
+            // check SPID length
             pdo::error::ThrowIf<pdo::error::ValueError>(
                 inSpid.length() != 32,
                 "Invalid SPID length");
+
+            // check SPID format
+            pdo::error::ThrowIf<pdo::error::ValueError>(
+                ! std::all_of(inSpid.begin(), inSpid.end(), ::isxdigit),
+                "Invalid SPID format");
 
             HexStringToBinary(this->spid.id, sizeof(this->spid.id), inSpid);
         } // Enclave::SetSpid
