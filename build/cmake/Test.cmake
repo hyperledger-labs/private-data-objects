@@ -34,8 +34,8 @@ SET(PDO_TEST_CONTRACT
   --logfile ${TEST_LOG_FILE})
 
 # NOTE: we override the default configuration here because clients
-# do not have the full configuration files (eservice1.toml and
-# enclave.toml) and when running with services these are not required.
+# do not have the full configuration file (eservice1.toml) and
+# when running with services these are not required.
 SET(PDO_TEST_CONTRACT_WITH_SERVICES
   ${PDO_TEST_CONTRACT}
   --ledger ${TEST_LEDGER}

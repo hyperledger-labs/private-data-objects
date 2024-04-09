@@ -46,9 +46,7 @@ data_files = [
         'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
         ]),
     (dat_dir, []),
-    (etc_dir, [
-        'etc/sample_eservice.toml',
-        ]),
+    (etc_dir, []),
     (log_dir, []),
     (key_dir, []),
     ('lib', [ os.path.join(script_dir, 'deps/bin/libpdo-enclave.signed.so')])
