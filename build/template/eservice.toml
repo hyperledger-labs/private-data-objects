@@ -72,3 +72,20 @@ DataPath = "${data}"
 # BaseName is the root of the name used to store data
 # about the enclave. A 'enc' extension will be added
 BaseName = "${identity}"
+
+# --------------------------------------------------
+# EnclaveModule -- configuration of the SGX contract enclave
+# --------------------------------------------------
+[EnclaveModule]
+
+# Number of available enclave workers to service requests
+NumberOfEnclaves = '7'
+
+# ias_url is the URL of the Intel Attestation Service (IAS) server.  The
+# example server is for debug enclaves only,
+# the production url is without the trailing '/dev'
+ias_url = 'https://api.trustedservices.intel.com/sgx/dev'
+
+# sgx key root folder configuration
+sgx_key_root = "${sgx_key_root}"
+

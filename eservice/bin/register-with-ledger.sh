@@ -21,10 +21,11 @@ ETCDIR=${DSTDIR}/opt/pdo/etc/
 
 ESERVICE_IDENTITY=eservice1
 ESERVICE_TOML=${ESERVICE_IDENTITY}.toml
-ENCLAVE_TOML=enclave.toml
 
-PDO_IAS_SIGNING_CERT_PATH=${PDO_SGX_KEY_ROOT}/ias_signing.cert
-PDO_IAS_KEY_PEM=${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem
+SGX_KEY_ROOT=${PDO_SGX_KEY_ROOT:-${SRCDIR}/build/keys/sgx_mode_${SGX_MODE,,}}
+
+IAS_SIGNING_CERT_PATH=${SGX_KEY_ROOT}/ias_signing.cert
+IAS_KEY_PEM=${SGX_KEY_ROOT}/sgx_ias_key.pem
 
 eservice_enclave_info_file=$(mktemp /tmp/pdo-test.XXXXXXXXX)
 
@@ -39,41 +40,35 @@ function cleanup {
 
 trap cleanup EXIT
 
-#Set SPID to parameter if passed
-SPID=$PDO_SPID
-if (( "$#" == 1 )) ; then
-    SPID=$1
-fi
-
 function DeriveIasPublicKey {
-    try test -e ${PDO_IAS_SIGNING_CERT_PATH}
-    try openssl x509 -pubkey -noout -in ${PDO_IAS_SIGNING_CERT_PATH} > ${PDO_IAS_KEY_PEM}
+    yell Derive IAS public to be registered on the ledger
+    try test -e ${IAS_SIGNING_CERT_PATH}
+    try openssl x509 -pubkey -noout -in ${IAS_SIGNING_CERT_PATH} > ${IAS_KEY_PEM}
+    yell IAS public derived in ${IAS_KEY_PEM}
 }
 
-# Store MR_ENCLAVE & MR_BASENAME to eservice_enclave_info_file
-# Note: an alternative way without any enclave invocations would be the following.
-#
-#    if [ -z "${SPID}" -o ${#SPID} != 32 ]; then
-#	echo "No valid (length 32) SPID pass as argument or PDO_SPID environment variable"
-#	exit 1
-#    fi
-#    perl -0777 -ne 'if (/metadata->enclave_css.body.enclave_hash.m:([a-fx0-9 \n]+)/) { $eh = $1; $eh=~s/0x| |\n//g; $eh=~tr/a-z/A-Z/; $bn="'${SPID}'"; $bn .= "0" x (64 - length $bn); print "MRENCLAVE:${eh}\nBASENAME:${bn}\n"; }' ./build/lib/libpdo-enclave.signed.so.meta > $eservice_enclave_info_file
-#    # Note: group id is always zero, hence the zero-padding ...
-#
-# This would also allow removing in eservice/pservice the code related to CreateErsatzEnclaveReport and GetEnclave Characteristics
-# However, getting basename via enclave invocation & quote is somewhat cleaner than below ..
 function Store {
-    : "${SPID:?Need PDO_SPID environment variable set or passed in for valid MR_BASENAME}"
     try test -e ${ETCDIR}/${ESERVICE_TOML}
-    try test -e ${ETCDIR}/${ENCLAVE_TOML}
     yell Download IAS certificates and Compute the enclave information
-    try eservice-enclave-info \
-        --spid ${SPID} \
-        --save ${eservice_enclave_info_file} \
-        --loglevel warn \
-        --identity ${ESERVICE_IDENTITY} \
-        --config ${ESERVICE_TOML} ${ENCLAVE_TOML} \
-        --config-dir ${ETCDIR}
+    if [ "${PDO_FORCE_IAS_PROXY}" == "true" ]; then
+        yell PDO_FORCE_IAS_PROXY is true
+        NO_PROXY='' no_proxy='' try eservice-enclave-info \
+            --save ${eservice_enclave_info_file} \
+            --loglevel info \
+            --logfile __screen__ \
+            --identity ${ESERVICE_IDENTITY} \
+            --config ${ESERVICE_TOML} \
+            --config-dir ${ETCDIR}
+    else
+        try eservice-enclave-info \
+            --save ${eservice_enclave_info_file} \
+            --loglevel info \
+            --logfile __screen__ \
+            --identity ${ESERVICE_IDENTITY} \
+            --config ${ESERVICE_TOML} \
+            --config-dir ${ETCDIR}
+    fi
+    yell Enclave info are ready
 }
 
 # Registers MR_ENCLAVE & BASENAMES with Ledger
@@ -85,13 +80,14 @@ function Register {
         VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
 
         : "${PDO_LEDGER_URL:?Registration failed! PDO_LEDGER_URL environment variable not set}"
-        : "PDO_IAS_KEY_PEM" "${PDO_IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
+        : "IAS_KEY_PEM" "${IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
         if [ ${PDO_LEDGER_TYPE} == "ccf" ]; then
+            yell Register enclave with CCF ledger: mrenclave=${VAR_MRENCLAVE} basename=${VAR_BASENAME}
             source ${PDO_INSTALL_ROOT}/bin/activate
             try ${PDO_INSTALL_ROOT}/bin/ccf_set_expected_sgx_measurements \
                 --logfile __screen__ --loglevel INFO --mrenclave ${VAR_MRENCLAVE} \
-                --basename  ${VAR_BASENAME} --ias-public-key "$(cat $PDO_IAS_KEY_PEM)"
+                --basename  ${VAR_BASENAME} --ias-public-key "$(cat $IAS_KEY_PEM)"
         else
             die unsupported ledger ${PDO_LEDGER_TYPE}
         fi

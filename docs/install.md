@@ -115,12 +115,18 @@ to create the client authentication key. The key will be available from
 your profile page.
 
 Now organize your data as follows under the `${PDO_SGX_KEY_ROOT}` folder
-(the default folder is `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_${SGX_MODE,,}`,
+(the default folder is `${PDO_SOURCE_ROOT}/build/keys/sgx_mode_hw`,
 or you can define yours with `export PDO_SGX_KEY_ROOT=<your folder>`):
-* save your SPID in `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`
+* save your SPID in `${PDO_SGX_KEY_ROOT}/sgx_spid.txt`
 * save your API key in `${PDO_SGX_KEY_ROOT}/sgx_spid_api_key.txt`
 * save the IAS root CA certificate in `${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`
   (`wget https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem -O ${PDO_SGX_KEY_ROOT}/sgx_ias_key.pem`)
+
+#### (optional) Set the path to an existing enclave code signing key
+
+At build time, an enclave code signing key is required to sign the contract enclave.
+If one such key is available, it can be used by organizing it as follows:
+* save the enclave code signing key in `${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem`
 
 #### Install the SGX Kernel Driver (Hardware Support)
 
@@ -178,7 +184,9 @@ To validate that your SGX HW installation & and corresponding PDO
 configuration is working properly, the  easiest way is to install
 docker as discussed below and then run
 ```bash
-	make SGX_MODE=HW -C docker test
+. build/common-config.sh
+
+make -C docker sgx_test
 ```
 This will build PDO and automatically execute the tests described in
 the Section [Validate the Installation](usage.md#validating) in HW mode.

@@ -41,7 +41,6 @@ yell --------------- CONFIG AND ENVIRONMENT PRE-BUILD CHECK ---------------
 
 : "${PDO_INSTALL_ROOT:-$(warn Missing environment variable PDO_INSTALL_ROOT)}"
 : "${PDO_HOME:-$(warn Missing environment variable PDO_HOME)}"
-: "${PDO_ENCLAVE_CODE_SIGN_PEM:-$(warn Missing environment variable PDO_ENCLAVE_CODE_SIGN_PEM)}"
 ([ ! -z "${SGX_SSL}" ] && [ -f ${SGX_SSL}/include/openssl/err.h ] ) || warn "Missing or invalid environment variable SGX_SSL"
 ([ ! -z "${SGX_SDK}" ] && [ -f ${SGX_SDK}/include/sgx.h ] ) || warn "Missing or invalid environment variable SGX_SDK"
 : "${SGX_MODE:-$(warn Missing environment variable SGX_MODE, set it to HW or SIM)}"
@@ -57,10 +56,6 @@ try command -v g++
 
 if [ ! -d "${PDO_INSTALL_ROOT}" ]; then
     warn "PDO_INSTALL_ROOT directory does not exist"
-fi
-
-if [ ! -f "${PDO_ENCLAVE_CODE_SIGN_PEM}" ]; then
-    warn "PDO_ENCLAVE_CODE_SIGN_PEM file does not exist"
 fi
 
 exit $F_VERIFIED

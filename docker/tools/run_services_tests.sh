@@ -28,6 +28,12 @@ export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 
 # -----------------------------------------------------------------
+yell copy sgx keys
+# -----------------------------------------------------------------
+# copy any keys in the SGX directory, ignore any errors if no keys exist
+cp ${XFER_DIR}/services/keys/sgx/* ${PDO_SGX_KEY_ROOT} 2>/dev/null
+
+# -----------------------------------------------------------------
 yell configure services for host $PDO_HOSTNAME and ledger $PDO_LEDGER_URL
 # -----------------------------------------------------------------
 try ${PDO_INSTALL_ROOT}/bin/pdo-configure-services -t ${PDO_SOURCE_ROOT}/build/template -o ${PDO_HOME}\
@@ -56,7 +62,7 @@ yell check for registration
 # -----------------------------------------------------------------
 # this probably requires additional CCF keys, need to test this
 if [ "$SGX_MODE" == "HW" ]; then
-    if [ ! -f ${XFER}/ccf/keys/memberccf_privk.pem ] ; then
+    if [ ! -f ${XFER_DIR}/ccf/keys/memberccf_privk.pem ] ; then
         die unable to locate CCF policies keys
     fi
 

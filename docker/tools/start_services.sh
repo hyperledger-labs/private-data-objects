@@ -83,6 +83,16 @@ export no_proxy=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$no_proxy
 export NO_PROXY=$PDO_HOSTNAME,$PDO_LEDGER_ADDRESS,$NO_PROXY
 
 # -----------------------------------------------------------------
+yell copy sgx keys
+# -----------------------------------------------------------------
+# copy any keys in the SGX directory, ignore any errors if no keys exist
+cp ${XFER_DIR}/services/keys/sgx/* ${PDO_SGX_KEY_ROOT} 2>/dev/null
+
+# -----------------------------------------------------------------
+yell Register with ledger: ${F_REGISTER}
+# -----------------------------------------------------------------
+
+# -----------------------------------------------------------------
 # Handle the configuration of the services
 # -----------------------------------------------------------------
 if [ "${F_MODE,,}" == "build" ]; then
@@ -115,7 +125,7 @@ try cp ${XFER_DIR}/ccf/keys/networkcert.pem ${PDO_LEDGER_KEY_ROOT}/
 yell register the enclave if necessary
 # -----------------------------------------------------------------
 if [ "${F_REGISTER,,}" == 'yes' ]; then
-    if [ ! -f ${XFER}/ccf/keys/memberccf_privk.pem ] ; then
+    if [ ! -f ${XFER_DIR}/ccf/keys/memberccf_privk.pem ] ; then
         die unable to locate CCF policies keys
     fi
 

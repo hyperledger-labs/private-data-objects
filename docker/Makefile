@@ -50,7 +50,9 @@ DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
 DOCKER_BUILDARGS += --build-arg GID=$(PDO_GROUP_UID)
 DOCKER_ARGS = $(DOCKER_BUILDARGS)
 
-IMAGES=base client services_base services ccf_base ccf
+IAS_CERTIFICATES=$(DOCKER_DIR)/repository/common/crypto/verify_ias_report/ias-certificates.txt
+
+IMAGES=base client services_base services services_sgx ccf_base ccf
 
 # for the most part this is just used to force rebuild when the
 # PDO repository has changed
@@ -70,6 +72,13 @@ build_% : repository
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
+
+sgx_build_services : $(IAS_CERTIFICATES) repository build_services_base
+	docker build $(DOCKER_ARGS) \
+		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg SGX_MODE=HW \
+		--tag pdo_services_sgx:$(PDO_VERSION) \
+		--file $(DOCKER_DIR)/pdo_services.dockerfile .
 
 # docker build dependencies
 build_client: build_base
@@ -104,6 +113,11 @@ stop_services :
 stop_client :
 	- docker rm -f client_container
 
+$(IAS_CERTIFICATES) : repository
+	# the script prepares the certificates from the source repo
+	# and moves only the necessary artifacts to the destination repo (absolute path required)
+	$(DOCKER_DIR)/tools/prepare_ias_certificates.sh "$(PDO_SOURCE_ROOT)" $(DOCKER_DIR)/$<
+
 # -----------------------------------------------------------------
 # We need a repository with the source for the branch we are going
 # to build. In theory this could just be a copy of the local source
@@ -112,7 +126,13 @@ stop_client :
 # performance requirements are relatively low.
 # -----------------------------------------------------------------
 repository :
+	# clone the repo
 	git clone --single-branch --branch $(PDO_BRANCH) --recurse-submodules '$(PDO_REPO)' repository
+
+	# Prepare enclave signing key (if any, this goes in the repo itself).
+	# This is effective only in HW mode builds.
+	# PDO_SGX_KEY_ROOT is an optional parameter (either set in environment or empty)
+	$(DOCKER_DIR)/tools/copy_enclave_signing_key.sh "$(PDO_SOURCE_ROOT)" repository "${PDO_SGX_KEY_ROOT}"
 
 clean_repository :
 	rm -rf repository
@@ -130,11 +150,34 @@ TEST_FILES += -f services_base.yaml
 TEST_FILES += -f ccf_base.yaml
 TEST_FILES += -f test.yaml
 
+TEST_SGX_FILES = ${TEST_FILES}
+TEST_SGX_FILES += -f test-sgx.yaml
+
+SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; \
+				then echo "/dev/isgx"; \
+				elif [ -e "/dev/sgx/enclave" ]; \
+					then echo "/dev/sgx/enclave"; \
+				else echo "ERROR: NO SGX DEVICE FOUND"; \
+				fi)
+
+DOCKER_COMPOSE_SGX := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} docker-compose
+
 build_test : repository build_services build_ccf build_client
 
 test : clean_config clean_repository build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+
+sgx_build_test : repository sgx_build_services build_ccf build_client
+
+sgx_keys :
+	# Prepare sgx keys.
+	# PDO_SGX_KEY_ROOT is an optional parameter (either set in environment or empty)
+	$(DOCKER_DIR)/tools/copy_sgx_keys.sh "$(PDO_SOURCE_ROOT)" "$(DOCKER_DIR)" "${PDO_SGX_KEY_ROOT}"
+
+sgx_test : clean_config clean_repository sgx_build_test stop_all sgx_keys
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_SGX) $(TEST_SGX_FILES) down
 
 # -----------------------------------------------------------------
 # Cleaning is a bit interesting because the containers don't go away
@@ -151,12 +194,16 @@ clean_images : $(addprefix clean_,$(IMAGES))
 clean_config :
 	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
 	rm -f '$(DOCKER_DIR)'/xfer/services/keys/*.pem '$(DOCKER_DIR)'/xfer/services/etc/*.toml
+	rm -f '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.pem '$(DOCKER_DIR)'/xfer/services/keys/sgx/*.txt
 	rm -f '$(DOCKER_DIR)'/xfer/services/etc/site.psh
+	# clean the artifacts of the prepare_ias_certificates target
+	rm -f $(IAS_CERTIFICATES)
 
 clean : clean_images clean_config clean_repository
 
 .PHONY: clean clean_images clean_config clean_repository
 .PHONY: build_test test
+.PHONY: sgx_build_test sgx_test sgx_keys
 .PHONY: run_ccf run_client run_services
 
 # -----------------------------------------------------------------
