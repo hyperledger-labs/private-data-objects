@@ -246,7 +246,7 @@ def Main() :
     config_map = pconfig.build_configuration_map()
 
     # parse out the configuration file first
-    conffiles = [ 'eservice.toml', 'enclave.toml' ]
+    conffiles = [ 'eservice.toml' ]
     confpaths = [ ".", "./etc", config_map['etc'] ]
 
     parser = argparse.ArgumentParser()
@@ -270,6 +270,8 @@ def Main() :
     parser.add_argument('--enclave-data', help='Name of the file containing enclave sealed storage', type=str)
     parser.add_argument('--enclave-save', help='Name of the directory where enclave data will be save', type=str)
     parser.add_argument('--enclave-path', help='Directories to search for the enclave data file', type=str, nargs = '+')
+
+    parser.add_argument('--sgx-key-root', help='Path to SGX key root folder', type = str)
 
     options = parser.parse_args()
 
@@ -354,6 +356,18 @@ def Main() :
         host = config['StorageService'].get('Host','localhost')
         port = config['StorageService'].get('HttpPort',7201)
         config['StorageService']['URL'] = "http://{0}:{1}".format(host, port)
+
+    # set up the default enclave module configuration (if necessary)
+    if config.get('EnclaveModule') is None :
+        config['EnclaveModule'] = {
+            'NumberOfEnclaves' : 7,
+            'ias_url' : 'https://api.trustedservices.intel.com/sgx/dev',
+            'sgx_key_root' : os.environ.get('PDO_SGX_KEY_ROOT', '.')
+        }
+
+    # override the enclave module configuration (if options are specified)
+    if options.sgx_key_root :
+        config['EnclaveModule']['sgx_key_root'] = options.sgx_key_root
 
     # GO!
     LocalMain(config)

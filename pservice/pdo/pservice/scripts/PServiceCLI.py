@@ -446,6 +446,8 @@ def Main() :
     parser.add_argument('--provisioning-path', help='Directories to search for the enclave data file', type=str, nargs='+')
     parser.add_argument('--provisioning-data', help='Name of the file containing enclave sealed storage', type=str)
 
+    parser.add_argument('--sgx-key-root', help='Path to SGX key root folder', type = str)
+
     options = parser.parse_args()
 
     # first process the options necessary to load the default configuration
@@ -520,6 +522,18 @@ def Main() :
         config['ProvisioningData']['SavePath'] = options.provisioning_save
     if options.provisioning_path :
         config['ProvisioningData']['SearchPath'] = options.provisioning_path
+
+    # set up the default enclave module configuration (if necessary)
+    if config.get('EnclaveModule') is None :
+        config['EnclaveModule'] = {
+            'NumberOfEnclaves' : 7,
+            'ias_url' : 'https://api.trustedservices.intel.com/sgx/dev',
+            'sgx_key_root' : os.environ.get('PDO_SGX_KEY_ROOT', '.')
+        }
+
+    # override the enclave module configuration (if options are specified)
+    if options.sgx_key_root :
+        config['EnclaveModule']['sgx_key_root'] = options.sgx_key_root
 
     # GO!
     LocalMain(config)

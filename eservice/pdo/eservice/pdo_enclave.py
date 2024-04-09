@@ -16,6 +16,7 @@ import os
 import json
 import time
 import toml
+from pathlib import Path
 
 from ssl import SSLError
 from requests.exceptions import Timeout
@@ -137,7 +138,7 @@ def initialize_with_configuration(config) :
     enclave.SetLogger(logger)
 
     # Ensure that the required keys are in the configuration
-    valid_keys = set(['spid', 'ias_url', 'spid_api_key'])
+    valid_keys = set(['ias_url', 'sgx_key_root'])
     found_keys = set(config.keys())
 
     missing_keys = valid_keys.difference(found_keys)
@@ -148,20 +149,25 @@ def initialize_with_configuration(config) :
                 '{}'.format(
                     ', '.join(sorted(list(missing_keys)))))
 
-    num_of_enclaves = int(config.get('num_of_enclaves', 1))
+    NumberOfEnclaves = int(config.get('NumberOfEnclaves', 1))
+
+    try:
+        spid = Path(os.path.join(config['sgx_key_root'], "sgx_spid.txt")).read_text().strip()
+        spid_api_key = Path(os.path.join(config['sgx_key_root'], "sgx_spid_api_key.txt")).read_text().strip()
+    except Exception as e :
+        raise Exception("Unable to access SGX keys: {}".format(str(e)))
 
     if not _ias:
         _ias = \
             ias_client.IasClient(
                 IasServer = config['ias_url'],
-                SpidApiKey = config['spid_api_key'],
-                Spid = config['spid'],
-                HttpsProxy = config.get('https_proxy', ""))
+                SpidApiKey = spid_api_key,
+                Spid = spid)
 
     if not _pdo:
         signed_enclave = __find_enclave_library(config)
         logger.debug("Attempting to load enclave at: %s", signed_enclave)
-        _pdo = enclave.pdo_enclave_info(signed_enclave, config['spid'], num_of_enclaves)
+        _pdo = enclave.pdo_enclave_info(signed_enclave, spid, NumberOfEnclaves)
         logger.info("Basename: %s", get_enclave_basename())
         logger.info("MRENCLAVE: %s", get_enclave_measurement())
 
@@ -232,8 +238,8 @@ def get_enclave_service_info(spid, config=None) :
     signed_enclave = __find_enclave_library(None)
     logger.debug("Attempting to load enclave at: %s", signed_enclave)
 
-    num_of_enclaves = 1
-    pdo = enclave.pdo_enclave_info(signed_enclave, spid, num_of_enclaves)
+    NumberOfEnclaves = 1
+    pdo = enclave.pdo_enclave_info(signed_enclave, spid, NumberOfEnclaves)
     if pdo is None :
         raise Exception('unable to load the enclave')
 

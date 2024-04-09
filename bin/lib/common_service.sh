@@ -125,7 +125,7 @@ service_start() {
 			     ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	else
-            ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml enclave.toml --config-dir ${F_CONFDIR} \
+            ${F_SERVICE_CMD} --identity ${IDENTITY} --config ${IDENTITY}.toml --config-dir ${F_CONFDIR} \
                              ${F_LEDGERURL} ${F_LOGLEVEL} 2> $EFILE > $OFILE &
             echo $! > ${F_LOGDIR}/${IDENTITY}.pid
 	fi

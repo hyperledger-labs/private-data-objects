@@ -41,10 +41,6 @@ configuration file:
 | `sservice` | state storage service associated with an enclave service | [`sservice.toml`](../build/opt/pdo/templates/sservice.toml) |
 | `pdo-shell` | the PDO client shell for creating contracts and invoking methods | [`pcontract.toml`](../build/opt/pdo/templates/pcontract.toml) |
 
-For simplicity in installation, the file `enclave.toml` in the
-`${PDO_HOME}/etc` directory contains the configuration for the accessing
-the Intel Attestation Service.
-
 In addition, most provided `pdo-shell` scripts use the service
 configuration information found in
 [`${PDO_HOME}/etc/site.psh`](../build/opt/pdo/templates/site.psh).
@@ -61,6 +57,18 @@ different service instances plus the `pdo-shell` client configuration.
 Using PDO requires a running instance of a ledger. Documentation for
 building, installing and running [Microsoft CCF](../ledgers/ccf/README.md)
 is available.
+
+PDO provides a script to start and configure the ledger (see `ledgers/ccf/scripts/start_ccf_network.sh`).
+If `"${SGX_MODE}" == "SIM"`, the script configures the PDO TP to skip attestation checks.
+If `"${SGX_MODE}" == "HW"`, the script configures the PDO TP to enforce attestation checks.
+In this case, a policy must be registered (see [README](../ledgers/ccf/README.md)).
+
+# <a name="register-policy">Register the attestation policy with the ledger
+
+The registration of the attestation policy is required if `"${SGX_MODE}" == "HW"`, and irrelevant otherwise.
+PDO provides the `private-data-objects/eservice/bin/register-with-ledger.sh` script to automate this procedure.
+The script is meant to be use by a member of the ledger consortium, at the eservice side,
+once the contract enclave's MRENCLAVE is available (i.e., once enclave build is completed).
 
 # <a name="validating">Validate the Installation
 

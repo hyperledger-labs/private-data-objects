@@ -66,10 +66,8 @@ The following configuration variables can be specified:
   will send all logging information to the console
 
 * ``EnclaveModule``
-  * ``spid`` -- a 32-digit hex string tied to the enclave implementation
   * ``ias_url`` --  URL of the Intel Attestation Service (IAS) server (ignored)
-  * ``https_proxy`` -- proxy used to contact IAS server (ignored)
-  * ``spid_api_key`` -- the api key corresponding to spid (ignored)
+  * ``sgx_key_root`` -- folder containing the sgx keys (ignored)
 
 * ``contract`` -- the base name of the contract to use, this is
   expected to reference a file found in ``SourceSearchPath``

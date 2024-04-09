@@ -30,10 +30,6 @@ class IasClient(object):
 
     def __init__(self, **kwargs):
         logger.info("IAS settings:")
-        self._proxies = {}
-        if "HttpsProxy" in kwargs:
-            self._proxies["https"] = kwargs["HttpsProxy"]
-            logger.info("Proxy: " + self._proxies["https"])
         if "Spid" in kwargs:
             self._spid = kwargs["Spid"]
             logger.info("SPID: " + self._spid)
@@ -63,7 +59,7 @@ class IasClient(object):
 
         url = self._ias_url + path + gid[0:8]
         logger.debug("Fetching SigRL from: %s", url)
-        result = requests.get(url, proxies=self._proxies,
+        result = requests.get(url,
                               headers={'Ocp-Apim-Subscription-Key': self._spid_api_key})
         if result.status_code != requests.codes.ok:
             logger.debug("get_signature_revocation_lists HTTP Error code : %d",
@@ -88,7 +84,6 @@ class IasClient(object):
         logger.debug("Posting attestation verification request to: %s\n", url)
         result = requests.post(url,
                                json=json,
-                               proxies=self._proxies,
                                headers={'Ocp-Apim-Subscription-Key': self._spid_api_key},
                                timeout=self._timeout)
         logger.debug("result headers: %s\n", result.headers)

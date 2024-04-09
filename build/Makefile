@@ -21,8 +21,8 @@ ifndef PDO_INSTALL_ROOT
 $(error Incomplete configuration, PDO_INSTALL_ROOT is not defined)
 endif
 
-ifndef PDO_ENCLAVE_CODE_SIGN_PEM
-$(error Incomplete configuration, PDO_ENCLAVE_CODE_SIGN_PEM is not defined)
+ifndef PDO_SGX_KEY_ROOT
+$(error Incomplete configuration, PDO_SGX_KEY_ROOT is not defined)
 endif
 
 ifndef SGX_MODE
@@ -43,7 +43,6 @@ SRCDIR ?= $(abspath $(SCRIPTDIR)/..)
 
 BUILD = $(abspath $(SCRIPTDIR)/__tools__/build.sh)
 VERIFY_PRE_BUILD = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-build.sh)
-VERIFY_PRE_CONF = $(abspath $(SCRIPTDIR)/__tools__/verify-pre-conf.sh)
 CLEAN = $(abspath $(SCRIPTDIR)/__tools__/clean.sh)
 TESTSCRIPT = $(abspath $(SCRIPTDIR)/__tools__/run-tests.sh)
 BENCHMARKSCRIPT = $(abspath $(SCRIPTDIR)/__tools__/run-benchmarks.sh)
@@ -95,9 +94,6 @@ $(DSTDIR) :
 verify-pre-build :
 	$(VERIFY_PRE_BUILD)
 
-verify-pre-config :
-	$(VERIFY_PRE_CONF)
-
 build : $(PYTHON_DIR)
 	. $(abspath $(DSTDIR)/bin/activate) && $(BUILD)
 
@@ -106,16 +102,16 @@ verified-build : verify-pre-build
 
 rebuild : clean-build build $(CONDITIONAL_REGISTER_TARGET)
 
-system-keys : ${PDO_ENCLAVE_CODE_SIGN_PEM}
+system-keys : ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem
 
-${PDO_ENCLAVE_CODE_SIGN_PEM} :
-	openssl genrsa -3 -out ${PDO_ENCLAVE_CODE_SIGN_PEM} 3072
+${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem :
+	openssl genrsa -3 -out ${PDO_SGX_KEY_ROOT}/enclave_code_sign.pem 3072
 
 # SERVICES_COUNT is the number of services of each type to create
 # First value is the number of eservices, then pservices, then
 # sservices, 5 of each is the default
 SERVICES_COUNT ?= 5 5 5
-SERVICES_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, eservice.toml pservice.toml enclave.toml)
+SERVICES_CONF_TEMPLATES = $(addprefix $(SCRIPTDIR)/template/, eservice.toml pservice.toml)
 SERVICES_CONF_TARGET = $(DSTDIR)/opt/pdo/.services_configured
 
 $(SERVICES_CONF_TARGET) : $(PYTHON_DIR) $(SERVICE_CONF_TEMPLATES)
@@ -125,18 +121,18 @@ $(SERVICES_CONF_TARGET) : $(PYTHON_DIR) $(SERVICE_CONF_TEMPLATES)
 
 config-services : $(SERVICES_CONF_TARGET)
 
-verified-config : verify-pre-config
+verified-config :
 	${MAKE} config
 
 config : config-services config-client
 
-force-config : verify-pre-config
+force-config :
 	- rm -f $(SERVICES_CONF_TARGET) $(CLIENT_CONF_TARGET)
 	${MAKE} config
 
 ifeq ($(SGX_MODE),HW)
 register : $(PYTHON_DIR)
-	@ echo registering enclave and IAS public key on the ledger
+	@ echo Register the enclave registration policy on the ledger
 	. $(abspath $(DSTDIR)/bin/activate) && $(SRCDIR)/eservice/bin/register-with-ledger.sh
 
 else
@@ -171,6 +167,6 @@ benchmark : $(PYTHON_DIR)
 .PHONY : all environment register system-keys
 .PHONY : build rebuild verified-build verify-pre-build
 .PHONY : clean clean-build clean-install
-.PHONY : config config-services force-config verified-config verify-pre-config
+.PHONY : config config-services force-config verified-config
 .PHONY : client build-client config-client
 .PHONY : benchmark test

@@ -134,9 +134,6 @@ def configure_services() :
     for n in range(1, options.count[2]+1) :
         expand_service(options, 'pservice', 'ProvisioningService', n)
 
-    # Generate enclave configuration file
-    expand_helper(options, 'enclave.toml')
-
     filename = os.path.join(options.output_directory, 'etc', 'site.toml')
     with open(filename, 'w') as outfile:
         toml.dump(site_information, outfile)

@@ -469,7 +469,7 @@ def Main() :
     config_map = pconfig.build_configuration_map()
 
     # parse out the configuration file first
-    conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
+    conffiles = [ 'pcontract.toml', 'eservice1.toml' ]
     confpaths = [ ".", "./etc", config_map['etc'] ]
 
     parser = argparse.ArgumentParser()

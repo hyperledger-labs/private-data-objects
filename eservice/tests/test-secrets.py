@@ -60,7 +60,7 @@ def ErrorShutdown() :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 config_map = pconfig.build_configuration_map()
-conffiles = [ 'pcontract.toml', 'enclave.toml', 'eservice1.toml' ]
+conffiles = [ 'pcontract.toml', 'eservice1.toml' ]
 confpaths = [ ".", "./etc", config_map['etc'] ]
 
 import argparse
@@ -69,6 +69,7 @@ parser.add_argument('--config', help='configuration file', nargs = '+')
 parser.add_argument('--config-dir', help='configuration file', nargs = '+')
 parser.add_argument('--loglevel', help='Set the logging level', default='INFO')
 parser.add_argument('--logfile', help='Name of the log file', default='__screen__')
+parser.add_argument('--sgx-key-root', help='Path to SGX key root folder', type = str)
 options = parser.parse_args()
 
 config_map['identity'] = 'test-secrets'
@@ -99,6 +100,18 @@ try :
 except Exception as e :
     logger.error('failed to initialize the block store; %s', str(e))
     ErrorShutdown()
+
+# set up the default enclave module configuration (if necessary)
+if config.get('EnclaveModule') is None :
+    config['EnclaveModule'] = {
+        'NumberOfEnclaves' : 7,
+        'ias_url' : 'https://api.trustedservices.intel.com/sgx/dev',
+        'sgx_key_root' : os.environ.get('PDO_SGX_KEY_ROOT', '.')
+    }
+
+# override the enclave module configuration (if options are specified)
+if options.sgx_key_root :
+    config['EnclaveModule']['sgx_key_root'] = options.sgx_key_root
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

@@ -27,6 +27,9 @@ FROM pdo_services_base:${PDO_VERSION}
 # -----------------------------------------------------------------
 ARG REBUILD=0
 
+ARG SGX_MODE=SIM
+ENV SGX_MODE $SGX_MODE
+
 ARG PDO_DEBUG_BUILD=0
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
