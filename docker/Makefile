@@ -73,7 +73,16 @@ build_% : repository
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
-sgx_build_services : $(IAS_CERTIFICATES) repository build_services_base
+# overwrite above build rules for SGX-dependent images
+rebuild_services_sgx : repository
+	docker build $(DOCKER_ARGS) \
+		--build-arg REBUILD=$(TIMESTAMP) \
+		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg SGX_MODE=HW \
+		--tag pdo_services_sgx:$(PDO_VERSION) \
+		--file $(DOCKER_DIR)/pdo_services.dockerfile .
+
+build_services_sgx : $(IAS_CERTIFICATES) repository build_services_base
 	docker build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--build-arg SGX_MODE=HW \
@@ -168,7 +177,7 @@ test : clean_config clean_repository build_test stop_all
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
 	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
 
-sgx_build_test : repository sgx_build_services build_ccf build_client
+sgx_build_test : repository build_services_sgx build_ccf build_client
 
 sgx_keys :
 	# Prepare sgx keys.
