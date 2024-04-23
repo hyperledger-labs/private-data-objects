@@ -309,6 +309,7 @@ int pcrypto::sig::PublicKey::VerifySignature(
         return -1;
 
     // Verify
+    // ECDSA_do_verify() returns 1 for a valid sig, 0 for an invalid sig and -1 on error
     return ECDSA_do_verify(hash.data(), hash.size(), sig.get(), key_);
 }  // pcrypto::sig::PublicKey::VerifySignature
 
