@@ -71,7 +71,7 @@ def ErrorResponse(request, error_code, msg) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def __shutdown__(*args) :
-    logger.warn('shutdown request received')
+    logger.warning('shutdown request received')
     reactor.callLater(1, reactor.stop)
 
 # -----------------------------------------------------------------
@@ -127,9 +127,9 @@ def RunService() :
     try :
         reactor.run()
     except ReactorNotRunning:
-        logger.warn('shutdown')
+        logger.warning('shutdown')
     except :
-        logger.warn('shutdown')
+        logger.warning('shutdown')
 
     pdo_enclave_helper.shutdown_enclave()
     sys.exit(0)
@@ -144,7 +144,7 @@ def LoadEnclaveData(enclave_config, txn_keys) :
     try :
         enclave = pdo_enclave_helper.Enclave.read_from_file(basename, data_dir = data_dir, txn_keys = txn_keys)
     except FileNotFoundError as fe :
-        logger.warn("enclave information file missing; {0}".format(fe.filename))
+        logger.warning("enclave information file missing; {0}".format(fe.filename))
         return None
     except Exception as e :
         logger.error("problem loading enclave information; %s", str(e))
@@ -155,7 +155,7 @@ def LoadEnclaveData(enclave_config, txn_keys) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def CreateEnclaveData(enclave_config, ledger_config, txn_keys) :
-    logger.warn('unable to locate the enclave data; creating new data')
+    logger.warning('unable to locate the enclave data; creating new data')
 
     # create the enclave class
     try :

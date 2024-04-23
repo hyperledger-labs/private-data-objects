@@ -71,7 +71,7 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             response = self.session.get(url, headers=request_headers, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (get_service_info); %s', str(e))
+            logger.warning('unknown exception (get_service_info); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()
@@ -89,7 +89,7 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             response = self.session.get(url, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (list_blocks); %s', str(e))
+            logger.warning('unknown exception (list_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()
@@ -111,7 +111,7 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             response = self.session.get(url, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (get_block); %s', str(e))
+            logger.warning('unknown exception (get_block); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()
@@ -132,7 +132,7 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             response = self.session.post(url, json=block_ids, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (get_blocks); %s', str(e))
+            logger.warning('unknown exception (get_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()
@@ -149,7 +149,7 @@ class StorageServiceClient(GenericServiceClient) :
 
             return block_data_list
         except Exception as e :
-            logger.warn('unknown exception (get_blocks); %s', str(e))
+            logger.warning('unknown exception (get_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
     # -----------------------------------------------------------------
@@ -180,13 +180,13 @@ class StorageServiceClient(GenericServiceClient) :
             mp_encoder = MultipartEncoder(request_data)
             request_headers['content-type'] = mp_encoder.content_type
         except Exception as e :
-            logger.warn('unknown exception (store_blocks); %s', str(e))
+            logger.warning('unknown exception (store_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
         try :
             response = self.session.post(url, data=mp_encoder.to_string(), headers=request_headers, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (store_blocks); %s', str(e))
+            logger.warning('unknown exception (store_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()
@@ -210,7 +210,7 @@ class StorageServiceClient(GenericServiceClient) :
         try :
             response = self.session.post(url, json=block_ids, timeout=self.default_timeout)
         except Exception as e :
-            logger.warn('unknown exception (check_blocks); %s', str(e))
+            logger.warning('unknown exception (check_blocks); %s', str(e))
             raise StorageException(str(e)) from e
 
         response.raise_for_status()

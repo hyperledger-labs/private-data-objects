@@ -91,7 +91,7 @@ def IndexMultipartRequest(request) :
         value, headers = cgi.parse_header(request.parts[p].headers[b'Content-Disposition'].decode())
         name = headers.get('name')
         if name is None :
-            logger.warn('missing name from multipart request')
+            logger.warning('missing name from multipart request')
         index[name] = p
 
     return index

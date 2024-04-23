@@ -35,7 +35,7 @@ def UnitTestRequest(contractid, enclaveid, opk, signature, url) :
     # Code to create valid Signature for request
     # goodsig = self.SigningKey.SignMessage(crypto.string_to_byte_array(enclave_id + contract_id))
     # goodsig = crypto.byte_array_to_hex(goodsig)
-    # logger.warn('Good sig: %s', goodsig)
+    # logger.warning('Good sig: %s', goodsig)
 
     provclient = ProvisioningServiceClient(url)
     secret_info = provclient.get_secret(enclaveid, contractid, opk, signature)

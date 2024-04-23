@@ -112,7 +112,7 @@ class ProvisioningServer(resource.Resource):
 
         msg = msgargs[0].format(*msgargs[1:])
         if response > 400 :
-            logger.warn(msg)
+            logger.warning(msg)
         elif response > 300 :
             logger.debug(msg)
 
@@ -150,7 +150,7 @@ class ProvisioningServer(resource.Resource):
             opkkey = pcrypto.SIG_PublicKey(opk)
             opkkey.VerifySignature(pcrypto.string_to_byte_array(enclave_id + contract_id), pcrypto.hex_to_byte_array(signature))
         except:
-            logger.warn("Signature verification failed")
+            logger.warning("Signature verification failed")
             raise Error(http.BAD_REQUEST, 'Signature Mismatch')
 
         # Get enclave state
@@ -218,7 +218,7 @@ class ProvisioningServer(resource.Resource):
 
     ## -----------------------------------------------------------------
     def render_GET(self, request) :
-        logger.warn('GET REQUEST: %s', request.uri)
+        logger.warning('GET REQUEST: %s', request.uri)
         if request.uri == b'/info':
             logger.info('info request received')
             request.setHeader(b"content-type", b"text/plain")
@@ -243,16 +243,16 @@ class ProvisioningServer(resource.Resource):
             if encoding == 'application/json' :
                 minfo = json.loads(data)
             else :
-                logger.warn('unknown message encoding')
+                logger.warning('unknown message encoding')
                 return self.ErrorResponse(request, http.BAD_REQUEST, 'unknown message encoding, {0}', encoding)
 
             reqtype = minfo.get('reqType', '**UNSPECIFIED**')
             if reqtype not in self.RequestMap :
-                logger.warn('unknown message type')
+                logger.warning('unknown message type')
                 return self.ErrorResponse(request, http.BAD_REQUEST, 'received request for unknown message type')
 
         except :
-            logger.warn('exception while decoding http request %s; %s', request.path, traceback.format_exc(20))
+            logger.warning('exception while decoding http request %s; %s', request.path, traceback.format_exc(20))
             return self.ErrorResponse(request, http.BAD_REQUEST, 'unabled to decode incoming request {0}', data)
 
         # and finally execute the associated method and send back the results
@@ -264,18 +264,18 @@ class ProvisioningServer(resource.Resource):
             return response.encode('utf-8')
 
         except Error as e :
-            logger.warn('exception while processing request; %s', str(e))
+            logger.warning('exception while processing request; %s', str(e))
             # return self.ErrorResponse(request, int(e.status), 'exception while processing request {0}; {1}', request.path, str(e))
             return self.ErrorResponse(request, int(e.status), 'exception while processing request')
 
         except :
-            logger.warn('exception while processing http request %s; %s', request.path, traceback.format_exc(20))
+            logger.warning('exception while processing http request %s; %s', request.path, traceback.format_exc(20))
             return self.ErrorResponse(request, http.BAD_REQUEST, 'error processing http request {0}', request.path)
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def __shutdown__(*args) :
-    logger.warn('shutdown request received')
+    logger.warning('shutdown request received')
     reactor.callLater(1, reactor.stop)
 
 # -----------------------------------------------------------------
@@ -310,9 +310,9 @@ def RunProvisioningService(config, enclave) :
     try :
         reactor.run()
     except ReactorNotRunning:
-        logger.warn('shutdown')
+        logger.warning('shutdown')
     except :
-        logger.warn('shutdown')
+        logger.warning('shutdown')
 
     sys.exit(0)
 
@@ -327,7 +327,7 @@ def GetSecretsFilePath(data_config) :
         data_file_path = putils.find_file_in_path(data_config['FileName'], data_config['SearchPath'])
         return data_file_path
     except FileNotFoundError as e :
-        logger.warn('provisioning secrets data file missing')
+        logger.warning('provisioning secrets data file missing')
 
     default_file_path = os.path.realpath(os.path.join(data_config['DefaultPath'], data_config['FileName']))
 
@@ -352,7 +352,7 @@ def LoadEnclaveData(enclave_config) :
     try :
         enclave = pdo_enclave_helper.Enclave.read_from_file(basename, data_dir = data_dir)
     except FileNotFoundError as fe :
-        logger.warn("enclave information file missing; {0}".format(fe.filename))
+        logger.warning("enclave information file missing; {0}".format(fe.filename))
         return None
     except Exception as e :
         logger.error("problem loading enclave information; %s", str(e))
@@ -363,7 +363,7 @@ def LoadEnclaveData(enclave_config) :
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def CreateEnclaveData(enclave_config) :
-    logger.warn('unable to locate the enclave data; creating new data')
+    logger.warning('unable to locate the enclave data; creating new data')
 
     # create the enclave class
     try :

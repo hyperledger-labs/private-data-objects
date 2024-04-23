@@ -37,7 +37,7 @@ class ContractMessage(object) :
         invocation_request = kwargs.get('invocation_request')
         if invocation_request :
             if not issubclass(type(invocation_request), InvocationRequest) :
-                logger.warn("not an InvocationRequest: %s", str(invocation_request))
+                logger.warning("not an InvocationRequest: %s", str(invocation_request))
 
         self.invocation_request = str(kwargs.get('invocation_request', ''));
 
