@@ -122,19 +122,19 @@ class EnclaveServiceClient(GenericServiceClient) :
             return content
 
         except requests.Timeout as e :
-            logger.warn('[%d] requests timeout (invoke)', request_identifier)
+            logger.warning('[%d] requests timeout (invoke)', request_identifier)
             raise MessageException(str(e)) from e
 
         except requests.ConnectionError as e :
-            logger.warn('[%d] connection error (invoke); %s', request_identifier, e.strerror)
+            logger.warning('[%d] connection error (invoke); %s', request_identifier, e.strerror)
             raise MessageException(str(e)) from e
 
         except requests.HTTPError as e :
-            logger.warn('[%d] network error connecting to service (invoke); %s', request_identifier, str(e))
+            logger.warning('[%d] network error connecting to service (invoke); %s', request_identifier, str(e))
             raise MessageException(str(e)) from e
 
         except Exception as e :
-            logger.warn('[%d] unknown exception (invoke); %s', request_identifier, str(e))
+            logger.warning('[%d] unknown exception (invoke); %s', request_identifier, str(e))
             raise EnclaveException(str(e)) from e
 
     # -----------------------------------------------------------------
@@ -162,11 +162,11 @@ class EnclaveServiceClient(GenericServiceClient) :
                 return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
-            logger.warn('network error connecting to service (verify_secrets); %s', str(e))
+            logger.warning('network error connecting to service (verify_secrets); %s', str(e))
             raise MessageException(str(e)) from e
 
         except Exception as e :
-            logger.warn('unknown exception (verify_secrets); %s', str(e))
+            logger.warning('unknown exception (verify_secrets); %s', str(e))
             raise EnclaveException(str(e)) from e
 
     # -----------------------------------------------------------------
@@ -185,9 +185,9 @@ class EnclaveServiceClient(GenericServiceClient) :
                 return response.json()
 
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e :
-            logger.warn('network error connecting to service (get_enclave_public_info); %s', str(e))
+            logger.warning('network error connecting to service (get_enclave_public_info); %s', str(e))
             raise MessageException(str(e)) from e
 
         except Exception as e :
-            logger.warn('unknown exception (get_enclave_public_info); %s', str(e))
+            logger.warning('unknown exception (get_enclave_public_info); %s', str(e))
             raise EnclaveException(str(e)) from e

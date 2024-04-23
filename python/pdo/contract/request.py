@@ -135,7 +135,7 @@ class UpdateStateRequest(ContractRequest) :
             encrypted_response = self.enclave_service.send_to_contract(encrypted_key, encrypted_request)
 
         except Exception as e:
-            logger.warn('contract invocation failed; %s', str(e))
+            logger.warning('contract invocation failed; %s', str(e))
             raise InvocationException('contract invocation failed') from e
 
         try :
@@ -220,7 +220,7 @@ class InitializeStateRequest(ContractRequest) :
             encrypted_response = self.enclave_service.initialize_contract_state(encrypted_key, encrypted_request)
 
         except Exception as e:
-            logger.warn('contract invocation failed; %s', str(e))
+            logger.warning('contract invocation failed; %s', str(e))
             raise InvocationException('contract invocation failed') from e
 
         try :

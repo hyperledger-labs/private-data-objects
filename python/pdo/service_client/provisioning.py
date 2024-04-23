@@ -50,7 +50,7 @@ class ProvisioningServiceClient(GenericServiceClient) :
             return self._postmsg(request)
 
         except MessageException as me :
-            logger.warn('Provisioning service get_secret() failed: %s', me)
+            logger.warning('Provisioning service get_secret() failed: %s', me)
             return None
 
         except :
@@ -67,7 +67,7 @@ class ProvisioningServiceClient(GenericServiceClient) :
             return self._postmsg(request)
 
         except MessageException as me :
-            logger.warn('Provisioning service get_public_info() failed: %s', me)
+            logger.warning('Provisioning service get_public_info() failed: %s', me)
             return None
 
         except :

@@ -57,15 +57,15 @@ class GenericServiceClient(object) :
             response = opener.open(request, timeout=10)
 
         except urllib.error.HTTPError as err :
-            logger.warn('operation failed with response: %s', err.code)
+            logger.warning('operation failed with response: %s', err.code)
             raise MessageException('operation failed with resonse: {0}'.format(err.code))
 
         except urllib.error.URLError as err :
-            logger.warn('operation failed: %s', err.reason)
+            logger.warning('operation failed: %s', err.reason)
             raise MessageException('operation failed: {0}'.format(err.reason))
 
         except :
-            logger.warn('no response from server')
+            logger.warning('no response from server')
             raise MessageException('no response from server')
 
         content = response.read()

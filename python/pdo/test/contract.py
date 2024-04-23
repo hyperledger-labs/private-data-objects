@@ -432,11 +432,11 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
                 logger.info('failed: {0} --> {1}'.format(expression, result))
                 if test.get('invert') is None or test.get('invert') != 'fail' :
                     total_failed += 1
-                    logger.warn('inverted test failed: %s instead of %s', result, test['expected'])
+                    logger.warning('inverted test failed: %s instead of %s', result, test['expected'])
 
                 elif test.get('expected') and not re.match(test.get('expected'), raw_result) :
                     total_failed += 1
-                    logger.warn('test failed: %s instead of %s', result, test['expected'])
+                    logger.warning('test failed: %s instead of %s', result, test['expected'])
 
                 continue
 
@@ -444,7 +444,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
 
             if test.get('expected') and not re.match(test.get('expected'), raw_result) :
                 total_failed += 1
-                logger.warn('test failed: %s instead of %s', result, test['expected'])
+                logger.warning('test failed: %s instead of %s', result, test['expected'])
 
         except Exception as e:
             logger.error('enclave failed to evaluate expression; %s', str(e))
@@ -467,7 +467,7 @@ def UpdateTheContract(config, enclaves, contract, contract_invoker_keys) :
             contract.set_state(update_response.raw_state)
 
     if total_failed > 0:
-        logger.warn('failed %d of %d tests', total_failed, total_tests)
+        logger.warning('failed %d of %d tests', total_failed, total_tests)
         ErrorShutdown()
 
     # wait for the last commit to finish.

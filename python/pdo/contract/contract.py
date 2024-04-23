@@ -44,7 +44,7 @@ class Contract(object) :
             with open(filename, "r") as contract_file :
                 contract_info = json.load(contract_file)
         except Exception as e :
-            logger.warn('load contract information file failed; %s', str(e))
+            logger.warning('load contract information file failed; %s', str(e))
             raise Exception("invalid contract file; {}".format(filename))
 
         try :
@@ -218,7 +218,7 @@ class Contract(object) :
             with open(filename, "w") as contract_file :
                 json.dump(serialized, contract_file)
         except Exception as e :
-            logger.warn('failed to save contract information; %s', str(e))
+            logger.warning('failed to save contract information; %s', str(e))
             raise Exception('unable to write contract data file {}'.format(filename))
 
 # -----------------------------------------------------------------
