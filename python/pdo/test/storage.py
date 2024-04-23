@@ -75,15 +75,21 @@ default_duration = pblocks.BlockMetadata.minimum_duration_time
 try :
     block_data = os.urandom(1000)
     result = client.store_blocks([block_data], duration=default_duration)
-    assert result
 
-    assert (1 == verify_store_signature(result, default_duration, client.verifying_key))
+    r = verify_store_signature(result, default_duration, client.verifying_key)
+    if r < 0 :
+        raise RuntimeError("unknown error occured during signature verification; {}".format(r))
+    if r == 0 :
+        raise ValueError("storage signature verification failed")
 
-    block_ids = result['block_ids']
-    assert block_ids and len(block_ids) == 1
+    block_ids = result.get('block_ids')
+    if block_ids is None or type(block_ids) != list :
+        raise RuntimeError('invalid response from block store')
+
+    if len(block_ids) != 1:
+        raise ValueError("too many blocks stored, expected 1 got {}".format(len(block_ids)))
 
     block_id = result['block_ids'][0]
-    assert block_id
 
 except Exception as e :
     logger.error('put test failed; %s', str(e))
@@ -94,7 +100,8 @@ logger.info('verify that the put succeeded')
 # -----------------------------------------------------------------
 try :
     verify_block_data = client.get_block(block_id)
-    assert block_data == verify_block_data
+    if block_data != verify_block_data:
+        raise ValueError("retrieved block data different than expected")
 except Exception as e :
     logger.error('verify put test failed; %s', str(e))
     sys.exit(-1)
@@ -108,13 +115,20 @@ try :
     block_data.append(os.urandom(10))
     block_data.append(os.urandom(10))
     result = client.store_blocks(block_data, duration=default_duration)
-    assert result
-
-    assert (1 == verify_store_signature(result, default_duration, client.verifying_key))
-
-    block_ids = result['block_ids']
     logger.info('RESULT: %s', result)
-    assert block_ids and len(block_ids) == 3
+
+    r = verify_store_signature(result, default_duration, client.verifying_key)
+    if r < 0 :
+        raise RuntimeError("unknown error occured during signature verification; {}".format(r))
+    if r == 0 :
+        raise ValueError("storage signature verification failed")
+
+    block_ids = result.get('block_ids')
+    if block_ids is None or type(block_ids) != list :
+        raise RuntimeError('invalid response from block store')
+
+    if len(block_ids) != 3:
+        raise ValueError("too many blocks stored, expected 3 got {}".format(len(block_ids)))
 
 except Exception as e :
     logger.error('bulk upload test failed; %s', str(e))
@@ -126,7 +140,8 @@ logger.info('verify that the upload succeeded')
 try :
     for i in range(len(block_ids)) :
         verify_block_data = client.get_block(block_ids[i])
-        assert block_data[i] == verify_block_data
+        if block_data[i] != verify_block_data:
+            raise ValueError("retrieved block data different than expected: index {}".format(i))
 except Exception as e :
     logger.error('failed to verify bulk upload; %s', str(e))
     sys.exit(-1)
@@ -137,7 +152,8 @@ logger.info('verify that the upload succeeded using bulk get')
 try :
     verify_block_data_list = client.get_blocks(block_ids)
     for i in range(len(block_ids)) :
-        assert block_data[i] == verify_block_data_list[i]
+        if block_data[i] != verify_block_data_list[i]:
+            raise ValueError("retrieved block data different than expected in list: index {}".format(i))
 except Exception as e :
     logger.error('failed to verify bulk upload; %s', str(e))
     sys.exit(-1)
@@ -149,8 +165,10 @@ try :
     status = client.check_blocks(block_ids)
     assert status and len(status) == 3
     for s in status :
-        assert s['size'] == 10
-        assert 0 < s['duration'] and s['duration'] <= default_duration
+        if s['size'] != 10:
+            raise ValueError("status size not 10: {}".format(s['size']))
+        if 0 >= s['duration'] and s['duration'] > default_duration:
+            raise ValueError("block status duration not within range: {}".format(s['duration']))
 
 except Exception as e :
     logger.exception('bulk status failed; %s', str(e))
