@@ -58,6 +58,7 @@ def verify_store_signature(store_response, duration, verifying_key) :
     decoded_signature = base64.urlsafe_b64decode(store_response['signature'])
 
     vk = crypto.SIG_PublicKey(verifying_key)
+    # VerifySignature returns 1 for a valid sig, 0 for an invalid sig and -1 on error
     return vk.VerifySignature(signing_hash, decoded_signature)
 
 # -----------------------------------------------------------------
@@ -76,7 +77,7 @@ try :
     result = client.store_blocks([block_data], duration=default_duration)
     assert result
 
-    assert verify_store_signature(result, default_duration, client.verifying_key)
+    assert (1 == verify_store_signature(result, default_duration, client.verifying_key))
 
     block_ids = result['block_ids']
     assert block_ids and len(block_ids) == 1
@@ -109,7 +110,7 @@ try :
     result = client.store_blocks(block_data, duration=default_duration)
     assert result
 
-    assert verify_store_signature(result, default_duration, client.verifying_key)
+    assert (1 == verify_store_signature(result, default_duration, client.verifying_key))
 
     block_ids = result['block_ids']
     logger.info('RESULT: %s', result)
