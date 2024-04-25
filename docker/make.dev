@@ -42,31 +42,31 @@ ifdef DOCKER_CLIENT_WITH_PDO_CONTRACTS
 endif
 
 run_ccf_dev : build_ccf
-	docker run $(DOCKER_DEV_ARGS) --name ccf_container_dev \
+	$(DOCKER_COMMAND) run $(DOCKER_DEV_ARGS) --name ccf_container_dev \
 		-P pdo_ccf:$(PDO_VERSION) -c "$(DOCKER_DEV_CMD)"
 
 run_services_dev : build_base build_services_base build_services
-	docker run $(DOCKER_DEV_ARGS) --name services_container_dev \
+	$(DOCKER_COMMAND) run $(DOCKER_DEV_ARGS) --name services_container_dev \
 		-P pdo_services:$(PDO_VERSION) -c "$(DOCKER_DEV_CMD)"
 
 run_client_dev : build_base build_client
-	docker run $(DOCKER_CLIENT_DEV_ARGS) $(DOCKER_DEV_ARGS) --name client_container_dev pdo_client:$(PDO_VERSION) \
+	$(DOCKER_COMMAND) run $(DOCKER_CLIENT_DEV_ARGS) $(DOCKER_DEV_ARGS) --name client_container_dev pdo_client:$(PDO_VERSION) \
 		-c "$(DOCKER_DEV_CMD)"
 
 stop_all : stop_ccf_dev stop_services_dev stop_client_dev
 
 stop_ccf_dev :
-	- docker rm -f ccf_container_dev
+	- $(DOCKER_COMMAND) rm -f ccf_container_dev
 
 stop_services_dev :
-	- docker rm -f services_container_dev
+	- $(DOCKER_COMMAND) rm -f services_container_dev
 
 stop_client_dev :
-	- docker rm -f client_container_dev
+	- $(DOCKER_COMMAND) rm -f client_container_dev
 
 test_no_reset : clean_config build_test stop_all
-	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
-	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_COMMAND) $(TEST_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_COMMAND) $(TEST_FILES) down
 
 .PHONY: test_no_reset
 .PHONY: stop_ccf_dev stop_services_dev stop_client_dev

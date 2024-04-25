@@ -44,6 +44,11 @@ PDO_VERSION ?= $$( if [ -d repository ]; then cd repository; bin/get_version; el
 PDO_USER_UID ?= $(shell id -u)
 PDO_GROUP_UID ?= $(shell id -g)
 
+DOCKER_COMMAND ?= docker
+DOCKER_COMPOSE_COMMAND ?= docker-compose
+# to work with upstream docker and docker compose plugin, redefine above
+# as `DOCKER_COMPOSE_COMMAND=docker compose` in your `make.loc`
+
 DOCKER_DIR = ${PDO_SOURCE_ROOT}/docker
 DOCKER_USERNAME = $(LOGNAME)
 DOCKER_BUILDARGS += --build-arg UID=$(PDO_USER_UID)
@@ -61,21 +66,21 @@ TIMESTAMP := $(shell /bin/date "+%Y%m%d%H%M%S")
 all : $(addprefix build_,$(IMAGES))
 
 rebuild_% : repository
-	docker build $(DOCKER_ARGS) \
+	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg REBUILD=$(TIMESTAMP) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
 build_% : repository
-	docker build $(DOCKER_ARGS) \
+	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
 # overwrite above build rules for SGX-dependent images
 rebuild_services_sgx : repository
-	docker build $(DOCKER_ARGS) \
+	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg REBUILD=$(TIMESTAMP) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--build-arg SGX_MODE=HW \
@@ -83,7 +88,7 @@ rebuild_services_sgx : repository
 		--file $(DOCKER_DIR)/pdo_services.dockerfile .
 
 build_services_sgx : $(IAS_CERTIFICATES) repository build_services_base
-	docker build $(DOCKER_ARGS) \
+	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
 		--build-arg SGX_MODE=HW \
 		--tag pdo_services_sgx:$(PDO_VERSION) \
@@ -96,31 +101,31 @@ build_services_base: build_base
 build_ccf: build_ccf_base
 
 clean_% :
-	docker rmi -f pdo_$*:$(PDO_VERSION)
+	$(DOCKER_COMMAND) rmi -f pdo_$*:$(PDO_VERSION)
 
 DOCKER_RUN_ARGS = -v $(DOCKER_DIR)/xfer/:/project/pdo/xfer
 DOCKER_RUN_ARGS += --network host
 
 run_ccf : build_ccf stop_ccf
-	docker run $(DOCKER_RUN_ARGS) --name ccf_container -P -d pdo_ccf:$(PDO_VERSION)
+	$(DOCKER_COMMAND) run $(DOCKER_RUN_ARGS) --name ccf_container -P -d pdo_ccf:$(PDO_VERSION)
 
 run_services : build_base build_services_base build_services stop_services
-	docker run $(DOCKER_RUN_ARGS) --name services_container -P -d pdo_services:$(PDO_VERSION)
+	$(DOCKER_COMMAND) run $(DOCKER_RUN_ARGS) --name services_container -P -d pdo_services:$(PDO_VERSION)
 
 run_client : build_base build_client stop_client
-	docker run $(DOCKER_RUN_ARGS) -it --name client_container pdo_client:$(PDO_VERSION) \
+	$(DOCKER_COMMAND) run $(DOCKER_RUN_ARGS) -it --name client_container pdo_client:$(PDO_VERSION) \
 		-c "stty cols $$(tput cols) rows $$(tput lines) && bash"
 
 stop_all : stop_ccf stop_services stop_client
 
 stop_ccf :
-	- docker rm -f ccf_container
+	- $(DOCKER_COMMAND) rm -f ccf_container
 
 stop_services :
-	- docker rm -f services_container
+	- $(DOCKER_COMMAND) rm -f services_container
 
 stop_client :
-	- docker rm -f client_container
+	- $(DOCKER_COMMAND) rm -f client_container
 
 $(IAS_CERTIFICATES) : repository
 	# the script prepares the certificates from the source repo
@@ -169,13 +174,13 @@ SGX_DEVICE_PATH=$(shell if [ -e "/dev/isgx" ]; \
 				else echo "ERROR: NO SGX DEVICE FOUND"; \
 				fi)
 
-DOCKER_COMPOSE_SGX := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} docker-compose
+DOCKER_COMPOSE_SGX := env SGX_DEVICE_PATH=${SGX_DEVICE_PATH} $(DOCKER_COMPOSE_COMMAND)
 
 build_test : repository build_services build_ccf build_client
 
 test : clean_config clean_repository build_test stop_all
-	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) up --abort-on-container-exit
-	PDO_VERSION=$(PDO_VERSION) docker-compose $(TEST_FILES) down
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_COMMAND) $(TEST_FILES) up --abort-on-container-exit
+	PDO_VERSION=$(PDO_VERSION) $(DOCKER_COMPOSE_COMMAND) $(TEST_FILES) down
 
 sgx_build_test : repository build_services_sgx build_ccf build_client
 
@@ -194,11 +199,11 @@ sgx_test : clean_config clean_repository sgx_build_test stop_all sgx_keys
 # referenced images. Clean make sure that everything is cleaned up
 # across the board.
 # -----------------------------------------------------------------
-_IMAGES_=$(shell docker images -a --filter=dangling=true -q)
-_CONTAINERS_=$(shell docker ps --filter=status=exited --filter=status=created -q)
+_IMAGES_=$(shell $(DOCKER_COMMAND) images -a --filter=dangling=true -q)
+_CONTAINERS_=$(shell $(DOCKER_COMMAND) ps --filter=status=exited --filter=status=created -q)
 clean_images : $(addprefix clean_,$(IMAGES))
-	if [ ! -z "$(_CONTAINERS_)" ]; then docker rm -f $(_CONTAINERS_); fi
-	if [ ! -z "$(_IMAGES_)" ]; then docker rmi -f $(_IMAGES_); fi
+	if [ ! -z "$(_CONTAINERS_)" ]; then $(DOCKER_COMMAND) rm -f $(_CONTAINERS_); fi
+	if [ ! -z "$(_IMAGES_)" ]; then $(DOCKER_COMMAND) rmi -f $(_IMAGES_); fi
 
 clean_config :
 	rm -f '$(DOCKER_DIR)'/xfer/ccf/keys/*.pem '$(DOCKER_DIR)'/xfer/ccf/etc/*.toml
