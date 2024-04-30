@@ -676,7 +676,14 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
         memcmp(computedReportData.d, expectedReportData.d, SGX_REPORT_DATA_SIZE)  != 0,
         "Invalid Report data: computedReportData does not match expectedReportData");
 
-
+    //Note that we do not currently verify whether the enclave debug flag is
+    //turned on or not. In order to ensure that the enclave is run in a mode
+    //that supports enhanced-confidentiality and execution integrity, the debug
+    //flag (SGX_FLAGS_DEBUG / 0x0000000000000002ULL in the report's attribute)
+    //should be set to 0. For additional details on how we plan to support this
+    //check, please see
+    //https://github.com/hyperledger-labs/private-data-objects/issues/195.
+    //
     return result;
 }// VerifyEnclaveInfo
 

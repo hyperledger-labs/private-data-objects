@@ -247,6 +247,15 @@ namespace ccfapp
                 6. basename
                 7. user report data
 
+		Note that we do not currently verify whether the enclave debug
+		flag is turned on or not. In order to ensure that the enclave is
+		run in a mode that supports enhanced-confidentiality and
+		execution integrity, the debug flag (SGX_FLAGS_DEBUG /
+		0x0000000000000002ULL in the report's attribute) should be set
+		to 0. For additional details on how we plan to support this
+		check, please see
+		https://github.com/hyperledger-labs/private-data-objects/issues/195.
+
                 */
 
                 ProofData enclave_proof_data;
