@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
+import cachetools.func
 import logging
 import os
-import random
+
 import pdo.client.builder.shell as pshell
 import pdo.client.builder.script as pscript
 import pdo.client.commands.sservice as sservice
@@ -26,42 +26,56 @@ from pdo.client.builder import invocation_parameter
 import pdo.common.crypto as pcrypto
 import pdo.contract as pcontract
 from pdo.common.keys import ServiceKeys
-from pdo.common.utility import valid_service_url
 from pdo.submitter.create import create_submitter
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    'flush_contract_cache',
     'get_contract',
     'get_contract_from_context',
     'create_contract',
     'send_to_contract',
     'do_contract',
     'load_commands',
-    ]
+]
 
 ## -----------------------------------------------------------------
 ## get_contract
 ## -----------------------------------------------------------------
-__contract_cache__ = {}
+class __hashabledict__(dict) :
+    """Hashable dictionary
+
+    This is a relatively simple hack to make a dictionary hashable
+    so that the cache can work. It assumes that the dictionary does
+    not change. This is sufficent for the ledger configuration.
+    """
+    def __hash__(self) :
+        return hash(frozenset(self))
+
+@cachetools.func.ttl_cache(maxsize=32, ttl=30)
+def __get_contract__(ledger_config, save_file, data_directory) :
+    logger.debug(f'load contract from file: {save_file}')
+    return pcontract.Contract.read_from_file(ledger_config, save_file, data_dir=data_directory)
 
 def get_contract(state, save_file) :
-    """Get contract object using the save_file.
+    """Retrieve a contract object associated with the named save file
     """
+    data_directory = state.get(['Contract', 'DataDirectory'])
+    ledger_config = __hashabledict__(state.get(['Ledger']))
 
-    global __contract_cache__
+    # expiration from the cache really means that we want the
+    # contract re-read, so force any expired contracts out of
+    # the cache before we read it
+    __get_contract__.cache.expire()
 
-    if save_file not in __contract_cache__ :
-        try :
-            data_directory = state.get(['Contract', 'DataDirectory'])
-            ledger_config = state.get(['Ledger'])
+    return __get_contract__(ledger_config, save_file, data_directory)
 
-            __contract_cache__[save_file] = pcontract.Contract.read_from_file(
-                ledger_config, save_file, data_dir=data_directory)
-        except Exception as e :
-            raise Exception('unable to load the contract; {0}'.format(str(e)))
-
-    return __contract_cache__[save_file]
+def flush_contract_cache() :
+    """Explicitly flush the contract cache
+    """
+    __get_contract__.cache.expire()
+    __get_contract__.cache.clear()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
@@ -81,7 +95,7 @@ def get_contract_from_context(state, context) :
     # will also cache the contract object which we will probably be
     # using again later
     try :
-        contract = get_contract(state, save_file)
+        _ = get_contract(state, save_file)
         logger.debug('contract found in file {}'.format(save_file))
     except Exception as e :
         logger.info("contract save file specified in context, but load failed; {}".format(e))
@@ -97,7 +111,6 @@ def __add_enclave_secrets__(ledger_config, contract_id, client_keys, enclaveclie
     enclaves that will be provisioned for this contract.
     """
 
-    secrets = {}
     encrypted_state_encryption_keys = {}
     for enclaveclient in enclaveclients:
         psecrets = []
@@ -327,7 +340,7 @@ def send_to_contract(state, message, save_file, **kwargs) :
     try :
         contract = get_contract(state, save_file)
     except Exception as e :
-        raise Exception('unable to load the contract')
+        raise Exception('unable to load the contract; {}', str(e))
 
     # ---------- set up the enclave service ----------
     eservice_client = eservice.get_eservice_from_contract(state, save_file, eservice_url)
@@ -342,7 +355,6 @@ def send_to_contract(state, message, save_file, **kwargs) :
     if not update_response.status :
         raise ValueError(update_response.invocation_response)
 
-    data_directory = state.get(['Contract', 'DataDirectory'])
     ledger_config = state.get(['Ledger'])
 
     if update_response.state_changed and commit :
@@ -503,8 +515,6 @@ class script_command_send(pscript.script_command_base) :
 
     @classmethod
     def invoke(cls, state, bindings, method, save_file, **kwargs) :
-        waitflag = kwargs.get('wait', False)
-
         pparams = kwargs.get('positional') or []
 
         kparams = dict()
@@ -526,12 +536,11 @@ class script_command_send(pscript.script_command_base) :
         # parameters must not contain an '='
         if kwargs.get('params') :
             for p in kwargs.get('params') :
-                kvsplit = p.split('=',1)
+                kvsplit = p.split('=', 1)
                 if len(kvsplit) == 1 :
                     pparams += kvsplit[0]
                 elif len(kvsplit) == 2 :
                     kparams[kvsplit[0]] = kvsplit[1]
-
 
         message = pcontract.invocation_request(method, *pparams, **kparams)
         result = send_to_contract(state, message, save_file, **kwargs)
