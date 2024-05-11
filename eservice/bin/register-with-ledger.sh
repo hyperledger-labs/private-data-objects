@@ -78,16 +78,23 @@ function Register {
     else
         VAR_MRENCLAVE=$(grep -o 'MRENCLAVE:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
         VAR_BASENAME=$(grep -o 'BASENAME:.*' ${eservice_enclave_info_file} | cut -f2- -d:)
+        SGX_DEBUG_FLAG=${PDO_DEBUG_BUILD:-0}
 
         : "${PDO_LEDGER_URL:?Registration failed! PDO_LEDGER_URL environment variable not set}"
         : "IAS_KEY_PEM" "${IAS_KEY_PEM:?Registration failed! PDO_IAS_KEY_PEM environment variable not set}"
 
         if [ ${PDO_LEDGER_TYPE} == "ccf" ]; then
-            yell Register enclave with CCF ledger: mrenclave=${VAR_MRENCLAVE} basename=${VAR_BASENAME}
+            yell Register enclave with CCF ledger: \
+                sgx_debug_flag=${SGX_DEBUG_FLAG} \
+                mrenclave=${VAR_MRENCLAVE} \
+                basename=${VAR_BASENAME}
             source ${PDO_INSTALL_ROOT}/bin/activate
             try ${PDO_INSTALL_ROOT}/bin/ccf_set_expected_sgx_measurements \
-                --logfile __screen__ --loglevel INFO --mrenclave ${VAR_MRENCLAVE} \
-                --basename  ${VAR_BASENAME} --ias-public-key "$(cat $IAS_KEY_PEM)"
+                --logfile __screen__ --loglevel INFO \
+                --mrenclave ${VAR_MRENCLAVE} \
+                --basename  ${VAR_BASENAME} \
+                --sgx-debug-flag "${SGX_DEBUG_FLAG}" \
+                --ias-public-key "$(cat $IAS_KEY_PEM)"
         else
             die unsupported ledger ${PDO_LEDGER_TYPE}
         fi

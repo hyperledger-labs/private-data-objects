@@ -30,6 +30,7 @@ def set_contract_enclave_expected_sgx_measurements(client, options):
     params['mrenclave'] = options.mrenclave
     params['basename'] = options.basename
     params['ias_public_key'] = options.ias_public_key
+    params['sgx_debug_flag'] = options.sgx_debug_flag
 
     r = client.post("/app/set_contract_enclave_expected_sgx_measurements", params)
     if r.status_code != http.HTTPStatus.OK.value:
@@ -50,10 +51,14 @@ def Main() :
     parser.add_argument('--basename', help="PDO enclave basename", type=str)
     parser.add_argument('--ias-public-key', 
                         help="IAS public key derived from cert used to verify report signatures", type=str)
+    parser.add_argument('--sgx-debug-flag', help="PDO enclave sgx debug flag", type=str)
 
     local_options = parser.parse_args(unprocessed_args)
 
-    if (not local_options.mrenclave) or (not local_options.basename) or (not local_options.ias_public_key):
+    if (not local_options.mrenclave) or \
+            (not local_options.basename) or \
+            (not local_options.ias_public_key) or \
+            (not local_options.sgx_debug_flag):
         parser.print_help()
         sys.exit(-1)
 

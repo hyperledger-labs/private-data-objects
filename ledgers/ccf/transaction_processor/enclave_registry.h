@@ -31,13 +31,15 @@ namespace ccf
     string mrenclave;
     string basename;
     string ias_public_key;
+    string sgx_debug_flag;
   };
 
   DECLARE_JSON_TYPE(ContractEnclaveExpectedSGXMeasurements);
   DECLARE_JSON_REQUIRED_FIELDS(ContractEnclaveExpectedSGXMeasurements,
     mrenclave,
     basename,
-    ias_public_key);
+    ias_public_key,
+    sgx_debug_flag);
 
 
   struct ProofData{
@@ -134,6 +136,7 @@ namespace ccf
       string mrenclave;
       string basename;
       string ias_public_key;
+      string sgx_debug_flag;
     };
   };
 
@@ -152,6 +155,6 @@ namespace ccf
   DECLARE_JSON_REQUIRED_FIELDS(RegisterContractEnclaveAttestionCheckFlag::In, check_attestation);
 
   DECLARE_JSON_TYPE(RegisterContractEnclaveExpectedSGXMeasurements::In);
-  DECLARE_JSON_REQUIRED_FIELDS(RegisterContractEnclaveExpectedSGXMeasurements::In, mrenclave, basename, ias_public_key);
+  DECLARE_JSON_REQUIRED_FIELDS(RegisterContractEnclaveExpectedSGXMeasurements::In, mrenclave, basename, ias_public_key, sgx_debug_flag);
 
 }

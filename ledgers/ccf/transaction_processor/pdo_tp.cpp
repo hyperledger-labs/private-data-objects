@@ -116,6 +116,13 @@ namespace ccfapp
             expected_sgx_measurements.mrenclave = in.mrenclave;
             expected_sgx_measurements.basename = in.basename;
             expected_sgx_measurements.ias_public_key = in.ias_public_key;
+            expected_sgx_measurements.sgx_debug_flag = in.sgx_debug_flag;
+
+            // post assignment checks
+            if(expected_sgx_measurements.sgx_debug_flag.length() != 1)
+                return ccf::make_error(
+                    HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,
+                    "Invalid sgx debug flag length: " + to_string(expected_sgx_measurements.sgx_debug_flag.length()));
 
             //store the data
             contract_enclave_expected_sgx_measurements_view->put(PDO_ENCLAVE_EXPECTED_SGX_MEASUREMENTS, expected_sgx_measurements);
@@ -246,15 +253,14 @@ namespace ccfapp
                 5. nonce
                 6. basename
                 7. user report data
+                8. 64-bit flag
+                9. sgx debug flag
 
-		Note that we do not currently verify whether the enclave debug
-		flag is turned on or not. In order to ensure that the enclave is
-		run in a mode that supports enhanced-confidentiality and
-		execution integrity, the debug flag (SGX_FLAGS_DEBUG /
-		0x0000000000000002ULL in the report's attribute) should be set
-		to 0. For additional details on how we plan to support this
-		check, please see
-		https://github.com/hyperledger-labs/private-data-objects/issues/195.
+                Note that we do not currently verify whether the TCB version of the enclave.
+                This must be implemented to ensure that the enclave does not run using an old
+                superseded TCB.
+                For additional details on how we plan to support this check, please see
+                https://github.com/hyperledger-labs/private-data-objects/issues/195.
 
                 */
 
@@ -363,6 +369,18 @@ namespace ccfapp
                     return ccf::make_error(
                         HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput, "Enclave attestation report verification Failed. Invalid user report data");
                 }
+
+                // Verify 64-bit enclave
+                if((reportBody->attributes.flags & SGX_FLAGS_MODE64BIT) == 0)
+                    return ccf::make_error(HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,
+                        "Enclave attestation report verification Failed. Enclave is not 64-bit");
+
+                // Verify SGX debug flag
+                std::string flag = std::to_string((reportBody->attributes.flags & SGX_FLAGS_DEBUG) > 0);
+                if(flag != expected_sgx_measurements.sgx_debug_flag)
+                    return ccf::make_error(HTTP_STATUS_BAD_REQUEST, ccf::errors::InvalidInput,
+                        "Enclave attestation report verification Failed. Enclave debug flag " + flag + 
+                        " does not match policy " + expected_sgx_measurements.sgx_debug_flag);
 
             }
 
