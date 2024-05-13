@@ -30,9 +30,9 @@ parser.add_argument('--enclave', type=str, help='Name of the enclave to use in t
 
 options = parser.parse_args()
 
+# get mrenclave from metadata
 pattern_start = '^metadata->enclave_css.body.enclave_hash.m:$'
 pattern_end = '^metadata->'
-
 values = []
 with open(options.metadata, 'r') as f:
     for line in f :
@@ -43,11 +43,22 @@ with open(options.metadata, 'r') as f:
                 values.extend(list(map(lambda v : v.upper()[2:], line.strip().split(' '))))
             break
 
+def get_meta_parameter(meta_file, pattern):
+    with open(meta_file, 'r') as f:
+        for line in f :
+            if re.match(pattern, line) :
+                return line.strip().split(': ')[1]
+
+attributes_flags = get_meta_parameter(options.metadata, '^metadata->enclave_css.body.attributes.flags:')
+attribute_mask_flags = get_meta_parameter(options.metadata, '^metadata->enclave_css.body.attribute_mask.flags:')
+
 template_fields = dict()
 template_fields['mrenclave'] = ''.join(values)
 template_fields['source_file'] = options.metadata
 template_fields['timestamp'] = datetime.date.today().isoformat()
 template_fields['enclave'] = options.enclave
+template_fields['attributes_flags'] = attributes_flags
+template_fields['attribute_mask_flags'] = attribute_mask_flags
 
 with open(options.header, 'w') as f:
     f.write("""
@@ -58,4 +69,6 @@ with open(options.header, 'w') as f:
 #include "types.h"
 
 HexEncodedString {enclave}_ENCLAVE_MRENCLAVE = "{mrenclave}";
+uint64_t attributes_flags = {attributes_flags};
+uint64_t attribute_mask_flags = {attribute_mask_flags};
 """.format(**template_fields))
