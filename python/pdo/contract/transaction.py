@@ -320,13 +320,9 @@ def __submit_update_transaction__(response, ledger_config, **extra_params):
 # -----------------------------------------------------------------
 class TransactionRequest(object):
 
-    def __init__(self, ledger_config, commit_id, wait_parameter_for_ledger = None):
+    def __init__(self, ledger_config, commit_id) :
 
         self.ledger_config = ledger_config
-        # add the wait parameter to the ledger config, if there is one.
-        # Question: does CCF (or the submitter) use this parameter?
-        if wait_parameter_for_ledger:
-            self.ledger_config['wait'] = wait_parameter_for_ledger
         self.commit_id = commit_id
 
         self.is_completed = False
