@@ -64,7 +64,7 @@ class Dependencies(object) :
 
     ## -------------------------------------------------------
     def FindDependency(self, contractid, statehash) :
-        logger.debug('find dependency for %s, %s', contractid, statehash)
+        logger.debug(f'find dependency for {contractid}:{statehash}')
 
         with self.__lock__ :
             txnid = self.__get(contractid, statehash)
@@ -79,7 +79,7 @@ class Dependencies(object) :
                 self.__set(contractid, statehash, txnid)
                 return txnid
             except Exception as e :
-                logger.info('unable to find dependency for %s:%s; failed to retrieve the transaction', contractid, statehash)
+                logger.warning(f'failed to retrieve contract state for {contractid}:{statehash}; {e}')
                 return None
 
     ## -------------------------------------------------------
