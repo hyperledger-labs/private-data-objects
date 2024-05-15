@@ -58,8 +58,10 @@ fi
 # Build type "Debug" does not define NDEBUG, which causes sgx_urts.h to set SGX_DEBUG_FLAG to 1.
 if [ ${PDO_DEBUG_BUILD} == "0" ]; then
     MAKE_ARGS+=" CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Release"
+    CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Release"
 else
     MAKE_ARGS+=" CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Debug"
+    CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
 fi
 
 # -----------------------------------------------------------------

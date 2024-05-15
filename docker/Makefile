@@ -26,7 +26,7 @@ PDO_SOURCE_ROOT ?= $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../
 
 # PDO_DEBUG_BUILD
 # The flag that determines the build type (debug or not).
-PDO_DEBUG_BUILD ?= 0
+PDO_DEBUG_BUILD ?= ${PDO_DEBUG_BUILD:-0}
 
 # PDO_REPO --
 #   The URL or path to the git repository, the default uses the current repository
@@ -73,12 +73,14 @@ rebuild_% : repository
 	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg REBUILD=$(TIMESTAMP) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg PDO_DEBUG_BUILD=$(PDO_DEBUG_BUILD) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
 build_% : repository
 	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg PDO_DEBUG_BUILD=$(PDO_DEBUG_BUILD) \
 		--tag pdo_$*:$(PDO_VERSION) \
 		--file '$(DOCKER_DIR)'/pdo_$*.dockerfile .
 
