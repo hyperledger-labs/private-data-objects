@@ -97,7 +97,7 @@ def export_contract_collection(
             if p not in ec :
                 ec[p] = {}
             ec = ec[p]
-        ec[key] = copy.deepcopy(context.get(c))
+        ec[key] = copy.deepcopy(context.get_value(c))
 
     # now find all of the contract references in the exported context
     save_files = __find_contracts__(export_context)

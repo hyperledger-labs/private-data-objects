@@ -80,7 +80,7 @@ class Context(object) :
         self.__state__ = state
 
         if type(self.context) is not dict :
-            raise ValueError('invalid context reference, {}'.self.__path__)
+            raise ValueError('invalid context reference, {}', self.__path__)
 
     # --------------------------------------------------
     @property
@@ -117,6 +117,12 @@ class Context(object) :
         # rooted at the context key
         return Context(self.__state__, '.'.join(new_keylist[1:]))
         # return Context(self.__state__, new_keylist, new_context)
+
+    # --------------------------------------------------
+    def get_value(self, relative_path, value=None) :
+        """return the raw, unexpanded value
+        """
+        return self.__state__.get(self.__path__ + relative_path.split('.'), value)
 
     # --------------------------------------------------
     def __setitem__(self, relative_path, value):
