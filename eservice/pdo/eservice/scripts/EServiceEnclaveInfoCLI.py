@@ -14,10 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
 import argparse
 import json
+import logging
+import os
+import sys
+import time
 from pathlib import Path
 
 import pdo.common.config as pconfig
@@ -26,22 +28,25 @@ import pdo.common.logger as plogger
 import pdo.eservice.pdo_helper as pdo_enclave_helper
 import pdo.eservice.pdo_enclave as pdo_enclave
 
-import logging
 logger = logging.getLogger(__name__)
-
-import time
-
-
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def GetBasename(save_path, config) :
-    attempts = 0
-    while True :
+    """get the BASENAME and MRENCLAVE from the enclave, write the
+    results to the specified file
+    """
+
+    logger.debug('initialize the enclave')
+    try :
+        enclave_config = config.get('EnclaveModule')
+        spid = Path(os.path.join(enclave_config['sgx_key_root'], "sgx_spid.txt")).read_text().strip()
+    except Exception as e :
+        logger.critical(f'unable to read sgx_spid file {e}')
+        sys.exit(-1)
+
+    for _ in range(0, 10) :
         try :
-            logger.debug('initialize the enclave')
-            enclave_config = config.get('EnclaveModule')
-            spid = Path(os.path.join(enclave_config['sgx_key_root'], "sgx_spid.txt")).read_text().strip()
             info = pdo_enclave_helper.get_enclave_service_info(spid)
 
             logger.info('save MR_ENCLAVE and MR_BASENAME to %s', save_path)
@@ -58,22 +63,21 @@ def GetBasename(save_path, config) :
                 logger.critical('system error in enclave; %s', se)
                 sys.exit(-1)
 
+            time.sleep(10)
+
         except Exception as e :
             logger.critical('failed to initialize enclave; %s', e)
             sys.exit(-1)
 
-        attempts = attempts + 1
-        if 10 < attempts :
-            logger.critical('wait for enclave failed')
-            sys.exit(-1)
-
-        logger.info('SGX_BUSY, attempt %s', attempts)
-        time.sleep(10)
+    logger.critical('SGX continues to be busy')
+    sys.exit(-1)
 
 def GetIasCertificates(config) :
-    # load, initialize and create signup info the enclave library
-    # (signup info are not relevant here)
-    # the creation of signup info includes getting a verification report from IAS
+    """load, initialize and create signup info the enclave library
+
+    the creation of signup info includes getting a verification report
+    from IAS
+    """
     try :
         enclave_config = config.get('EnclaveModule')
         pdo_enclave.initialize_with_configuration(enclave_config)
