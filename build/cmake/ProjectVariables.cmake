@@ -36,6 +36,12 @@ ELSE()
   MESSAGE(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
 ENDIF()
 
+IF (DEFINED CMAKE_BUILD_TYPE)
+    MESSAGE(STATUS "Building with CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+ELSE()
+    MESSAGE(STATUS "CMAKE_BUILD_TYPE not defined")
+ENDIF()
+
 # The verbose build flag allows warning messages
 # to be turned off. This removes a lot of the verbosity
 # of the OpenSSL/SGXSSL deprecation warnings. In general

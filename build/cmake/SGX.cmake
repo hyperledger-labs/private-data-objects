@@ -241,3 +241,21 @@ FUNCTION(SGX_DEPLOY_FILES TARGET HEADER_NAME)
     COMMAND ${GENERATE_COMMAND} --metadata ${SIGNED_ENCLAVE}.meta --header ${HEADER_FILE} --enclave ${VARIABLE_NAME}
   )
 ENDFUNCTION()
+
+# -----------------------------------------------------------------
+# SGX_PREPARE_ENCLAVE_XML
+# Generate the xml configuration file which can be then used by
+# SGX_SIGN. For now, this is only necessary to set the DisableDebug field.
+# -----------------------------------------------------------------
+FUNCTION(SGX_PREPARE_ENCLAVE_XML XML_IN XML_OUT)
+    IF (${PDO_DEBUG_BUILD} STREQUAL "0")
+        SET(DISABLE_DEBUG "1")
+    ELSE()
+        SET(DISABLE_DEBUG "0")
+    ENDIF()
+    ADD_CUSTOM_COMMAND(
+        OUTPUT ${XML_OUT}
+        COMMAND "sed"
+            "'s/<DisableDebug>.*<\\/DisableDebug>/<DisableDebug>${DISABLE_DEBUG}<\\/DisableDebug>/'"
+            "${XML_IN}>${XML_OUT}")
+ENDFUNCTION()

@@ -24,6 +24,10 @@
 # the desired PDO_SOURCE_ROOT when invoking make.
 PDO_SOURCE_ROOT ?= $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../)
 
+# PDO_DEBUG_BUILD
+# The flag that determines the build type (debug or not).
+PDO_DEBUG_BUILD ?= 0
+
 # PDO_REPO --
 #   The URL or path to the git repository, the default uses the current repository
 #   though it might be reasonable to build a particular branch from the primary
@@ -83,6 +87,7 @@ rebuild_services_sgx : repository
 	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg REBUILD=$(TIMESTAMP) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg PDO_DEBUG_BUILD=$(PDO_DEBUG_BUILD) \
 		--build-arg SGX_MODE=HW \
 		--tag pdo_services_sgx:$(PDO_VERSION) \
 		--file $(DOCKER_DIR)/pdo_services.dockerfile .
@@ -90,6 +95,7 @@ rebuild_services_sgx : repository
 build_services_sgx : $(IAS_CERTIFICATES) repository build_services_base
 	$(DOCKER_COMMAND) build $(DOCKER_ARGS) \
 		--build-arg PDO_VERSION=$(PDO_VERSION) \
+		--build-arg PDO_DEBUG_BUILD=$(PDO_DEBUG_BUILD) \
 		--build-arg SGX_MODE=HW \
 		--tag pdo_services_sgx:$(PDO_VERSION) \
 		--file $(DOCKER_DIR)/pdo_services.dockerfile .
