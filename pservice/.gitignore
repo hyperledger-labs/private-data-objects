@@ -6,3 +6,4 @@ dist
 *.pyc
 *.so
 deps
+pdo_enclave.config.xml

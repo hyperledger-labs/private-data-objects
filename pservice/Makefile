@@ -79,10 +79,16 @@ install: $(EGG_FILE)
 		python3 setup.py install
 
 clean:
-	rm -f $(addprefix pdo/pservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
-	rm -rf build deps dist *.egg-info
-	find . -iname '*.pyc' -delete
-	find . -iname '__pycache__' -delete
+	@ echo Remove build directory
+	@ if [ -d build ]; then \
+		make -C build clean; \
+		rm -rf build deps dist *.egg-info ; \
+	fi
+	@ echo clean swig files
+	@ rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
+	@ echo Clean up python caches
+	@ find . -iname '*.pyc' -delete
+	@ find . -iname '__pycache__' -delete
 
 .phony : all
 .phony : clean

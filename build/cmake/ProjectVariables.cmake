@@ -20,7 +20,7 @@
 ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector)
 ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
 
-OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" FALSE)
+OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" 0)
 
 IF (DEFINED ENV{PDO_DEBUG_BUILD})
   SET(PDO_DEBUG_BUILD $ENV{PDO_DEBUG_BUILD})
@@ -34,12 +34,6 @@ ELSE()
   ADD_COMPILE_OPTIONS(-O2)
   ADD_COMPILE_DEFINITIONS(PDO_DEBUG_BUILD=0)
   MESSAGE(STATUS "Compiling with optimizations (-O2). To use debug flags, set the DEBUG environment variable.")
-ENDIF()
-
-IF (DEFINED CMAKE_BUILD_TYPE)
-    MESSAGE(STATUS "Building with CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-ELSE()
-    MESSAGE(STATUS "CMAKE_BUILD_TYPE not defined")
 ENDIF()
 
 # The verbose build flag allows warning messages
