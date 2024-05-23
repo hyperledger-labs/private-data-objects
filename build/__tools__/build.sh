@@ -52,15 +52,18 @@ else
     MAKE_ARGS="-j${NUM_CORES} BUILD_CLIENT=0"
 fi
 
-# Set options for cmake build
-# The build type is set to affect the SGX debug flag.
-# Build type "Release" defines NDEBUG, which causes sgx_urts.h to set SGX_DEBUG_FLAG to 0.
-# Build type "Debug" does not define NDEBUG, which causes sgx_urts.h to set SGX_DEBUG_FLAG to 1.
+# Set CMAKE built type through the CMAKE_BUILD_TYPE variable; this works
+# for cmake version 3.22; later versions can use --config <Debug|Release>
+#
+# Note that the build type affects the SGX debug flag:
+#  * Build type "Release" defines NDEBUG, which causes sgx_urts.h to set SGX_DEBUG_FLAG to 0.
+#  * Build type "Debug" does not define NDEBUG, which causes sgx_urts.h to set SGX_DEBUG_FLAG to 1.
+#
+# We do not need to explicitly add these to the make args; as environment variables they will be
+# passed through appropriately
 if [ ${PDO_DEBUG_BUILD} == "0" ]; then
-    MAKE_ARGS+=" CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Release"
     CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Release"
 else
-    MAKE_ARGS+=" CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Debug"
     CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
 fi
 

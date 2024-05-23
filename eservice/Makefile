@@ -69,7 +69,7 @@ $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
 
 build :
 	mkdir $@
-	cd $@ && cmake .. $(CMAKE_OPTS) -G "Unix Makefiles"
+	cd $@ && cmake .. $(CMAKE_ARGS) -G "Unix Makefiles"
 
 install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
