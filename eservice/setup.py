@@ -36,11 +36,6 @@ etc_dir = os.path.join(install_root_dir, "etc")
 log_dir = os.path.join(install_root_dir, "logs")
 key_dir = os.path.join(install_root_dir, "keys")
 
-sgx_mode_env = os.environ.get('SGX_MODE', None)
-if not sgx_mode_env or (sgx_mode_env != "SIM" and sgx_mode_env != "HW"):
-    print("error: SGX_MODE value must be HW or SIM, current value is: ", sgx_mode_env)
-    sys.exit(2)
-
 data_files = [
     (bin_dir, [
         'bin/es-start.sh', 'bin/es-stop.sh', 'bin/es-status.sh',
@@ -59,8 +54,17 @@ ext_deps = [
 ## -----------------------------------------------------------------
 ## set up the contract enclave
 ## -----------------------------------------------------------------
-# set the debug flag: if PDO_DEBUG_BUILD="1", then True, else False
-debug_flag = os.environ.get('PDO_DEBUG_BUILD', "0") in ("1")
+debug_flag_env = os.environ.get('PDO_DEBUG_BUILD', '0')
+if debug_flag_env not in ['0', '1'] :
+    print(f'error: PDO_DEBUG_BUILD must be 0 or 1, current value is {debug_flag_env}')
+    sys.exit(2)
+debug_flag = debug_flag_env == '1'
+
+sgx_mode_env = os.environ.get('SGX_MODE', 'SIM').upper()
+if sgx_mode_env not in ['SIM', 'HW'] :
+    print(f'error: SGX_MODE value must be HW or SIM, current value is {sgx_mode_env}')
+    sys.exit(2)
+sgx_simulator_flag = sgx_mode_env == 'SIM'
 
 module_path = 'pdo/eservice/enclave'
 module_src_path = os.path.join(script_dir, module_path)
@@ -100,16 +104,12 @@ libraries = [
     'lmdb'
 ]
 
-if sgx_mode_env == "HW":
-    libraries.append('sgx_urts')
-    libraries.append('sgx_uae_service')
-    SGX_SIMULATOR_value = '0'
-if sgx_mode_env == "SIM":
-    libraries.append('sgx_urts_sim')
-    libraries.append('sgx_uae_service_sim')
-    SGX_SIMULATOR_value = '1'
+if sgx_simulator_flag :
+    libraries += ['sgx_urts_sim', 'sgx_uae_service_sim']
+else :
+    libraries += ['sgx_urts', 'sgx_uae_service']
 
-libraries.append('sgx_usgxssl')
+libraries += ['sgx_usgxssl']
 
 module_files = [
     os.path.join(module_src_path, 'pdo_enclave_internal.i'),
@@ -129,15 +129,19 @@ module_files = [
 
 compile_defs = [
     ('_UNTRUSTED_', 1),
-    ('PDO_DEBUG_BUILD', debug_flag),
-    ('SGX_SIMULATOR', SGX_SIMULATOR_value)
+    ('PDO_DEBUG_BUILD', 1 if debug_flag else 0),
+    ('SGX_SIMULATOR', 1 if sgx_simulator_flag else 0),
 ]
+
+compile_undefs = []
 
 # When the debug flag (PDO_DEBUG_BUILD) is set, we set the EDEBUG define
 # This ensures that the SGX SDK in sgx_urts.h sets the SGX_DEBUG_FLAG to 1.
 # Otherwise the SDK sets it to 0.
 if debug_flag :
-    compile_defs.append(('EDEBUG', None))
+    compile_defs += [('NDEBUG', 1), ('EDEBUG', 1)]
+else :
+    compile_undefs += ['NDEBUG', 'EDEBUG']
 
 swig_flags = ['-c++', '-threads']
 
@@ -149,7 +153,8 @@ enclave_module = Extension(
     libraries = libraries,
     include_dirs = include_dirs,
     library_dirs = library_dirs,
-    define_macros = compile_defs
+    define_macros = compile_defs,
+    undef_macros = compile_undefs,
     )
 
 ## -----------------------------------------------------------------
