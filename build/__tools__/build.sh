@@ -67,6 +67,10 @@ else
     CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
 fi
 
+# We need to export CMAKE_ARGS so that the Makefiles that call
+# cmake (e.g. pservice and eservice) will pick up these definitions
+export CMAKE_ARGS
+
 # -----------------------------------------------------------------
 # BUILD
 # -----------------------------------------------------------------
