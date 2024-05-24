@@ -35,7 +35,6 @@ import pdo.common.logger as plogger
 import pdo.common.utility as putils
 
 import pdo.pservice.pdo_helper as pdo_enclave_helper
-import pdo.pservice.pdo_enclave as pdo_enclave
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,9 +45,7 @@ logger = logging.getLogger(__name__)
 from twisted.web import server, resource, http
 from twisted.internet import reactor, defer
 from twisted.web.error import Error
-
-import base64
-
+from twisted.internet.error import ReactorNotRunning
 
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ## XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -180,7 +177,8 @@ class ProvisioningServer(resource.Resource):
             logger.debug("Expected public key: %s", opk)
             assert contract_info['pdo_contract_creator_pem_key'] == opk
         except :
-            logger.error('request to create secret did not come from the contract owner; %s != %s', contracttxn.OriginatorID, opk)
+            logger.error('request to create secret did not come from the contract owner; %s != %s',
+                         contract_info['pdo_contract_creator_pem_key'], opk)
             raise Error(http.NOT_ALLOWED, 'operation not allowed for {0}'.format(opk))
 
         # make sure the provisioning service is allowed to access contract by the checking the list of allowed provisioning services
