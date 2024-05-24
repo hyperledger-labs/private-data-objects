@@ -41,7 +41,7 @@ try :
     pdo_version = subprocess.check_output('bin/get_version', cwd=root_dir).decode('ascii').strip()
 except Exception as e :
     warnings.warn('Failed to get pdo version, using the default')
-    pdo_contracts_version = '0.0.0'
+    pdo_version = '0.0.0'
 
 ## -----------------------------------------------------------------
 ## -----------------------------------------------------------------
