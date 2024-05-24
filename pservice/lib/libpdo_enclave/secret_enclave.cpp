@@ -651,6 +651,7 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
     sgx_report_body_t* reportBody = &quoteBody->report_body;
     sgx_report_data_t expectedReportData = *(&reportBody->report_data);
     sgx_measurement_t mrEnclaveFromReport = *(&reportBody->mr_enclave);
+    sgx_attributes_t attributes = *(&reportBody->attributes);
 
     ByteArray allowedContractMR_ENCLAVE = HexEncodedStringToByteArray(ESERVICE_ENCLAVE_MRENCLAVE);
 
@@ -676,14 +677,24 @@ pdo_err_t VerifyEnclaveInfo(const std::string& enclaveInfo,
         memcmp(computedReportData.d, expectedReportData.d, SGX_REPORT_DATA_SIZE)  != 0,
         "Invalid Report data: computedReportData does not match expectedReportData");
 
-    //Note that we do not currently verify whether the enclave debug flag is
-    //turned on or not. In order to ensure that the enclave is run in a mode
-    //that supports enhanced-confidentiality and execution integrity, the debug
-    //flag (SGX_FLAGS_DEBUG / 0x0000000000000002ULL in the report's attribute)
-    //should be set to 0. For additional details on how we plan to support this
-    //check, please see
-    //https://github.com/hyperledger-labs/private-data-objects/issues/195.
-    //
+    // Verify 64-bit enclave
+    pdo::error::ThrowIf<pdo::error::ValueError>((attributes.flags & SGX_FLAGS_MODE64BIT) == 0,
+            "Invalid 64-bit flag: 0");
+
+    // Verify SGX debug flag: check mask and enforce if necessary
+    if(attribute_mask_flags & SGX_FLAGS_DEBUG) //if bit is set, enforce debug flag check
+    {
+        pdo::error::ThrowIf<pdo::error::ValueError>(
+                (attributes.flags & SGX_FLAGS_DEBUG) != (attributes_flags & SGX_FLAGS_DEBUG),
+                "Invalid SGX debug flag");
+    }
+
+    // Note that we do not currently verify whether the TCB version of the enclave.
+    // This must be implemented to ensure that the enclave does not run using an old
+    // superseded TCB.
+    // For additional details on how we plan to support this check, please see
+    // https://github.com/hyperledger-labs/private-data-objects/issues/195.
+
     return result;
 }// VerifyEnclaveInfo
 
