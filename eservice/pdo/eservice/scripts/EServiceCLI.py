@@ -44,6 +44,7 @@ from twisted.python.threadpool import ThreadPool
 from twisted.internet import reactor, defer
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.web.wsgi import WSGIResource
+from twisted.internet.error import ReactorNotRunning
 
 ## ----------------------------------------------------------------
 def ErrorResponse(request, error_code, msg) :
