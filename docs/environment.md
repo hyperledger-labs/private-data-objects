@@ -90,7 +90,7 @@ will be exported. Defaults to HOSTNAME.
 
 <!-- -------------------------------------------------- -->
 ### `PDO_DEBUG_BUILD`
-(default: 0)
+(default: 1)
 
 `PDO_DEBUG_BUILD` builds PDO modules for debugging. This includes
 compile flags, logging statements in the enclave, etc. Since

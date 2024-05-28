@@ -20,7 +20,7 @@
 ADD_COMPILE_OPTIONS(-m64 -fvisibility=hidden -fpie -fPIC -fstack-protector)
 ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
 
-OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" 0)
+OPTION(PDO_DEBUG_BUILD "Build with debugging turned on" 1)
 
 IF (DEFINED ENV{PDO_DEBUG_BUILD})
   SET(PDO_DEBUG_BUILD $ENV{PDO_DEBUG_BUILD})

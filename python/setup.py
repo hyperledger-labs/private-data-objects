@@ -48,7 +48,7 @@ data_files = [
 # note that setuptools does not make it easy to pass custom command
 # line parameters so we have to use environment variables
 # -----------------------------------------------------------------
-debug_flag = int(os.environ.get('PDO_DEBUG_BUILD', 0))
+debug_flag = int(os.environ.get('PDO_DEBUG_BUILD', 1))
 if debug_flag :
     print("Build debug")
 

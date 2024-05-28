@@ -29,12 +29,12 @@ services:
     environment:
       - PDO_VERSION=${PDO_VERSION}
       - PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
-      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-0}
+      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-1}
     entrypoint: /project/pdo/tools/run_services_tests.sh
 
   client_container:
     environment:
       - PDO_VERSION=${PDO_VERSION}
       - PDO_LOG_LEVEL=${PDO_LOG_LEVEL:-info}
-      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-0}
+      - PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-1}
     entrypoint: /project/pdo/tools/run_client_tests.sh

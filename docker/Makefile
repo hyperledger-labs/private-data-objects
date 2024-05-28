@@ -26,7 +26,7 @@ PDO_SOURCE_ROOT ?= $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../
 
 # PDO_DEBUG_BUILD
 # The flag that determines the build type (debug or not).
-PDO_DEBUG_BUILD ?= ${PDO_DEBUG_BUILD:-0}
+PDO_DEBUG_BUILD ?= 1
 
 # PDO_REPO --
 #   The URL or path to the git repository, the default uses the current repository
