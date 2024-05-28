@@ -21,7 +21,7 @@ limitations under the License.
   <HeapMaxSize>0x800000</HeapMaxSize>
   <TCSNum>1</TCSNum>
   <TCSPolicy>1</TCSPolicy>
-  <DisableDebug>0</DisableDebug>
+  <DisableDebug>${DISABLE_DEBUG}</DisableDebug>
   <MiscSelect>0</MiscSelect>
   <MiscMask>0xFFFFFFFF</MiscMask>
 </EnclaveConfiguration>
