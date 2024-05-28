@@ -25,7 +25,7 @@ export SGX_MODE=${SGX_MODE:-SIM}
 export PDO_LEDGER_TYPE=${PDO_LEDGER_TYPE:-ccf}
 export PDO_INTERPRETER=${PDO_INTERPRETER:-wawaka}
 export WASM_MEM_CONFIG=${WASM_MEM_CONFIG:-MEDIUM}
-export PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-0}
+export PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD:-1}
 
 # these variables are internal to the layout of the container and immutable
 export PDO_SOURCE_ROOT=/project/pdo/src

@@ -54,7 +54,7 @@ ext_deps = [
 ## -----------------------------------------------------------------
 ## set up the contract enclave
 ## -----------------------------------------------------------------
-debug_flag_env = os.environ.get('PDO_DEBUG_BUILD', '0')
+debug_flag_env = os.environ.get('PDO_DEBUG_BUILD', '1')
 if debug_flag_env not in ['0', '1'] :
     print(f'error: PDO_DEBUG_BUILD must be 0 or 1, current value is {debug_flag_env}')
     sys.exit(2)

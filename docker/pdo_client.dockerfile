@@ -42,7 +42,7 @@ USER $UNAME
 # -----------------------------------------------------------------
 ARG REBUILD=0
 
-ARG PDO_DEBUG_BUILD=0
+ARG PDO_DEBUG_BUILD=1
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
 
 ARG PDO_LEDGER_TYPE=ccf
