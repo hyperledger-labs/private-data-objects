@@ -23,6 +23,8 @@ jobs:
               if: "!contains(github.event.commits[0].message, '[debug]')"
               env:
                   PDO_INTERPRETER: ${{ matrix.interpreter }}
+                  PDO_DEBUG_BUILD: 1
+                  PDO_LOG_LEVEL: warning
               run: |
                   # The creation of a dummy branch is necessary for the CI tests
                   # to work on PRs. Based on empirical results, in the absence of

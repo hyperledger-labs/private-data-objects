@@ -69,7 +69,7 @@ $(SWIG_TARGET) : $(SWIG_FILES) $(ENCLAVE_LIB)
 
 build :
 	mkdir $@
-	cd $@ && cmake .. -G "Unix Makefiles"
+	cd $@ && cmake .. $(CMAKE_ARGS) -G "Unix Makefiles"
 
 install: $(EGG_FILE)
 	@ . $(abspath $(DSTDIR)/bin/activate) && \
@@ -85,10 +85,16 @@ test:
 	cd tests && pdo-test-request --no-ledger --iterations 10 --logfile $(TEST_LOG_FILE) --loglevel $(TEST_LOG_LEVEL)
 
 clean:
-	rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
-	rm -rf build deps dist *.egg-info
-	find . -iname '*.pyc' -delete
-	find . -iname '__pycache__' -delete
+	@ echo Remove build directory
+	@ if [ -d build ]; then \
+		make -C build clean; \
+		rm -rf build deps dist *.egg-info ; \
+	fi
+	@ echo clean swig files
+	@ rm -f $(addprefix pdo/eservice/enclave/, pdo_enclave_internal.py pdo_enclave_internal_wrap.cpp)
+	@ echo Clean up python caches
+	@ find . -iname '*.pyc' -delete
+	@ find . -iname '__pycache__' -delete
 
 print_enclave_files:
 	@echo $(ENCLAVE_FILES)

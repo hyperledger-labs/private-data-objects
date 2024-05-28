@@ -26,9 +26,24 @@ IF (NOT DEFINED ENV{SGX_MODE})
 ENDIF()
 SET(SGX_MODE $ENV{SGX_MODE})
 
+# There are effectively three build modes for SGX:
+#   1) SIM mode with PDO_DEBUG_BUILD enabled
+#   2) HW mode with PDO_DEBUG_BUILD enabled
+#   3) HW mode with PDO_DEBUG_BUILD disabled (release mode)
+# For now we just check the consistency of the variables (SGX_MODE, PDO_DEBUG_BUILD and CMAKE_BUIDL_TYPE)
 IF (${SGX_MODE} STREQUAL "SIM")
+    IF (NOT ${PDO_DEBUG_BUILD})
+        MESSAGE(FATAL_ERROR "SGX_MODE=SIM does not accept PDO_DEBUG_BUILD=0")
+    ENDIF()
+
     SET(SGX_USE_SIMULATOR TRUE)
 ELSE()
+    IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        IF (${PDO_DEBUG_BUILD})
+            MESSAGE(FATAL_ERROR "SGX_MODE=HW and CMAKE_BUILD_TYPE=Release do not accept PDO_DEBUG_BUILD=1")
+        ENDIF()
+    ENDIF()
+
     SET(SGX_USE_SIMULATOR FALSE)
 ENDIF()
 
@@ -240,4 +255,35 @@ FUNCTION(SGX_DEPLOY_FILES TARGET HEADER_NAME)
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPS_DIR}/include"
     COMMAND ${GENERATE_COMMAND} --metadata ${SIGNED_ENCLAVE}.meta --header ${HEADER_FILE} --enclave ${VARIABLE_NAME}
   )
+ENDFUNCTION()
+
+# -----------------------------------------------------------------
+# SGX_CONFIGURE_ENCLAVE
+#
+# Generate the xml configuration file which can be then used by
+# SGX_SIGN. For now, the only field that is changed is the flag to
+# disable debugging. Note that this uses the configure_file cmake
+# command which expands references to variables like ${DISABLE_DEBUG}
+# -----------------------------------------------------------------
+FUNCTION(SGX_CONFIGURE_ENCLAVE TARGET CONFIG)
+  # the flag in the configuration file is used to DISABLE debugging,
+  # precisely the opposite of the PDO_DEBUG_BUILD flag
+  IF (${PDO_DEBUG_BUILD})
+    SET(DISABLE_DEBUG "0")
+  ELSE()
+    SET(DISABLE_DEBUG "1")
+  ENDIF()
+
+  CONFIGURE_FILE(${CONFIG}.in ${CONFIG})
+
+  ADD_CUSTOM_TARGET(
+    generate-configuration-file
+    DEPENDS ${CONFIG})
+
+  SET_PROPERTY(
+    TARGET generate-configuration-file
+    APPEND
+    PROPERTY ADDITIONAL_CLEAN_FILES ${CONFIG})
+
+  ADD_DEPENDENCIES(${TARGET} generate-configuration-file)
 ENDFUNCTION()
