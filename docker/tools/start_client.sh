@@ -26,14 +26,13 @@ SCRIPT_NAME=$(basename ${BASH_SOURCE[-1]} )
 # -----------------------------------------------------------------
 # Process command line arguments
 # -----------------------------------------------------------------
-F_LOGLEVEL=
 F_MODE=build
 F_INTERFACE=
 F_LEDGER_URL=
 
-F_USAGE='-i|--interface [hostname] -1|--ledger [url] --loglevel [debug|info|warn] -m|--mode [build|copy|skip]'
+F_USAGE='-i|--interface [hostname] -1|--ledger [url] -m|--mode [build|copy|skip]'
 SHORT_OPTS='i:l:m:'
-LONG_OPTS='interface:,ledger:,loglevel:,mode:'
+LONG_OPTS='interface:,ledger:,mode:'
 
 TEMP=$(getopt -o ${SHORT_OPTS} --long ${LONG_OPTS} -n "${SCRIPT_NAME}" -- "$@")
 if [ $? != 0 ] ; then echo "Usage: ${SCRIPT_NAME} ${F_USAGE}" >&2 ; exit 1 ; fi
@@ -43,7 +42,6 @@ while true ; do
     case "$1" in
         -i|--interface) F_INTERFACE="$2" ; shift 2 ;;
         -l|--ledger) F_LEDGER_URL="$2" ; shift 2 ;;
-        --loglevel) F_LOGLEVEL="--loglevel $2" ; shift 2 ;;
         -m|--mode) F_MODE="$2" ; shift 2 ;;
         --help) echo "Usage: ${SCRIPT_NAME} ${F_USAGE}"; exit 0 ;;
     	--) shift ; break ;;
