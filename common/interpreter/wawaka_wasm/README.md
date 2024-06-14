@@ -82,17 +82,17 @@ be adjusted depending on the requirements for a WASM contract:
 To facilitate configuring wawaka's memory, we provide
 three pre-defined memory configurations that meet most
 contract requirements:
-- `SMALL`: 1MB WASM runtime memory pool (64KB stack, 768KB heap)
-- `MEDIUM`: 2MB WASM runtime memory pool (256KB stack, 1.5MB heap)
-- `LARGE`: 4MB WASM runtime memory pool (512KB stack, 3MB heap)
+- `SMALL`: 4MB WASM runtime memory pool (512KB stack, 3MB heap)
+- `MEDIUM`: 8MB WASM runtime memory pool (512KB stack, 7MB heap)
+- `LARGE`: 16MB WASM runtime memory pool (512KB stack, 15MB heap)
 
 To use a specific memory configuration, set
-the environment variable `WASM_MEM_CONFIG` (the default is the `MEDIUM`
+the environment variable `PDO_MEMORY_CONFIG` (the default is the `MEDIUM`
 configuration) to build the wawaka interpreter with those memory
 settings:
 
 ```bash
-export WASM_MEM_CONFIG=MEDIUM
+export PDO_MEMORY_CONFIG=MEDIUM
 ```
 
 Here are some tips for choosing the right wawaka memory configuration
