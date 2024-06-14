@@ -34,19 +34,19 @@ var_set() {
 	"
 	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
 
-	env_val[WASM_MEM_CONFIG]="${WASM_MEM_CONFIG:-MEDIUM}"
-	env_desc[WASM_MEM_CONFIG]="
-		WASM_MEM_CONFIG indicates the memory configuration for the
-		WASM runtime: the runtime's global memory pool size,
+	env_val[PDO_MEMORY_CONFIG]="${PDO_MEMORY_CONFIG:-MEDIUM}"
+	env_desc[PDO_MEMORY_CONFIG]="
+		PDO_MEMORY_CONFIG indicates the memory configuration for the
+		enclave and WASM runtime: the runtime's global memory pool size,
 		and a module's operand stack and heap size.
 		When the variable is set to 'SMALL', the runtime's memory pool
-		size is set to 1MB. If the variable is set to 'MEDIUM', the
-		runtime's memory pool size is set to 2MB.
+		size is set to 4MB. If the variable is set to 'MEDIUM', the
+		runtime's memory pool size is set to 8MB.
 		When the variable is set to 'LARGE', the runtime's
-		memory pool size is set to 4MB. See
+		memory pool size is set to 16MB. See
 		common/interpreter/wawaka_wasm/README.md for further details.
 	"
-	env_key_sort[$i]="WASM_MEM_CONFIG"; i=$i+1; export WASM_MEM_CONFIG=${env_val[WASM_MEM_CONFIG]};
+	env_key_sort[$i]="PDO_MEMORY_CONFIG"; i=$i+1; export PDO_MEMORY_CONFIG=${env_val[PDO_MEMORY_CONFIG]};
 
 	env_val[PDO_INTERPRETER]="${PDO_INTERPRETER:-wawaka}"
 	env_desc[PDO_INTERPRETER]="
