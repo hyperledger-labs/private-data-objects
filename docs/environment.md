@@ -107,19 +107,16 @@ The git submodule points to the latest tagged commit of [WAMR](https://github.co
 `WAMR-1.1.2`.
 
 <!-- -------------------------------------------------- -->
-### `WASM_MEM_CONFIG`
+### `PDO_MEMORY_CONFIG`
 (default: `MEDIUM`)
 
-`WASM_MEM_CONFIG` indicates the memory configuration for the
-WASM runtime: the runtime's global memory pool size,
-the WASM module's heap size, and the size of module's
-operand stack.
-When the variable is set to `SMALL`, the runtime's global memory
-pool size is set to 1MB.
-If the variable is set to `MEDIUM`, the runtime's memory pool
-size is set to 2MB.
-When the variable is set to `LARGE`, the runtime's memory
-pool size is set to 4MB.
+`PDO_MEMORY_CONFIG` indicates the memory configuration for the enclave
+and WASM runtime: the runtime's global memory pool size, the WASM
+module's heap size, and the size of module's operand stack.  When the
+variable is set to `SMALL`, the runtime's global memory pool size is
+set to 4MB.  If the variable is set to `MEDIUM`, the runtime's memory
+pool size is set to 8MB.  When the variable is set to `LARGE`, the
+runtime's memory pool size is set to 16MB.
 
 <!-- -------------------------------------------------- -->
 <!-- -------------------------------------------------- -->
