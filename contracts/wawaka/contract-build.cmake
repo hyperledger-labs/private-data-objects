@@ -28,39 +28,10 @@ IF (NOT DEFINED ENV{WASM_SRC})
 ENDIF()
 SET(WASM_SRC "$ENV{WASM_SRC}")
 
-IF (NOT DEFINED ENV{WASM_MEM_CONFIG})
-  MESSAGE(FATAL_ERROR "WASM_MEM_CONFIG environment variable not defined!")
-ENDIF()
-SET(WASM_MEM_CONFIG "$ENV{WASM_MEM_CONFIG}")
-
 # this should be set by the WAMR toolchain file
 IF (NOT DEFINED WASI_SDK_DIR)
   MESSAGE(FATAL_ERROR "WASM_SDK_DIR was not defined, check toolchain defines")
 ENDIF()
-
-# ---------------------------------------------
-# Set up the memory configuration
-# ---------------------------------------------
-
-# LINEAR_MEMORY: Maximum size for a WASM module's linear memory (module's
-# internal stack + static globals + padding); needs to be multiple of 64KB
-
-# INTERNAL_STACK_SIZE: Size of a WASM module's internal data stack
-# (part of LINEAR_MEMORY)
-
-IF (WASM_MEM_CONFIG STREQUAL "SMALL")
-  SET(INTERNAL_STACK_SIZE 24576)
-  SET(LINEAR_MEMORY 65536)
-  message(STATUS "Building contracts for SMALL memory configuration")
-ELSEIF (WASM_MEM_CONFIG STREQUAL "LARGE")
-  SET(INTERNAL_STACK_SIZE 98304)
-  SET(LINEAR_MEMORY 262144)
-  message(STATUS "Building contracts for LARGE memory configuration")
-ELSE()
-  SET(INTERNAL_STACK_SIZE 49152)
-  SET(LINEAR_MEMORY 131072)
-  message(STATUS "Building contracts for MEDIUM memory configuration")
-ENDIF ()
 
 # ---------------------------------------------
 # Set up the compiler configuration
@@ -80,11 +51,7 @@ LIST(APPEND WASM_BUILD_OPTIONS "-std=c++11")
 LIST(APPEND WASM_BUILD_OPTIONS "-DUSE_WASI_SDK=1")
 
 SET(WASM_LINK_OPTIONS)
-LIST(APPEND WASM_LINK_OPTIONS "-Wl,--initial-memory=${LINEAR_MEMORY}")
-LIST(APPEND WASM_LINK_OPTIONS "-Wl,--max-memory=${LINEAR_MEMORY}")
-LIST(APPEND WASM_LINK_OPTIONS "-z stack-size=${INTERNAL_STACK_SIZE}")
 LIST(APPEND WASM_LINK_OPTIONS "-Wl,--allow-undefined")
-
 LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_dispatch")
 LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_initialize")
 

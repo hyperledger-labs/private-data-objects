@@ -140,13 +140,12 @@
         "expected": "1500000"
     },
     {
-        "description" : "big value test 2 MB should {invert} with WAMR \"out of memory\" exception",
+        "description" : "big value test 2 MB",
         "MethodName": "big_value_test",
         "KeywordParameters": {
             "num_chars" : 2000000
         },
-        "invert": "fail",
-        "expected": "internal pdo error"
+        "expected": "2000000"
     },
     {
         "description" : "deep recursion test {KeywordParameters}",
@@ -197,13 +196,12 @@
         "expected": "64000"
     },
     {
-        "description" : "big key test 1 MB should {invert} with WAMR \"out of memory\" exception",
+        "description" : "big key test 1 MB",
         "MethodName": "big_key_test",
         "KeywordParameters": {
             "num_chars" : 1000000
         },
-        "invert": "fail",
-        "expected":"internal pdo error"
+        "expected":"1000000"
     },
     {
         "description" : "deep recursion test {KeywordParameters}",

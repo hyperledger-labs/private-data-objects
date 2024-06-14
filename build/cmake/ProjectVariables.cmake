@@ -66,6 +66,20 @@ IF (NOT DEFINED ENV{PDO_SOURCE_ROOT})
 ENDIF()
 SET(PDO_SOURCE_ROOT $ENV{PDO_SOURCE_ROOT})
 
+# The memory size option configures enclave and interpreter memory
+# size values. The variable may have the value of "SMALL", "MEDIUM" or
+# "LARGE". This is a project variable because the configurations
+# depend on one another (the interpreter heap size must fit into the
+# enclave heap, for example).
+SET(PDO_MEMORY_CONFIG "MEDIUM" CACHE STRING "Set memory size parameters for enclave and interpreter")
+IF (DEFINED ENV{PDO_MEMORY_CONFIG})
+  SET(PDO_MEMORY_CONFIG $ENV{PDO_MEMORY_CONFIG})
+ENDIF()
+SET(MEMORY_SIZE_OPTIONS "SMALL" "MEDIUM" "LARGE")
+IF (NOT ${PDO_MEMORY_CONFIG} IN_LIST MEMORY_SIZE_OPTIONS)
+  MESSAGE(FATAL_ERROR "Invalid memory size; ${PDO_MEMORY_CONFIG}")
+ENDIF()
+
 # Get the current version using the get_version
 # utility; note that this will provide 0.0.0 as
 # the version if something goes wrong (like running
