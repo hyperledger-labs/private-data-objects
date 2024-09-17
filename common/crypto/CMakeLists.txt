@@ -39,6 +39,9 @@ ENDIF()
 # by the client (ias verification requires sgx).
 ################################################################################
 IF (BUILD_TRUSTED OR BUILD_UNTRUSTED)
+  # Build attestation library
+  ADD_SUBDIRECTORY (one-attestation-api)
+
   SET(PROJECT_GENERATED_IAS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/ias-certificates.txt)
   SET_SOURCE_FILES_PROPERTIES(${PROJECT_GENERATED_IAS_SOURCES} PROPERTIES GENERATED TRUE)
   SET(FETCH_IAS_CERTS ${CMAKE_CURRENT_SOURCE_DIR}/verify_ias_report/fetch_ias_certificates.sh)

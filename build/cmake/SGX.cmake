@@ -110,7 +110,7 @@ ENDIF()
 SET(SGX_TRUSTED_LIBS sgx_tstdc sgx_tcxx sgx_tcrypto ${SERVICE_LIBRARY_NAME})
 SET(SGX_UNTRUSTED_LIBS ${URTS_LIBRARY_NAME} pthread)
 
-SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include")
+SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include:$ENV{PDO_SOURCE_ROOT}/common")
 SET(SGX_TRUSTED_INCLUDE_DIRS
   "${SGX_SDK}/include"
   "${SGX_SDK}/include/tlibc"

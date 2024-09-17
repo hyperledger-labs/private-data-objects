@@ -36,6 +36,7 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
     --no-install-recommends \
     libsgx-urts \
     libsgx-uae-service \
+    libsgx-dcap-ql-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

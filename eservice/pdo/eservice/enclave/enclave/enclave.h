@@ -103,6 +103,7 @@ namespace pdo {
             {
                 return this->threadId;
             }
+            sgx_spid_t spid;
 
         protected:
             void LoadEnclave();
@@ -116,7 +117,6 @@ namespace pdo {
             size_t sealedSignupDataSize;
 
             std::string signatureRevocationList;
-            sgx_spid_t spid;
 
             sgx_target_info_t reportTargetInfo;
             sgx_epid_group_id_t epidGroupId;
