@@ -8,7 +8,7 @@ jobs:
     pdo_ci:
         if: "!contains(github.event.commits[0].message, '[skip ci]')"
         name: PDO CI Job
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-22.04
 
         strategy:
             matrix:
@@ -17,7 +17,16 @@ jobs:
 
         steps:
             - name: Check out repo
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
+              with:
+                submodules: recursive
+                fetch-depth: 0
+                fetch-tags: true
+
+            - name: Display branch name
+              run: |
+                echo "Building branch $GITHUB_HEAD_REF"
+                echo PDO VERSION is $(bin/get_version)
 
             - name: Build and run tests
               if: "!contains(github.event.commits[0].message, '[debug]')"

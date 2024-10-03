@@ -14,35 +14,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+import os
+import pathlib
 import subprocess
-import sys
-import warnings
 
-count = 0
-commit = ''
-dirty = ''
+pdo_source_root=pathlib.Path(__file__).parent.parent
+version_file = pdo_source_root / 'VERSION'
 
-try :
-    output = subprocess.check_output(['git', 'describe', '--dirty'])
-    (version, *rest) = output.decode('utf-8').strip().split('-')
-    (major, minor, patch) = version.strip('v').split('.')
+parser = argparse.ArgumentParser()
 
-    # first case: this is a dirty tagged release, only dirty flag
-    if len(rest) == 1 :
-        assert rest[0] == 'dirty'
-        dirty = 'dirty'
-    # second case: this is a committed post tag release
-    elif len(rest) == 2 :
-        count = rest[0]
-        commit = rest[1]
-    # third case: this is a dirty, committed post tag release
-    elif len(rest) == 3 :
-        assert rest[2] == 'dirty'
-        count = rest[0]
-        commit = rest[1]
-        dirty = rest[2]
+parser.add_argument(
+    '--version-file', '-f',
+    help=f'File where version information is stored (default: {version_file})',
+    type=str)
 
-    print('{}.{}.{}'.format(major, minor, count))
-except Exception as e :
-    warnings.warn('failed to compute version, using default')
-    print('0.0.0')
+options = parser.parse_args()
+
+if options.version_file :
+    version_file = pathlib.Path(options.version_file)
+    pdo_source_root = version_file.parent
+
+# the version file is a tab separated list of version numbers and git commit hashes in reverse
+# order (newest is at the top of the file)
+with open(version_file, 'r') as vf :
+    (version, commit, *rest) = vf.readline().strip().split('\t')
+
+# the version is of the form x.y.z, there may be an optional 'v' at the beginning of the version
+# string
+(major, minor, patch) = version.strip('v').split('.')
+
+# compute the number of commits since the tagged version was
+# committed to the repository
+command = ['git', 'rev-list', commit + '...HEAD', '--count']
+output = subprocess.run(command, cwd=pdo_source_root, capture_output=True, text=True)
+count = output.stdout.strip()
+
+# the actual patch version number is the recorded patch number added to the number of commits
+# since the version was committed
+print('{}.{}.{}'.format(major, minor, int(patch) + int(count)))
