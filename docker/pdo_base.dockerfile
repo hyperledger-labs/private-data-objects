@@ -27,7 +27,7 @@ ARG ADD_APT_PKGS=
 
 ENV DEBIAN_FRONTEND "noninteractive"
 RUN apt-get update \
-    && apt-get install -y -q \
+    && apt-get install -y -q --no-install-recommends \
         autoconf \
         automake \
         build-essential \

@@ -31,7 +31,7 @@ ARG ADD_APT_PKGS=
 
 ENV DEBIAN_FRONTEND "noninteractive"
 RUN apt-get update \
-    && apt-get install -y -q \
+    && apt-get install -y -q --no-install-recommends \
         libsecp256k1-dev \
         lsof \
         python \
@@ -46,8 +46,9 @@ RUN apt-get update \
 RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list
 RUN curl https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
 
+
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
         sgx-aesm-service \
         libsgx-dcap-ql \
         libsgx-urts \
