@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+# Copyright 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Add a new version to the version file. The version file is a tab separated list of version numbers
+# and git commit hashes in reverse order (newest is at the top of the file). The version may contain
+# a short description as well.
+
+import argparse
+import datetime
+import os
+import pathlib
+import subprocess
+
+pdo_source_root=pathlib.Path(__file__).parent.parent
+version_file = pdo_source_root / 'VERSION'
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    '--version-file', '-f',
+    help=f'File where version information is stored (default: {version_file})',
+    type=str)
+
+parser.add_argument(
+    '--version', '-v',
+    help='Version to commit, form <major>.<minor>.<patch> (default: increment minor version by one and reset patch level)',
+    type=str)
+
+parser.add_argument(
+    '--description', '-d',
+    help='Optional description to add to the version',
+    type=str)
+
+parser.add_argument(
+    '--commit', '-c',
+    help='Hash of the git commit to associate with the version (default: commit at HEAD)',
+    type=str)
+
+options = parser.parse_args()
+
+# Get the VERSION file and current source path
+if options.version_file :
+    version_file = pathlib.Path(options.version_file)
+    pdo_source_root = version_file.parent
+
+# Compute the new version, by default the version will increment the minor version of the most
+# recent version and reset the patch level. the version is of the form x.y.z, there may be an
+# optional 'v' at the beginning of the version string
+if options.version :
+    version = options.version
+    (major, minor, patch) = version.strip('v').split('.')
+
+    major = int(major)
+    minor = int(minor)
+    patch = int(patch)
+
+else :
+    # get the current version information from the version file
+    with open(version_file, 'r') as vf :
+        (version, commit, *rest) = vf.readline().strip().split('\t')
+
+    (major, minor, patch) = version.strip('v').split('.')
+
+    major = int(major)
+    minor = int(minor) + 1
+    patch = 0
+
+# Compute the commit to associate with the new version
+if options.commit :
+    command = ['git', 'rev-parse', options.commit]
+else :
+    command = ['git', 'rev-parse', 'HEAD']
+
+output = subprocess.run(command, cwd=pdo_source_root, capture_output=True, text=True)
+output.check_returncode()
+commit = output.stdout.strip()
+
+description = str(datetime.date.today())
+if options.description :
+    description += f' {options.description}'
+
+# Finally write the new version out to the VERSION file
+version_entry = f'{major}.{minor}.{patch}\t{commit}\t{description}'
+with open(version_file, 'r+') as vf :
+    content = vf.read()
+    vf.seek(0,0)
+    vf.write(version_entry + '\n' + content)

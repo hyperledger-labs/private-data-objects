@@ -85,9 +85,13 @@ ENDIF()
 # the version if something goes wrong (like running
 # without any annotated version tags)
 EXECUTE_PROCESS(
-  COMMAND ./get_version
-  WORKING_DIRECTORY ${PDO_SOURCE_ROOT}/bin
+  COMMAND ${PDO_SOURCE_ROOT}/bin/get_version
+  WORKING_DIRECTORY ${PDO_SOURCE_ROOT}
   OUTPUT_VARIABLE PDO_VERSION
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+IF (NOT PDO_VERSION)
+  MESSAGE(FATAL_ERROR "Unable to compute PDO_VERSION")
+ENDIF()
