@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Copyright 2023 Intel Corporation
+# Copyright 2024 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,42 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-ARG PDO_VERSION
-FROM pdo_base:${PDO_VERSION}
-
+FROM ubuntu:22.04
 ARG UBUNTU_VERSION=22.04
 ARG UBUNTU_NAME=jammy
+
+ENV TERM=screen-256color
+
+RUN apt-get update \
+    && apt-get install -y -q \
+        build-essential \
+        debhelper \
+        git \
+        libcurl4-openssl-dev \
+        pkgconf \
+        python-is-python3 \
+        wget \
+        zip
+
+RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" | tee /etc/apt/sources.list.d/intel-sgx.list
+RUN cat /etc/apt/sources.list.d/intel-sgx.list
+RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add
+
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update
+RUN apt-get install -y -q \
+        libboost-dev \
+        libboost-system-dev \
+        libboost-thread-dev \
+        protobuf-c-compiler \
+        libprotobuf-c-dev \
+        protobuf-compiler
 
 ARG SGX=2.25
 ARG OPENSSL=3.0.14
 ARG SGXSSL=3.0_Rev4
 
-RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
- && wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - \
- && apt-get update \
- && apt-get install -y \
+RUN apt-get install -y \
     # We do not need daemons like AESMD as we run them on host (side-steps also
     # issues with config of /etc/aesmd.conf like proxy ..). Without this option
     # aesmd and lots of other plugsin are automatically pulled in.
@@ -37,9 +59,7 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
     libsgx-urts \
     libsgx-uae-service \
     libsgx-dcap-ql-dev \
-    libsgx-dcap-quote-verify-dev \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    libsgx-dcap-quote-verify-dev
 
 # Install SGX SDK
 WORKDIR /opt/intel
@@ -86,18 +106,10 @@ RUN . /opt/intel/sgxsdk/environment \
 
 ENV SGX_SSL="/opt/intel/sgxssl"
 
-
 # -----------------------------------------------------------------
 # SGX DCAP Primitives
 # -----------------------------------------------------------------
 RUN apt-get update
-RUN apt-get install -y -q \
-        libboost-dev \
-        libboost-system-dev \
-        libboost-thread-dev \
-        protobuf-c-compiler \
-        libprotobuf-c-dev \
-        protobuf-compiler
 RUN apt-get install -y \
         basez \
         clang \
@@ -131,23 +143,4 @@ RUN echo '{\n\
     "use_secure_cert": false\n\
     }' > /etc/sgx_default_qcnl.conf
 
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-WORKDIR /project/pdo
-
-ARG UNAME=pdo_services
-ENV UNAME=${UNAME}
-
-ARG UID=1000
-ARG GID=$UID
-
-RUN groupadd -f -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
-RUN chown --recursive $UNAME:$UNAME /project/pdo
-USER $UNAME
-
-#this is necessary for git operations such as "git describe --tags" from the new user
-RUN git config --global --add safe.directory ${DCAP_PRIMITIVES}
-
-ENTRYPOINT ["/bin/bash"]
+WORKDIR /project
