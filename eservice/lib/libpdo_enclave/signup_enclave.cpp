@@ -40,6 +40,8 @@
 #include "enclave_utils.h"
 #include "signup_enclave.h"
 
+#include "attestation-api/include/attestation.h"
+
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // XX Declaration of static helper functions                         XX
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -109,6 +111,11 @@ pdo_err_t ecall_CalculatePublicEnclaveDataSize(size_t* pPublicEnclaveDataSize)
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
     const char* inOriginatorPublicKeyHash,
+    uint8_t* inAttestationParams,
+    size_t inAttestationParamsSize,
+    uint8_t* outAttestation,
+    size_t inAllocatedAttestationSize,
+    size_t* outAttestationSize,
     char* outPublicEnclaveData,
     size_t inAllocatedPublicEnclaveDataSize,
     size_t* outPublicEnclaveDataSize,
@@ -158,6 +165,16 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
         sgx_report_data_t reportData = {0};
         CreateSignupReportData(inOriginatorPublicKeyHash, enclaveData, &reportData);
 
+        // get serialized statement (which will be later hashed to create report data)
+        std::string hashString;
+        hashString.append(enclaveData.get_serialized_signing_key());
+        hashString.append(enclaveData.get_serialized_encryption_key());
+        std::transform(inOriginatorPublicKeyHash,
+                inOriginatorPublicKeyHash + strlen(inOriginatorPublicKeyHash), std::back_inserter(hashString),
+                [](char c) {
+                return c;  // do nothing
+                });
+
         sgx_status_t ret = sgx_create_report(inTargetInfo, &reportData, outEnclaveReport);
         pdo::error::ThrowSgxError(ret, "Failed to create enclave report");
 
@@ -187,6 +204,15 @@ pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
         strncpy_s(outPublicEnclaveData, inAllocatedPublicEnclaveDataSize,
             enclaveData.get_public_data().c_str(),
             enclaveData.get_public_data_size());
+
+        bool b = init_attestation(inAttestationParams, inAttestationParamsSize);
+        pdo::error::ThrowIf<pdo::error::ValueError>(b == false, "Error in init attestation");
+
+        uint32_t as;
+        b = get_attestation((uint8_t*)hashString.c_str(), hashString.length(), outAttestation, inAllocatedAttestationSize, &as);
+        *outAttestationSize = (size_t)as;
+        pdo::error::ThrowIf<pdo::error::ValueError>(b == false, "Error in attestation");
+
     }
     catch (pdo::error::Error& e)
     {

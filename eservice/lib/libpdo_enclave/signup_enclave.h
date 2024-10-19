@@ -29,6 +29,11 @@ extern pdo_err_t ecall_CalculatePublicEnclaveDataSize(size_t* pPublicEnclaveData
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 extern pdo_err_t ecall_CreateEnclaveData(const sgx_target_info_t* inTargetInfo,
     const char* inOriginatorPublicKeyHash,
+    uint8_t* inAttestationParams,
+    size_t inAttestationParamsSize,
+    uint8_t* outAttestation,
+    size_t inAllocatedAttestationSize,
+    size_t* outAttestationSize,
     char* outPublicEnclaveData,
     size_t inAllocatedPublicEnclaveDataSize,
     size_t* outPublicEnclaveDataSize,

@@ -100,6 +100,7 @@ library_dirs = [
 
 libraries = [
     'updo-common',
+    'u-one-attestation',
     'pdo-lmdb-block-store',
     'lmdb'
 ]
@@ -109,7 +110,7 @@ if sgx_simulator_flag :
 else :
     libraries += ['sgx_urts', 'sgx_uae_service']
 
-libraries += ['sgx_usgxssl']
+libraries += ['sgx_usgxssl', 'sgx_dcap_ql']
 
 module_files = [
     os.path.join(module_src_path, 'pdo_enclave_internal.i'),
