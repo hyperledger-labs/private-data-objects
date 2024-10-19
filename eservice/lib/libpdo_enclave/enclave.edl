@@ -20,4 +20,5 @@ enclave {
     from "signup.edl" import *;
     from "contract.edl" import *;
     from "block_store.edl" import *;
+    from "crypto/attestation-api/ocalls/attestation-ocalls.edl" import *;
 };

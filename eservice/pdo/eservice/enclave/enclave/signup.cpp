@@ -26,6 +26,8 @@
 #include "pdo_error.h"
 #include "types.h"
 #include "zero.h"
+#include "jsonvalue.h"
+#include "hex_string.h"
 
 #include "enclave/enclave.h"
 #include "enclave/base.h"
@@ -134,11 +136,24 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
         size_t computed_public_enclave_data_size;
         size_t computed_sealed_enclave_data_size;
 
+        std::string hex_spid = BinaryToHexString(g_Enclave[0].spid.id, 16);
+        std::string attestation_params =
+            std::string("{\"attestation_type\": \"epid-linkable\", \"hex_spid\": \"") +
+            hex_spid +
+            std::string("\", \"sig_rl\": \"\"}")
+            ;
+        ByteArray attestation;
+        attestation.resize(1 << 12);
+        size_t attestation_size;
+
         sresult = g_Enclave[0].CallSgx(
             [enclaveid,
              &presult,
              target_info,
              inOriginatorPublicKeyHash,
+             &attestation_params,
+             &attestation,
+             &attestation_size,
              &outPublicEnclaveData,
              &computed_public_enclave_data_size,
              &sealed_enclave_data_buffer,
@@ -150,6 +165,11 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
                     &presult,
                     &target_info,
                     inOriginatorPublicKeyHash.c_str(),
+                    (uint8_t*)(attestation_params.c_str()),
+                    attestation_params.length(),
+                    attestation.data(),
+                    attestation.size(),
+                    &attestation_size,
                     outPublicEnclaveData.data(),
                     outPublicEnclaveData.size(),
                     &computed_public_enclave_data_size,
@@ -174,6 +194,23 @@ pdo_err_t pdo::enclave_api::enclave_data::CreateEnclaveData(
         ByteArray enclave_quote_buffer(quote_size);
         g_Enclave[0].CreateQuoteFromReport(&enclave_report, enclave_quote_buffer);
         outEnclaveQuote = ByteArrayToBase64EncodedString(enclave_quote_buffer);
+
+
+        {
+            const char* pvalue = nullptr;
+            std::string a(attestation.begin(), attestation.end());
+
+            JsonValue parsed(json_parse_string(a.c_str()));
+            pdo::error::ThrowIfNull(parsed.value, "failed to parse serialized attestation; badly formed JSON");
+
+            JSON_Object* data_object = json_value_get_object(parsed);
+            pdo::error::ThrowIfNull(data_object, "invalid serialized attestation; missing root object");
+
+            pvalue = json_object_dotget_string(data_object, "attestation");
+            pdo::error::ThrowIfNull(pvalue, "invalid serialized attestation; missing attestation");
+
+            outEnclaveQuote.assign(pvalue);
+        }
 
     } catch (pdo::error::Error& e) {
         pdo::enclave_api::base::SetLastError(e.what());

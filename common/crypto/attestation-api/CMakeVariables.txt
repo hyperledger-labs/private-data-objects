@@ -1,0 +1,7 @@
+# Copyright 2023 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+SET(U_ONE_ATTESTATION_LIB_NAME u-one-attestation)
+SET(T_ONE_ATTESTATION_LIB_NAME t-one-attestation)
+
