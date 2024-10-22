@@ -22,6 +22,10 @@ docker run -v <project root>:/project -e SGX_MODE=SIM -it oaa-dev
 Simulation mode is the default mode. It does not use actual Intel SGX operations, and tests are conducted on simulated-type attestations.
 
 ```bash
+source /opt/intel/sgxsdk/environment
+mkdir build
+cd build
+cmake ..
 make
 ```
 
@@ -41,7 +45,11 @@ export ITA_ROOT_CACERT_URL=<certificate url>
 EPID support and DCAP support for direct verificaiton (without ITA) are built by default, and require an internet connection to download the Intel CA root certificates.
 
 ```bash
-make build
+source /opt/intel/sgxsdk/environment
+mkdir build
+cd build
+cmake ..
+make
 ```
 
 #### Collateral (for usage and testing)
@@ -88,4 +96,9 @@ For SGX platform that do not support DCAP or FLC, both DCAP tests must be disabl
 To test everything except EPID (for SGX platforms that do not support EPID):
 ```bash
 SKIP_TEST_EPID= make test
+```
+
+If tests fail, you may want to output some logs with:
+```bash
+env CTEST_OUTPUT_ON_FAILURE=1 make test
 ```
