@@ -20,9 +20,9 @@ FROM pdo_base:${PDO_VERSION}
 ARG UBUNTU_VERSION=22.04
 ARG UBUNTU_NAME=jammy
 
-ARG SGX=2.22
-ARG OPENSSL=3.0.12
-ARG SGXSSL=3.0_Rev1
+ARG SGX=2.25
+ARG OPENSSL=3.0.14
+ARG SGXSSL=3.0_Rev4
 
 RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
  && wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - \
