@@ -89,8 +89,16 @@ if [ ! -d build ]; then
 fi
 
 cd build
-#try cmake ${CMAKE_ARGS} ..
-#try make ${MAKE_ARGS}
+
+#In the following we use a single threaded build due to race conditions the arise with a multi-threaded one.
+#In the following we append the error log for multi-threaded (j4) build for troubleshooting in the future.
+#11 33.53  build.sh: ERROR: operation failed: cmake --build . -- -j4 BUILD_CLIENT=0
+#11 33.53 make[1]: *** [Makefile:98: build] Error 111
+#11 33.53 make[1]: Leaving directory '/project/pdo/src/build'
+#11 33.53 make: *** [Makefile:101: verified-build] Error 2
+#11 33.53 make: Leaving directory '/project/pdo/src/build'
+#11 33.53  build_services.sh: ERROR: operation failed: make -C /project/pdo/src/build verified-build
+#11 ERROR: process "/bin/sh -c /project/pdo/tools/build_services.sh" did not complete successfully: exit code: 111
 try cmake --build . -- ${MAKE_ARGS} -j1
 
 yell --------------- BIN ---------------

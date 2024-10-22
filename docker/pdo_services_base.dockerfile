@@ -101,14 +101,10 @@ RUN apt-get install -y -q \
 RUN apt-get install -y \
         basez \
         clang \
-        cmake \
-        curl \
         libsgx-dcap-default-qpl \
         #libsgx-dcap-default-qpl-dev adds libdcap_quoteprov.so and /usr/include/sgx_default_quote_provider.h
         libsgx-dcap-default-qpl-dev \
-        jq \
-        libssl-dev \
-        vim
+        jq
 
 ARG DCAP=1.19
 ENV DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives
@@ -122,6 +118,9 @@ RUN cd ${DCAP_PRIMITIVES}/QuoteGeneration \
         && ./download_prebuilt.sh \
         && make GEN_STATIC=1
 
+# NOTE: below the build (./release) is run twice. Unfortunately, this is necessary because both builds fails
+# when run separately in a clean environment, but succeed if they run in sequence, and produce the expected result.
+# This issue has been communicated to the developers of the DCAP primitives.
 RUN cd ${DCAP_PRIMITIVES}/QuoteVerification/QVL/Src \
     && ./release -DBUILD_ENCLAVE=ON -DBUILD_TESTS=OFF ; ./release -DBUILD_ENCLAVE=ON -DBUILD_ATTESTATION_APP=OFF -DBUILD_TESTS=OFF
 

@@ -56,43 +56,6 @@ function orchestrate()
     ./verify_evidence_app_enclave
 }
 
-#function orchestrate_with_go_conversion()
-#{
-#    #get attestation
-#    ./get_attestation_app
-#    define_to_variable "${DEFINES_FILEPATH}" "GET_ATTESTATION_OUTPUT"
-#    [ -f ${GET_ATTESTATION_OUTPUT} ] || die "no output from get_attestation"
-#
-#    #translate attestation (note: attestation_to_evidence defines the EVIDENCE variable)
-#    ATTESTATION=$(cat ${GET_ATTESTATION_OUTPUT})
-#    GO_CONVERSION_CMD="go run ${FPC_PATH}/common/crypto/attestation-api/test/conversion_app_go/main.go"
-#    EVIDENCE=$(${GO_CONVERSION_CMD} "${ATTESTATION}")
-#
-#    define_to_variable "${DEFINES_FILEPATH}" "EVIDENCE_FILE"
-#    echo ${EVIDENCE} > ${EVIDENCE_FILE}
-#
-#    #verify evidence
-#    ./verify_evidence_app
-#}
-#
-#function orchestrate_with_go_verification()
-#{
-#    #get attestation
-#    ./get_attestation_app
-#    define_to_variable "${DEFINES_FILEPATH}" "GET_ATTESTATION_OUTPUT"
-#    [ -f ${GET_ATTESTATION_OUTPUT} ] || die "no output from get_attestation"
-#
-#    #translate attestation (note: attestation_to_evidence defines the EVIDENCE variable)
-#    ATTESTATION=$(cat ${GET_ATTESTATION_OUTPUT})
-#    attestation_to_evidence "${ATTESTATION}"
-#
-#    define_to_variable "${DEFINES_FILEPATH}" "EVIDENCE_FILE"
-#    echo ${EVIDENCE} > ${EVIDENCE_FILE}
-#
-#    #verify evidence
-#    go run -tags WITH_PDO_CRYPTO ${FPC_PATH}/common/crypto/attestation-api/test/verify_evidence_app_go/main.go
-#}
-
 function check_collateral_epid()
 {
     if [[ -z "${COLLATERAL_FOLDER}" ]]; then
@@ -139,9 +102,6 @@ function epid_test()
 
     #run attestation generation/conversion/verification tests
     orchestrate
-
-    #run attestation generation/conversion/verification tests (same as before, though with Go-based conversion)
-    #orchestrate_with_go_conversion
 
     say "Test success"
 }
@@ -243,12 +203,6 @@ function simulated_test()
 
     #run attestation generation/conversion/verification tests
     orchestrate
-
-    #run attestation generation/conversion/verification tests (same as before, though with Go-based conversion)
-    #orchestrate_with_go_conversion
-
-    #run attestation generation/conversion/verification tests (same as before, though with Go-based verification)
-    #orchestrate_with_go_verification
 
     say "Test success"
 
