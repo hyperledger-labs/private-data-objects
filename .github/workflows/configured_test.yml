@@ -1,0 +1,66 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: Run specific PDO tests
+on:
+  workflow_dispatch:
+    inputs:
+      interpreter:
+        description: 'Interpreter'
+        required: true
+        default: 'wawaka'
+        type: choice
+        options:
+        - wawaka
+        - wawaka-opt
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+          - debug
+          - info
+          - warning
+      memoryConfiguration:
+        description: 'Interpreter memory configuration'
+        required: false
+        default: MEDIUM
+        type: choice
+        options:
+          - SMALL
+          - MEDIUM
+          - LARGE
+jobs:
+    pdo_specific_tests:
+        name: Run specific PDO tests
+        runs-on: ubuntu-22.04
+
+        steps:
+            - name: Check out repo
+              uses: actions/checkout@v4
+              with:
+                submodules: recursive
+                fetch-depth: 0
+                fetch-tags: true
+
+            - name: Display branch name
+              run: |
+                echo "Building branch $GITHUB_HEAD_REF"
+                echo PDO VERSION is $(bin/get_version)
+
+            - name: Build and run tests
+              env:
+                  PDO_INTERPRETER: ${{ inputs.interpreter }}
+                  PDO_LOG_LEVEL: ${{ inputs.logLevel }}
+                  PDO_MEMORY_CONFIG: ${{ inputs.memoryConfiguration }}
+                  PDO_DEBUG_BUILD: 1
+              run: |
+                  # The creation of a dummy branch is necessary for the CI tests
+                  # to work on PRs. Based on empirical results, in the absence of
+                  # this command, CI tests work on the main branch and on local
+                  # branches. However, they fail as a PR is created.
+                  git checkout -b ci-test-branch
+                  . build/common-config.sh
+                  make -C docker test
