@@ -1,0 +1,99 @@
+# Copyright 2023 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+################################################################################
+# Checks
+################################################################################
+
+IF (NOT DEFINED ENV{SGX_MODE})
+    SET(SGX_MODE "SIM")
+ELSE()
+    SET(SGX_MODE $ENV{SGX_MODE})
+ENDIF()
+
+IF (NOT DEFINED ENV{SGX_SDK})
+    SET(SGX_SDK "/opt/intel/sgxsdk")
+ELSE()
+    SET(SGX_SDK "$ENV{SGX_SDK}")
+ENDIF()
+
+IF (NOT DEFINED ENV{SGX_SSL})
+    SET(SGX_SSL "/opt/intel/sgxssl")
+ELSE()
+    SET(SGX_SSL "$ENV{SGX_SSL}")
+ENDIF()
+
+
+SET(SGX_EDGER "${SGX_SDK}/bin/x64/sgx_edger8r")
+SET(SGX_SIGN "${SGX_SDK}/bin/x64/sgx_sign")
+
+SET(SGX_SEARCH_PATH "${SGX_SDK}/include:${SGX_SSL}/include")
+SET(SGX_ENCLAVE_INCLUDE "${SGX_SDK}/include"
+                        "${SGX_SDK}/include/tlibc"
+                        "${SGX_SDK}/include/libcxx")
+
+#ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:-std=c++11>)
+
+################################################################################
+# Internal SGX Variables
+################################################################################
+
+IF (${SGX_MODE} STREQUAL "SIM")
+  SET(TRTS_LIBRARY_NAME "sgx_trts_sim")
+  SET(URTS_LIBRARY_NAME "sgx_urts_sim")
+  SET(UAE_SERVICE_LIBRARY_NAME "sgx_uae_service_sim")
+  SET(SERVICE_LIBRARY_NAME "sgx_tservice_sim")
+  SET(SGX_EPID_LIB sgx_epid_sim)
+ELSE()
+  SET(TRTS_LIBRARY_NAME "sgx_trts")
+  SET(URTS_LIBRARY_NAME "sgx_urts")
+  SET(UAE_SERVICE_LIBRARY_NAME "sgx_uae_service")
+  SET(SERVICE_LIBRARY_NAME "sgx_tservice")
+  SET(SGX_EPID_LIB sgx_epid)
+ENDIF()
+
+################################################################################
+# Functions
+################################################################################
+
+FUNCTION(SGX_EDGE_TRUSTED EDL EDGE_FILES)
+    GET_FILENAME_COMPONENT(EDL_BASE_NAME ${EDL} NAME_WE)
+    GET_FILENAME_COMPONENT(EDL_DIR_NAME ${EDL} DIRECTORY)
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+
+    SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_t.c")
+    SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
+    ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
+        COMMAND "${SGX_EDGER}" --trusted ${EDL} --search-path ${SGX_SEARCH_PATH} --search-path ${EDL_DIR_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS ${EDL}
+    )
+ENDFUNCTION()
+
+FUNCTION(SGX_EDGE_UNTRUSTED EDL EDGE_FILES)
+    GET_FILENAME_COMPONENT(EDL_BASE_NAME ${EDL} NAME_WE)
+    GET_FILENAME_COMPONENT(EDL_DIR_NAME ${EDL} DIRECTORY)
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+
+    SET (EDGE_FILES_LIST "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.h" "${CMAKE_CURRENT_BINARY_DIR}/${EDL_BASE_NAME}_u.c")
+    SET (${EDGE_FILES} ${EDGE_FILES_LIST} PARENT_SCOPE)
+    ADD_CUSTOM_COMMAND( OUTPUT ${EDGE_FILES_LIST}
+        COMMAND "${SGX_EDGER}" --untrusted ${EDL} --search-path ${SGX_SEARCH_PATH} --search-path ${EDL_DIR_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS ${EDL}
+    )
+ENDFUNCTION()
+
+FUNCTION(SGX_SIGN_ENCLAVE TARGET KEY_FILE CONFIG)
+    SET (ENCLAVE $<TARGET_FILE:${TARGET}>)
+
+    SET (SIGNED_ENCLAVE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${TARGET}.signed${CMAKE_SHARED_LIBRARY_SUFFIX})
+    SET (SIGNED_ENCLAVE ${SIGNED_ENCLAVE} PARENT_SCOPE)
+    SET (SIGNED_ENCLAVE_METADATA ${SIGNED_ENCLAVE}".meta")
+    ADD_CUSTOM_COMMAND( TARGET ${TARGET}
+        POST_BUILD
+        COMMAND "${SGX_SIGN}" sign -key "${KEY_FILE}" -enclave "${ENCLAVE}" -out "${SIGNED_ENCLAVE}" -dumpfile ${SIGNED_ENCLAVE_METADATA} -config "${CONFIG}" > /dev/null
+    )
+ENDFUNCTION()
+
