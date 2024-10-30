@@ -1,0 +1,63 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: Build and Push PDO Docker Images
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+
+  docker_build:
+
+    if: >
+      github.event.name == 'workflow_dispatch' ||
+      github.event.name == 'pull_request' && github.event.pull_request.merged == true
+    name: Build PDO Images
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Display branch name
+        run: |
+          echo "Building branch images for $GITHUB_HEAD_REF"
+          echo PDO VERSION is $(bin/get_version)
+          echo "PDO_VERSION=$(bin/get_version)" >> $GITHUB_ENV
+          echo "EVENT NAME: ${{ github.event.name }}"
+          echo "MERGED: ${{ github.event.pull_request.merged }}"
+
+      - name: Build Docker Images
+        env:
+          PDO_INTERPRETER: wawaka
+          PDO_LOG_LEVEL: warning
+        run: |
+          git checkout -b ci-test-branch
+          . build/common-config.sh
+          make -C docker
+
+      - name: Login to the ghcr.io Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and push the images
+        run: |
+          for image in pdo_services pdo_ccf pdo_client
+          do
+            docker image tag ghcr.io/{{ github.repository_owner }}/$image:$PDO_VERSION
+            docker image tag ghcr.io/{{ github.repository_owner }}/$image:latest
+            docker image push --all-tags ghcr.io/{{ github.repository_owner }}/$image
+          done
