@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# This workflow is intended to provide an interactive way of configuring
+# PDO tests. Common configuration variables can be set interactively to
+# debug differences between local and github.
+
 name: Run specific PDO tests
 on:
   workflow_dispatch:
@@ -32,6 +36,7 @@ on:
           - SMALL
           - MEDIUM
           - LARGE
+
 jobs:
     pdo_specific_tests:
         name: Run specific PDO tests

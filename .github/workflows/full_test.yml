@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# This workflow is intended to be used as a validity test for any
+# pull request. That is, this is a minimal functionality that must
+# be successfully executed prior to merging a pull request. Note
+# that this can be overridden by adding '[skip ci]' in the commit
+# name. This should not be done on the main PDO branch.
+
 name: Run full PDO tests
 on: [ pull_request ]
 
