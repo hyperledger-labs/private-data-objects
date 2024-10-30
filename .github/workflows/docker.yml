@@ -2,22 +2,32 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# This workflow will generate docker images for the
+# current branch and push those images into the
+# repository owners resources.
+
 name: Build and Push PDO Docker Images
 
 on:
   workflow_dispatch:
 
-  pull_request:
-    types: [closed]
-    branches: [main]
+  # This section is commented out for the moment until a
+  # reasonable policy is determined for automated generation.
+  # The conditional execution must be evaluated as well. These
+  # are left here to serve as potential documentation for how
+  # the policy may be implemented.
+
+  # pull_request:
+  #   types: [closed]
+  #   branches: [main]
 
 jobs:
 
   docker_build:
 
-    if: >
-      github.event.name == 'workflow_dispatch' ||
-      github.event.name == 'pull_request' && github.event.pull_request.merged == true
+    # if: >
+    #   github.event.name == 'workflow_dispatch' ||
+    #   github.event.name == 'pull_request' && github.event.pull_request.merged == true
     name: Build PDO Images
     runs-on: ubuntu-22.04
 
@@ -54,10 +64,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Tag and push the images
+        env:
+          OWNER: ${{ github.repository_owner }}
         run: |
+          echo "Push images to ghcr.io/$OWNER"
           for image in pdo_services pdo_ccf pdo_client
           do
-            docker image tag ghcr.io/{{ github.repository_owner }}/$image:$PDO_VERSION
-            docker image tag ghcr.io/{{ github.repository_owner }}/$image:latest
-            docker image push --all-tags ghcr.io/{{ github.repository_owner }}/$image
+            docker image tag $image:$PDO_VERSION ghcr.io/$OWNER/$image:$PDO_VERSION
+            docker image tag $image:$PDO_VERSION ghcr.io/$OWNER/$image:latest
+            docker image push --all-tags ghcr.io/$OWNER/$image
           done
