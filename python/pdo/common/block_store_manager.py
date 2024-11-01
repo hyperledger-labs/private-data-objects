@@ -33,14 +33,20 @@ logger = logging.getLogger(__name__)
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+import threading
+__block_manager_lock__ = threading.Lock()
 __local_block_manager__ = None
 
 def local_block_manager() :
     global __local_block_manager__
+
+    __block_manager_lock__.acquire()
     if __local_block_manager__ is None :
         block_store_file = pconfig.shared_configuration(['StorageService','BlockStore'], "./blockstore.mdb")
 
         __local_block_manager__ = BlockStoreManager(block_store_file, True)
+    __block_manager_lock__.release()
+
     return __local_block_manager__
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
