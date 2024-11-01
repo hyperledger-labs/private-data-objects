@@ -25,12 +25,19 @@ import pdo.common.config as pconfig
 import logging
 logger = logging.getLogger(__name__)
 
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+import threading
+__block_store_lock__ = threading.Lock()
 __block_store_initialized__ = False
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def KeyValueInitialize(block_store_file = None) :
     global __block_store_initialized__
+
+    __block_store_lock__.acquire()
+
     if __block_store_initialized__ :
         raise Exception("duplicate block store initialization")
 
@@ -40,6 +47,8 @@ def KeyValueInitialize(block_store_file = None) :
 
     kvs.block_store_open(block_store_file)
     __block_store_initialized__ = True
+
+    __block_store_lock__.release()
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
