@@ -36,8 +36,6 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
     --no-install-recommends \
     libsgx-urts \
     libsgx-uae-service \
-    libsgx-dcap-ql-dev \
-    libsgx-dcap-quote-verify-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -86,50 +84,14 @@ RUN . /opt/intel/sgxsdk/environment \
 
 ENV SGX_SSL="/opt/intel/sgxssl"
 
-
 # -----------------------------------------------------------------
-# SGX DCAP Primitives
+# Install dependencies for Attestation API
 # -----------------------------------------------------------------
-RUN apt-get update
-RUN apt-get install -y -q \
-        libboost-dev \
-        libboost-system-dev \
-        libboost-thread-dev \
-        protobuf-c-compiler \
-        libprotobuf-c-dev \
-        protobuf-compiler
-RUN apt-get install -y \
-        basez \
-        clang \
-        libsgx-dcap-default-qpl \
-        #libsgx-dcap-default-qpl-dev adds libdcap_quoteprov.so and /usr/include/sgx_default_quote_provider.h
-        libsgx-dcap-default-qpl-dev \
-        jq
 
-ARG DCAP=1.22
-ENV DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives
-
-RUN git clone https://github.com/intel/SGXDataCenterAttestationPrimitives.git ${DCAP_PRIMITIVES} \
-    && cd ${DCAP_PRIMITIVES}/QuoteVerification \
-    && git checkout DCAP_${DCAP} \
-    && git submodule update --init --recursive
-
-RUN cd ${DCAP_PRIMITIVES}/QuoteGeneration \
-        && ./download_prebuilt.sh \
-        && make GEN_STATIC=1
-
-# NOTE: below the build (./release) is run twice. Unfortunately, this is necessary because both builds fails
-# when run separately in a clean environment, but succeed if they run in sequence, and produce the expected result.
-# This issue has been communicated to the developers of the DCAP primitives.
-RUN cd ${DCAP_PRIMITIVES}/QuoteVerification/QVL/Src \
-    && ./release -DBUILD_ENCLAVE=ON -DBUILD_TESTS=OFF ; ./release -DBUILD_ENCLAVE=ON -DBUILD_ATTESTATION_APP=OFF -DBUILD_TESTS=OFF
-
-RUN echo '{\n\
-    "pccs_url": "https://localhost:8081/sgx/certification/v4/", \n\
-    "collateral_service": "https://api.trustedservices.intel.com/sgx/certification/v4/",\n\
-    "use_secure_cert": false\n\
-    }' > /etc/sgx_default_qcnl.conf
-
+# as the pdo repo is not available at this point, we copy the script in the container
+COPY repository/common/crypto/attestation-api/docker/container/setup.sh /tmp
+RUN DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives /tmp/setup.sh
+RUN rm /tmp/setup.sh
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------

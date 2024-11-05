@@ -34,6 +34,12 @@ var_set() {
 	"
 	env_key_sort[$i]="WASM_SRC"; i=$i+1; export WASM_SRC=${env_val[WASM_SRC]};
 
+	env_val[DCAP_PRIMITIVES]="${DCAP_PRIMITIVES:-/tmp/SGXDataCenterAttestationPrimitives}"
+	env_desc[DCAP_PRIMITIVES]="
+	    DCAP_PRIMITIVES points to the source repo of DCAP
+	"
+	env_key_sort[$i]="DCAP_PRIMITIVES"; i=$i+1; export DCAP_PRIMITIVES=${env_val[DCAP_PRIMITIVES]};
+
 	env_val[PDO_MEMORY_CONFIG]="${PDO_MEMORY_CONFIG:-MEDIUM}"
 	env_desc[PDO_MEMORY_CONFIG]="
 		PDO_MEMORY_CONFIG indicates the memory configuration for the
