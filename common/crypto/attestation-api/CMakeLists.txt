@@ -12,10 +12,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 INCLUDE(CMakeVariables.txt)
 
-# get the tag of the dcap primitives (necessary to manage library links)
-EXECUTE_PROCESS(COMMAND bash -c "cd $ENV{DCAP_PRIMITIVES} && git describe --tags" OUTPUT_VARIABLE DCAP_PRIMITIVES_TAG)
-STRING(STRIP ${DCAP_PRIMITIVES_TAG} DCAP_PRIMITIVES_TAG)
-
 ###################################################################################################
 # First run cmake in common
 ###################################################################################################
@@ -99,9 +95,7 @@ ADD_CUSTOM_COMMAND(TARGET ${B64ATTESTATION_TO_B64COLLATERAL}
 
 TARGET_INCLUDE_DIRECTORIES(${B64ATTESTATION_TO_B64COLLATERAL} PRIVATE common)
 
-IF("${DCAP_PRIMITIVES_TAG}" STREQUAL "DCAP_1.22")
-    SET(DCAP_LINK_LIBS ${DCAP_QV_PATH}/appraisal/qal/libdcap_qal.a)
-ENDIF()
+SET(DCAP_LINK_LIBS ${DCAP_QV_PATH}/appraisal/qal/libdcap_qal.a)
 
 TARGET_LINK_LIBRARIES(${B64ATTESTATION_TO_B64COLLATERAL}
     #${DCAP_QV_PATH}/dcap_quoteverify/linux/libsgx_dcap_quoteverify.a
