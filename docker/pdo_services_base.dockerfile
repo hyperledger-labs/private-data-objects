@@ -106,7 +106,7 @@ RUN apt-get install -y \
         libsgx-dcap-default-qpl-dev \
         jq
 
-ARG DCAP=1.19
+ARG DCAP=1.22
 ENV DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives
 
 RUN git clone https://github.com/intel/SGXDataCenterAttestationPrimitives.git ${DCAP_PRIMITIVES} \
@@ -145,8 +145,5 @@ RUN groupadd -f -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
 RUN chown --recursive $UNAME:$UNAME /project/pdo
 USER $UNAME
-
-#this is necessary for git operations such as "git describe --tags" from the new user
-RUN git config --global --add safe.directory ${DCAP_PRIMITIVES}
 
 ENTRYPOINT ["/bin/bash"]
