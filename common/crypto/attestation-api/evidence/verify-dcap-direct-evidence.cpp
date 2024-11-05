@@ -56,9 +56,6 @@ void deserialize_collateral(uint8_t* p)
 bool verify_dcap_direct_evidence(ByteArray& evidence, ByteArray& expected_statement, ByteArray& expected_code_id)
 {
     ByteArray quote;
-    ByteArray certification_data;
-    uint32_t certification_data_size;
-    uint16_t certification_data_type;
     ByteArray collateral;
     time_t untrusted_time;
     bool b;
@@ -73,7 +70,7 @@ bool verify_dcap_direct_evidence(ByteArray& evidence, ByteArray& expected_statem
         CATCH(b, root = json::parse(evidence_str));
         COND2LOGERR(!b, "bad dcap evidence json");
 
-        //get attestation
+        //get attestation/quote
         std::string b64attestation_str;
         std::string attestation_str;
         CATCH(b, b64attestation_str = root[ATTESTATION_TAG].template get<std::string>());
@@ -114,6 +111,10 @@ bool verify_dcap_direct_evidence(ByteArray& evidence, ByteArray& expected_statem
 
     //verify quote
     {
+        ByteArray certification_data;
+        uint32_t certification_data_size;
+        uint16_t certification_data_type;
+
         qvl_status = sgxAttestationGetQECertificationDataSize(quote.data(), quote.size(), &certification_data_size);
         COND2LOGERR(qvl_status != STATUS_OK,
                 "error certification data size: %x", qvl_status);
