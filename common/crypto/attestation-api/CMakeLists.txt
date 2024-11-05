@@ -12,6 +12,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 INCLUDE(CMakeVariables.txt)
 
+IF (NOT DEFINED ENV{DCAP_PRIMITIVES})
+  MESSAGE(FATAL_ERROR "DCAP_PRIMITIVES variable with source repo path not defined")
+ENDIF()
+
 ###################################################################################################
 # First run cmake in common
 ###################################################################################################
@@ -95,6 +99,7 @@ ADD_CUSTOM_COMMAND(TARGET ${B64ATTESTATION_TO_B64COLLATERAL}
 
 TARGET_INCLUDE_DIRECTORIES(${B64ATTESTATION_TO_B64COLLATERAL} PRIVATE common)
 
+# newer DCAP (1.22) libs need the qal (older, 1.19, don't)
 SET(DCAP_LINK_LIBS ${DCAP_QV_PATH}/appraisal/qal/libdcap_qal.a)
 
 TARGET_LINK_LIBRARIES(${B64ATTESTATION_TO_B64COLLATERAL}
