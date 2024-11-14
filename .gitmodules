@@ -1,3 +1,9 @@
 [submodule "interpreters/wasm-micro-runtime"]
 	path = interpreters/wasm-micro-runtime
 	url = https://github.com/bytecodealliance/wasm-micro-runtime.git
+[submodule "common/crypto/attestation-api/common/jwt-cpp"]
+	path = common/crypto/attestation-api/common/jwt-cpp
+	url = https://github.com/Thalhammer/jwt-cpp
+[submodule "common/crypto/attestation-api/common/nlohmann/json"]
+	path = common/crypto/attestation-api/common/nlohmann/json
+	url = https://github.com/nlohmann/json.git

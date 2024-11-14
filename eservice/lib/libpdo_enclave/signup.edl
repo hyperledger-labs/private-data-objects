@@ -30,6 +30,11 @@ enclave {
         public pdo_err_t ecall_CreateEnclaveData(
             [in] const sgx_target_info_t* inTargetInfo,
             [in, string] const char* inOriginatorPublicKeyHash,
+            [in, size=inAttestationParamsSize] uint8_t* inAttestationParams,
+            size_t inAttestationParamsSize,
+            [out, size=inAllocatedAttestationSize] uint8_t* outAttestation,
+            size_t inAllocatedAttestationSize,
+            [out] size_t* outAttestationSize,
             [out, size=inAllocatedPublicEnclaveDataSize] char* outPublicEnclaveData,
             size_t inAllocatedPublicEnclaveDataSize,
             [out] size_t* outPublicEnclaveDataSize,

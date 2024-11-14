@@ -36,6 +36,8 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
     --no-install-recommends \
     libsgx-urts \
     libsgx-uae-service \
+    libsgx-dcap-ql-dev \
+    libsgx-dcap-quote-verify-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -84,6 +86,52 @@ RUN . /opt/intel/sgxsdk/environment \
 
 ENV SGX_SSL="/opt/intel/sgxssl"
 
+
+# -----------------------------------------------------------------
+# SGX DCAP Primitives
+# -----------------------------------------------------------------
+RUN apt-get update
+RUN apt-get install -y -q \
+        libboost-dev \
+        libboost-system-dev \
+        libboost-thread-dev \
+        protobuf-c-compiler \
+        libprotobuf-c-dev \
+        protobuf-compiler
+RUN apt-get install -y \
+        basez \
+        clang \
+        cmake \
+        curl \
+        libsgx-dcap-default-qpl \
+        #libsgx-dcap-default-qpl-dev adds libdcap_quoteprov.so and /usr/include/sgx_default_quote_provider.h
+        libsgx-dcap-default-qpl-dev \
+        jq \
+        libssl-dev \
+        vim
+
+ARG DCAP=1.19
+ENV DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives
+
+RUN git clone https://github.com/intel/SGXDataCenterAttestationPrimitives.git ${DCAP_PRIMITIVES} \
+    && cd ${DCAP_PRIMITIVES}/QuoteVerification \
+    && git checkout DCAP_${DCAP} \
+    && git submodule update --init --recursive
+
+RUN cd ${DCAP_PRIMITIVES}/QuoteGeneration \
+        && ./download_prebuilt.sh \
+        && make GEN_STATIC=1
+
+RUN cd ${DCAP_PRIMITIVES}/QuoteVerification/QVL/Src \
+    && ./release -DBUILD_ENCLAVE=ON -DBUILD_TESTS=OFF ; ./release -DBUILD_ENCLAVE=ON -DBUILD_ATTESTATION_APP=OFF -DBUILD_TESTS=OFF
+
+RUN echo '{\n\
+    "pccs_url": "https://localhost:8081/sgx/certification/v4/", \n\
+    "collateral_service": "https://api.trustedservices.intel.com/sgx/certification/v4/",\n\
+    "use_secure_cert": false\n\
+    }' > /etc/sgx_default_qcnl.conf
+
+
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 WORKDIR /project/pdo
@@ -98,5 +146,8 @@ RUN groupadd -f -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
 RUN chown --recursive $UNAME:$UNAME /project/pdo
 USER $UNAME
+
+#this is necessary for git operations such as "git describe --tags" from the new user
+RUN git config --global --add safe.directory ${DCAP_PRIMITIVES}
 
 ENTRYPOINT ["/bin/bash"]
