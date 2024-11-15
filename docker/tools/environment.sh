@@ -35,6 +35,7 @@ export PDO_HOME=${PDO_INSTALL_ROOT}/opt/pdo
 export PDO_LEDGER_KEY_ROOT=${PDO_HOME}/keys/ledger
 export PDO_LEDGER_KEY_SKF=${PDO_LEDGER_KEY_ROOT}/pdo_validator.priv
 export WASM_SRC="${PDO_SOURCE_ROOT}/interpreters/wasm-micro-runtime"
+export DCAP_PRIMITIVES=${DCAP_PRIMITIVES:-/tmp/SGXDataCenterAttestationPrimitives}
 
 if [ ${PDO_LEDGER_TYPE,,} = "ccf" ]; then
     export PDO_DEFAULT_SIGCURVE=SECP384R1

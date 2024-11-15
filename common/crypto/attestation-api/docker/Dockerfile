@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Copyright 2023 Intel Corporation
+# Copyright 2024 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,42 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-ARG PDO_VERSION
-FROM pdo_base:${PDO_VERSION}
-
+FROM ubuntu:22.04
 ARG UBUNTU_VERSION=22.04
 ARG UBUNTU_NAME=jammy
+
+ENV TERM=screen-256color
+
+RUN apt-get update \
+    && apt-get install -y -q \
+        build-essential \
+        debhelper \
+        git \
+        libcurl4-openssl-dev \
+        pkgconf \
+        python-is-python3 \
+        wget \
+        zip
+
+RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" | tee /etc/apt/sources.list.d/intel-sgx.list
+RUN cat /etc/apt/sources.list.d/intel-sgx.list
+RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add
+
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update
+RUN apt-get install -y -q \
+        libboost-dev \
+        libboost-system-dev \
+        libboost-thread-dev \
+        protobuf-c-compiler \
+        libprotobuf-c-dev \
+        protobuf-compiler
 
 ARG SGX=2.25
 ARG OPENSSL=3.0.14
 ARG SGXSSL=3.0_Rev4
 
-RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
- && wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - \
- && apt-get update \
- && apt-get install -y \
+RUN apt-get install -y \
     # We do not need daemons like AESMD as we run them on host (side-steps also
     # issues with config of /etc/aesmd.conf like proxy ..). Without this option
     # aesmd and lots of other plugsin are automatically pulled in.
@@ -36,8 +58,8 @@ RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${U
     --no-install-recommends \
     libsgx-urts \
     libsgx-uae-service \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    libsgx-dcap-ql-dev \
+    libsgx-dcap-quote-verify-dev
 
 # Install SGX SDK
 WORKDIR /opt/intel
@@ -85,27 +107,40 @@ RUN . /opt/intel/sgxsdk/environment \
 ENV SGX_SSL="/opt/intel/sgxssl"
 
 # -----------------------------------------------------------------
-# Install dependencies for Attestation API
+# SGX DCAP Primitives
 # -----------------------------------------------------------------
+RUN apt-get update
+RUN apt-get install -y \
+        basez \
+        clang \
+        cmake \
+        curl \
+        libsgx-dcap-default-qpl \
+        #libsgx-dcap-default-qpl-dev adds libdcap_quoteprov.so and /usr/include/sgx_default_quote_provider.h
+        libsgx-dcap-default-qpl-dev \
+        jq \
+        libssl-dev \
+        vim
 
-# as the pdo repo is not available at this point, we copy the script in the container
-COPY repository/common/crypto/attestation-api/docker/container/setup.sh /tmp
-RUN DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives /tmp/setup.sh
-RUN rm /tmp/setup.sh
+ARG DCAP=1.19
+ENV DCAP_PRIMITIVES=/tmp/SGXDataCenterAttestationPrimitives
 
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-WORKDIR /project/pdo
+RUN git clone https://github.com/intel/SGXDataCenterAttestationPrimitives.git ${DCAP_PRIMITIVES} \
+    && cd ${DCAP_PRIMITIVES}/QuoteVerification \
+    && git checkout DCAP_${DCAP} \
+    && git submodule update --init --recursive
 
-ARG UNAME=pdo_services
-ENV UNAME=${UNAME}
+RUN cd ${DCAP_PRIMITIVES}/QuoteGeneration \
+        && ./download_prebuilt.sh \
+        && make GEN_STATIC=1
 
-ARG UID=1000
-ARG GID=$UID
+RUN cd ${DCAP_PRIMITIVES}/QuoteVerification/QVL/Src \
+    && ./release -DBUILD_ENCLAVE=ON -DBUILD_TESTS=OFF ; ./release -DBUILD_ENCLAVE=ON -DBUILD_ATTESTATION_APP=OFF -DBUILD_TESTS=OFF
 
-RUN groupadd -f -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
-RUN chown --recursive $UNAME:$UNAME /project/pdo
-USER $UNAME
+RUN echo '{\n\
+    "pccs_url": "https://localhost:8081/sgx/certification/v4/", \n\
+    "collateral_service": "https://api.trustedservices.intel.com/sgx/certification/v4/",\n\
+    "use_secure_cert": false\n\
+    }' > /etc/sgx_default_qcnl.conf
 
-ENTRYPOINT ["/bin/bash"]
+WORKDIR /project
