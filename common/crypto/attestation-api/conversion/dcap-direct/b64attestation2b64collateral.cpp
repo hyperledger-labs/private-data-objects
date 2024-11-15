@@ -17,22 +17,37 @@ uint8_t* serialize_collateral(sgx_ql_qve_collateral_t* c)
         uint32_t collateral_size = sizeof(sgx_ql_qve_collateral_t) + c->pck_crl_issuer_chain_size + c->root_ca_crl_size + c->pck_crl_size + c->tcb_info_issuer_chain_size + c->tcb_info_size + c->qe_identity_issuer_chain_size + c->qe_identity_size;
         fprintf(stderr, "calculated collateral size: %d\n", collateral_size);
 
-        uint8_t* p = (uint8_t*)malloc(collateral_size);
+        uint8_t* porig = (uint8_t*)malloc(collateral_size);
+        uint8_t* p = porig;
         if(p == NULL) return NULL;
         memset(p, '\0', collateral_size);
 
         // NOTICE / WARNING: here we copy the entire data structure with "meaningless" pointers
         // pointers will have to be adjusted at deserialization time
         memcpy(p, (uint8_t*)c, sizeof(sgx_ql_qve_collateral_t));
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t), c->pck_crl_issuer_chain, c->pck_crl_issuer_chain_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size, c->root_ca_crl, c->root_ca_crl_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size+c->root_ca_crl_size, c->pck_crl, c->pck_crl_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size+c->root_ca_crl_size+c->pck_crl_size, c->tcb_info_issuer_chain, c->tcb_info_issuer_chain_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size+c->root_ca_crl_size+c->pck_crl_size+c->tcb_info_issuer_chain_size, c->tcb_info, c->tcb_info_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size+c->root_ca_crl_size+c->pck_crl_size+c->tcb_info_issuer_chain_size+c->tcb_info_size, c->qe_identity_issuer_chain, c->qe_identity_issuer_chain_size);
-        memcpy(p+sizeof(sgx_ql_qve_collateral_t)+c->pck_crl_issuer_chain_size+c->root_ca_crl_size+c->pck_crl_size+c->tcb_info_issuer_chain_size+c->tcb_info_size+c->qe_identity_issuer_chain_size, c->qe_identity, c->qe_identity_size);
+        p += sizeof(sgx_ql_qve_collateral_t);
 
-        return p;
+        memcpy(p, c->pck_crl_issuer_chain, c->pck_crl_issuer_chain_size);
+        p += c->pck_crl_issuer_chain_size;
+
+        memcpy(p, c->root_ca_crl, c->root_ca_crl_size);
+        p += c->root_ca_crl_size;
+
+        memcpy(p, c->pck_crl, c->pck_crl_size);
+        p += c->pck_crl_size;
+
+        memcpy(p, c->tcb_info_issuer_chain, c->tcb_info_issuer_chain_size);
+        p += c->tcb_info_issuer_chain_size;
+
+        memcpy(p, c->tcb_info, c->tcb_info_size);
+        p += c->tcb_info_size;
+
+        memcpy(p, c->qe_identity_issuer_chain, c->qe_identity_issuer_chain_size);
+        p += c->qe_identity_issuer_chain_size;
+
+        memcpy(p, c->qe_identity, c->qe_identity_size);
+
+        return porig;
 }
 
 
