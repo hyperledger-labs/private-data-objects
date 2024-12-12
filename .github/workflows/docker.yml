@@ -47,6 +47,13 @@ jobs:
           echo "EVENT NAME: ${{ github.event.name }}"
           echo "MERGED: ${{ github.event.pull_request.merged }}"
 
+      # create the docker images with the user and group IDs
+      # set to 55172 (randomly chosen number unlikely to conflict
+      # with existing users). this helps to set permissions local
+      # file management with pulled images. Specifically, the
+      # following will make the xfer directory writeable by the
+      # images:
+      #   sudo chown -R 55172:55172 $PDO_SOURCE_ROOT/docker/xfer
       - name: Build Docker Images
         env:
           PDO_INTERPRETER: wawaka
@@ -54,7 +61,7 @@ jobs:
         run: |
           git checkout -b ci-test-branch
           . build/common-config.sh
-          make -C docker
+          make -C docker PDO_USER_UID=55172 PDO_GROUP_UID=55172
 
       - name: Login to the ghcr.io Container Registry
         uses: docker/login-action@v2
