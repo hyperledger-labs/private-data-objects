@@ -13,7 +13,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-version: "3.4"
+
 
 services:
   base_container:
