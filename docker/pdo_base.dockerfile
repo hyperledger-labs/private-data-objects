@@ -25,8 +25,10 @@ ENV TERM=screen-256color
 # -----------------------------------------------------------------
 ARG ADD_APT_PKGS=
 
-ENV DEBIAN_FRONTEND "noninteractive"
-RUN apt-get update \
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
     && apt-get install -y -q --no-install-recommends \
         autoconf \
         automake \
@@ -76,6 +78,24 @@ WORKDIR /tmp
 RUN wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/${WASI_PACKAGE} \
     && dpkg --install ${WASI_PACKAGE} \
     && rm ${WASI_PACKAGE}
+
+# -----------------------------------------------------------------
+# Create the pdo_user account and group that will be used for
+# future installations into the pdo install directory
+# -----------------------------------------------------------------
+ARG UNAME=pdo_user
+ENV UNAME=${UNAME}
+
+ARG UID=1000
+ARG GID=$UID
+
+RUN groupadd -f -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
+
+# -----------------------------------------------------------------
+# Prep for the installation
+# -----------------------------------------------------------------
+USER $UNAME
 
 WORKDIR /project/pdo/tools
 COPY tools/environment.sh ./

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------------------------
-version: "3.4"
+
 
 # Note that we do not need to specify PDO_HOSTNAME or PDO_LEDGER_URL
 # (or the corresponding --inteface or --ledger switches) for the test

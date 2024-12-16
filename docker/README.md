@@ -181,14 +181,16 @@ As mentioned above, the docker images are built with a `UID:GID`
 dervied from account used to build the images. If you would prefer to
 use a different identity, the `--user` switch to the `docker run`
 command will override the builtin identities. This can be especially
-useful if the images are stored in a repository.
+useful if the images are stored in a registry.
 
+<!---
 ** NOTE: ** We need a better way to process registrations for SGX HW mode. In
 theory, the best way to do this may be to create a canonical base
 services image; populate an instance of it with CCF private keys, run
 the registration. That way the canonical base service image would have
 a standard version of the enclave library that would not have to deal
 with reproducible builds.
+--->
 
 ### CCF Deployment ###
 
@@ -305,3 +307,74 @@ For example:
 ```bash
     user@has:/project/pdo# source /project/pdo/tools/start_client.sh --ledger http://127.0.0.1:6600/
 ```
+
+<!--- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --->
+## Pattern: Deploy PDO Images Through a Registry ##
+
+Deploying PDO images through a Docker registry additionally requires
+creation of an account used to run the PDO services. Since services
+are configured through a shared host file system (the `xfer` directory
+tree) permissions must be set appropriately.
+
+### Build the Images ###
+
+PDO images that will be pushed to a shared registry should be built
+with a unique user identity that is unlikely to exist on the servers
+where it will be deployed. The UID that is used by default when
+building the images in the GitHub registry is 55172. The following
+statement will build PDO images with that UID.
+
+```bash
+make PDO_USER_UID=55172 PDO_GROUP_UID=55172
+```
+
+Once built, use the standard docker commands to push the images to
+your registry. If you wish to do PDO service development, you will
+need access to all of the images (`pdo_base`, `pdo_services_base`,
+`pdo_services`, `pdo_client`, `pdo_ccf_base`, and `pdo_ccf`). For
+using and developing contracts the only necessary images are
+`pdo_services`, `pdo_client` and `pdo_ccf`.
+
+*Note*: prebuilt images are often available from the GitHub container
+registry through
+[Hyperledger Labs](https://github.com/orgs/hyperledger-labs/packages?q=pdo).
+These images can be pulled using standard docker commands such as:
+
+```bash
+docker pull ghcr.io/hyperledger-labs/pdo_client:latest
+docker pull ghcr.io/hyperledger-labs/pdo_services:latest
+docker pull ghcr.io/hyperledger-labs/pdo_ccf:latest
+```
+
+### Create Accounts ###
+
+To manage local storage associated with the containers (specifically
+the contents of the `xfer` directory), create a local user/group
+account that corresponds to the UIDs used in the PDO images. The
+following commands create a `pdo_user` user and group with UIDs that
+correspond to the ones used above (and consistent with the identities
+used in the images in GHCR:
+
+```bash
+sudo addgroup --gid 55172 pdo_user
+sudo adduser --uid 55172 --gid 55172 --disabled-login --no-create-home pdo_user
+```
+
+Next, add the local user that will be used to manage the containers to
+the `pdo_user` group.
+
+```bash
+sudo adduser <username> pdo_user
+```
+
+And, finally, change the `xfer` directory ownership and permissions to
+give group users write permission.
+
+```bash
+sudo chown -R pdo_user:pdo_user xfer
+sudo chmod -R g+w xfer
+```
+
+At this point, you should be able to use the instructions above for
+[Service Deployment](#pattern:-service-deployment) using the PDO
+images.

@@ -14,7 +14,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-ARG PDO_VERSION
+ARG PDO_VERSION=latest
 FROM pdo_base:${PDO_VERSION}
 
 ARG UBUNTU_VERSION=22.04
@@ -24,7 +24,11 @@ ARG SGX=2.25
 ARG OPENSSL=3.0.14
 ARG SGXSSL=3.0_Rev4
 
-RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
+USER root
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+ echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list \
  && wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - \
  && apt-get update \
  && apt-get install -y \
@@ -86,17 +90,9 @@ ENV SGX_SSL="/opt/intel/sgxssl"
 
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
-WORKDIR /project/pdo
-
-ARG UNAME=pdo_services
+ARG UNAME=pdo_user
 ENV UNAME=${UNAME}
 
-ARG UID=1000
-ARG GID=$UID
-
-RUN groupadd -f -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
-RUN chown --recursive $UNAME:$UNAME /project/pdo
 USER $UNAME
-
+WORKDIR /project/pdo
 ENTRYPOINT ["/bin/bash"]

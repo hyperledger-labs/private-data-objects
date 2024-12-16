@@ -24,13 +24,17 @@ ARG UBUNTU_NAME=focal
 
 ENV TERM=screen-256color
 
+USER root
+
 # -----------------------------------------------------------------
 # Install base packages
 # -----------------------------------------------------------------
 ARG ADD_APT_PKGS=
 
-ENV DEBIAN_FRONTEND "noninteractive"
-RUN apt-get update \
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
     && apt-get install -y -q --no-install-recommends \
         libsecp256k1-dev \
         lsof \
@@ -46,8 +50,9 @@ RUN apt-get update \
 RUN echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu ${UBUNTU_NAME} main" >> /etc/apt/sources.list
 RUN curl https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
 
-
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
     && apt-get install -y --no-install-recommends \
         sgx-aesm-service \
         libsgx-dcap-ql \
@@ -59,19 +64,20 @@ RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------
+# Create the pdo_user account and group that will be used for
+# future installations into the pdo install directory
 # -----------------------------------------------------------------
-WORKDIR /project/pdo
-
-ARG UNAME=pdo_ccf
+ARG UNAME=pdo_user
 ENV UNAME=${UNAME}
 
 ARG UID=1000
 ARG GID=$UID
 
-RUN echo $UID $GID
 RUN groupadd -f -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -d /project/pdo -o -s /bin/bash $UNAME
-RUN chown --recursive $UNAME:$UNAME /project/pdo
+
+# -----------------------------------------------------------------
 USER $UNAME
 
+WORKDIR /project/pdo
 ENTRYPOINT ["/bin/bash"]

@@ -19,7 +19,7 @@
 # to cache pip downloads between builds, cutting down noticeably build time.
 # Note that cache is cleaned with the "uusal" docker prune commans, e.g., docker builder prune.
 
-ARG PDO_VERSION
+ARG PDO_VERSION=latest
 FROM pdo_services_base:${PDO_VERSION}
 
 # -----------------------------------------------------------------
@@ -28,7 +28,7 @@ FROM pdo_services_base:${PDO_VERSION}
 ARG REBUILD=0
 
 ARG SGX_MODE=SIM
-ENV SGX_MODE $SGX_MODE
+ENV SGX_MODE=$SGX_MODE
 
 ARG PDO_DEBUG_BUILD=1
 ENV PDO_DEBUG_BUILD=${PDO_DEBUG_BUILD}
@@ -45,7 +45,12 @@ ENV PDO_MEMORY_CONFIG=${PDO_MEMORY_CONFIG}
 ARG PDO_LOG_LEVEL=info
 ENV PDO_LOG_LEVEL=${PDO_LOG_LEVEL}
 
-# copy the source files into the image
+# copy the source files into the image using the user
+# identity that was created in the base container
+ARG UNAME=pdo_user
+ENV UNAME=${UNAME}
+
+USER $UNAME
 WORKDIR /project/pdo
 COPY --chown=${UNAME}:${UNAME} repository /project/pdo/src
 
@@ -55,17 +60,14 @@ COPY --chown=${UNAME}:${UNAME} repository /project/pdo/src
 WORKDIR /project/pdo/tools
 COPY --chown=${UNAME}:${UNAME} tools/*.sh ./
 
-# built it!
-ARG UID=1000
-ARG GID=${UID}
-RUN --mount=type=cache,uid=${UID},gid=${GID},target=/project/pdo/.cache/pip \
+# build it!
+RUN --mount=type=cache,target=/project/pdo/.cache/pip \
     /project/pdo/tools/build_services.sh
 
 # Network ports for running services
 EXPOSE 7001 7002 7003 7004 7005
 EXPOSE 7101 7102 7103 7104 7105
 EXPOSE 7201 7202 7203 7204 7205
-
 
 # Note that the entry point when specified with exec syntax
 # can be extended through the docker run interface far more
