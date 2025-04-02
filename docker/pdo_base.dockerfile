@@ -70,9 +70,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # -----------------------------------------------------------------
 # Install WASI toolkit
 # -----------------------------------------------------------------
-##ARG WASI_VERSION=12
-ARG WASI_VERSION=21
-ARG WASI_PACKAGE="wasi-sdk_${WASI_VERSION}.0_amd64.deb"
+ARG WASI_VERSION=24
+ARG WASI_PACKAGE="wasi-sdk-${WASI_VERSION}.0-x86_64-linux.deb"
 
 WORKDIR /tmp
 RUN wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/${WASI_PACKAGE} \
