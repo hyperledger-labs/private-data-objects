@@ -64,9 +64,10 @@ done
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 SAVE_FILE=$(mktemp /tmp/pdo-contract.XXXXXXXXX)
+RESULT_FILE=$(mktemp /tmp/pdo-result.XXXXXXXXX)
 
 function cleanup {
-    rm -f ${SAVE_FILE}
+    rm -f ${SAVE_FILE} ${RESULT_FILE}
 }
 
 trap cleanup EXIT
@@ -145,11 +146,24 @@ for v in $(seq 1 ${iterations}) ; do
     say pass $v
     u=$((v % user_count + base_user))
     p=$((v % port_count + base_port))
-    value=$(${PDO_HOME}/bin/pdo-invoke.psh \
-                       ${PSHELL_OPTS} \
-                       --wait yes \
-                       --enclave "es${p}" --client-identity user${u} \
-                       --pdo_file ${SAVE_FILE} --method anonymous_inc_value)
+
+    echo ${PDO_HOME}/bin/pdo-invoke.psh \
+               ${PSHELL_OPTS} \
+               --wait yes \
+               --enclave "es${p}" --client-identity user${u} \
+               --pdo_file ${SAVE_FILE} --method anonymous_inc_value
+
+    ${PDO_HOME}/bin/pdo-invoke.psh \
+               ${PSHELL_OPTS} \
+               --wait yes \
+               --enclave "es${p}" --client-identity user${u} \
+               --pdo_file ${SAVE_FILE} --method anonymous_inc_value >| ${RESULT_FILE}
+
+    if [ $? -ne 0 ]; then
+        die "an error occured while invoking the contract; $(< ${RESULT_FILE})"
+    fi
+
+    value=$(< ${RESULT_FILE})
     if [ $value != $v ]; then
         die "contract has the wrong value ($value instead of $v) for enclave $e"
     fi
@@ -158,10 +172,22 @@ done
 say get the value and check it
 for v in $(seq 1 ${port_count}) ; do
     p=$((v % port_count + base_port))
-    value=$(${PDO_HOME}/bin/pdo-invoke.psh \
-                       ${PSHELL_OPTS} \
-                       --enclave "es${p}" --client-identity user1 \
-                       --pdo_file ${SAVE_FILE} --method get_value)
+
+    echo ${PDO_HOME}/bin/pdo-invoke.psh \
+         ${PSHELL_OPTS} \
+         --enclave "es${p}" --client-identity user1 \
+         --pdo_file ${SAVE_FILE} --method get_value
+
+    ${PDO_HOME}/bin/pdo-invoke.psh \
+               ${PSHELL_OPTS} \
+               --enclave "es${p}" --client-identity user1 \
+               --pdo_file ${SAVE_FILE} --method get_value >| ${RESULT_FILE}
+
+    if [ $? -ne 0 ]; then
+        die "an error occured while invoking the contract; $(< ${RESULT_FILE})"
+    fi
+
+    value=$(< ${RESULT_FILE})
     if [ $value != $iterations ]; then
         die "contract has the wrong value ($value instead of $iterations for enclave $e"
     fi
