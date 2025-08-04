@@ -77,7 +77,7 @@ public:
 #define BLOCK_DB_NAME "block_data"
 #define META_DB_NAME "meta_data"
 
-static MDB_env* lmdb_block_store_env;
+static MDB_env* lmdb_block_store_env = NULL;
 
 class SafeTransaction
 {
@@ -88,6 +88,7 @@ public:
 
     SafeTransaction(unsigned int txn_flags = 0, unsigned int dbi_flags = 0) {
         int ret;
+
         ret = mdb_txn_begin(lmdb_block_store_env, NULL, txn_flags, &txn_);
         if (ret == MDB_SUCCESS)
         {
@@ -247,7 +248,7 @@ void pdo::lmdb_block_store::BlockStoreOpen(const std::string& db_path)
      * This risks possibly losing at most the last transaction if the system crashes
      * before it is written to disk.
      */
-    unsigned int flags = MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC;
+    unsigned int flags = MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOMETASYNC | MDB_MAPASYNC | MDB_NOTLS;
     ret = mdb_env_open(lmdb_block_store_env, db_path.c_str(), flags, 0664);
     pdo::error::ThrowIf<pdo::error::SystemError>(ret != 0, "Failed to open LMDB database");
 
@@ -289,6 +290,8 @@ pdo_err_t pdo::block_store::BlockStoreHead(
     pdo::block_store::BlockMetaData *outMetadata
 )
 {
+    SafeThreadLock slock;
+
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
@@ -333,6 +336,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
     uint8_t* outValue,
     const size_t inValueSize)
 {
+    SafeThreadLock slock;
     pdo_err_t result;
 
 #if BLOCK_STORE_DEBUG
@@ -373,7 +377,7 @@ pdo_err_t pdo::block_store::BlockStoreGet(
 #if BLOCK_STORE_DEBUG
     {
         std::string idStr = BinaryToHexString(inId, inIdSize);
-        std::string valueStr = BinaryToHexString((uint8_t*)lmdb_data.mv_data, lmdb_data.mv_size);
+        std::string valueStr = BinaryToHexString((uint8_t*)outValue, inValueSize);
         SAFE_LOG(PDO_LOG_DEBUG, "Block store found id: '%s' -> '%s'", idStr.c_str(), valueStr.c_str());
     }
 #endif
@@ -390,6 +394,7 @@ pdo_err_t pdo::block_store::BlockStorePut(
     const size_t inValueSize
 )
 {
+    SafeThreadLock slock;
     pdo_err_t result;
 
 #if BLOCK_STORE_DEBUG
