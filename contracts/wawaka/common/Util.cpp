@@ -37,12 +37,14 @@ std::new_handler std::get_new_handler() _NOEXCEPT
     return NULL;
 }
 
-void * operator new(size_t sz) throw(std::bad_alloc)
+//void * operator new(size_t sz) throw(std::bad_alloc)
+void * operator new(size_t sz) noexcept(false)
 {
     return malloc(sz);
 }
 
-void * operator new[](size_t sz) throw(std::bad_alloc)
+//void * operator new[](size_t sz) throw(std::bad_alloc)
+void * operator new[](size_t sz) noexcept(false)
 {
     return malloc(sz);
 }
@@ -65,6 +67,7 @@ void operator delete(void *ptr, std::align_val_t) _NOEXCEPT
 }
 
 #include <stdio.h>
+FILE *const stderr = NULL;
 int vfprintf(FILE *__restrict, const char *__restrict, __isoc_va_list)
 {
     CONTRACT_SAFE_LOG(4, "attempt to invoke unsupported vfprintf");

@@ -47,13 +47,17 @@ LIST(APPEND WASM_BUILD_OPTIONS "-O3")
 LIST(APPEND WASM_BUILD_OPTIONS "-fPIC")
 LIST(APPEND WASM_BUILD_OPTIONS "-fno-exceptions")
 LIST(APPEND WASM_BUILD_OPTIONS "-nostdlib")
-LIST(APPEND WASM_BUILD_OPTIONS "-std=c++11")
+LIST(APPEND WASM_BUILD_OPTIONS "-std=c++17")
 LIST(APPEND WASM_BUILD_OPTIONS "-DUSE_WASI_SDK=1")
 
 SET(WASM_LINK_OPTIONS)
-LIST(APPEND WASM_LINK_OPTIONS "-Wl,--allow-undefined")
 LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_dispatch")
 LIST(APPEND WASM_LINK_OPTIONS "-Wl,--export=ww_initialize")
+
+# To identify undefined symbols, remove the allow-undefined
+# switch and add the error-limit swith
+LIST(APPEND WASM_LINK_OPTIONS "-Wl,--allow-undefined")
+#LIST(APPEND WASM_LINK_OPTIONS "-Wl,--error-limit=0")
 
 # ---------------------------------------------
 # Set up the library list
