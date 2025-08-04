@@ -165,7 +165,7 @@ for v in $(seq 1 ${iterations}) ; do
 
     value=$(< ${RESULT_FILE})
     if [ $value != $v ]; then
-        die "contract has the wrong value ($value instead of $v) for enclave $e"
+        die "contract has the wrong value ($value instead of $v) for enclave $p"
     fi
 done
 
