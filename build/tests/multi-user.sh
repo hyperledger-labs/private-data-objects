@@ -189,7 +189,7 @@ for v in $(seq 1 ${port_count}) ; do
 
     value=$(< ${RESULT_FILE})
     if [ $value != $iterations ]; then
-        die "contract has the wrong value ($value instead of $iterations for enclave $e"
+        die "contract has the wrong value ($value instead of $iterations) for enclave $p"
     fi
 done
 
